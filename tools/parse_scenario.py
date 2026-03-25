@@ -50,7 +50,9 @@ def main():
         sys.exit(1)
 
     json_files = sorted(folder.glob("*.json"))
-    output_lines = []
+    out_dir = folder.parent / "scenarios"
+    out_dir.mkdir(exist_ok=True)
+    count = 0
 
     for json_file in json_files:
         try:
@@ -58,17 +60,16 @@ def main():
             if not talks:
                 continue
             name = json_file.stem
-            output_lines.append(format_as_text(name, talks))
-            output_lines.append("")
+            text = format_as_text(name, talks)
+            out_file = out_dir / f"{name}.txt"
+            out_file.write_text(text, encoding="utf-8")
+            print(f"  {out_file.name}")
+            count += 1
         except Exception as e:
             print(f"スキップ: {json_file.name} ({e})", file=sys.stderr)
 
-    output_text = "\n".join(output_lines)
-
-    out_file = folder.parent / "scenarios.txt"
-    out_file.write_text(output_text, encoding="utf-8")
-    print(f"出力完了: {out_file}")
-    print(f"抽出したファイル数: {len([l for l in output_lines if l.startswith('===')])}")
+    print(f"\n出力完了: {out_dir}")
+    print(f"抽出したファイル数: {count}")
 
 
 if __name__ == "__main__":
