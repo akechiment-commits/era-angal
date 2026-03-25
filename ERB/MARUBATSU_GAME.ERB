@@ -1,0 +1,304 @@
+;--------------------------------------------------------
+;○×ゲームv1.02
+;CFLAG:732で攻撃ターン 0:主人公 1:パートナー
+;CFLAG:733でマーク、0:主人公が○、1:パートナーが○）
+;戻り値 RESULT 0:主人公の勝ち 1:主人公の負け 2:引き分け
+;CPUは結構手抜きです(必勝法は仕掛けてきません)
+;使用変数はS:0～9、L:0～6
+;S:0～9 ○×ゲームの進行状況管理用
+;L:0～2 計算用のバッファ
+;L:3～4 敵思考パターン算出の引数代わり
+;L:5    COUNTの退避領域
+;L:6    先攻情報の退避
+;CFLAG:732を指定すると先攻を指定出来ます
+;--------------------------------------------------------
+;v1.00 2010/02/06 新規作成
+;v1.01 2010/03/03 GUI強化
+;v1.02 2010/11/25 PRINTFORMからPRINTに変更可能な処理が多数あったので変更
+;                  相手の思考ルーチンをリファクタリング
+;--------------------------------------------------------
+@MARUBATSU_GAME
+
+;S配列の初期化
+REPEAT 10
+	S:COUNT = 0
+REND
+;L配列の初期化
+REPEAT 7
+	L:COUNT = 0
+REND
+
+;先攻情報を保持
+L:6 = CFLAG:732
+
+;一先ず状況表示
+CALL SHOW_MARUBATSU_SET_STATES
+
+$IL_MARUBATSU_GAME
+IF CFLAG:732 == 1
+	;敵のターン
+	CALL MARUBATSU_ENEMY_TURN
+	CFLAG:732 = 0
+ELSE
+	;主人公のターン
+	CALL MATUBATSU_PLAYER_TURN
+	CFLAG:732 = 1
+ENDIF
+CALL SHOW_MARUBATSU_SET_STATES
+WAIT
+
+;勝利判定
+CALL MARUBATU_WINNER_CHECK
+IF RESULT == 0
+	CALL MARUBATU_CONTINUE_CHECK
+	IF RESULT == 1
+		PRINTW …………
+		PRINTW ………
+		PRINTW ……
+		PRINTL 
+		PRINTW ★★★引き分けでした★★★
+		PRINTL 
+		PRINTL 
+		;先攻情報を戻す
+		CFLAG:732 = L:6
+		;引き分けフラグ
+		RETURN 2
+	ENDIF
+;おお主人公よ！勝ってしまうとは大人気ない！
+ELSEIF RESULT == 1
+	PRINTW …………
+	PRINTW ………
+	PRINTW ……
+	PRINTL 
+	PRINTFORMW ★★★%CALLNAME:MASTER%の勝ちです★★★
+	PRINTL 
+	PRINTL 
+	;先攻情報を戻す
+	CFLAG:732 = L:6
+	RETURN 0
+;おお主人公よ！負けてしまうとは情けない！
+ELSEIF RESULT == 2
+	PRINTW …………
+	PRINTW ………
+	PRINTW ……
+	PRINTL 
+	PRINTFORMW ★★★%CALLNAME:MASTER%は負けました★★★
+	PRINTL 
+	PRINTL 
+	;先攻情報を戻す
+	CFLAG:732 = L:6
+	RETURN 1
+ENDIF
+SIF RESULT == 0
+	GOTO IL_MARUBATSU_GAME
+RETURN 0
+
+
+;プレイヤーの選択
+@MATUBATSU_PLAYER_TURN
+PRINTL 
+PRINTFORML %CALLNAME:MASTER%の番です。
+$IL_SETPLACE_SELECT
+PRINTL 何処に印を入れますか？
+CALL SHOW_MARUBATSU_SET_STATES2
+INPUT
+SIF S:RESULT != 0 || RESULT < 1 || RESULT > 9
+	GOTO IL_SETPLACE_SELECT
+
+;配置
+S:RESULT = 2
+RETURN 0
+
+
+;敵さんの思考ルーチン(結構手抜きしてます)
+@MARUBATSU_ENEMY_TURN
+PRINTFORML %CALLNAME:TARGET%の番です。
+TFLAG:13 = 200
+CALL SELF_KOJO
+;真ん中が空いてる場合は真ん中で
+IF S:5 == 0
+	S:5 = 1
+	RETURN 0
+ENDIF
+
+;勝負を決めに来る
+;各並びパターン内に2つ以上○がある事と、空きがある事をチェックでOKだったら印を付ける
+L:5 = 1
+CALL MARUBATSU_PATTERN_CHECK_SUB
+SIF RESULT == 1
+	RETURN 0
+
+;妨害パターン
+;各並びパターン内に2つ以上×がある事と、空きがある事をチェックでOKだったら印を付け妨害させる
+L:5 = 2
+CALL MARUBATSU_PATTERN_CHECK
+SIF RESULT == 1
+	RETURN 0
+
+;とても…ランダムです
+$ENEMY_TURN
+L = RAND:9+1
+SIF S:L != 0
+	GOTO ENEMY_TURN
+S:L = 1
+RETURN 0
+
+
+;パターンチェック(メインルーチン)
+@MARUBATSU_PATTERN_CHECK
+;1～3行
+REPEAT 3
+	L:3 = 1
+	L:4 = 1 + COUNT * 3
+	L:6 = COUNT
+	CALL MARUBATSU_PATTERN_CHECK_SUB
+	COUNT = L:6
+	SIF RESULT == 1
+		RETURN 1
+REND
+
+;1～3列目
+REPEAT 4
+	SIF COUNT == 0
+		CONTINUE
+	L:3 = 3
+	L:4 = COUNT
+	CALL MARUBATSU_PATTERN_CHECK_SUB
+	COUNT = L:4
+	SIF RESULT == 1
+		RETURN 1
+REND
+
+;斜め(傾き-)
+L:3 = 4
+L:4 = 1
+CALL MARUBATSU_PATTERN_CHECK_SUB
+SIF RESULT == 1
+	RETURN 1
+
+;斜め(傾き+)
+L:3 = 2
+L:4 = 3
+CALL MARUBATSU_PATTERN_CHECK_SUB
+SIF RESULT == 1
+	RETURN 1
+RETURN 0
+
+
+;パターンチェック(サブルーチン)
+@MARUBATSU_PATTERN_CHECK_SUB
+L:1 = 0
+L:2 = 0
+REPEAT 3
+	L = COUNT * L:3 + L:4
+	SIF S:L == L:5
+		L:1 += 1
+	SIF S:L == 0
+		L:2 += 1
+REND
+IF L:1 == 2 && L:2 == 1
+	S = 1
+	REPEAT 3
+		L = COUNT * L:3 + L:4
+		SIF S:L == 0
+			S:L = 1
+	REND
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;現状の戦況
+@SHOW_MARUBATSU_SET_STATES2
+PRINTL ┌――――――-┐
+REPEAT 10
+	;0回目は処理しない
+	SIF COUNT == 0
+		CONTINUE
+
+	;枠書いて…
+	PRINT ｜
+	SIF S:COUNT == 0
+		PRINTFORM [{COUNT}]
+	SIF (S:COUNT == 1 && CFLAG:733 == 1) || (S:COUNT == 2 && CFLAG:733 == 0)
+		PRINT  ○
+	SIF (S:COUNT == 1 && CFLAG:733 == 0) || (S:COUNT == 2 && CFLAG:733 == 1)
+		PRINT  ×
+
+	;外枠書いて改行
+	SIF COUNT % 3 == 0
+		PRINTL ｜
+REND
+PRINTL └――――――-┘
+RETURN 0
+
+
+;現状の戦況
+@SHOW_MARUBATSU_SET_STATES
+PRINTL ┌―――――┐
+REPEAT 10
+	;0回目は処理しない
+	SIF COUNT == 0
+		CONTINUE
+
+	;枠書いて…
+	PRINT ｜
+	SIF S:COUNT == 0
+		PRINT 　
+	SIF (S:COUNT == 1 && CFLAG:733 == 1) || (S:COUNT == 2 && CFLAG:733 == 0)
+		PRINT ○
+	SIF (S:COUNT == 1 && CFLAG:733 == 0) || (S:COUNT == 2 && CFLAG:733 == 1)
+		PRINT ×
+
+	;外枠書いて改行
+	SIF COUNT % 3 == 0
+		PRINTL ｜
+REND
+PRINTL └―――――┘
+RETURN 0
+
+
+;継続条件判定
+@MARUBATU_CONTINUE_CHECK
+S = 0
+REPEAT 10
+	SIF S:COUNT != 0 && COUNT != 0
+		S += 1
+REND
+SIF S >= 9
+	RETURN 1
+RETURN 0
+
+
+;終了判定
+@MARUBATU_WINNER_CHECK
+L:0 = 1 + CFLAG:732
+L:1 = 0
+;横
+SIF S:1 == L && S:2 == L && S:3 == L
+	L:1 = 1
+SIF S:4 == L && S:5 == L && S:6 == L
+	L:1 = 1
+SIF S:7 == L && S:8 == L && S:9 == L
+	L:1 = 1
+;縦
+SIF S:1 == L && S:4 == L && S:7 == L
+	L:1 = 1
+SIF S:2 == L && S:5 == L && S:8 == L
+	L:1 = 1
+SIF S:3 == L && S:6 == L && S:9 == L
+	L:1 = 1
+;斜め
+SIF S:1 == L && S:5 == L && S:9 == L
+	L:1 = 1
+SIF S:3 == L && S:5 == L && S:7 == L
+	L:1 = 1
+;設置直後のターン切り替えが入る為、逆の番号で判定
+IF L:1 == 1 && L == 1
+	RETURN 2
+ELSEIF L:1 == 1 && L == 2
+	RETURN 1
+ENDIF
+
+RETURN 0
+

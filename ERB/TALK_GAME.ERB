@@ -1,0 +1,77 @@
+;--------------------------------------------------------
+;会話イベントにおける数とりゲームの関数（CFLAG:730でターン回数、0:１ターン目、1:２ターン目以降、CFLAG:731で勝敗または必勝法の伝授、0:主人公勝ち、1:主人公負け、2:必勝法伝授）
+;--------------------------------------------------------
+@SAKUYA_GAME
+
+;数とりの数字と前回の勝敗をリセット（数字はSであらわす）
+S = 0
+CFLAG:731 = 0
+
+$SAKUYA_GAME_LOOP
+	IF S < 17
+	;Tは現在の数字Sに足す数をあらわす
+	T = RAND:3
+		IF T == 0
+			S += 1
+		ELSEIF T == 1
+			S += 2
+		ELSE
+			S += 3
+		ENDIF
+	ELSEIF S == 17
+		S += 3
+	ELSEIF S == 18
+		S += 2
+	ELSEIF S == 19
+		S += 1
+	ENDIF
+	;先攻１回目
+	IF CFLAG:730 == 0
+		PRINTFORMW 「え？私が先攻？それじゃあ……{S}」
+		CFLAG:730 = 1
+	;先攻２回目以降
+	ELSE
+		IF S < 11
+			PRINTFORMW 「{S}よ」
+		ELSEIF S < 16
+			PRINTFORMW 「うーん……{S}、かな」
+		ELSE
+			PRINTFORMW 「………{S}」
+		ENDIF
+	ENDIF
+	PRINTFORML 
+	PRINTFORML %CALLNAME:MASTER%の番です
+	PRINTFORML 現在の数字は{S}です
+	$SAKUYA_GAME_SELECT
+	PRINTFORML 
+	PRINTFORML [0]１を足す
+	PRINTFORML [1]２を足す
+	PRINTFORML [2]３を足す
+	PRINTFORML 
+	INPUT
+	SIF RESULT == 0
+		S += 1
+	SIF RESULT == 1
+		S += 2
+	SIF RESULT == 2
+		S += 3
+	SIF RESULT > 2
+		GOTO SAKUYA_GAME_SELECT
+
+	;まだあなたのバトルフェイズは終了していないぜ！
+	IF S < 20
+		GOTO SAKUYA_GAME_LOOP
+	;おお主人公よ！負けてしまうとは情けない！
+	ELSEIF S > 20
+		PRINTFORMW …………
+		PRINTFORMW ………
+		PRINTFORMW ……
+		PRINTFORML 
+		PRINTFORMW ★★★%CALLNAME:MASTER%は負けました★★★
+		PRINTFORML 
+		PRINTFORML 
+		;主人公負けたフラグ
+		CFLAG:731 = 1
+	ENDIF
+	
+	RETURN 0

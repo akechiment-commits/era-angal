@@ -1,0 +1,174 @@
+@EVENT_GYOSYO
+;Sは商品の確率、Tは値引きの金額、U,Vは商品の判定、Wは商品の値引き後の金額
+
+;各変数のリセット
+S = 0
+T = 0
+U = 0
+V = 0
+W = 0
+
+PRINTFORML 
+PRINTFORML 
+PRINTFORML %CALLNAME:TARGET%と別れようとした時、突然怪しげな男に声をかけられた
+PRINTFORMW 何者か訪ねると、どうやら行商人らしい
+PRINTFORML 
+PRINTFORML 
+PRINTFORMW 『今日は良い品物がありまっせ、お客さん』
+S = RAND:20
+T = RAND:5
+PRINTFORM 『今巷で大人気の
+;１５％の確率で媚薬
+IF S < 3
+	IF T == 0
+		W += 1600
+		U = 1
+	ELSE
+		W += 1800
+		V = 1
+	ENDIF
+	PRINTFORML 媚薬がなんとたったの{W}円！』
+;２５％の確率でビデオテープ入手
+ELSEIF S < 8
+	IF T == 0
+		W += 400
+		U = 2
+	ELSE
+		W += 450
+		V = 2
+	ENDIF
+	PRINTFORML ビデオテープがなんとたったの{W}円！』
+;２５％の確率でコンドーム
+ELSEIF S < 13
+	IF T == 0
+		W += 80
+		U = 3
+	ELSE
+		W += 90
+		V = 3
+	ENDIF
+	PRINTFORML コンドームがなんとたったの{W}円！』
+;１５％の確率で元気になる薬
+ELSEIF S < 16
+	IF T == 0
+		W += 800
+		U = 4
+	ELSE
+		W += 900
+		V = 4
+	ENDIF
+	PRINTFORML 元気になる薬がなんとたったの{W}円！』
+;５％の確率で排卵誘発剤
+ELSEIF S < 17
+	IF T == 0
+		W += 40000
+		U = 5
+	ELSE
+		W += 45000
+		V = 5
+	ENDIF
+	PRINTFORML 排卵誘発剤がなんとたったの{W}円！』
+;１５％の確率で緊急避妊薬
+ELSE
+	IF T == 0
+		W += 1800
+		U = 6
+	ELSE
+		W += 1900
+		V = 6
+	ENDIF
+	PRINTFORML 緊急避妊薬がなんと{W}円！』
+ENDIF
+PRINTL [0]安い！買った！
+PRINTL [1]遠慮しときます
+$INPUT_LOOP_ITEM
+INPUT
+;購入
+IF RESULT == 0
+	;購入したアイテムが所持数MAXだった場合
+	IF ((U == 1 || V == 1) && ITEM:26 == 99) || ((U == 2 || V == 2) && ITEM:28 == 99) || ((U == 3 || V == 3) && ITEM:29 == 99) || ((U == 4 || V == 4) && ITEM:70 == 99) || ((U == 5 || V == 5) && ITEM:33 == 99) || ((U == 6 || V == 6) && ITEM:34 == 99)
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML 『なんや、もう持ちきれまへんがな』
+		PRINTFORMW 『ほな、また次の機会にお願いしますわ』
+	ELSEIF MONEY < W
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORML 『……お客さん、お金足りまへんがな』
+		PRINTFORMW 『ほな、また次の機会にお願いしますわ』
+	;所持数に空きがあり、金が足りている場合
+	ELSE
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORMW 『毎度、おおきに～』
+		PRINTFORML 
+		PRINTFORML 
+		IF V == 1
+			PRINTFORMW ＜媚薬を安く購入しました＞
+			MONEY -= W
+			ITEM:26 += 1
+		ELSEIF U == 1
+			PRINTFORMW ＜媚薬をかなり安く購入しました＞
+			MONEY -= W
+			ITEM:26 += 1
+		ELSEIF V == 2
+			PRINTFORMW ＜ビデオテープを安く購入しました＞
+			MONEY -= W
+			ITEM:28 += 1
+		ELSEIF U == 2
+			PRINTFORMW ＜ビデオテープをかなり安く購入しました＞
+			MONEY -= W
+			ITEM:28 += 1
+		ELSEIF V == 3
+			PRINTFORMW ＜コンドームを安く購入しました＞
+			MONEY -= W
+			ITEM:29 += 1
+		ELSEIF U == 3
+			PRINTFORMW ＜コンドームをかなり安く購入しました＞
+			MONEY -= W
+			ITEM:29 += 1
+		ELSEIF V == 4
+			PRINTFORMW ＜元気になる薬を安く購入しました＞
+			MONEY -= W
+			ITEM:70 += 1
+		ELSEIF U == 4
+			PRINTFORMW ＜元気になる薬をかなり安く購入しました＞
+			MONEY -= W
+			ITEM:70 += 1
+		ELSEIF V == 5
+			PRINTFORMW ＜排卵誘発剤を安く購入しました＞
+			MONEY -= W
+			ITEM:33 += 1
+		ELSEIF U == 5
+			PRINTFORMW ＜排卵誘発剤をかなり安く購入しました＞
+			MONEY -= W
+			ITEM:33 += 1
+		ELSEIF V == 6
+			PRINTFORMW ＜緊急避妊薬を安く購入しました＞
+			MONEY -= W
+			ITEM:34 += 1
+		ELSEIF U == 6
+			PRINTFORMW ＜緊急避妊薬をかなり安く購入しました＞
+			MONEY -= W
+			ITEM:34 += 1
+		ENDIF
+		PRINTFORML 
+		PRINTFORML 
+		PRINTFORMW 『ほな、またお会いした時はご贔屓に～』
+	ENDIF
+ELSEIF RESULT == 1
+	PRINTFORML 
+	PRINTFORML 
+	PRINTFORML 『そうでっか……ほな、また次の機会にお願いしますわ』
+ELSE
+	GOTO INPUT_LOOP_ITEM
+ENDIF
+
+PRINTFORML 
+PRINTFORML 
+PRINTFORMW 行商人の男は去っていった……
+PRINTFORML 
+PRINTFORML 
+PRINTFORMW ……ところで、なぜあの行商人は霧の影響を受けていないんだ……？
+PRINTFORML 
+PRINTFORML 

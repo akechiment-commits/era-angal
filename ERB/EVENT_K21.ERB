@@ -1,0 +1,6557 @@
+;-------------------------------------------------
+;八雲藍 J1.06用口上Ver1.00?
+;
+;この口上は別氏作成の八雲藍口上を加筆・自分なりにアレンジしたものです。
+;既存の口上に若干の加筆をしたものもあれば新規に書きなおしたものもあります。先人に感謝。
+;まだ試作段階です。バグが発生してもご容赦の上報告ください。
+;恋慕がついてない状態では口上は酷い有様です。ちゃんと仲良くなってからウフフを行いましょう
+;慣れすぎた藍様はとても淫乱なのは仕様です
+;%CALLNAME:MASTER%の事を基本的に「お前」と呼ぶのは俺の趣味です
+;-------------------------------------------------
+
+;-------------------------------------------------
+;純愛口上用雛形
+;このテンプレートはeratohoJ用の口上テンプレートですので、
+;eratohoJ系列以外のバリアントでは使用しないようにしてください
+;純愛イベント口上ではCALL COMMON_PLANE_TEXTを挿入することで、共通の地の文を呼び出せます
+;X1、X2をキャラ番号に置換してください。
+;なお、キャラ番号が0番代の場合はX1は一桁で置換（例:1）し、
+;X2は0を含めて二桁で置換（例:01）してください
+;-------------------------------------------------
+
+;--------------------------------------------------
+;口上ファイルの存在判定（X2をキャラ番号に置換）
+;--------------------------------------------------
+@EVENTTRAIN
+#PRI
+FLAG:121 = 1
+SIF FLAG:7 == 0
+FLAG:7 = 2
+
+@EVENTEND
+#LATER
+FLAG:121 = 0
+
+;--------------------------------------------------
+;純愛イベント口上　 CFLAG221
+;--------------------------------------------------
+@KOJO_JUN_K21
+;--------------------------------------------------
+;エキストラモード構文　CFLAG:220を使用
+;はいを選択した時に初調教時に口上設定用の素質に変更できます
+;下記に処女化する場合の構文をサンプルとして載せておきます
+;-------------------------------------------------
+IF TFLAG:600 == 0 && CFLAG:220 == 0
+	PRINTL 実は藍様はこう見えて経験がなかったりしますか？
+	PRINTL [0] そのとおーり！
+	PRINTL [1] お姉さんキャラでそれはないだろうJK…
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 0
+		PRINTFORMW ―処女モードに素質、能力を変更します―
+		;処女追加、V感覚0、精液経験0、異常経験0
+		;緊縛経験も0にしたほうがいいのか？とりあえずしておく
+		TALENT:TARGET:0 = 1
+		ABL:TARGET:4 = 0
+		EXP:TARGET:0 = 0
+		EXP:TARGET:20 = 0
+		EXP:TARGET:50 = 0
+		EXP:TARGET:51 = 0
+		ELSEIF RESULT == 1
+		PRINTFORMW ―通常モードで開始します―
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+	CFLAG:220 = 1
+ENDIF
+
+;-------------------------------------------------
+;オープニング
+;-------------------------------------------------
+IF TFLAG:600 == 28
+	CALL COMMON_PLANE_TEXT
+	;難易度HARDの場合
+	IF FLAG:5 == 2
+		PRINTFORMW 藍は今回の異変の犯人は紫だと話した
+		PRINTFORMW 「私の力ではもう紫様を止めることが出来ないんだ」
+		PRINTFORMW 「でも、お前の力なら紫様を止めれるかもしれない」
+		PRINTFORMW 「私も協力するから一緒に紫様を止めてほしい、よろしく頼む」
+	;それ以外
+	ELSE
+		PRINTFORMW 「この異変を解決できるのは正気の私達だけ」
+		PRINTFORMW 「私も協力は惜しまない、頼りになるのはお前の力だからな」
+		PRINTFORMW 「それじゃ、これからよろしく頼むぞ」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;朝になったとき CFLAG221
+;-------------------------------------------------
+IF TFLAG:600 == 38
+	;デート後一回目
+	IF EXP:94 > 0 && CFLAG:221 < 1
+		PRINTFORMW 
+		CFLAG:221 = 1
+	;キス後一回目
+	ELSEIF EXP:96 > 0 && CFLAG:221 < 2
+		PRINTFORMW 
+		CFLAG:221 = 2
+	;恋慕後一回目
+	ELSEIF TALENT:85 == 1 && CFLAG:221 < 3
+		PRINTFORMW 
+		CFLAG:221 = 3
+	;エンディング後一回目
+	ELSEIF FLAG:28 > 0 && CFLAG:221 < 4
+		PRINTFORMW 
+		CFLAG:221 = 4
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ファーストキス
+;-------------------------------------------------
+IF TFLAG:600 == 1
+	;恋慕か恋人
+	IF TALENT:TARGET:85 == 1 || TALENT:TARGET:153 == 1
+		PRINTFORMW 深い口付けを終えると、%CALLNAME:MASTER%と藍は見つめあった
+		PRINTFORMW 「キスしたんだな、私達…これからもよろしくな」
+	;それ以外
+	ELSE
+		PRINTFORMW 「なっ…！」
+		PRINTFORMW 唇を離した後藍は不快感を露わにした。気まずい空気が流れる…
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;告白成功
+;-------------------------------------------------
+IF TFLAG:600 == 2
+	;告白失敗経験無し
+	IF CFLAG:222 == 0
+		;自分から告白
+		IF TFLAG:45 == 0
+			;恋慕
+			IF TALENT:TARGET:85 == 1
+				PRINTFORMW 「…！！」
+				PRINTFORMW 「嬉しいよ…お前からその言葉を聞けて…」
+				PRINTFORMW そう言うと藍は%CALLNAME:MASTER%を強く抱きしめた
+				PRINTFORMW 「これからもずっと一緒だぞ…」
+				PRINTFORMW 藍は満面の笑みを見せ、%CALLNAME:MASTER%の唇を激しく奪った…
+			;それ以外
+			ELSE
+				PRINTFORMW 「…」
+				PRINTFORMW 少しの静寂が場を支配したが、藍は口を開く
+				PRINTFORMW 「分かった…私もお前の事は嫌いじゃ…ない」
+				PRINTFORMW %CALLNAME:MASTER%は何も言わず藍を抱きしめる
+				PRINTFORMW 藍もまた%CALLNAME:MASTER%の抱擁に応えるように腕を%CALLNAME:MASTER%の背に回し、やがて熱い口付けをかわした…
+			ENDIF
+		;藍から告白
+		ELSE
+			PRINTFORMW 「お前に話があるんだ」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の目を真剣な眼差しで見ている
+			PRINTFORMW 「その、なんだ…お前と一緒にいると胸がもやもやするというか…」
+			PRINTFORMW 「これが、恋をするという事なのだろうな」
+			PRINTFORMW 頭を掻く藍に、%CALLNAME:MASTER%は言葉を返さず抱きしめる
+			PRINTFORMW 藍はみるみるうちに表情を綻ばせた
+			PRINTFORMW 「これからもずっと一緒にいような…」
+			PRINTFORMW %CALLNAME:MASTER%は涙ぐむ藍の頭をそっと撫でた
+		ENDIF
+	;告白失敗経験あり
+	ELSE
+		;自分から告白
+		IF TFLAG:45 == 0
+			;恋慕
+			IF TALENT:TARGET:85 == 1
+				PRINTFORMW 「昔なら断った。だが、今は違う」
+				PRINTFORMW 「今なら分かるよ、お前の気持ち」
+				PRINTFORMW 藍はそう言うと%CALLNAME:MASTER%の手を取り、真剣な眼差しで%CALLNAME:MASTER%を見つめた
+				PRINTFORMW %CALLNAME:MASTER%は藍の唇をそっと奪いながら抱きしめた…
+			;それ以外
+			ELSE
+				PRINTFORMW 「お前も懲りない奴だな…」
+				PRINTFORMW 藍は一瞬だけやれやれと言う面持ちで見つめたがすぐに表情を和らげた
+				PRINTFORMW 「負けたよ。お前の気持ち、確かに受け取った」
+				PRINTFORMW 藍は笑顔で%CALLNAME:MASTER%を見つめた
+			ENDIF
+		;藍から告白
+		ELSE
+			PRINTFORMW 「ちょっと時間、いいか？」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の目を少し不安そうな顔で見ている
+			PRINTFORMW 「前はお前の願い、断ってしまってすまなかった…」
+			PRINTFORMW 頭を下げる藍に%CALLNAME:MASTER%はとんでもないと驚きの表情をみせた
+			PRINTFORMW 「今更こんな事を言うのは勝手かもしれないが…お前が欲しい」
+			PRINTFORMW 顔面真っ赤にして藍はそう呟き、背を向けてしまった
+			PRINTFORMW %CALLNAME:MASTER%はそんな藍の仕草がとても愛おしく感じた
+			PRINTFORMW %CALLNAME:MASTER%は何も言わず後ろから藍を優しく抱きしめた
+			PRINTFORMW 「良かったよ…本当にお前が私のパートナーで…」
+			PRINTFORMW 「こんな我儘な私ですら包み込んでくれる」
+			PRINTFORMW %CALLNAME:MASTER%は何も言わずその抱擁を強くする
+			PRINTFORMW 藍も向き返るとまた何も言わず%CALLNAME:MASTER%を強く抱きしめ返した
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;告白失敗　 CFLAG222
+;-------------------------------------------------
+IF TFLAG:600 == 3
+;初回
+	IF CFLAG:222 == 0
+		;自分から告白
+		IF TFLAG:45 == 0
+			;恋慕
+			IF TALENT:TARGET:85 == 1
+				PRINTFORMW 「…少し、考えさせてくれないか」
+				PRINTFORMW 藍はそう言うと後ろを向き、顔を合わせようとしなかった
+				PRINTFORMW しかしその肩は何故か少しさびしげに見えた
+			;それ以外
+			ELSE
+				;好感度が馬鹿みたいに低い
+				IF CFLAG:2 < 200
+					PRINTFORMW 「お前は何を言っているんだ」
+					PRINTFORMW 「そんな考え方ではこの先心配だぞ」
+				ELSE
+					PRINTFORMW 「残念だが私にはその気はない」
+					PRINTFORMW 「私の見込み違いだったかな…」
+					PRINTFORMW 藍はやれやれという表情で%CALLNAME:MASTER%の言葉を軽く受け流した
+				ENDIF
+			ENDIF
+		;藍から告白
+		ELSE
+			;恋慕
+			IF TALENT:TARGET:85 == 1
+				PRINTFORMW 「ちょっといいか」
+				PRINTFORMW 藍は%CALLNAME:MASTER%に何か言おうとしたが口篭ってしまった
+				PRINTFORMW 「いや、何でもない。呼びとめて悪かったな」
+			;それ以外
+			ELSE
+				;好感度が馬鹿みたいに低い
+				IF CFLAG:2 < 200
+					PRINTFORMW 「…」
+					PRINTFORMW 藍がこっちを少し見ていた気がしたが、気のせいだろうか…
+				ELSE
+					PRINTFORMW 「ちょっといいか」
+					PRINTFORMW 藍は%CALLNAME:MASTER%を呼びとめようとしたようだ、が声が小さくて聞き取れなかった
+				ENDIF
+			ENDIF
+		ENDIF
+		CFLAG:222 = 1
+	;二回目以降
+	ELSE
+		;自分から告白
+		IF TFLAG:45 == 0
+			;恋慕
+			IF TALENT:TARGET:85 == 1
+				PRINTFORMW 「すまない…」
+				PRINTFORMW 「まだ心の整理がつかないんだ」
+				PRINTFORMW 藍はそう言うと俯いてしまった
+			;それ以外
+			ELSE
+				;好感度が馬鹿みたいに低い
+				IF CFLAG:2 < 200
+					PRINTFORMW 「二度は言わん、諦める事だ」
+					PRINTFORMW 藍は少し語気を強め、%CALLNAME:MASTER%を睨みつけた
+					PRINTFORMW 「私とお前はただのパートナーだ。領分を超えるような事があってはならない」
+					PRINTFORMW 藍は諭すように%CALLNAME:MASTER%に言った
+				ELSE
+					PRINTFORMW 「懲りない奴だ…まあその努力だけは認めてやろう」
+					PRINTFORMW 藍はあきれ顔でそう言うと、プイとそっぽを向いて去っていった
+				ENDIF
+			ENDIF
+		;藍から告白
+		ELSE
+			;恋慕
+			IF TALENT:TARGET:85 == 1
+				PRINTFORMW 「ちょっといいか…」
+				PRINTFORMW 藍は%CALLNAME:MASTER%に何か言おうとしたが口篭ってしまった
+				PRINTFORMW 「いや、やっぱり何でもない。呼びとめてすまなかった」
+			;それ以外
+			ELSE
+				;好感度が馬鹿みたいに低い
+				IF CFLAG:2 < 200
+					PRINTFORMW 藍はまた少しこちらを見やったようだが、%CALLNAME:MASTER%の視線に気づくと、
+					PRINTFORMW 何もなかったような顔をして「何だ？」と言ってきた
+				ELSE
+					PRINTFORMW 「お前に話があるんだが…」
+					PRINTFORMW そう呼び止められて%CALLNAME:MASTER%が振り返る
+					PRINTFORMW 「いや、気にしないでくれ。ただの独り言だ」
+					PRINTFORMW 藍はそう言うとそっぽを向いてしまった。しかしその顔は若干赤みを帯びていたように感じられた
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;服を無理矢理脱がせる　 CFLAG223
+;無理やりは良くないと思うよ
+;-------------------------------------------------
+IF TFLAG:600 == 4
+	;初めて
+	IF CFLAG:223 == 0
+		;恋慕または恋人
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「おい…ちょっと…」
+			PRINTFORMW 「お前はもう少し思慮のある奴だと思ったんだが…仕方ないな」
+		;それ以外
+		ELSE
+			PRINTFORMW 「服を脱げ、だと…？」
+			PRINTFORMW 「フッ…所詮お前もその程度の人間だったということか」
+			PRINTFORMW 藍は冷ややかな視線を%CALLNAME:MASTER%に向けた
+			CFLAG:223 = 1
+		ENDIF
+	;二回目以降
+	ELSE
+		;恋慕または恋人
+		IF (TALENT:153 || TALENT:85) && (CFLAG:223 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「うっ、またか…」
+			PRINTFORMW 「仕方のない奴だな…」
+			PRINTFORMW 藍は%CALLNAME:MASTER%を諦めの表情で見つめた
+			CFLAG:223 = 3
+		;それ以外
+		ELSEIF CFLAG:223 < 2 || FLAG:7 == 2
+			PRINTFORMW 「命知らずというか…呆れを通り越して笑えてくるな」
+			PRINTFORMW 藍はうすら笑いを浮かべているが、その瞳は氷のように冷たかった
+			CFLAG:223 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;服を脱がせる　 CFLAG224
+;初回口上のつもりで書いたけどフラグが入ってないから毎回言う違和感をなんとかしたいです
+;すぐ上の構文参考にやっつけ気味にやってみたけどどうだろう
+;-------------------------------------------------
+IF TFLAG:600 == 5
+
+	;初めて、かつ恋慕または恋人
+	IF CFLAG:224 == 0
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「そうか…ついにその時が来たのだな」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の前で一糸纏わぬ姿になる。その裸身は絵画の如く美しかった
+			PRINTFORMW 「さあ次はお前の番だぞ…それとも、私に脱がせてほしいのか？」
+			PRINTFORMW からかうようにして藍にけしかけられ%CALLNAME:MASTER%もいそいそと服を脱ぎ始めた
+			PRINTFORMW %CALLNAME:MASTER%の怒張を藍はまじまじと見つめていたが、%CALLNAME:MASTER%の視線を感じるとあわてて目をそらした
+	;それ以外
+		ELSE 
+			PRINTFORMW 「異変のためなら…やむを得んか…」
+			PRINTFORMW 藍は渋々といった感じで服を脱いでいった
+			CFLAG:224 = 1
+		ENDIF
+	;二回目以降
+	ELSE
+		;恋慕か恋人がある
+		IF (TALENT:85 || TALENT:153) && (CFLAG:224 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「フフフ…ほら、全部脱いだぞ」
+			PRINTFORMW 藍はその裸体を惜しげもなく%CALLNAME:MASTER%の前へ突き出し
+			PRINTFORMW 胸や尻を突き出して誘っている…
+			PRINTFORMW ゴクリ、と%CALLNAME:MASTER%の喉が鳴った…
+			CFLAG:224 = 3
+		;それ以外
+		ELSEIF CFLAG:224 < 2 || FLAG:7 == 2
+			PRINTFORMW 「…」
+			PRINTFORMW 藍は何も言わず%CALLNAME:MASTER%を睨みつけている…
+			PRINTFORMW それは例え体を許しても、心までは許さないという意思表示のようにも見えた
+			CFLAG:224 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;服脱がせ失敗　 CFLAG225
+;-------------------------------------------------
+IF TFLAG:600 == 6
+	IF TALENT:85 || TALENT:153 
+		PRINTFORMW %CALLNAME:MASTER%は藍の服に手をかけたが、その手を払われてしまった
+		PRINTFORMW 「今はそんな気分じゃないんだ…まだ体を許せるほど気持ちが」
+		PRINTFORMW 「すまない…また今度な」
+	ELSE
+		PRINTFORMW %CALLNAME:MASTER%は藍の服に手をかけようとしたが、刹那強烈な張り手が%CALLNAME:MASTER%の頬を襲った
+		PRINTFORMW 「悪い冗談だ。次はこれだけでは済まないかもしれないな」
+		PRINTFORMW そう言い放つ藍の瞳は猛禽類が獲物を狙うかの如く輝いていた
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;「合意」で服脱がせる　 CFLAG226
+;-------------------------------------------------
+IF TFLAG:600 == 7
+	A = RAND:2
+	;淫乱
+	IF TALENT:76 == 1 
+		IF A == 0
+			PRINTFORMW 「待ちわびたぞ…」
+			PRINTFORMW そう言うと藍は%CALLNAME:MASTER%の目の前で服を一枚ずつ見せつけるように脱いでいった…
+			PRINTFORMW 「ほら、お前のチンポが欲しくて欲しくて…こんなになってるんだ」
+			PRINTFORMW %CALLNAME:MASTER%に見せつけるように、しっとりと濡れた恥部をその眼前に押し付けるように見せつけている
+			PRINTFORMW そのまま藍は%CALLNAME:MASTER%の下腹部に手を伸ばし、ズボンから陰茎を慣れた手つきで取り出した
+			PRINTFORMW そして躊躇なく陰茎を咥えると舌で転がす、%CALLNAME:MASTER%の肉棒はみるみる天を向き
+			PRINTFORMW 藍の膣に入りたいと言っているが如く、びくびくと震わせながら戦闘態勢になった…
+		ELSE
+			PRINTFORMW 「たまには着たままというのはどうだ？」
+			PRINTFORMW %CALLNAME:MASTER%はそれでは大きくて美しい乳房を見られないと反論する
+			PRINTFORMW 「お前は本当に私のおっぱいが好きだな…だが求められているのは素直に嬉しいよ」
+			PRINTFORMW そう言うと、藍は自分の裸身を見せつけながら脱ぎ、%CALLNAME:MASTER%の衣服もはぎ取る
+			PRINTFORMW それだけで藍は期待に満ちた目で%CALLNAME:MASTER%の陰茎を見つめ、興奮を煽るように流し目をした
+		ENDIF
+	;淫乱はないが親愛か相愛である
+	ELSEIF  TALENT:76 == 0 && (TALENT:88 || TALENT:89)
+		IF A == 1
+			PRINTFORMW 「ふぅ…そんなに私の身体が気に入ったのか？」
+			PRINTFORMW %CALLNAME:MASTER%が藍の全てが好きだと言うと、一瞬で茹った蛸の如く顔を赤らめる藍
+			PRINTFORMW その反応が愛おしくて、%CALLNAME:MASTER%は藍を本能の赴くまま押し倒した
+		ELSE
+			PRINTFORMW 藍は服をいそいそと脱ぐと、%CALLNAME:MASTER%の前に正座し、よろしくと挨拶した
+			PRINTFORMW 「何事も初心を忘れては、成すべき事も成せない」
+			PRINTFORMW 藍はそう言うと、その場に立ちまだ硬度の伴わない陰茎にキスした…
+		ENDIF
+	;恋慕か恋人がある
+	ELSEIF TALENT:76 == 0 && TALENT:88 == 0 && TALENT:89 == 0 && (TALENT:85 || TALENT:153)
+	    IF A == 0
+			PRINTFORMW 「分かるよ。身も心も繋がりたいって気持ち」
+			PRINTFORMW 藍は少々はにかんだ後、ゆっくりと服を脱いでいった…
+		ELSE
+			PRINTFORMW 藍は頷くと、ゆっくり服を一枚一枚脱いでいく…
+		ENDIF
+	;それ以外(愛のないセックスって何だろう)
+	ELSE
+		PRINTFORMW 藍はしぶしぶと服を脱いでいく…
+		PRINTFORMW 契約を簡単に破っては不忠と呟きながら…
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;道中攻略成功　 CFLAG227
+;-------------------------------------------------
+IF TFLAG:600 == 8
+	A = RAND:3
+	;恋慕か恋人
+	IF TALENT:85 == 1 || TALENT:153 == 1
+		IF A == 0
+			PRINTFORMW 「私達の敵では無かったな」
+		ELSEIF A == 1
+			PRINTFORMW 「お前に背中を預けていると安心できるよ」
+		ELSE
+			PRINTFORMW 「格の違いが分かったようだな」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「私の実力、見くびらないでもらいたいな」
+		ELSEIF A == 1
+			PRINTFORMW 「お前もなかなかやるようだが…まだまだだ」
+		ELSE
+			PRINTFORMW 「さて、次だな…」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;道中攻略失敗　 CFLAG228
+;-------------------------------------------------
+IF TFLAG:600 == 9
+	CALL COMMON_PLANE_TEXT
+	PRINTL  
+	A = RAND:3
+	IF A == 0
+		PRINTFORMW 「不覚…引き際を誤ったな…」
+	ELSEIF A == 1
+		PRINTFORMW 「馬鹿な…こんな…」
+	ELSE
+		PRINTFORMW 「やれやれ…」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;特殊ボス戦開始
+;ボスの名前はSTR:1で参照可能です
+;XXにボスのキャラ番号を入れてください
+;TFLAG:120が1ならば下記のボス戦開始と相手のボスとして登場をスキップし、バッティングを防ぎます
+;-------------------------------------------------
+;IF TFLAG:600 == 40
+	;キャラの指定
+;	IF FLAG:25 == XX
+;		PRINTFORMW 
+;		TFLAG:120 = 1
+;	ENDIF
+;ENDIF
+
+;-------------------------------------------------
+;ボス戦開始　 CFLAG229
+;ボスの名前はSTR:1で参照可能です
+;-------------------------------------------------
+IF TFLAG:600 == 10
+	;敵が紫の場合（難易度Hard以外のとき）
+	IF FLAG:25 == 22
+		PRINTFORMW 『あら、藍じゃないの』
+		PRINTFORMW 「あっ、紫様…もしかして紫様、この霧にやられてしまったのですか？」
+		PRINTFORMW 『その通りよ藍、だから%CALLNAME:MASTER%も早くこちらにいらっしゃいな』
+		PRINTFORMW 「ごめんなさい紫様、ですが%CALLNAME:MASTER%の命令でもそれはできません」
+		PRINTFORMW 『あらあら、主人の言うことを聞けないなんてお仕置きが必要ね』
+		PRINTFORMW %CALLNAME:MASTER%は藍の体が少し震えていることに気がついた
+		PRINTFORMW 「私達の力で紫様に敵うのだろうか…？」
+		IF TALENT:85 == 1 || TALENT:153 == 1
+			PRINTFORMW %CALLNAME:MASTER%は藍を抱きしめ大丈夫と囁いた
+			PRINTFORMW 「ああ…お前とならば、紫様相手でも何故か安心できるんだ」
+			PRINTFORMW 『%CALLNAME:MASTER%が私の藍をたぶらかしたのね…藍と一緒にこの霧に堕ちると良いわ！』
+		ELSE
+			PRINTFORMW %CALLNAME:MASTER%はやってみなくちゃ分からないと藍を励ました
+			PRINTFORMW 「そうだな…やってみるまでは勝負は分からないな！」
+		ENDIF
+	;橙
+	ELSEIF FLAG:25 == 13
+		PRINTFORMW 『あっ、藍さまだ！会いたかったよー』
+		PRINTFORMW 「ん、橙！無事だったのか！？」
+		PRINTFORMW 『藍さまは平気だったの？』
+		PRINTFORMW 「ああ。どうした？様子がおかしいぞ橙？」
+		PRINTFORMW 『なーんだつまんない、藍さまと気持ちいいことしたかったのになー』
+		PRINTFORMW 『そうだ！藍さまもこの霧の虜にしてあげればいいんだ。それじゃいくよー！』
+		PRINTFORMW 「橙…お前もこの霧で…待ってろ、今治してやる」
+		PRINTFORMW 藍は橙に誘われた時一瞬まんざらでも無さそうな顔をしたが、%CALLNAME:MASTER%はそれに気がつかなかった
+	;三面まで
+	ELSEIF FLAG:24 <= 3
+		PRINTFORMW 「ん、あれは%STR:1%じゃないか」
+		PRINTFORMW 「やはり霧の影響か、正気を失っているようだが…」
+		PRINTFORMW 「仕方ない、力ずくで元に戻すしかないみたいだ」
+	;三面以降（六面除く）
+	ELSE
+		PRINTFORMW 「ん、あれは%STR:1%じゃないか」
+		PRINTFORMW 「元に戻してやる必要があるようだな。行くぞ！」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;特殊ボス戦勝利
+;ボスの名前はSTR:1で参照可能です
+;XXにボスのキャラ番号を入れてください
+;TFLAG:120が1ならば下記のボス戦勝利と相手のボスとして敗北をスキップし、バッティングを防ぎます
+;-------------------------------------------------
+;IF TFLAG:600 == 41
+	;キャラの指定
+;	IF FLAG:25 == XX
+;		PRINTFORMW 
+;		TFLAG:120 = 1
+;	ENDIF
+;ENDIF
+
+;-------------------------------------------------
+;ボス戦勝利　 CFLAG230
+;ボスの名前はSTR:1で参照可能です
+;FLAG:24でステージを参照、FLAG:27が10で中ボス、20以上でボスとなります
+;-------------------------------------------------
+IF TFLAG:600 == 11
+	;三面まで
+	IF FLAG:24 <= 3
+		;恋慕か恋人
+		IF TALENT:85 == 1 || TALENT:153 == 1
+			PRINTFORMW 「お前の援護で私も安心して背中を預けられる」
+			PRINTFORMW 「さて、%STR:1%をこのままにしておくのは危険だな」
+			PRINTFORMW 「%CALLNAME:MASTER%の家に運ぶ事にしようか」
+		ELSE
+			PRINTFORMW 「何とかなったようだな」
+			PRINTFORMW 「さて、%STR:1%をこのままにしておくのは危険だな」
+			PRINTFORMW 「一旦、お前の家に運んであげようか」
+		ENDIF
+	;ラストバトル
+	ELSEIF FLAG:24 == 6
+		PRINTFORMW 
+	;三面以降
+	ELSE
+		;恋慕か恋人
+		IF TALENT:85 == 1 || TALENT:153 == 1
+			PRINTFORMW 「ふぅ…危ないところだったな」
+			PRINTFORMW 「さて、%STR:1%をこのままにしておくのは危険だ」
+			PRINTFORMW 「%CALLNAME:MASTER%の家に運ぶがいいか？」
+		ELSE
+			PRINTFORMW 「お前がいなかったら危なかったかもな」
+			PRINTFORMW 「さて、%STR:1%をこのままにしておくのは危険だな」
+			PRINTFORMW 「一旦、お前の家に運んであげようか」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ボス戦敗北　 CFLAG231
+;ボスの名前はSTR:1で参照可能です
+;FLAG:24でステージを参照、FLAG:27が10で中ボス、20以上でボスとなります
+;-------------------------------------------------
+IF TFLAG:600 == 12
+	CALL COMMON_PLANE_TEXT
+	PRINTL  
+	A = RAND:3
+	IF TALENT:85 == 1 || TALENT:153 == 1
+		IF A == 0
+			PRINTFORMW 「我々が負けたら、誰が…！」
+		ELSEIF A == 1
+			PRINTFORMW 「我々の力を以ってしても、敵わないなんて…」
+		ELSE
+			PRINTFORMW 「くぅ…不覚…」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「侮ったか…」
+		ELSEIF A == 1
+			PRINTFORMW 「まさかこんなところで…」
+		ELSE
+			PRINTFORMW 「やれやれだ…」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;３ボス後　 CFLAG232
+;-------------------------------------------------
+IF TFLAG:600 == 30
+	;難易度Hardの時
+	IF FLAG:5 == 2
+		T = 22
+		CALL GET_EXISTANCE
+		;紫が既に居る(＝パートナー)場合、幽々子
+		IF E
+			CALL COMMON_PLANE_TEXT
+		;敵が紫
+		ELSE
+			PRINTFORMW %CALLNAME:MASTER%達が道中を進んでいる途中、%CALLNAME:MASTER%は目の前の空間が歪んでいることに気がついた
+			PRINTFORMW 「それに近づいてはいけない！」
+			PRINTFORMW 藍は慌てて%CALLNAME:MASTER%をその歪みから引き離す
+			PRINTFORMW 『あらあら、気づいてたのね』
+			PRINTFORMW その歪み…スキマから身を乗り出し不気味に微笑んでいる女性の名は、八雲　紫
+			PRINTFORMW 「紫様…何をしに来たのですか？」
+			PRINTFORMW 『そう身構えなくてもいいのよ藍。今日は%CALLNAME:MASTER%達とお話に来たのよ』
+			PRINTFORMW 『そろそろこの異変にも飽きてきたの、皆の痴態も見れたことだし…』
+			PRINTFORMW 『でもね…藍？%CALLNAME:MASTER%のだけはまだ見てないのよ？』
+			PRINTFORMW 「残念ながら紫様、私にその気はありません」
+				;合意+恋慕+恋人
+				IF TALENT:152 == 1 && TALENT:85 == 1 && TALENT:153 == 1
+					PRINTFORMW 「それに私にはもう…」
+					PRINTFORMW 藍は頬を赤らめながら%CALLNAME:MASTER%を見つめた
+					PRINTFORMW 『そういうこと…。いいわマヨヒガまで来なさい』
+					PRINTFORMW 『そこで、その子のことを忘れさせてあげる』
+					PRINTFORMW 『%CALLNAME:MASTER%達なら大丈夫だと思うけど、マヨヒガまでの道はとても霧が濃くなってるの』
+					PRINTFORMW 『濃い霧に当てられた人はちゃんと気持ち良くしてあげないと、正気に戻らないはずよ』
+					PRINTFORMW 『私に会う前にヤられるなんてことがないようにね…それでは、御機嫌よう』
+					PRINTFORMW 紫はスキマの中に消えていった…
+					PRINTFORMW 「今の私達なら必ず紫様を止められる。絶対にだ」
+					PRINTFORMW %CALLNAME:MASTER%はその問いに答える代わりに藍をひしと抱きしめた
+				;合意のみ
+				ELSEIF TALENT:152 == 1
+					PRINTFORMW 『あらら、振られちゃったわー…いいわマヨヒガまで来なさい』
+					PRINTFORMW 『でもね、マヨヒガまでの道はとても霧が濃くなってるの』
+					PRINTFORMW 『濃い霧に当てられた人はちゃんと気持ち良くしてあげないと、正気に戻らないはずよ』
+					PRINTFORMW 『%CALLNAME:MASTER%達ももっと練習した方が良いんじゃないかしら？』
+					PRINTFORMW 『藍の今の状態じゃ私は満足でき無さそうだしね…それでは、御機嫌よう』
+					PRINTFORMW 紫はスキマの中に消えていった
+					PRINTFORMW 「あの紫様の余裕…どうやらまだ紫様には敵わないみたいだ」
+					PRINTFORMW 「紫様の言ったとおりもっと練習するしかないみたい」
+					PRINTFORMW そう言うと藍は少し恥ずかしそうに%CALLNAME:MASTER%を見た
+				;それ以外
+				ELSE
+					PRINTFORMW 『あらら、振られちゃったわー…いいわマヨヒガまで来なさい』
+					PRINTFORMW 『でもね、マヨヒガまでの道はとても霧が濃くなってるの』
+					PRINTFORMW 『濃い霧に当てられた人はちゃんと気持ち良くしてあげないと、正気に戻らないはずよ』
+					PRINTFORMW 『だから藍、%CALLNAME:MASTER%も恥ずかしがってないで、色々と練習しておく事ね』
+					PRINTFORMW 藍の顔がみるみる内に赤くなっていくのが分かった
+					PRINTFORMW 『ふふ、そんな状態でやっても私も面白くないしね…それでは、御機嫌よう』
+					PRINTFORMW 紫はスキマの中に消えていった
+					PRINTFORMW 「…」
+					PRINTFORMW 「どうやらまだまだ修練が必要なようだ…だが…」
+				ENDIF
+			PRINTL  
+			PRINTFORMW ＜「服を脱がせる」が必ず成功するようになりました＞
+		ENDIF
+	;それ以外の難易度
+	ELSE
+		CALL COMMON_PLANE_TEXT
+		PRINTL  
+		PRINTFORMW 「今のが異変の犯人、なのだろうか？」
+		PRINTFORMW 「まあ、行かなければならない事に変わりはないか」
+		PRINTL  
+		;恋人
+		IF TALENT:153 == 1
+			;恋慕+合意
+			IF TALENT:85 == 1 && TALENT:152 == 1
+				PRINTFORMW 「まだまだ…その…練習しないといけないようだな」
+				PRINTFORMW 「もっと…しとこうか？」
+				PRINTFORMW 藍は上目遣いで%CALLNAME:MASTER%を見つめた
+			;恋慕+合意なし
+			ELSEIF TALENT:85 == 1 
+				PRINTFORMW 「さっき彼女が言ってたことだが…」
+				PRINTFORMW 「お前となら…その…いいぞ」
+				PRINTFORMW それだけ言うと藍は顔を真っ赤にして俯いてしまった…
+			ENDIF
+		;それ以外
+		ELSE
+			;恋慕か合意
+			IF TALENT:85 == 1 || TALENT:152 == 1
+				PRINTFORMW 「さっき彼女が言ってたことだが…」
+				PRINTFORMW 「少しだけでも…その、練習しとこうか？」
+				PRINTFORMW 藍は恥ずかしそうに%CALLNAME:MASTER%を見た
+			;それ以外
+			ELSE
+				PRINTFORMW 「さっき彼女が言ってたことだが」
+				PRINTFORMW 「あまり気が進まないが…異変解決のためには仕方ないことなんだろうな」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;６ボス前　 CFLAG233
+;-------------------------------------------------
+IF TFLAG:600 == 31
+	;レミリア（レミリアがパートナーの場合はフラン）
+	IF FLAG:25 == 10 || FLAG:25 == 11
+		PRINTFORMW 
+	;永琳（永琳がパートナーの場合は輝夜）
+	ELSEIF FLAG:25 == 29 || FLAG:25 == 30
+		PRINTFORMW 
+	;紫（紫がパートナーの場合は幽々子）
+	ELSEIF FLAG:25 == 22 || FLAG:25 == 20
+		PRINTFORMW 
+	;霊夢（霊夢がパートナーの場合は魔理沙）
+	ELSEIF FLAG:25 == 1 || FLAG:25 == 2
+		PRINTFORMW 
+	;共通の文章表示
+	ELSE
+		CALL COMMON_PLANE_TEXT
+	ENDIF
+	CFLAG:233 = 1
+	FLAG:27 = 21
+ENDIF
+
+;-------------------------------------------------
+;ボスとして出現　 CFLAG234
+;-------------------------------------------------
+IF TFLAG:600 == 32
+	PRINTFORMW 『フフフ…実にいい気持ちだ。天にも昇る気持ちというのはこのことだろうな』
+	PRINTFORMW 『お前達もその境地へと案内してあげよう』
+	CFLAG:234 = 1
+ENDIF
+
+
+;-------------------------------------------------
+;ボスとして倒される　 CFLAG235
+;-------------------------------------------------
+IF TFLAG:600 == 33
+	PRINTFORMW 『ん…？私は何をしていたんだ？』
+	PRINTFORMW 『何と、そんな事が…恥ずかしい姿を見せてしまったようだ』
+	PRINTFORMW 『もし良かったら私も協力させてくれないか？』
+	CFLAG:235 = 1
+ENDIF
+;-------------------------------------------------
+;耐力ゼロ　 CFLAG236
+;-------------------------------------------------
+IF TFLAG:600 == 13
+	PRINTFORMW %CALLNAME:TARGET%は%STR:1%の攻めに耐え切れず、霧に飲み込まれてしまった！
+	PRINTFORMW ぐったりとした%CALLNAME:TARGET%の頬は忽ち赤く染まり、荒い息をついている
+	PRINTFORMW 「はぁんっ…もう…ダメ…」
+	PRINTFORMW それを見た%STR:1%は%CALLNAME:TARGET%に近付くと、服の上から全身を愛撫し始めた
+	PRINTFORMW 「やっ…あぁん！こんな…の…いやぁ…」
+	PRINTFORMW 全身が敏感になってしまった%CALLNAME:TARGET%は、喘ぎを止める事が出来なかった
+	PRINTFORML  
+	PRINTFORMW  
+	PRINTFORMW 暫くその様子を楽しんだ%STR:1%は、ついに%CALLNAME:TARGET%の服を脱がし、胸や秘所を触り始めた
+	PRINTFORMW %CALLNAME:TARGET%の嬌声はより一層大きくなり、時折全身が痙攣したかのように見えた
+	PRINTFORML  
+	PRINTFORMW  
+	PRINTFORMW %CALLNAME:TARGET%が何度か絶頂を迎えた後、%CALLNAME:MASTER%は漸く邪魔者達を退け、%CALLNAME:TARGET%の元に辿り着いた
+	IF TALENT:85 == 1 || TALENT:152 == 1 || TALENT:153 == 1
+		PRINTFORMW 「すまないな…こんなにされて…」
+		PRINTFORMW 「お前じゃなかったのに…こんなに…感じてしまって…」
+		PRINTFORMW %CALLNAME:MASTER%は藍を抱きしめ、守れなくてごめんと言うと
+		PRINTFORMW 藍は優しく微笑み、気絶してしまった
+		PRINTFORMW %CALLNAME:MASTER%は藍を抱き抱え、家に連れ帰った
+	ELSE
+		PRINTFORMW 「この私がこんなザマでは…何も…」
+		PRINTFORMW そう言うと藍は気絶してしまった
+		PRINTFORMW %CALLNAME:MASTER%は藍を抱き抱え、家に連れ帰った…
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;全滅　 CFLAG237
+;-------------------------------------------------
+IF TFLAG:600 == 14
+	PRINTFORMW %CALLNAME:TARGET%は%STR:1%の攻めに耐え切れず、霧に飲み込まれてしまった！
+	PRINTFORMW ぐったりとした%CALLNAME:TARGET%の頬は忽ち赤く染まり、荒い息をついている
+	PRINTFORMW 「あんっ…もう…ダメ」
+	PRINTFORMW それを見た%STR:1%は%CALLNAME:TARGET%に近付くと、服の上から全身を愛撫し始めた
+	PRINTFORMW 「やっ…あぁん！こんなの…いやぁ…」
+	PRINTFORMW 全身が敏感になってしまった%CALLNAME:TARGET%は、喘ぎを止める事が出来なかった……
+	PRINTFORML  
+	PRINTFORMW  
+	PRINTFORMW 暫くその様子を楽しんだ%STR:1%は、ついに%CALLNAME:TARGET%の服を脱がし、胸や秘所を触り始めた
+	PRINTFORMW %CALLNAME:TARGET%の嬌声はより一層大きくなり、時折全身が痙攣したかのようにビクビクと震えている
+	PRINTFORMW %CALLNAME:TARGET%を助けようとした%CALLNAME:MASTER%も、いつの間にか現れた他の娘達に襲われており、完全に成す術が無くなっていた
+	PRINTFORML  
+	PRINTFORMW  
+	PRINTFORMW 数時間後、%STR:1%達が完全に満足して、ようやく２人は解放された
+	IF TALENT:85 == 1 || TALENT:152 == 1 || TALENT:153 == 1
+		PRINTFORMW 「お前じゃなかったのに…こんなことに…」
+		PRINTFORMW %CALLNAME:MASTER%は藍を抱きしめ、守れなくてごめんと言うと
+		PRINTFORMW 藍は優しく微笑み、気絶してしまった
+		PRINTFORMW %CALLNAME:MASTER%は藍を抱き抱え、家に連れ帰った
+	ELSE
+		PRINTFORMW 「すまない…この私がこんなザマでは…」
+		PRINTFORMW そう言うと藍は気絶してしまった
+		PRINTFORMW %CALLNAME:MASTER%は藍を抱き抱え、家に連れ帰った
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;主人公だけやられる　 CFLAG238
+;-------------------------------------------------
+IF TFLAG:600 == 15
+	CALL COMMON_PLANE_TEXT
+	PRINTL  
+	PRINTFORMW %CALLNAME:MASTER%が目を覚ますと、そこは自分の家だった
+	PRINTFORMW 「良かった…気がついたか」
+	IF TALENT:85 == 1 || TALENT:153 == 1
+		PRINTFORMW 「頼むから…無茶だけはしないでくれ」
+		PRINTFORMW 目に涙を溜めながら藍は%CALLNAME:MASTER%に抱きついた…
+	ELSE
+		PRINTFORMW 「修練が足りなかったようだな。もっと私と鍛えたほうがいい」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;主人公がお金稼ぎ　 CFLAG239
+;-------------------------------------------------
+IF TFLAG:600 == 16
+	PRINTFORMW 「金策か…」
+	SIF MONEY < 10000
+		PRINTFORMW 「確かに手持ちが心もとないな」
+	IF TALENT:85 == 1 || TALENT:153 == 1
+		PRINTFORMW 「ならば私も手伝おう」
+		PRINTFORMW しかし%CALLNAME:MASTER%は藍の体を気遣う旨を伝えると、藍は納得して家を守っていると言ってくれた
+		PRINTFORMW 「すまないな…では、いってらっしゃい」
+	ELSE
+		PRINTFORMW 「まあ、頑張ってくれ」
+	ENDIF
+	SIF ABL:90 >= 5
+		PRINTFORMW 「そうだ昼食にこれを持っていくといい。腹ごしらえは重要だからな」
+	IF EXP:96 > 0
+		PRINTFORMW 「これでいい。では、いってらっしゃい」
+		PRINTFORMW 藍は目を閉じ唇をつきだした、%CALLNAME:MASTER%は藍と口付けを交わし家を出た
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;２人でお金稼ぎ　 CFLAG240
+;-------------------------------------------------
+IF TFLAG:600 == 17
+	IF TALENT:85 || TALENT:153
+		PRINTFORMW 「よし、私も行こう」
+		PRINTFORMW 「お前となら、辛い仕事でも頑張れる」
+	ELSE
+		PRINTFORMW 「私と一緒なら、はかどるさ…式神の頭脳、甘く見ない事だ」
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;弁当販売　 CFLAG241
+;-------------------------------------------------
+IF TFLAG:600 == 18
+	;初回
+	IF CFLAG:241 == 0
+		PRINTFORMW 「弁当屋を開く？」
+		PRINTFORMW 「確かに私は普段家事等を担当する事が多いのだが…」
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「お前が味見をしてくれるか？」
+		ELSE
+			PRINTFORMW 「売った事はないから少し不安だが…任せてくれ」
+		ENDIF
+		CFLAG:241 = 1
+	ELSE
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「どうだ？」
+			PRINTFORMW %CALLNAME:MASTER%は正直にその味を絶賛している。藍も満面の笑みを浮かべている
+			PRINTFORMW 「売らないでお前に食べてほしいな…その方が私も幸せだ」
+		ELSE
+			PRINTFORMW 「いい感じに出来たな。後は事がうまくいくかどうか祈るだけだ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;弁当食べる　 CFLAG242
+;-------------------------------------------------
+IF TFLAG:600 == 19
+	;初回
+	IF CFLAG:242 == 0
+		;弁当販売したことがある
+		IF CFLAG:241 == 1
+			PRINTFORMW 「あれ？今日は売るのではないんだな」
+			PRINTFORMW 「そうか…私の料理をお前が食べてくれるんだな」
+		ELSE
+			PRINTFORMW 「お弁当を作って一緒に食べよう、か」
+		ENDIF
+		CFLAG:242 = 1
+	ELSE
+		A = RAND:3
+		IF TALENT:85 || TALENT:153
+			IF A == 0
+				PRINTFORMW 「口に合うかな…どうだ？」
+				PRINTFORMW %CALLNAME:MASTER%は素直に藍の料理を絶賛した。藍も得意げな顔で%CALLNAME:MASTER%を見つめている
+			ELSEIF A == 1
+				PRINTFORMW 「何、あーんしてほしいだと？しょうがないな…」
+				PRINTFORMW %CALLNAME:MASTER%は口をあける。藍はその要望に応えた
+				PRINTFORMW %CALLNAME:MASTER%は右手の親指を立てておいしいと示した。藍も満足そうな顔である
+			ELSE
+				PRINTFORMW 「私の料理を食べて、笑顔になるだけでうれしいんだ」
+				PRINTFORMW 「私の料理をずっと食べて欲しい…」
+			ENDIF
+		ELSE
+			PRINTFORMW 「おいしいか？ふふっ、それはよかった」
+			PRINTFORMW 「おいしいって言ってくれると、私も作ったかいがあったよ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;戦闘訓練　 CFLAG243
+;-------------------------------------------------
+IF TFLAG:600 == 20
+	A = RAND:2
+	IF TALENT:85 || TALENT:153
+		IF ABL:88 >= 3
+			IF A == 0
+				PRINTFORMW 「よし…」
+				PRINTFORMW 「お前の考えてる事くらいは分かるさ。深い付き合いだしな」
+			ELSE
+				PRINTFORMW 「中々息があってきたのを感じる」
+				PRINTFORMW 「これならどんな敵にも負けないはず」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「もっと経験をつんで、強くならないと」
+			ELSE
+				PRINTFORMW 「合わせるってのはそんなに難しいことではない」
+				PRINTFORMW 「お前のことをよく分かってるから、かもな」
+			ENDIF
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ここはこうした方が良いんじゃないか」
+			PRINTFORMW 「うん、さっきよりもいい感じだ」
+		ELSE
+			PRINTFORMW 「もっと経験をつんで、強くならないとな」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;休憩　 CFLAG244
+;-------------------------------------------------
+IF TFLAG:600 == 21
+	A = RAND:3
+	IF TALENT:85 || TALENT:153
+		;昼の場合
+		IF TIME == 0
+			IF A == 0
+				PRINTFORMW 「少し休もうか。何、膝枕してほしいだと？」
+				PRINTFORMW 「そう言われるのも、悪い気はしないな…いいだろう」
+			ELSEIF A == 1
+				PRINTFORMW 「たまには、ゆっくりするのもいいな」
+				PRINTFORMW 「お茶でも淹れようか」
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%は藍のふかふかの尻尾に飛び込んだ。何とも言えない触感が%CALLNAME:MASTER%の気持ちを落ち着かせる
+				PRINTFORMW 「そこは弱いんだ…や、やめろくすぐったい」
+				PRINTFORMW 「言ってくれれば触らせてあげるんだがな…次からはちゃんと言ってくれよ？」
+			ENDIF
+		;夜
+		ELSE
+			IF A == 0
+				PRINTFORMW 「こんな時間か…そろそろ寝支度を」
+				PRINTFORMW 「すまないが一緒に寝てもらってもいいか？お前の温もりを…感じたいんだ」
+			ELSEIF A == 1
+				PRINTFORMW 「お風呂沸いたぞ、一緒に入るか？」
+				PRINTFORMW 「そうか。それじゃあ…背中でも流そうか」
+			ELSE
+				PRINTFORMW 「しっぽを枕代わり、か…それは私も思いつかなかった」
+				PRINTFORMW 「気持よさそうだな…このまま眠ってもいいんだぞ？私がお姫様だっこで連れていってあげよう」
+			ENDIF
+		ENDIF
+	ELSE
+		IF TIME == 0
+			IF A == 0
+				PRINTFORMW 「睡眠は大事だな」
+				PRINTFORMW 「食事・睡眠はいずれかが欠けても100パーセントの力は出せない」
+			ELSE
+				PRINTFORMW 「ん、今日は休むのか」
+				PRINTFORMW 「異変解決だけに気を取られたら身が持たないしな、いいことだ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「じゃあ私は寝るとするか」
+				IF CFLAG:2 > 200
+					PRINTFORMW 「君も
+				ELSE
+					PRINTFORMW 「お前も
+				ENDIF
+					PRINTFORMW 、夜更かししないで早く寝たほうが良いぞ？」
+			ELSE
+				PRINTFORMW お風呂からあがった藍を見ていると、%CALLNAME:MASTER%は不思議な事に気がついた
+				PRINTFORMW 何故髪の毛は濡れているのに、尻尾はもう乾いてふわふわなのだろうか、と
+				PRINTFORMW 藍は頭を抱えて悩んでいる%CALLNAME:MASTER%を不思議そうな顔で見ていた
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;パートナー交代　 CFLAG245
+;交代した後の相手はTで取得可能
+;-------------------------------------------------
+IF TFLAG:600 == 22
+	;交代相手が橙
+	IF NO:T == 13
+		;藍さまも橙も恋人　式は式の式に
+		IF TALENT:153 && TALENT:T:153
+			PRINTFORMW %CALLNAME:MASTER%の両腕は藍と橙によって占領されていた
+			PRINTFORMW 「橙、知らない訳じゃないんだろう…三人でするのはどうだ？――%CALLNAME:MASTER%？」
+			PRINTFORMW 『流石藍さま！とてもいい考えです！ね、しようよ…』
+			PRINTFORMW 藍と橙は艶やかな視線で%CALLNAME:MASTER%を見つめてきた…
+		;藍さまだけ恋人
+		ELSEIF TALENT:153
+			PRINTFORMW 藍はそわそわしながら%CALLNAME:MASTER%と橙を見ている
+			PRINTFORMW 『藍さま、どうしたんですか？何か様子がへんですけど』
+			PRINTFORMW 「いや…何でもないんだ橙。気をつけるんだよ」
+			PRINTFORMW 藍は%CALLNAME:MASTER%に近づき耳打ちした
+			PRINTFORMW 「私がいるんだ、な…？」
+			PRINTFORMW 橙は不思議そうにその光景を見ていた
+		;橙だけ恋人
+		ELSEIF TALENT:T:153
+			PRINTFORMW 橙は%CALLNAME:MASTER%に気づくと、駆け寄り身体をすり寄せてきた
+			PRINTFORMW 『待ってたよー、今日は何して遊ぶの？』
+			PRINTFORMW 藍は%CALLNAME:MASTER%に近づき耳打ちした
+			PRINTFORMW 「橙とはそういう仲らしいが、あんまりヘンなことをするなよ」
+			PRINTFORMW 藍は笑顔だがその声色は怒気を孕んでいる気がした
+		;関係なし
+		ELSE
+			PRINTFORMW 「橙…本当に大丈夫かい？」
+			PRINTFORMW 『任せて下さい、藍さま』
+			PRINTFORMW 「少し心配だがな。頼んだよ」
+		ENDIF
+	;交代相手が紫
+	ELSEIF NO:T == 22
+		;藍さまもゆかりんも恋人　主は式に　デジャヴ
+		IF TALENT:153 && TALENT:T:153
+			PRINTFORMW %CALLNAME:MASTER%の両腕は藍と紫の腕によって占領されていた
+			PRINTFORMW 『いいこと思いついたわ、一人ずつするより三人でした方がいいんじゃないかしら？』
+			PRINTFORMW 「紫様、とてもいい考えですね。%CALLNAME:MASTER%もそう思うだろう？」
+			PRINTFORMW 紫と藍は艶やかな視線で%CALLNAME:MASTER%を見つめてきた…
+		;藍さまだけ恋人
+		ELSEIF TALENT:153
+			PRINTFORMW 「紫様。その、お願いします」
+			PRINTFORMW 『藍、心配しなくてもいいのよ』
+			PRINTFORMW 藍はホッと胸を撫で下ろした
+			PRINTFORMW 『でも、私の式をたぶらかすなんて、ちょっと興味があるわね』
+			PRINTFORMW 「紫様！私はたぶらかされてなんかっ」
+			PRINTFORMW 『ふふ…分かってるわよ、それじゃ行きましょうか』
+		;ゆかりんだけ恋人
+		ELSEIF TALENT:T:153
+			PRINTFORMW 「紫様、お願いします」
+			PRINTFORMW 『遅いわよ藍、待ちくたびれたわ』
+			PRINTFORMW そう言うと紫は%CALLNAME:MASTER%と腕を組みわざとらしく胸を擦り付けた
+			PRINTFORMW 藍はその光景を呆れた様に見つめていた
+		;関係なし
+		ELSE
+			PRINTFORMW 「紫様、お願いします」
+			PRINTFORMW 『私に任せときなさい』
+		ENDIF
+	;恋人
+	ELSEIF TALENT:153
+		PRINTFORMW 「私はまだ大丈夫だが…仕方ないな…」
+		PRINTFORMW 藍は尻尾を垂れ下げ俯いてしまった
+	;恋慕
+	ELSEIF TALENT:85
+		PRINTFORMW 「わかった…気をつけて」
+		PRINTFORMW 藍はどこか不安げな顔をしていた
+	;それ以外
+	ELSE
+		PRINTFORMW 「わかった、二人とも気をつけるんだぞ」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;助手交代　 CFLAG246
+;-------------------------------------------------
+IF TFLAG:600 == 23
+	;助手が橙
+	IF NO:T == 13
+		;藍さまも橙も恋人
+		IF TALENT:153 && TALENT:T:153
+			PRINTFORMW 「ふふ…その気になってくれたのだな」
+			PRINTFORMW 『藍さま、私頑張ります――%CALLNAME:MASTER%の為にも』
+			PRINTFORMW 「橙、二人で気持ちよくしてあげような」
+			PRINTFORMW 藍と橙は%CALLNAME:MASTER%にべったりと擦り寄っている…
+		;藍さまだけ恋人
+		ELSEIF TALENT:153
+			PRINTFORMW 藍はそわそわしながら%CALLNAME:MASTER%を見つめている
+			PRINTFORMW 『藍さま？どうしたんですか』
+			PRINTFORMW 「いや…。なんでもないよ橙」
+			PRINTFORMW 藍は%CALLNAME:MASTER%に耳打ちした
+			PRINTFORMW 「あんまり橙に如何わしい行為を見せたくないんだ。だがやむを得ないか」
+		;橙だけ恋人
+		ELSEIF TALENT:T:153
+			PRINTFORMW 『藍さまのお手伝いですか？わーい頑張るぞー！』
+			PRINTFORMW 橙は嬉しそうに%CALLNAME:MASTER%と藍の周りを回っている
+			PRINTFORMW 「橙、あんまり張り切り過ぎないようにな」
+			PRINTFORMW 『はーい』
+			PRINTFORMW 橙は笑顔で答えると%CALLNAME:MASTER%にくっついた
+			PRINTFORMW その瞬間、藍の表情が強張るのが分かった
+		;関係なし
+		ELSE
+			PRINTFORMW 「橙、本当に大丈夫かい？」
+			PRINTFORMW 『任せて下さい、藍さま』
+			PRINTFORMW 「少し心配だけど…頼んだよ」
+		ENDIF
+	;助手が紫
+	ELSEIF NO:T == 22
+		;藍さまもゆかりんも恋人
+		IF TALENT:153 && TALENT:T:153
+			PRINTFORMW 『その気になってくれたのね、うれしいわ』
+			PRINTFORMW 「紫様、私が主導権を取りますが…いいのでしょうか？」
+			PRINTFORMW 『いいのよ藍、%CALLNAME:MASTER%も一緒に気持ちよくしてあげるわ…』
+			PRINTFORMW 藍と紫は%CALLNAME:MASTER%にべったりと擦り寄っている
+		;藍さまだけ恋人
+		ELSEIF TALENT:153
+			PRINTFORMW 「紫様…お願いします」
+			PRINTFORMW 『いいわ、さてどうやって私の式をたぶらかしたのか拝見させて貰うわよ』
+			PRINTFORMW 「紫様、私はたぶらかされてなんかないです――見ていれば分かりますよ…」
+			PRINTFORMW 藍は紫を尻目に%CALLNAME:MASTER%に擦り寄った…
+		;ゆかりんだけ恋人
+		ELSEIF TALENT:T:153
+			PRINTFORMW 『何で私が藍の手伝いをしないといけないのかしら？』
+			PRINTFORMW 藍はぶつぶつと文句を言っている紫を宥めている
+			PRINTFORMW 『分かったわよ――%CALLNAME:MASTER%と一緒に居られる分マシだと思うことにするわ』
+			PRINTFORMW 紫は%CALLNAME:MASTER%と腕を組んだ
+		;関係なし
+		ELSE
+			PRINTFORMW 「紫様、お願いします」
+			PRINTFORMW 『私に任せときなさい』
+		ENDIF
+	;それ以外
+	ELSE
+		PRINTFORMW 「よろしく頼むよ、%CALLNAME:ASSI%」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;別れる
+;-------------------------------------------------
+IF TFLAG:600 == 24
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 
+	;恋人
+	ELSEIF TALENT:153 == 1
+		PRINTFORMW 
+	;キス経験有り
+	ELSEIF EXP:96 > 0
+		PRINTFORMW 
+	;デート経験有り
+	ELSEIF EXP:94 > 0
+		PRINTFORMW 
+	;それ以外
+	ELSE
+		PRINTFORMW 
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;デート中に向こうからファーストキス
+;-------------------------------------------------
+IF TFLAG:600 == 25
+	PRINTFORMW 「ちょっといいか？」
+	PRINTFORMW %CALLNAME:MASTER%は藍に呼ばれ振り返ると、不意に唇を奪われた
+	PRINTFORMW 「私の気持ちだ…今日は楽しかったよ」
+	IF TALENT:85
+		PRINTFORMW 「それにお前になら…」
+		PRINTFORMW そう言うと藍は顔を真っ赤にして俯いてしまった
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;デート中に向こうから告白
+;ちなみにTALENT:151を持ってる＝キス未経験の場合、このタイミングで一緒にファーストキスもする
+;-------------------------------------------------
+IF TFLAG:600 == 26
+	IF CFLAG:222 == 0
+		PRINTFORMW 「ちょっといいか？」
+		PRINTFORMW 藍は%CALLNAME:MASTER%の目を真剣な眼差しで見ている
+		PRINTFORMW 「気がついたらお前の事で頭がいっぱいになって…」
+		PRINTFORMW 「これが…好きということなんだな」
+		PRINTFORMW 「だから…私の気持ち、受け取ってくれるか？」
+		PRINTFORMW %CALLNAME:MASTER%は黙って藍を抱きしめた
+		PRINTFORMW 「うれしい…ずっと、ずっと一緒だ…離しちゃ嫌だぞ」
+		SIF TALENT:151 == 1
+			PRINTFORMW 二人はどちらからともなく唇を重ね合わせた…
+		PRINTFORMW 藍は満面の笑みを見せ、やがて%CALLNAME:MASTER%の胸の中で泣き始めた…
+	ELSE
+		PRINTFORMW 「ちょっといいか？」
+		PRINTFORMW 藍は%CALLNAME:MASTER%の目を少し不安そうな顔で見ている
+		PRINTFORMW 「この前は済まなかった…だが今なら言える」
+		PRINTFORMW 「私は、お前のことが…その…好き、なんだ」
+		PRINTFORMW 「断った身で何を言ってるとか言われても、その、仕方のない事だが」
+		PRINTFORMW そう言うと藍は後ろを向いてしまった
+		PRINTFORMW 「身勝手すぎると笑いたければ笑うといい…」
+		PRINTFORMW %CALLNAME:MASTER%は後ろから藍を優しく抱きしめた
+		PRINTFORMW 「…私が愚かだったようだな…お前はこんなにも優しい事に気づかないなんて…」
+		PRINTFORMW %CALLNAME:MASTER%は黙ったまま強く藍を抱きしめる
+		PRINTFORMW 「もう…私は君の虜だ…」
+		PRINTFORMW 藍は振り返ると涙でぐしゃぐしゃの顔で笑顔を見せ、%CALLNAME:MASTER%の胸の中で泣いた…
+		IF TALENT:151 == 1
+			PRINTFORMW 暫くして嗚咽が止むと、藍は%CALLNAME:MASTER%を見据えゆっくりと目を瞑り唇を突き出した
+			PRINTFORMW %CALLNAME:MASTER%はそれに応えるように自分の唇を重ねた…
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;我慢できず押し倒される
+;-------------------------------------------------
+IF TFLAG:600 == 27
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「駄目だ…抑えきれない！」
+		PRINTFORMW 「その…ベッドに行きたくないか…？」
+		PRINTFORMW %CALLNAME:MASTER%はその真意を察し、ベッドへと誘っていき、そこで藍の服を丁寧に脱がせていった…
+	;恋人
+	ELSEIF TALENT:153 == 1
+		PRINTFORMW 「なぁ…その…」
+		PRINTFORMW 藍は上目遣いで%CALLNAME:MASTER%を見つめると、袖を引っ張って頬を赤らめた。どうやらシたく、なったらしい
+		PRINTFORMW %CALLNAME:MASTER%は藍を抱きかかえると、ベッドへと移動し彼女の服をゆっくりと脱がせていった…
+	;キス経験有り
+	ELSEIF EXP:96 > 0
+		PRINTFORMW 
+	;デート経験有り
+	ELSEIF EXP:94 > 0
+		PRINTFORMW 
+	;それ以外
+	ELSE
+		PRINTFORMW 
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;エンディング
+;-------------------------------------------------
+IF TFLAG:600 == 29
+	PRINTFORMW 
+ENDIF
+TFLAG:600 = 0
+RETURN 1
+
+
+
+;-------------------------------------------------
+;イベント口上
+;-------------------------------------------------
+@SELF_KOJO_K21
+;-------------------------------------------------
+;調教後自慰 CFLAG301
+;-------------------------------------------------
+IF TFLAG:13 == 1
+	;恋慕
+	IF TALENT:85 ==1 && (CFLAG:301 < 3 || FLAG:7 == 2)
+		PRINTFORMW (%CALLNAME:MASTER%のその…陰茎を思い出すだけで…あそこが疼くんだ…)
+		CFLAG:301 = 3
+	;自慰中毒Lv3以上
+	ELSEIF ABL:10 >= 3 && (CFLAG:301 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「ああっ、気持ちいい…だが…%CALLNAME:MASTER%のチンポに貫かれたほうがもっと気持ちいいんだ…！」
+		PRINTFORMW その声は隣にいた%CALLNAME:MASTER%の耳に入っていたが当の本人には知る由もなかった
+		CFLAG:301 = 2
+	;それ以外
+	ELSEIF CFLAG:301 < 1 || FLAG:7 == 2
+		PRINTFORMW 行為の後でも体の火照りは収まらなかった。藍はおずおずと自分の陰部に手を伸ばしていく
+		CFLAG:301 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;レズプレイ CFLAG302
+;-------------------------------------------------
+IF TFLAG:13 == 2
+	;恋慕
+	IF TALENT:85 ==1 && (CFLAG:302 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「ああっ…病みつきになってしまうかも…」
+		CFLAG:302 = 4
+	;レズ中毒Lv3以上
+	ELSEIF ABL:12 >= 3 && (CFLAG:302 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「ああっ…お前とじゃないのに…気持ちいい！！」
+		PRINTFORMW %CALLNAME:MASTER%が見ている前で淫らな百合の園に一心不乱に耽っている藍の様子に、%CALLNAME:MASTER%の怒張は更に硬さを増していった…
+		CFLAG:302 = 3
+	;レズっ気Lv3以上
+	ELSEIF ABL:9 >= 3 && (CFLAG:302 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「フフフ…気持ちいいだろう…」
+		CFLAG:302 = 2
+	;それ以外
+	ELSEIF CFLAG:302 < 1 || FLAG:7 == 2
+		PRINTFORMW 「癖になってしまいそうだ…あんっ！」
+		CFLAG:302 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;朝フェラ CFLAG303
+;-------------------------------------------------
+IF TFLAG:13 == 3
+	;恋慕
+	IF TALENT:85 ==1 && (CFLAG:303 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「ほはほふ…ほうは、ひもひいいはろふ…(どうだ…気持ちいいだろう…)」
+		PRINTFORMW 「ほほはははひていいんらほ(このまま出していいんだぞ)」
+		PRINTFORMW 藍は未だ夢うつつの%CALLNAME:MASTER%のペニスを頬張っている…
+		CFLAG:303 = 3
+	;奉仕精神Lv10以上
+	ELSEIF ABL:6 >= 10 && (CFLAG:303 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「おはよう、どうだ、気持ちいいだろう…？」
+		PRINTFORMW 陰茎にキスをしつつ、カリ首を舐めまわす。顔は上気して懸命に濃いミルクを得ようと頑張っている
+		PRINTFORMW 思わず%CALLNAME:MASTER%は腰を震わせ、藍の口内へと精を放った…
+		PRINTFORMW 藍は満足そうな淫らな目で咽喉をならして飲み干すと、おはようと声をかけた
+		CFLAG:303 = 2
+	;それ以外
+	ELSEIF CFLAG:303 < 1 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:303 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;調教後セックス CFLAG304
+;-------------------------------------------------
+IF TFLAG:13 == 4
+	;V感覚Lv7以上
+	IF ABL:4 >= 7 && (CFLAG:304 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「あんっ！あんっっ！！もっと…もっと%CALLNAME:MASTER%のチンポ、藍のおまんこに突いて、赤ちゃんの素出してぇ！！」
+		PRINTFORMW 藍は激しく腰を打ちすえる。そのたびに%CALLNAME:MASTER%の陰茎は痙攣し、熱い精を解き放っていった…
+		CFLAG:304 = 2
+	;それ以外
+	ELSEIF CFLAG:304 < 1 || FLAG:7 == 2
+		PRINTFORMW 「腰が止まらない…もっとだ…もっとお前の…！」
+		PRINTFORMW 貪欲に藍の淫壺は精を欲しがるように収縮していく。%CALLNAME:MASTER%の陰茎は時々大きく痙攣しては精を放っていった…
+		CFLAG:304 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;調教後夜這い　 CFLAG305
+;-------------------------------------------------
+IF TFLAG:13 == 5
+	;V感覚Lv10以上
+	IF ABL:4 >= 10 && (CFLAG:305 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「体の疼きが止まらないんだ…」
+		PRINTFORMW 藍はそう言うと洪水のようになっている秘所を自分で広げ、%CALLNAME:MASTER%の煽情をかきたてた…
+		PRINTFORMW %CALLNAME:MASTER%はたまらず飛びかかり、藍の体を心ゆくまで堪能しその肉壺に熱い精を存分に放っていった…
+		CFLAG:305 = 2
+	;それ以外
+	ELSEIF CFLAG:305 < 1 || FLAG:7 == 2
+		PRINTFORMW 「その…足りないんだ…もっとしてくれないか？」
+		PRINTFORMW 藍は顔を赤くしながらそう促した
+		PRINTFORMW %CALLNAME:MASTER%はその言葉に応え、彼女の気が済むまで体をまぐわい、精を放っていった…
+		CFLAG:305 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;エンゲージリング プレゼント時
+;-------------------------------------------------
+IF TFLAG:13 == 7
+	PRINTFORMW 「こ、これは…！指、輪…？」
+	PRINTFORMW 藍はそう言うといきなり泣き出してしまった
+	PRINTFORMW 「いや…嬉しいんだ…これで、身も心も…完全にお前のものになれるのだと思うと」
+	PRINTFORMW 「一生、大事にするよ。だからお前も、ずっと…」
+	PRINTFORMW %CALLNAME:MASTER%と藍はしばらくの間熱い抱擁を交わし続けていた…
+ENDIF
+
+;-------------------------------------------------
+;朝パイズリ CFLAG:313
+;-------------------------------------------------
+IF TFLAG:13 == 8
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:313 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「どうだ、気持ちいいだろう？」
+		PRINTFORMW 藍の白い乳房はマシュマロのような柔らかさで陰茎を埋めていく
+		PRINTFORMW たまらず腰を痙攣させると、藍は口で陰茎を包み込み、ペニスに開いている小さい穴からの子種を啜りあげていく
+		PRINTFORMW 欲望を吐き出し硬度を失ったペニスを、藍は今度は両腕で胸を挟み込み、深い谷を作ると、
+		PRINTFORMW その谷の奥へとペニスを突き入れていく…
+		PRINTFORMW %CALLNAME:MASTER%も必死で腰を突き入れる
+		PRINTFORMW 圧迫されて寄せられた乳房は先ほどの柔らかさではなくほどよい弾力を与え、吸いついてくるようだった
+		PRINTFORMW やがて谷間にぶちまけられた%CALLNAME:MASTER%の精液を、藍は満足気に舐めとっていった…
+		PRINTFORMW 「朝の生搾り、おいひ…」
+		PRINTFORMW そう言って精液を嚥下していく藍の表情は牝そのものだった…
+		CFLAG:313 = 2
+	;それ以外
+	ELSEIF CFLAG:313 < 1 || FLAG:7 == 2
+		PRINTFORMW 「あっ、出たな…」
+		PRINTFORMW 「起こしに行ったら、元気よくお前のアレが天にそそり立っていてな…その、つい…」
+		PRINTFORMW はだけていた服を戻し、ばつが悪そうに藍は朝だぞ、起きろ、と続けた
+		CFLAG:313 = 1
+	ENDIF
+ENDIF
+
+
+;--------------------------------------------------
+;EVENTTRAIN関係（X1をキャラ番号に置換）
+;調教開始時のセリフ CFLAG 201～219を使用
+;-------------------------------------------------
+@EVENTTRAIN
+SIF FLAG:7 == 0
+	RETURN 0
+SIF NO:TARGET != 21
+	RETURN 0
+;--------------------------------------------------
+;簡易助手口上の発動時に初調教時口上をスキップ（Y1を助手のキャラ番号にする）
+;複数人いる際には、SIF NO:ASSI == Y1 || NO:ASSI == Z1と追加していく
+;--------------------------------------------------
+;IF CFLAG:201 == 0 && ASSI > 0
+;	SIF NO:ASSI == Y1
+;		CFLAG:201 =1
+;ENDIF
+;-------------------------------------------------
+;初パートナーと過ごす CFLAG201
+;-------------------------------------------------
+
+IF CFLAG:201 == 0
+	DRAWLINE
+	;素質:パートナーの場合
+	IF TALENT:150 == 1
+		PRINTFORMW 「そうだな、これから一緒に過ごすわけだし」
+		PRINTFORMW 「お互いのことを良く知ることから始めようか」
+	;それ以外
+	ELSE
+		PRINTFORMW 「これからよろしく頼むよ」
+	ENDIF
+	CFLAG:201 = 1
+	RETURN 1
+
+;-------------------------------------------------
+;パートナーと過ごす（一回のみ） CFLAG201
+;-------------------------------------------------
+
+;デート経験済み
+ELSEIF EXP:94 > 0 && TALENT:TARGET:85 == 0 && CFLAG:201 < 2
+	DRAWLINE
+	PRINTFORMW 「この前のデートは、その…悪くなかった」
+	PRINTFORMW 「また付き合ってやってもいいんだぞ？」
+	CFLAG:201 = 2
+	RETURN 1
+
+;恋人または恋慕
+ELSEIF (TALENT:85 || TALENT:153) && CFLAG:201 < 3
+	DRAWLINE
+	PRINTFORMW 「お前といると、心が安らぐよ…」
+	PRINTFORMW 紫や橙にしか見せない様な笑顔を%CALLNAME:MASTER%に向けた
+	CFLAG:201 = 3
+	RETURN 1
+
+;恋人かつ恋慕
+ELSEIF TALENT:85 && TALENT:153 && CFLAG:201 < 4
+	DRAWLINE
+	PRINTFORMW 「異変解決だけの仲だと思ってたのに、気がついたらお前のことが好きになって…」
+	PRINTFORMW 「その想いもちゃんと通じて…異変が無ければお前に出会うことがなかっただろう」
+	PRINTFORMW 「お前に出会えて本当によかった。私が初めて心から愛した人に…」
+	CFLAG:201 = 4
+	RETURN 1
+
+;助手の有無をチェック（いない場合は二回目以降へ飛ぶ）
+ELSEIF ASSI < 0 
+	CALL K21_KOJO2
+
+;-------------------------------------------------
+;簡易助手口上（Y1を助手のキャラ番号に置換、X1をキャラ番号に変更する) CFLAG202
+;掛け合いをするキャラを増やす場合は、コピー＆ペーストをして、CFLAGの数を203、204と増やす
+;-------------------------------------------------
+;助手
+;ELSEIF NO:ASSI == Y1
+;	DRAWLINE
+	;初めて
+;	IF CFLAG:202 == 0
+		;恋慕＋恋慕時初口上（陥落イベント）が発生済み
+;		IF TALENT:TARGET:85 == 1 && CFLAG:201 >= 5
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;		CFLAG:202 = 1
+;		RETURN 1
+	;二回目以降
+;	ELSEIF CFLAG:202 == 1 && FLAG:7 ==2
+		;恋慕
+;		IF TALENT:TARGET:85 == 1
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;		RETURN 1
+;	ENDIF
+
+;ELSEIF NO:ASSI == Y1
+;	DRAWLINE
+	;初めて
+;	IF CFLAG:203 == 0
+		;恋慕＋恋慕時初口上（陥落イベント）が発生済み
+;		IF TALENT:TARGET:85 == 1 && CFLAG:201 >= 5
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;		CFLAG:203 = 1
+;		RETURN 1
+	;二回目以降
+;	ELSEIF CFLAG:203 == 1 && FLAG:7 ==2
+		;恋慕
+;		IF TALENT:TARGET:85 == 1
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;		RETURN 1
+;	ENDIF
+;口上のある助手が居ない場合は、通常の二回目以降の口上へ飛ぶ
+ELSE
+	CALL K21_KOJO2
+ENDIF
+
+
+;-------------------------------------------------
+;パートナーと過ごす（2回目以降、X1をキャラ番号に変更する） CFLAGなし 
+;-------------------------------------------------
+@K21_KOJO2
+;反発感情Lv1以上
+IF MARK:3 >= 1 && FLAG:7 == 2
+	DRAWLINE
+	PRINTFORMW 「やれやれ…私の見込み違いだったようだな」
+	PRINTFORMW そう言うと藍は%CALLNAME:MASTER%から顔を逸らし大きく溜息をついた
+	RETURN 1
+
+;恋人+恋慕
+ELSEIF TALENT:TARGET:153 == 1 && TALENT:TARGET:85 == 1 && FLAG:7 == 2
+	A = RAND:3
+	DRAWLINE
+	IF A == 0
+		PRINTFORMW 「異変を解決しなければならない、ただ…」
+		PRINTFORMW 「このままずっと…お前と触れ合っていたい…」
+	ELSEIF A == 1
+		PRINTFORMW 「今日は何をするんだ？デートか？訓練か？それとも…」
+		PRINTFORMW 藍はそのふくよかな谷間を見せつけるようにして%CALLNAME:MASTER%を誘っている…
+	ELSE
+		PRINTFORMW 藍は%CALLNAME:MASTER%に寄り添った
+		PRINTFORMW 「お前の温もりを一秒でも長く感じていたい…」
+	ENDIF
+	RETURN 1
+
+;恋人または恋慕
+ELSEIF TALENT:153 || TALENT:85
+	A = RAND:3
+	DRAWLINE
+	IF A == 0	
+		PRINTFORMW 「今日は何をするんだ？」
+		PRINTFORMW 藍は何かを期待する目で%CALLNAME:MASTER%を見ている
+	ELSEIF A == 1
+		PRINTFORMW 藍は%CALLNAME:MASTER%を見ると、ホッと胸を撫で下ろした
+		PRINTFORMW 「どこへ行ってたんだ？あまり私に心配をかけさせないでくれ」
+	ELSE
+		PRINTFORMW 「お前と一緒に居ると、異変のことを忘れてしまいそうだ」
+		PRINTFORMW 「ふっ…大丈夫、解決することもちゃんと考えてるさ。ただ今はこのままで…」
+	ENDIF
+	RETURN 1
+
+;進展なし
+ELSE
+	DRAWLINE
+	A = RAND:3
+	IF CFLAG:2 < 200
+		PRINTFORMW 「お前のことは、まだよくわからない」
+		PRINTFORMW 「もっとお互いのことを知る必要があるな」
+	ELSEIF A == 0
+		PRINTFORMW 「ん、今日は何をするんだ？」
+	ELSEIF A == 1
+		PRINTFORMW 「早く異変を解決しないとな…」
+	ELSE
+		PRINTFORMW 「ここの生活にも漸く慣れてきたよ」
+	ENDIF
+	RETURN 1
+	
+ENDIF
+RETURN 0
+
+;-------------------------------------------------
+;EVENTEND関係（X1をキャラ番号に置換）
+;パートナーと一旦別れる
+;-------------------------------------------------
+@EVENTEND
+SIF FLAG:7 == 0
+	RETURN 0
+SIF NO:TARGET != 21
+	RETURN 0
+;--------------------------------------------------
+;パートナーと一旦別れる
+;--------------------------------------------------
+;ウフフモード終了時口上
+IF TFLAG:44 == 1
+;
+	;反発感情Lv1以上
+	IF MARK:3 >= 1
+		DRAWLINE
+		PRINTFORMW 「ようやく終わったか…私の体を弄んだ感想はどうだ？」
+		PRINTFORMW 冷たい瞳で、藍はそう言い放った
+		RETURN 1
+
+	;恋慕＋体力500未満
+	ELSEIF TALENT:TARGET:85 == 1 && BASE:0 < 500
+		DRAWLINE
+		PRINTFORMW 「ハァ、ハァ…すまない、少し頑張りすぎたようだ…」
+		PRINTFORMW 藍はかなり疲れているようだ。少し無理をさせ過ぎたようだ 
+		RETURN 1
+	ENDIF
+
+;通常モード終了時口上
+;セリフの整合性の問題で一時コメントアウト。CFLAGか…？
+ELSE
+	;反発感情Lv1以上
+	IF MARK:3 >= 1
+		DRAWLINE
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「いいパートナーと出会えたと思ったんだがな…」
+			PRINTFORMW 「残念だ」
+		ELSE
+			PRINTFORMW 「まだ何か用があるのか？」
+			PRINTFORMW 「無いならもう一人にしてくれないか」
+		ENDIF
+		RETURN 1
+		
+	;恋慕+恋人
+	ELSEIF TALENT:TARGET:85 == 1 && TALENT:TARGET:153 == 1
+		A = RAND:2
+		DRAWLINE
+		IF A == 0
+			PRINTFORMW 藍は%CALLNAME:MASTER%の肩に頭をのせた
+			PRINTFORMW 「まだ…もうちょっとこのままでいさせてくれ…」
+		ELSE
+			IF TIME == 0
+				PRINTFORM 「夜も
+			ELSE
+				PRINTFORM 「明日も
+			ENDIF
+			PRINTFORMW 、来てくれるな…？　待ってる」
+		;ELSE
+			;PRINTFORMW 「今日は、しないのか？」
+			;PRINTFORMW 「お前が望むならいつでもしてあげるから」
+			;PRINTFORMW 「遠慮しなくてもいいんだぞ？」
+			;PRINTFORMW 藍は妖艶な笑みを%CALLNAME:MASTER%に向けた
+		ENDIF
+		RETURN 1
+	
+	;恋慕または恋人
+	ELSEIF TALENT:TARGET:85 == 1 || TALENT:TARGET:153 == 1
+		A = RAND:3
+		DRAWLINE
+		IF A == 0
+			PRINTFORMW 「楽しい時間はすぐ過ぎていってしまうな」
+			PRINTFORMW 「お前とはもっと語らいたい事があるのに…」
+		ELSEIF A == 1
+			PRINTFORMW 「またすぐ会えるのに…何でこんなに名残惜しいんだろう」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の袖を掴んだが、すぐに離して部屋を後にした…
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		RETURN 1
+	
+	;好感度2000以上
+	ELSEIF CFLAG:2 >= 2000
+		DRAWLINE
+		A = RAND:3
+		IF A == 0
+			PRINTFORMW 「ふふ…あ、もうこんな時間か」
+			PRINTFORMW 「お前といると時間がすぐ過ぎていく気がするよ」
+		ELSEIF A == 1
+			PRINTFORMW 「お前のことがよく分かってきたよ」
+			PRINTFORMW 「意外な面もあるもんだな。ふふふ」
+		ELSE
+			PRINTFORMW 「お疲れ様、後はゆっくりするとしようか」
+		ENDIF
+		RETURN 1
+	
+	;進展なし
+	ELSE
+		DRAWLINE
+		A = RAND:3
+		IF CFLAG:2 < 200
+			PRINTFORMW 「まだお互いぎこちないな…」
+			PRINTFORMW 「でも、そのうち慣れていくだろう」
+		ELSEIF A == 0
+			PRINTFORMW 「ん…？もうこんな時間か」
+			PRINTFORMW 「それじゃ、またな」
+		ELSEIF A == 1
+			PRINTFORMW 「君のことが少し分かってきた気がするよ」
+		ELSE
+			PRINTFORMW 「ふぅ…少し疲れたな、ちょっと休ませて貰うよ」
+		ENDIF
+		RETURN 1
+	ENDIF
+ENDIF
+RETURN 0
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_MARKCNG関係（X1をキャラ番号に置換）
+;刻印変動をトリガーにした口上
+;刻印変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_MESSAGE_MARKCNG_21
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+;SIF ASSI > 0 && ASSIPLAY
+;	RETURN 0 
+;ボールギャグ着用時には口上をスキップする（OFFだと口を塞いでるのに喋りまくる）
+SIF TEQUIP:45
+	RETURN 0
+;-------------------------------------------------
+;苦痛依存Lv3取得 CFLAG397
+;-------------------------------------------------
+IF TFLAG:22 == 3 && CFLAG:397 == 0
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「うぐぅぁぁぁぁっ！？」
+		PRINTFORMW 激しい痛みに藍の顔は歪んでいる。しかし%CALLNAME:MASTER%の顔を見ると落ち着きを取り戻す
+		PRINTFORMW 「痛いのは…気持ちのいいものじゃない…分かってくれ…」
+	ELSE
+		PRINTFORMW 「ぬわぁぁぁぁぁぁぁっ！！」
+		PRINTFORMW 藍はその尋常ではない苦痛にその顔を大きく歪ませ、その後%CALLNAME:MASTER%を鋭い目で睨みつけた
+		PRINTFORMW 「貴様…」
+	ENDIF
+	CFLAG:397 = 1
+ENDIF
+
+;-------------------------------------------------
+;快楽依存Lv3取得 CFLAG398
+;-------------------------------------------------
+IF TFLAG:23 == 3 && CFLAG:398 == 0
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「い、意識が飛びそうだ！あ、ふぁぁぁぁぁぁん！」
+		PRINTFORMW 藍の体は激しく痙攣し、豊かな双乳は%CALLNAME:MASTER%の目の前で激しく揺れ動いた
+		PRINTFORMW その目はすっかり快楽に溺れ、牝の表情を見せていた…
+	ELSE
+		PRINTFORMW 「う、あああん！こ、こんなに気持ちいいなんて…」
+		PRINTFORMW 藍の体はがくがく激しく震え、陰部からは洪水のように愛液が流れ出ている
+		PRINTFORMW すっかり快楽の味を覚えてしまったようだ
+	ENDIF
+	CFLAG:398 = 1
+ENDIF
+
+;-------------------------------------------------
+;既成事実Lv1～3取得 CFLAG399
+;-------------------------------------------------
+;既成事実Lv3
+IF TFLAG:24 == 3 && CFLAG:399 < 3
+	;恋慕または恋人
+	IF TALENT:85 || TALENT:153
+		PRINTFORMW 「ここまでしたからには、一生大切にしてくれよ…」
+	ELSE
+		PRINTFORMW 「そんな…こんなことって…」
+	ENDIF
+	CFLAG:399 = 3
+;既成事実Lv2
+ELSEIF TFLAG:24 == 2 && CFLAG:399 < 2
+	;恋慕または恋人
+	IF TALENT:85 || TALENT:153
+		PRINTFORMW 「ついにここまで来たんだな…私達」
+	ELSE
+		PRINTFORMW 「…」
+		PRINTFORMW 藍は複雑な面持ちであなたを見つめている…
+	ENDIF
+	CFLAG:399 = 2
+;既成事実Lv1
+ELSEIF TFLAG:24 == 1 && CFLAG:399 < 1
+	;恋慕または恋人
+	IF TALENT:85 || TALENT:153
+		PRINTFORMW 「お前となら、もっとすごいことでも…いや何でもないさ」
+	ELSE
+		PRINTFORMW 「…」
+		PRINTFORMW 藍は少々呆けるが、すぐに平静を取り戻した
+	ENDIF
+	CFLAG:399 = 1
+ENDIF
+
+;-------------------------------------------------
+;反発感情Lv1～3取得 CFLAG400
+;-------------------------------------------------
+;反発感情Lv3
+IF TFLAG:21 == 3 && CFLAG:400 < 3
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「どうして…こんな酷い事を…！」
+	ELSE
+		PRINTFORMW 「貴様…
+		PRINTFORMW ただで済むと思っていないだろうな…？」
+		PRINTFORMW 藍は瞳を烈火のごとく燃え上がらせ、
+		PRINTFORMW 今にも%CALLNAME:MASTER%を引き裂けるような鋭い爪をむき出しにしている
+		PRINTFORMW 逆鱗に触れてしまったようだ…
+	ENDIF
+	CFLAG:400 = 3
+;反発感情Lv2
+ELSEIF TFLAG:21 == 2 && CFLAG:400 < 2
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「くっ…どうして…！」
+	ELSE
+		PRINTFORMW 「いい加減にしないか…」
+		PRINTFORMW 藍の表情からは普段の穏やかさが消え、獣の目へと変貌していた
+	ENDIF
+	CFLAG:400 = 2
+;反発感情Lv1
+ELSEIF TFLAG:21 == 1 && CFLAG:400 < 1
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「…」
+	ELSE
+		PRINTFORMW 「お前な…」
+		PRINTFORMW 藍の瞳には炎が映っているように%CALLNAME:MASTER%は感じた
+	ENDIF
+	CFLAG:400 = 1
+ENDIF
+
+;--------------------------------------------------
+;@KOJO_MESSAGE_COM関係（X1をキャラ番号に置換）
+;--------------------------------------------------
+@KOJO_MESSAGE_COM_21
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+;SIF ASSI > 0 && ASSIPLAY
+;	RETURN 0 
+;ボールギャグ着用時には口上をスキップする（OFFだと口を塞いでるのに喋りまくる）
+SIF TEQUIP:45 && SELECTCOM != 45
+	RETURN 0
+;-------------------------------------------------
+;コマンド実行時のセリフ CFLAG 401～500を使用
+;-------------------------------------------------
+
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;コミュニケーション系コマンド
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;-------------------------------------------------
+;弾幕ごっこ CFLAG401
+;-------------------------------------------------
+IF SELECTCOM == 300
+	;初めて
+	IF CFLAG:401 == 0
+		PRINTFORMW 「まずは実力を見せてもらおうか、本気でかかってこい！」
+		CFLAG:401 = 1
+	;二回目以降
+	ELSE
+		A = RAND:3
+		;恋人か恋慕
+		IF (TALENT:153 || TALENT:85) && (CFLAG:401 < 3 || FLAG:7 == 2)
+			IF TFLAG:18 == -1
+				IF A == 0
+					PRINTFORMW 「フフ…訓練は訓練だ、本気で行くぞ！お前も全力でぶつかってこい！」
+				ELSEIF A == 1
+					PRINTFORMW 「やれやれ…手を抜くなと言ったのに…」
+					PRINTFORMW %CALLNAME:MASTER%は首を横に振ると、藍は苦笑して%CALLNAME:MASTER%を起こした
+				ELSE
+					PRINTFORMW 「やれやれだ。もっと真剣にやらないと」
+					PRINTFORMW %CALLNAME:MASTER%は首を縦に振ると
+					PRINTFORMW 「しょうのない奴だな…」
+					PRINTFORMW 藍はしかたのないという笑みを浮かべて%CALLNAME:MASTER%を見た
+				ENDIF
+			ELSEIF TFLAG:18 == 1
+				IF A == 0
+					PRINTFORMW 「予想以上の動きだった。私のいない間に訓練でもしていたのか…？」
+					PRINTFORMW %CALLNAME:MASTER%はそうだと胸を張った
+					PRINTFORMW 藍は微笑むと、%CALLNAME:MASTER%の頭を優しくなでていった
+				ELSEIF A >= 1
+					PRINTFORMW 「凄いな…私がこうも圧倒されるとは」
+					PRINTFORMW 「これなら私が指導せずともいいかもしれないな」
+					PRINTFORMW 「何？指導してほしい？ならばガンガン行くぞ！」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「うーむ…訓練もいいがたまには他の事でもすべきかもしれないな」
+					PRINTFORMW 藍はそう言うと、次のスケジュールを考えているようだった
+				ELSEIF A == 1
+					PRINTFORMW 「たまには訓練するのもいいものだろう？」
+				ELSE
+					PRINTFORMW 二人は見慣れた弾幕を決まった動きで避けている。すっかりパターンに慣れてしまったようだ
+					PRINTFORMW 「同じ弾幕繰り返しても意味がないか…再考の余地があるな」
+				ENDIF
+			ENDIF
+			CFLAG:401 = 3
+		;それ以外
+		ELSEIF CFLAG:401 < 2 || FLAG:7 == 2
+			IF TFLAG:18 == -1
+				IF A == 0
+					PRINTFORMW 「手加減したほうが良かったかな？」
+				ELSEIF A == 1
+					PRINTFORMW 藍は%CALLNAME:MASTER%がすぐやられてしまったことに呆れている…
+				ELSE
+					PRINTFORMW 「基本がなってないんだな。いいか、こうして…」
+					PRINTFORMW %CALLNAME:MASTER%に教えるように図で避けの軌道を解説している
+				ENDIF
+			ELSEIF TFLAG:18 == 1
+				IF A == 0
+					PRINTFORMW 「中々いい動きだったよ――まだまだ粗いけどね」
+				ELSEIF A == 1
+					PRINTFORMW 「私と同等の勝負が出来てるな。これなら安心できるよ」
+				ELSE
+					PRINTFORMW 「筋が良い…これは私もうかうかしてられないな」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ごっこと言っても、気を抜けば怪我をするぞ」
+				ELSEIF A == 1
+					PRINTFORMW 二人で黙々と弾幕を避けあった
+				ELSE
+					PRINTFORMW 「いい運動になるな」
+				ENDIF
+			ENDIF
+			CFLAG:401 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;会話 CFLAG402
+;-------------------------------------------------
+;今のままだと分岐させた意味が無い、後で加筆する
+IF SELECTCOM == 301
+	;初めて
+	IF CFLAG:402 == 0
+		IF TALENT:153
+			PRINTFORMW 「まあこうして談笑しているのも、悪くはない」
+		ELSE
+			PRINTFORMW 「まずはお互いのことを知ることから始めようか」
+		ENDIF
+		CFLAG:402 = 1
+	;二回目以降
+	ELSE
+		B = RAND:2
+		;好感度別口上
+		IF B == 0
+			A = RAND:3
+			;恋人か恋慕
+			IF (TALENT:153 || TALENT:85) && (CFLAG:402 < 3 || FLAG:7 == 2)
+				IF TFLAG:18 == 1
+					PRINTFORMW %CALLNAME:MASTER%は今後の行為の仕方について訊いてみた。
+					PRINTFORMW 「今度はこういう仕方はどうだろう」
+					PRINTFORMW %CALLNAME:MASTER%と藍はえっちな話で盛り上がった
+				ELSE
+					IF A == 0
+						PRINTFORMW 藍は%CALLNAME:MASTER%の肩に頭を乗せて話を聞いている
+					ELSEIF A == 1
+						PRINTFORMW 前に%CALLNAME:MASTER%が行ったことのある場所について話した
+						PRINTFORMW 「今度は二人でそこに行ってみないか？二人だけで、な」
+					ELSE
+						PRINTFORMW %CALLNAME:MASTER%は藍に愛を囁いた
+						PRINTFORMW 「ふふ…私もお前の事、好きだぞ…」
+						PRINTFORMW 藍はうっとりした表情で%CALLNAME:MASTER%に寄り添った
+					ENDIF
+				ENDIF
+				CFLAG:402 = 3
+			;それ以外
+			ELSEIF CFLAG:402 < 2 || FLAG:7 == 2
+				IF TFLAG:18 == -1
+					PRINTFORMW 何を喋ろうか迷っているうちに藍は別のことに興味を持ってしまったようだ…
+				ELSEIF TFLAG:18 == 1
+					PRINTFORMW 「で、その油揚げはどうなったんだ！？」
+					PRINTFORMW 藍は目を輝かせながら%CALLNAME:MASTER%の話を聞いている
+				ELSE
+					IF A == 0
+						PRINTFORMW 「ほう、私にもまだまだ知らないことがあるんだな」
+					ELSEIF A == 1
+						PRINTFORMW 藍の話に相槌を打ちながら聞いた
+					ELSE
+						PRINTFORMW 「うん、私もそう思うよ」
+					ENDIF
+				ENDIF
+				CFLAG:402 = 2
+			ENDIF
+		;雑談
+		ELSEIF TALENT:85 || TALENT:153
+			A = RAND:3
+			IF TFLAG:18 == -1
+				PRINTFORMW %CALLNAME:MASTER%は自分の性行為に満足できてるか問うた
+			ELSEIF TFLAG:18 == 1
+				PRINTFORMW 藍は少し顔を赤らめながらも真摯に答えてくれた
+				PRINTFORMW そのまま%CALLNAME:MASTER%と藍はえっちな話で盛り上がった
+			ELSE
+				IF A == 0
+					PRINTFORMW 藍は%CALLNAME:MASTER%の肩に頭を乗せて話を聞いている
+				ELSEIF A == 1
+					PRINTFORMW 前に%CALLNAME:MASTER%が行ったことのある場所について話した
+					PRINTFORMW 「今度は二人でそこに行ってみないか？無論、二人だけで、な」
+				ELSE
+					PRINTFORMW %CALLNAME:MASTER%は藍に愛を囁いた
+					PRINTFORMW 「まんざらでもない…私も大好きだ」
+					PRINTFORMW 藍はうっとりした表情で%CALLNAME:MASTER%に寄り添った
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TFLAG:18 == -1
+					PRINTFORMW 何を喋ろうか迷っているうちに藍は別のことに興味を持ってしまったようだ
+			ELSEIF TFLAG:18 == 1
+					PRINTFORMW 「で、その油揚げはどうなったんだ！？」
+					PRINTFORMW 藍は目を輝かせながら%CALLNAME:MASTER%の話を聞いている
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ほう、私にもまだまだ知らないことがあるんだな」
+				ELSEIF A == 1
+					PRINTFORMW 藍の話に相槌を打ちながら聞いた
+				ELSE
+					PRINTFORMW 「うん、私もそう思うよ」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;プレゼント CFLAG403
+;-------------------------------------------------
+IF SELECTCOM == 302
+	;スマイル
+	IF TFLAG:17 == 0
+		IF TALENT:85 && TALENT:153
+			PRINTFORMW 藍に笑顔を向けると、それに応えるように満面の笑みを見せた
+			PRINTFORMW ｢笑顔だけでもこんなに心が満たされる。
+			PRINTFORMW 幸せとは金額の多寡や利益の有無だけでは無いのだからな…」
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「お前の笑顔を見てると、私まで笑顔になってしまうよ」
+		ELSE
+			PRINTFORMW 「ん？どうした、何か楽しいことでもあったのか？」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の笑顔が自分に向いてるとは思ってないようだ…
+		ENDIF
+	;酒
+	ELSEIF TFLAG:17 == 1
+		IF TALENT:85 && TALENT:153
+			PRINTFORMW 「ふぅ…」
+			PRINTFORMW 藍の頬が少しずつ赤く染まっていった
+			PRINTFORMW 「何だか体が火照ってきたな…」
+			PRINTFORMW 藍は視線を横へと泳がせた。その先にはベッドが…
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「実にうまい。ほら、そんなに遠慮しないでいいんだぞ」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の杯に酒を注いでくれた
+		ELSE
+			PRINTFORMW 「この酒を私に？どうせだし二人で飲もうじゃないか」
+			PRINTFORMW と言ったがほとんど藍が飲んでしまった
+		ENDIF
+	;日用品
+	ELSEIF TFLAG:17 == 2
+		IF TALENT:85 && TALENT:153
+			PRINTFORMW 「貰ってばかりでは申し訳がないな…今度私からもプレゼントを何かしよう。何がいい？」
+			PRINTFORMW %CALLNAME:MASTER%は藍をプレゼントに欲しいと言った
+			PRINTFORMW 「フフフ…ならば、好きにしていいぞ…？」
+			PRINTFORMW 藍は自らの袴を脱ぎ捨て、下着を露わにして%CALLNAME:MASTER%を妖しく誘っている…
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「いつもすまないな…」
+			PRINTFORMW そう言うと藍は%CALLNAME:MASTER%の頬に軽く口付けた…
+		ELSE
+			PRINTFORMW 「そういえばマヨヒガで使ってたのは古くなっていたな、丁度良かったよありがとう」
+		ENDIF
+	;アクセサリ
+	ELSEIF TFLAG:17 == 3
+		IF TALENT:85 && TALENT:153
+			PRINTFORMW 「つけてみようか…」
+			PRINTFORMW %CALLNAME:MASTER%は似合ってると言うと、藍は嬉しそうに笑って%CALLNAME:MASTER%にキスをした…
+			PRINTFORMW 「フフ…いつもありがとう。これからもずっと…」
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「綺麗だな…気に入った、大事にするよ」
+		ELSE
+			PRINTFORMW 「こういうのはあんまり貰ったことが無いから目新しいな、ありがとう」
+		ENDIF
+	;服
+	ELSEIF TFLAG:17 == 4
+		IF TALENT:85 && TALENT:153
+			PRINTFORMW %CALLNAME:MASTER%がプレゼントしたのは煽情的な下着だった
+			PRINTFORMW 藍は少々赤面しつつも、次の時はその下着を着けて来ようと心に決めているようだ
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「新鮮な感じがするな。大事にさせてもらうよ」
+		ELSE
+			PRINTFORMW 「こういう服は着たことが無かったから大切に着させて貰うよ」
+		ENDIF
+	;外界の酒
+	ELSEIF TFLAG:17 == 5
+		IF TALENT:85 && TALENT:153
+			PRINTFORMW 「流石に貴重な酒だ、風味が違う…」
+			PRINTFORMW 「お前ももっと呑むんだ。こんな機会そんなにないぞ、それとも…」
+			PRINTFORMW 藍はそう言うと自分の秘所の部分を指さして
+			PRINTFORMW 「ここで、味わいたいのか？」
+			PRINTFORMW と妖艶な声で誘っている
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「フフ…%CALLNAME:MASTER%の顔、凄く赤いぞ…大丈夫か？」
+			PRINTFORMW そう言う藍の顔も真っ赤に染まっていた
+		ELSE
+			PRINTFORMW 「こんなに高い酒を…早速飲んでみようか」
+			PRINTFORMW かなりきつい酒らしく二人とも顔が赤く染まってしまった
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;宴会に参加 CFLAG404
+;-------------------------------------------------
+IF SELECTCOM == 320
+	A = RAND:2
+	;二人きりで飲む
+	IF TEQUIP:2
+		;恋慕+恋人
+		IF TALENT:85 && TALENT:153 && A == 0
+			PRINTFORMW 「今度はココで味わってみないか？酒をな…」
+			PRINTFORMW 藍は自分の秘所を指さすと、艶やかな笑みでこちらを見つめた…
+		;恋慕か恋人
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「想い人と飲めばそれだけで酒の肴になるってものさ…」
+		;それ以外
+		ELSE
+			PRINTFORMW 「二人で静かに飲む酒も悪くないものだな…」
+		ENDIF
+	;宴会に参加
+	ELSE
+		;恋慕+恋人
+		IF TALENT:85 && TALENT:153
+			IF TFLAG:18 == -1
+				PRINTFORMW 酔いつぶれてしまった藍をお姫様抱っこすると皆から歓声があがった…
+			ELSE
+				PRINTFORMW 藍と二人隣り合って飲んでいると、宴会に参加してる皆から冷やかされてしまった
+				PRINTFORMW 「てれくさいな。だが不思議と悪い気はしないな」
+				PRINTFORMW 藍は皆に見せつけるように%CALLNAME:MASTER%に寄り添った…
+			ENDIF
+		;恋慕か恋人
+		ELSEIF TALENT:85 || TALENT:153
+			IF TFLAG:18 == -1
+				PRINTFORMW 酔いつぶれてしまった藍を背負って帰路についた…
+			ELSE
+				PRINTFORMW 「%CALLNAME:MASTER%は…私だけのものなんだ…」
+				PRINTFORMW 藍は%CALLNAME:MASTER%の視線の先を自分の顔で塞いだ…
+			ENDIF
+		;それ以外
+		ELSE
+			IF TFLAG:18 == -1
+				PRINTFORMW 酔いつぶれてしまった藍を支えながら帰路についた…
+			ELSE
+				PRINTFORMW 「折角の宴会だ、楽しもうじゃないか、な？」
+				PRINTFORMW 藍は%CALLNAME:MASTER%の杯に酒を注いでいった
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;スキンシップ CFLAG405
+;-------------------------------------------------
+IF SELECTCOM == 303
+	;初めて
+	IF CFLAG:405 == 0
+		PRINTFORMW 「ちょっとくすぐったいな…」
+		CFLAG:405 = 1
+	;二回目以降
+	ELSE
+		A = RAND:3
+		IF TALENT:85 && TALENT:153
+			IF A == 0
+				PRINTFORMW %CALLNAME:MASTER%は藍の尻尾を梳いてあげた
+				PRINTFORMW わざとお尻を触ると、藍は自らお尻を押し付けてきた
+			ELSEIF A == 1
+				PRINTFORMW %CALLNAME:MASTER%は藍の耳を甘噛みした
+				PRINTFORMW 「ひゃあん！耳は…弱いんだ…っ！」
+				PRINTFORMW 噛む度に藍の体はびくびくと跳ねた
+			ELSE
+				PRINTFORMW 藍を膝の上に座らせて後ろから覆いかぶさるように抱きしめた
+				PRINTFORMW 「何だこの突起は？ああ…フフ」
+				PRINTFORMW %CALLNAME:MASTER%の股間のテントを見てにやにやしている…
+			ENDIF
+		ELSEIF TALENT:85 || TALENT:153
+			IF A == 0
+				PRINTFORMW 藍は%CALLNAME:MASTER%の頬を軽くつねった
+				PRINTFORMW 「柔らかいな。何度でもやれそうだ」
+				PRINTFORMW お返しに%CALLNAME:MASTER%は藍の両頬を優しくつねった
+			ELSEIF A == 1
+				PRINTFORMW 藍の肩を抱き寄せ少しの間お互いの温もりを感じていた…
+			ELSE
+				PRINTFORMW 藍は%CALLNAME:MASTER%の服に手を入れ直接体を触ってきた
+				PRINTFORMW 「いい体つきだな…そしてこの大きな掌…私を守ってくれそうだな」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 藍の髪を撫でると恥ずかしそうに身を任せた
+			ELSEIF A == 1
+				PRINTFORMW 「あんまりへんなとこは触るんじゃないぞ？」
+			ELSE
+				PRINTFORMW 藍の手を取り%CALLNAME:MASTER%の手で重ね合わせた
+				PRINTFORMW 「暖かい手のひらだな…」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;遊びに行く CFLAG406
+;-------------------------------------------------
+IF SELECTCOM == 321
+	;初めて
+	IF CFLAG:406 == 0
+		IF TFLAG:45
+			PRINTFORMW 「さて、何処へ行く？お前と出かけるのは初めてだが、楽しみだな」
+		ELSE
+			PRINTFORMW 「こうして出かけるのは初めてだな。さあ、どこに行こうか？」
+		ENDIF
+		CFLAG:406 = 1
+	;二回目以降
+	ELSE
+		IF TFLAG:17 == 0
+			IF TALENT:85 && TALENT:153
+				PRINTFORMW 「な、今度は二人きりで行こうか？」
+			ELSEIF TALENT:85 || TALENT:153
+				PRINTFORMW 「前言ってた場所に行ってみようか」
+			ELSE
+				PRINTFORMW 「うーん、いい気分転換になったな。また、行こうな？」
+			ENDIF
+		ELSEIF TFLAG:17 == 1
+			IF TALENT:85 && TALENT:153
+				PRINTFORMW 結局藍との一騎討ちになった
+				PRINTFORMW 「負けた方は勝った方の命令を聞くってのは…どうだ？無論私は手加減はしないし、お前も全力でだ」
+				PRINTFORMW %CALLNAME:MASTER%はそれを承諾した
+				A = RAND:2
+				PRINTL  
+				IF A == 0
+					PRINTFORMW 「私の負けだな…何でも言ってみろ？」
+				ELSE
+					PRINTFORMW 「私の勝ちのようだな。それでは…」
+				ENDIF
+			ELSEIF TALENT:85 || TALENT:153
+				PRINTFORMW 「私を狙うなよ？」
+			ELSE
+				PRINTFORMW 「弾幕ごっこなら負ける気はしないな」
+			ENDIF
+		ELSE
+			IF TALENT:85 && TALENT:153
+				PRINTFORMW 藍はわざとらしく怖がって%CALLNAME:MASTER%にぴったりとくっついた…
+			ELSEIF TALENT:85 || TALENT:153
+				PRINTFORMW 「お前といると怖さなんて感じないな、まったく」
+				PRINTFORMW そう藍は苦笑しつつ%CALLNAME:MASTER%に寄りそった
+			ELSE
+				PRINTFORMW 「何で幽霊屋敷なんかに…」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;デート CFLAG407
+;-------------------------------------------------
+;分岐だけ作って放置状態、頑張れ俺
+IF SELECTCOM == 323 && TEQUIP:2 > 0
+	A = RAND:3
+	;恋慕＋恋人
+	IF TALENT:85 && TALENT:153
+		;人里
+		IF TEQUIP:2 == 1
+			IF A == 0
+				PRINTFORMW 藍は人目も憚らず%CALLNAME:MASTER%と腕を組んでいる
+			ELSEIF A == 1
+				PRINTFORMW 「夕飯の買い物もやらなければな…」
+				PRINTFORMW 「何？私を食べたい？…仕方のない奴だな…」
+			ELSE
+				PRINTFORMW 「今日もあの油揚げ買って帰るぞ」
+			ENDIF
+		;博麗神社
+		ELSEIF TEQUIP:2 == 2
+			IF A == 0
+				PRINTFORMW 「参拝客は私達だけか…全く博麗の巫女は何をやっているのか…」
+				PRINTFORMW 藍は苦笑すると、二人だけの空間で気の済むまで口付けを交わし合った…
+			ELSE
+				PRINTFORMW 「願い事？それは…あれだ…お前と一緒にいられますようにと…」
+				PRINTFORMW そう言うと藍は%CALLNAME:MASTER%に抱きついた…
+			ENDIF
+		;霧の湖
+		ELSEIF TEQUIP:2 == 3
+			IF DAY:2 == 3
+				PRINTFORMW 湖は凍っておりスケートが出来そうだ
+				PRINTFORMW 「ほら、一緒に滑ろうか。靴も用意してあるぞ。こんな時でなければ体験できないからな…」
+				PRINTFORMW 藍は%CALLNAME:MASTER%の手を取り踊るように滑り始めた
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ん？どうした？そんなにまじまじと見て」
+					PRINTFORMW 藍の水着姿は大きく張りのあるバスト、引き締まったウエスト、突き出したヒップと非常に魅力的であった
+					PRINTFORMW %CALLNAME:MASTER%は思わず股間が熱くなり、鎌首をもたげ始めた
+					PRINTFORMW 藍はそれをみると、よりラインを強調するように見せつけてきた… 
+				ELSEIF A == 1
+					PRINTFORMW 泳いでいると藍が%CALLNAME:MASTER%の水着を脱がそうとしてきた…
+					PRINTFORMW 「あっ…すまない。お前の体見てたらいつの間にかこんなことを…」
+					PRINTFORMW 本当に無意識にしていたみたいだ…
+				ELSE
+					PRINTFORMW 岸に隣り合って座り足だけ水に入れた
+					PRINTFORMW 藍は%CALLNAME:MASTER%の足に自分の足を絡めてきた…
+				ENDIF
+			ENDIF
+		;花畑
+		ELSEIF TEQUIP:2 == 4
+			IF A == 0
+				PRINTFORMW 「――よし、できたっ。これを着けてみてくれ」
+				PRINTFORMW %CALLNAME:MASTER%は藍が作った花冠を被ってみた
+			ELSEIF A == 1
+				PRINTFORMW 「いいだろう、似合ってるし綺麗だ」
+				PRINTFORMW %CALLNAME:MASTER%は藍の方が綺麗だと言った
+				PRINTFORMW 「フッ…嬉しいよ」
+				PRINTFORMW 藍は%CALLNAME:MASTER%に寄り添いキスをした…
+			ELSE
+				PRINTFORMW 「これは四つ葉のクローバーだな。幸運を呼ぶといわれているが、科学的な根拠はない」
+				PRINTFORMW 藍はそれを摘み取り嬉しそうに笑って続けた
+				PRINTFORMW 「だが…四つ葉は希少なものだ。珍しいものは吉凶の証であると言われる」
+				PRINTFORMW 私達の場合は間違いなく吉兆だろう…と藍は%CALLNAME:MASTER%に微笑みながら続けた
+			ENDIF
+		;肝試し
+		ELSEIF TEQUIP:2 == 5
+			IF A == 0
+				PRINTFORMW 藍はわざとらしく怖がって%CALLNAME:MASTER%にぴったりとくっついた
+			ELSEIF A == 1
+				PRINTFORMW 「あんまり怖くはないな…」
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%はびっくりしたふりをして藍の体にしがみついた
+				PRINTFORMW 「やっ…ちょっと…どこ触って…」
+				PRINTFORMW そう言いながらも藍の顔は上気している。そして期待している目でこちらを見つめた…
+			ENDIF
+		;カラオケ
+		ELSEIF TEQUIP:2 == 6
+			IF A == 0
+				PRINTFORMW 藍と%CALLNAME:MASTER%はラブソングをデュエットした
+			ELSEIF A == 1
+				PRINTFORMW 「しかし狭いが密閉された空間か…なあ…」
+				PRINTFORMW 藍は艶やかな視線を%CALLNAME:MASTER%に向けた
+				PRINTFORMW 「歌うのもいいけど…やらないか」
+			ELSE
+				PRINTFORMW 歌っている藍の口元が色っぽいので%CALLNAME:MASTER%は無理矢理キスしようとした
+				PRINTFORMW 藍は一瞬驚いたがやがて自ら舌を絡めてきた…
+			ENDIF
+		;温泉
+		ELSEIF TEQUIP:2 == 7
+			IF A == 0
+				PRINTFORMW %CALLNAME:MASTER%が先に入っていると、藍が一糸纏わぬ姿で現れた
+				PRINTFORMW 「お前しかいないんだし、それにお前にならもっと見てほしい…」
+				PRINTFORMW 藍は%CALLNAME:MASTER%の前で挑発的なポーズをとった…桃色をした乳首や桜色に変わった肌は何ともいえず美しい…
+			ELSEIF A == 1
+				PRINTFORMW 「背中を流してやろう…」
+				PRINTFORMW 藍は自分の胸で%CALLNAME:MASTER%の背中を洗い始めた…
+			ELSE
+				PRINTFORMW 「別に前、隠さなくてもいいだろう。いつも見てるんだから…」
+				PRINTFORMW 藍は%CALLNAME:MASTER%のタオルを剥ぎ取り遠くに放ってしまった
+			ENDIF
+		;図書館
+		ELSEIF TEQUIP:2 == 8
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;白玉楼
+		ELSEIF TEQUIP:2 == 9
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;以降外界
+		;遊園地
+		ELSEIF TEQUIP:2 == 10
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;水族館
+		ELSEIF TEQUIP:2 == 11
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;動物園
+		ELSEIF TEQUIP:2 == 12
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;繁華街
+		ELSEIF TEQUIP:2 == 13
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;海
+		ELSEIF TEQUIP:2 == 14
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;ゲームセンター
+		ELSEIF TEQUIP:2 == 15
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+	;恋慕か恋人
+	ELSEIF TALENT:85 || TALENT:153
+		;人里
+		IF TEQUIP:2 == 1
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;博麗神社
+		ELSEIF TEQUIP:2 == 2
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;霧の湖
+		ELSEIF TEQUIP:2 == 3
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;花畑
+		ELSEIF TEQUIP:2 == 4
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;肝試し
+		ELSEIF TEQUIP:2 == 5
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;カラオケ
+		ELSEIF TEQUIP:2 == 6
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;温泉
+		ELSEIF TEQUIP:2 == 7
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;図書館
+		ELSEIF TEQUIP:2 == 8
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;白玉楼
+		ELSEIF TEQUIP:2 == 9
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;以降外界
+		;遊園地
+		ELSEIF TEQUIP:2 == 10
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;水族館
+		ELSEIF TEQUIP:2 == 11
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;動物園
+		ELSEIF TEQUIP:2 == 12
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;繁華街
+		ELSEIF TEQUIP:2 == 13
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;海
+		ELSEIF TEQUIP:2 == 14
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;ゲームセンター
+		ELSEIF TEQUIP:2 == 15
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+	;それ以外
+	ELSE
+		;人里
+		IF TEQUIP:2 == 1
+			IF A == 0
+				PRINTFORMW 「人里には買い物するぐらいしか用が無いからよく知らないんだ」
+				PRINTFORMW 「どんなものがあるか案内してもらえるかな？」
+			ELSEIF A == 1
+				PRINTFORMW 「ふう…やっぱりこの姿だと目立ってしまうな」
+			ELSE
+				PRINTFORMW 「ここの油揚げがおいしいんだ、買って帰らないか？」
+			ENDIF
+		;博麗神社
+		ELSEIF TEQUIP:2 == 2
+			IF A == 0
+				PRINTFORMW 「それにしても本当に参拝客が少ない神社だな…」
+			ELSEIF A == 1
+				PRINTFORMW 「何をお願いしたのかって？――ふふ…内緒だよ」
+			ELSE
+				PRINTFORMW 「ここのおみくじって大吉とはずれしか入ってないって聞いたのだが…」
+				PRINTFORMW 「大吉はともかくはずれってなんだ？」
+			ENDIF
+		;霧の湖
+		ELSEIF TEQUIP:2 == 3
+			IF DAY:2 == 3
+				PRINTFORMW 湖は凍っておりスケートが出来そうだ
+				PRINTFORMW 「滑るのうまいな…コツを教えてくれないか？」
+			ELSE
+				IF A == 0
+					PRINTFORMW 藍は水の中に足を入れた
+					PRINTFORMW 「冷たくて、いい気持ちだ…」
+				ELSEIF A == 1
+					PRINTFORMW %CALLNAME:MASTER%と藍は石を投げ何回水切りできるかやってみた
+					PRINTFORMW 「どっちが多くできるか勝負しようか」
+				ELSE
+					PRINTFORMW %CALLNAME:MASTER%は水をすくって藍にかけた
+					PRINTFORMW 「あっ冷たい……もうお返しだ」
+				ENDIF
+			ENDIF
+		;花畑
+		ELSEIF TEQUIP:2 == 4
+			IF A == 0
+				PRINTFORMW 「綺麗だな…」
+				PRINTFORMW 藍は一面の花景色に見惚れている…
+			ELSEIF A == 1
+				PRINTFORMW 藍は足元に可憐にたたずむタンポポを摘むと、綿毛を吹いて飛ばしている…
+			ELSE
+				PRINTFORMW 「今度、ここでお花見するのもいいな…」
+			ENDIF
+		;肝試し
+		ELSEIF TEQUIP:2 == 5
+			IF A == 0
+				PRINTFORMW 「え…もっと怖がって欲しいだって？そんなこと言われても…」
+			ELSEIF A == 1
+				PRINTFORMW 草木が擦れる音に%CALLNAME:MASTER%はびっくりしてしまった
+				PRINTFORMW 「ん…もしかして怖いのは苦手なのか？意外だな…」
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%は藍と手を繋ぎ恐々進んでいった
+			ENDIF
+		;カラオケ
+		ELSEIF TEQUIP:2 == 6
+			IF A == 0
+				PRINTFORMW 「人前で歌うのっては少し恥ずかしいな…」
+			ELSEIF A == 1
+				PRINTFORMW 藍は%CALLNAME:MASTER%の歌声に聞き入っている
+			ELSE
+				PRINTFORMW 「こうして歌うのもいい気分転換になるな」
+			ENDIF
+		;温泉
+;		ELSEIF TEQUIP:2 == 7
+;			IF A == 0
+;				PRINTFORMW 
+;			ELSEIF A == 1
+;				PRINTFORMW 
+;			ELSE
+;				PRINTFORMW 
+;			ENDIF
+		;図書館
+		ELSEIF TEQUIP:2 == 8
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;白玉楼
+		ELSEIF TEQUIP:2 == 9
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;以降外界
+		;遊園地
+		ELSEIF TEQUIP:2 == 10
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;水族館
+		ELSEIF TEQUIP:2 == 11
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;動物園
+		ELSEIF TEQUIP:2 == 12
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;繁華街
+		ELSEIF TEQUIP:2 == 13
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;海
+		ELSEIF TEQUIP:2 == 14
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;ゲームセンター
+		ELSEIF TEQUIP:2 == 15
+			IF A == 0
+				PRINTFORMW 
+			ELSEIF A == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;まったりする CFLAG408
+;-------------------------------------------------
+IF SELECTCOM == 304
+	A = RAND:3
+	B = RAND:10
+	IF TALENT:85 && TALENT:153
+		;晴＆快晴
+		IF TIME:5 <= 1 && B >= 5
+			IF A == 0
+				PRINTFORMW %CALLNAME:MASTER%と藍は縁側に腰掛けてお茶をした
+				PRINTFORMW 「こうして二人で居るだけで幸せを感じるな。そうだろう？」
+			ELSEIF A == 1
+				IF TIME == 0
+					PRINTFORM 日向ぼっこ
+				ELSE
+					PRINTFORM 月光浴
+				ENDIF
+				PRINTFORMW している藍の尻尾を枕にして%CALLNAME:MASTER%は少しまどろんだ
+			ELSE
+				PRINTFORMW 「天気がいいな…なあ、膝枕してもらっていいか？」
+				B = RAND:10
+				IF B >= 5
+					PRINTFORMW %CALLNAME:MASTER%は藍に膝枕をすると髪を撫で始めた
+				ELSE
+					PRINTFORMW 藍を膝枕していると急に%CALLNAME:MASTER%の股間に顔を埋めてきた
+					PRINTFORMW ふと、藍は%CALLNAME:MASTER%の股間に突起を感じ、おもむろに起き上がる
+					PRINTFORMW 「フフ…仕方のない奴だ…」
+					PRINTFORMW そう言うと藍は%CALLNAME:MASTER%の股間をゆっくりとさすり始めた…
+				ENDIF
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 藍は尻尾を広げて%CALLNAME:MASTER%を誘っている
+				PRINTFORMW 「どうだ、好きにしてもいいんだぞ？」
+				PRINTFORMW %CALLNAME:MASTER%はその言葉に従い、尻尾に飛びつき感触を楽しんだ
+			ELSEIF A == 1
+				PRINTFORMW 藍は尻尾を膝にやり手でぽんぽんしている
+				PRINTFORMW 「ほら頭のせて…」
+				B = RAND:10
+				IF B <= 2
+					PRINTFORMW 尻尾膝枕に頭をのせると藍は%CALLNAME:MASTER%の頭を優しく撫で始めた
+				ELSEIF B <= 5
+					PRINTFORMW 尻尾膝枕に頭をのせると藍は耳かきを取り出し%CALLNAME:MASTER%の耳を掃除し始めた
+				ELSE
+					PRINTFORMW 尻尾をよけて、直接膝枕に頭をのせると藍の秘所に急に顔を埋めた…
+					PRINTFORMW 「ひゃっ…ん、あぅ…いきなりするのっ…ひきょ…ふあぁぁ」
+				ENDIF
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%が寝転んでいると藍がのしかかってきた
+				B = RAND:10
+				IF B >= 5
+					PRINTFORMW 「私の体を布団にしてみるのはどうだ？――冗談…あっ」
+					PRINTFORMW %CALLNAME:MASTER%の体から身を降ろそうとする藍を抱き寄せ布団の代わりにした
+				ELSE
+					PRINTFORMW 「マッサージしてやろう…ほら力抜いて」
+					PRINTFORMW 心地よい指圧に%CALLNAME:MASTER%はいつの間にか寝てしまっていたようだ
+					PRINTFORMW 「ふふ…凄く気持ちよさそうな顔していたぞ」
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSEIF TALENT:85 || TALENT:153
+		IF A == 0
+			PRINTFORMW %CALLNAME:MASTER%は横になって少しまどろんだ
+			PRINTFORML 藍は%CALLNAME:MASTER%の頬をつんつんしてる内に眠くなったのか
+			PRINTFORMW %CALLNAME:MASTER%の隣に横になって一緒に寝始めた
+		ELSEIF A == 1
+			PRINTFORMW 藍は%CALLNAME:MASTER%に寄り添いまどろみ始めた
+			PRINTFORMW %CALLNAME:MASTER%は藍の寝顔を堪能し終わると自身も目を閉じた
+		ELSE
+			PRINTFORMW 「そんなに尻尾を見てどうした？」
+			PRINTFORMW %CALLNAME:MASTER%は尻尾を枕にしたい旨を伝えた
+			PRINTFORMW 「うふふ…それぐらいならお安いご用だ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「お茶でも淹れてこようか」
+			PRINTFORMW 藍と一緒にお茶を飲みながらゆっくりした
+		ELSEIF A == 1
+			PRINTFORMW %CALLNAME:MASTER%は横になって少しまどろんだ
+			PRINTFORMW 藍は%CALLNAME:MASTER%の寝顔をじっと見ていた
+		ELSE
+			PRINTFORMW 二人はそれぞれ好きなことをして過ごした
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;家事 CFLAG409
+;-------------------------------------------------
+IF SELECTCOM == 305
+	A = RAND:5
+	B = RAND:2
+	IF TALENT:153 && TALENT:85
+		IF ITEM:19 == 1 && B
+			IF TALENT:89 == 0 && A < 3
+				PRINTFORMW 「こうしてエプロン着けてると何だか本当に夫婦みたいだな…」
+				PRINTFORMW 恥ずかしそうに%CALLNAME:MASTER%を見つめた
+				PRINTFORMW (この男を、伴侶に出来ればどんなに幸せだろう…)
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%が皿洗いの準備をしていると裸エプロンの藍が現れた
+				PRINTFORMW 「この姿でするのもいいかなと思って…お前も好きだろう？」
+				PRINTFORMW %CALLNAME:MASTER%は襲いたい衝動を抑えることで精一杯だった
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 藍が洗濯をしていると%CALLNAME:MASTER%の下着が出てきた
+				PRINTFORMW 「脱ぎたてか…――見てないな、よし」
+				PRINTFORML 藍はそれを懐に入れようとしたが、にやにやしている%CALLNAME:MASTER%の視線に気がつくと
+				PRINTFORMW 顔を真っ赤にしてそれを洗濯し始めた
+			ELSEIF A == 1
+				PRINTFORM 「今日の
+				IF TIME == 0
+					PRINTFORM お昼は
+				ELSE
+					PRINTFORM 夕飯は
+				ENDIF
+				PRINTFORMW 、何がいい？お前の好きなものを作ろうか」
+			ELSEIF A == 2
+				PRINTFORMW 「お前の部屋掃除してたらこんなのが出てきたんだがな」
+				PRINTFORMW 隠してあったエロ本が見つかってしまったようだ。しかも見事におっぱいの大きいモデル達のやつが
+				PRINTFORMW 「そんなに大きい胸が好きなのか…？」
+				PRINTFORMW そう言うと藍は%CALLNAME:MASTER%を一気に抱き寄せ、
+				PRINTFORMW その本に描いてあるモデルにも劣らない豊かな双乳の谷間に顔をうずめさせた…
+				B = RAND:2
+				IF B
+					PRINTFORMW 「捨てて良いよな？それに、%CALLNAME:MASTER%には私がいるだろう？」
+					PRINTFORMW そう言うと、藍は全く好感の感じられない笑顔で色本の山を一瞬で引き裂いてしまった…
+				ELSE
+					PRINTFORMW 「…こういう事を、して欲しいのか…？」
+					PRINTFORMW 藍は本の中身を指差して言う。そこには乳房で陰茎を挟む…有体に言うとパイズリのシチュエーションが載っていた
+					PRINTFORMW 「じゃあ今回は…いっぱいお前のチンポ、おっぱいでマッサージしてやろうな…」
+					PRINTFORMW 藍はそういうと服をはだけ、その白い大きな乳房を露わにして誘ってきた…
+				ENDIF
+			ELSEIF A == 3
+				PRINTFORMW 「どうした？そんなに私のこと見つめて」
+				PRINTFORMW 藍の割烹着姿は似合いすぎていて見惚れてしまっていたようだ
+				PRINTFORMW 「もしかして…次はこの格好のまま、して欲しいのか？」
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%は藍と一緒に料理をしている最中誤って指を切ってしまった
+				PRINTFORMW 「あっ…大丈夫か？ほら良く見せて」
+				PRINTFORMW 藍に指を見せるといきなりその傷を舐め始めた
+				PRINTFORMW 「ちゅっ…ちゅう…ぢゅちゅ…ん…ぷぁ…これで大丈夫だ」
+				PRINTFORMW %CALLNAME:MASTER%は指を舐め指についた藍の唾液を味わった
+			ENDIF
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 藍はいつの間にか割烹着を着てハタキを手にしていた
+			PRINTFORMW 「ほらほら、そこ邪魔になるからどいてどいて」
+			PRINTFORMW %CALLNAME:MASTER%が手伝う間もなく掃除は終わってしまった
+		ELSEIF A == 1
+			PRINTFORMW 「私が家事の基本を教えてやるから、覚えるんだぞ？」
+			IF TALENT:MASTER:61
+				PRINTFORMW 家事をほとんどしない%CALLNAME:MASTER%は頭が痛くなってしまった
+			ELSEIF TALENT:MASTER:62
+				PRINTFORMW 家事を良くやる%CALLNAME:MASTER%にもまだ知らないことがあったみたいだ
+			ELSE
+				PRINTFORMW 家事を人並みにする%CALLNAME:MASTER%にはとても為になった
+			ENDIF
+		ELSEIF A == 2
+			PRINTFORMW 藍は山のように溜まっている食器を洗い始めた
+			PRINTFORMW 「やれやれ…私がいなかったらずっとこのままだったんじゃないのか？」
+			PRINTFORMW 隣で手伝う%CALLNAME:MASTER%は答えることが出来なかった
+		ELSEIF A == 3
+			PRINTFORM 「今日の
+			IF TIME == 0
+				PRINTFORM お昼は
+			ELSE
+				PRINTFORM 夕飯は
+			ENDIF
+			PRINTFORMW 、何にしようか」
+		ELSE
+			PRINTFORMW 「洗濯するから、洗うもの持ってきてくれ」
+			PRINTFORMW %CALLNAME:MASTER%が洗濯するのを手伝っていると洗い物の中から藍の下着が出てきた
+			PRINTFORMW 「あ、馬鹿っ、それは私のだ…！」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の手から下着を奪うと顔を赤くして洗濯し始めた
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;バードキス CFLAG410
+;-------------------------------------------------
+IF SELECTCOM == 340
+	;初めて
+	IF CFLAG:410 == 0
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「ちゅ…なぁ…もっと…」
+			PRINTFORMW 藍は頬を染め期待に満ちた目で%CALLNAME:MASTER%を見つめた
+		ELSE
+			PRINTFORMW 「ん…」
+			PRINTFORMW 顔を離すと藍は恥ずかしそうに視線を逸らしてしまった
+		ENDIF
+		CFLAG:410 = 1
+	;二回目以降
+	ELSE
+		A = RAND:2
+		IF TALENT:85 || TALENT:153
+			IF A
+				PRINTFORMW 「ちゅ…ん…もっと…」
+				PRINTFORMW 藍は頬を染めながらせがんできた…
+			ELSE
+				PRINTFORMW 藍は自ら%CALLNAME:MASTER%に口付けした
+				PRINTFORMW 「ん…ちゅ…ふふ…もっとか？」
+			ENDIF
+		ELSE
+			PRINTFORMW 「ちゅ…んっ…」
+			PRINTFORMW 顔を離すと少しずつ藍の顔が赤くなっていった
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ソフトキス CFLAG411
+;-------------------------------------------------
+IF SELECTCOM == 341
+	;初めて
+	IF CFLAG:411 == 0
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「んっ…んん…ぷぁ…」
+			PRINTFORMW 藍はもっとして欲しいような表情で%CALLNAME:MASTER%を見つめた
+		ELSE
+			PRINTFORMW 「んんっ…」
+			PRINTFORMW 藍は少しだけ体を強張らせたが、ゆっくりと%CALLNAME:MASTER%に身を委ねた
+		ENDIF
+		CFLAG:411 = 1
+	;二回目以降
+	ELSE
+		A = RAND:2
+		IF TALENT:85 || TALENT:153
+			IF A
+				PRINTFORMW 「ちゅっ…んむ…ん…ふぁ…まだ…足りない…」
+				PRINTFORMW 藍は%CALLNAME:MASTER%の首に手を回しまた口付けてきた
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%は藍を強く抱きしめながらキスをした
+				PRINTFORMW 藍もそれに応える様に%CALLNAME:MASTER%の首に手を回し更なる口付けを求めた…
+			ENDIF
+		ELSE
+			PRINTFORMW 「ちゅ…んん…ぷは…」
+			PRINTFORMW 口を離すと藍は頬を染めながら顔を俯けた
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ディープキス CFLAG412
+;-------------------------------------------------
+IF SELECTCOM == 342
+	;初めて
+	IF CFLAG:412 == 0
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「んんぅ…ちゅぅ…れろ…」
+			PRINTFORMW 藍は自ら舌を絡ませて%CALLNAME:MASTER%の唾液を舐めとった
+		ELSE
+			PRINTFORMW 「んん！？…んぅぅ…」
+			PRINTFORMW 藍は舌を入れられたことに驚いたが、やがて%CALLNAME:MASTER%の舌を受け入れた
+		ENDIF
+		CFLAG:412 = 1
+	;二回目以降
+	ELSE
+		A = RAND:2
+		IF TALENT:85 || TALENT:153
+			IF A
+				PRINTFORMW 「んぅ…れろ…ぢゅぅ…んはっ…もっと…」
+				PRINTFORMW 藍はもう一度%CALLNAME:MASTER%と舌を絡ませ唾液を貪り始めた
+			ELSE
+				PRINTFORMW 「んんっ…は…くちゅ…ん…」
+				PRINTFORMW 藍と%CALLNAME:MASTER%は涎が滴るのも構わず夢中で舌を絡ませあった
+			ENDIF
+		ELSE
+			PRINTFORMW 「くちゅ…んん…ぷぁ…」
+			PRINTFORMW 二人の間に唾液の糸が出来ているのを見ると、藍は恥ずかしそうに顔を手で覆った
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;胸愛撫 CFLAG413
+;-------------------------------------------------
+IF SELECTCOM == 360
+	;初めて
+	IF CFLAG:413 == 0
+		PRINTFORMW 「む、胸を触りたいだと…？」
+		PRINTFORMW やさしく、な…？と藍は%CALLNAME:MASTER%の手を取り先導した
+		CFLAG:413 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:414 < 6 || FLAG:7 == 2)
+			PRINTFORMW 「あ、あん、そう、そこだ…」
+			PRINTFORMW %CALLNAME:MASTER%の慣れた手つきに、藍は艶やかな声を上げた
+			CFLAG:414 = 6
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:414 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「もっと、激しく…！」
+			PRINTFORMW 藍は乳首のほうも弄って欲しいらしい…
+			PRINTFORMW 乳首を責めると藍は一際甲高い声で鳴いた
+			CFLAG:414 = 5
+		;キス経験有り
+		ELSEIF EXP:96 > 0 && (CFLAG:414 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あ、ちゅっ…ふぁ、あん！」
+			PRINTFORMW %CALLNAME:MASTER%はキスをしながら存分に藍の大きな双乳を堪能した
+			PRINTFORMW 愛撫するたびによく揺れ、それだけでも%CALLNAME:MASTER%の興奮を誘っていく
+			CFLAG:414 = 4
+		;デート経験有り
+		ELSEIF EXP:94 > 0 && (CFLAG:414 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「す、好きぃ…もっと…してぇ…」
+			PRINTFORMW 藍は甘い声で更に愛撫を強くするよう誘ってきた…
+			PRINTFORMW 乱暴に揉みしだくと、若干顔を歪めながらも快楽の声が漏れてきた
+			CFLAG:414 = 3
+		;それ以外
+		ELSEIF CFLAG:414 < 2 || FLAG:7 == 2
+			PRINTFORMW 「そんなに胸が好きなのか？」
+			CFLAG:414 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;愛撫 CFLAG414
+;-------------------------------------------------
+IF SELECTCOM == 361
+	;初めて
+	IF CFLAG:414 == 0
+		PRINTFORMW 藍の膣口をそっと撫でてみた…
+		PRINTFORMW 藍は今まで感じた事のない感触にビクンと体を震わせている
+		CFLAG:414 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:414 < 6 || FLAG:7 == 2)
+			PRINTFORMW 「お前だから…こんなに感じるんだ…」
+			PRINTFORMW 時々膣の奥の方に指を入れると、それだけで藍の体は大きく跳ねる
+			PRINTFORMW そのたびに、豊かな双乳がブルンっと揺れた
+			CFLAG:414 = 6
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:414 < 5 || FLAG:7 == 2)
+			PRINTFORMW 服の隙間から膣口の奥まで指を差し入れると、藍の体はそれだけで電撃が走ったように痙攣し、
+			PRINTFORMW 二三度繰り返すと膣口からは透明な蜜があふれ出してきた…
+			PRINTFORMW 「あぅん！そこ…気持ち…いいいいいいっ！」
+			PRINTFORMW 絶叫に近い藍の声を聞き、%CALLNAME:MASTER%はますますヒートアップしていく
+			CFLAG:414 = 5
+		;キス経験有り
+		ELSEIF EXP:96 > 0 && (CFLAG:414 < 4 || FLAG:7 == 2)
+			PRINTFORMW 貪るようなキスをしながら、%CALLNAME:MASTER%は膣口を指で執拗に責め上げていく…
+			PRINTFORMW 嬌声を上げたいのに口を塞がれてはそれもままならない藍
+			PRINTFORMW 声にならない悲鳴を上げながら、藍は%CALLNAME:MASTER%の指の感触を味わっている…
+			CFLAG:414 = 4
+		;デート経験有り
+		ELSEIF EXP:94 > 0 && (CFLAG:414 < 3 || FLAG:7 == 2)
+			PRINTFORMW 膣口に指を這わすと、それだけで藍はゾクゾクッとのけぞり返った
+			PRINTFORMW 淫核をつまみあげてみると藍は絶叫し髪を振り乱した…
+			CFLAG:414 = 3
+		;それ以外
+		ELSEIF CFLAG:414 < 2 || FLAG:7 == 2
+			PRINTFORMW 「くっ…」
+			CFLAG:414 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;告白する CFLAG415
+;-------------------------------------------------
+IF SELECTCOM == 399
+	;初めて
+	IF CFLAG:415 == 0
+		PRINTFORMW 
+		CFLAG:415 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:415 < 6 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:415 = 6
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:415 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:415 = 5
+		;キス経験有り
+		ELSEIF EXP:96 > 0 && (CFLAG:415 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:415 = 4
+		;デート経験有り
+		ELSEIF EXP:94 > 0 && (CFLAG:415 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:415 = 3
+		;それ以外
+		ELSEIF CFLAG:415 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:415 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ストリートライブ CFLAG493
+;-------------------------------------------------
+IF SELECTCOM == 322
+	;初めて
+	IF CFLAG:493 == 0
+		PRINTFORMW 
+		CFLAG:493 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:493 < 6 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:493 = 6
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:493 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:493 = 5
+		;キス経験有り
+		ELSEIF EXP:96 > 0 && (CFLAG:493 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:493 = 4
+		;デート経験有り
+		ELSEIF EXP:94 > 0 && (CFLAG:493 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:493 = 3
+		;それ以外
+		ELSEIF CFLAG:493 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:493 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+
+
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;純愛系コマンド
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;-------------------------------------------------
+;愛撫 CFLAG416
+;-------------------------------------------------
+IF SELECTCOM == 0
+	;初めて
+	IF CFLAG:416 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「やさしく、な…？」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の指を膣口へと近づけていく…
+			PRINTFORMW %CALLNAME:MASTER%が少し膣口に振れると藍は敏感に声を上げる
+			PRINTFORMW 淫核に少し触れるだけで藍の声は更に甘く高く艶やかさを増した…
+			PRINTFORMW 「ふ、ああん、あん、あっ…あん…」
+			PRINTFORMW 何度か動かしていくうちに、%CALLNAME:MASTER%は指に湿り気を感じた…
+		ELSE
+			PRINTFORMW 「くっ…」
+		ENDIF
+		CFLAG:416 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:3 >= 7 && (CFLAG:416 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「あっ、ああん、ク、クリは駄目ぇ！」
+			PRINTFORMW 開発されきったクリトリスは敏感に反応し、勃起しきっている
+			PRINTFORMW %CALLNAME:MASTER%がクリトリスを軽く噛むと、一際甲高い声で鳴いた
+			PRINTFORMW 同時に膣口からは大量の愛液が流れ込んできた…
+			CFLAG:416 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:416 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「もっと全体的に責めるんだ…クリトリスだけではなく膣口も…くぁん！」
+			PRINTFORMW 藍の要求に素早く%CALLNAME:MASTER%は対応し、望むよう責めてやった…
+			PRINTFORMW 膣口から流れ出す液体は透明から少し泡だった白色へとその色を変えていく…
+			CFLAG:416 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:416 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「デリケートだから…優しく…な？」
+			PRINTFORMW 藍の膣口をそっと撫でる。それだけで藍の体は過剰なほどに反応し、艶っぽい喘ぎ声が漏れてきた
+			CFLAG:416 = 3
+		;それ以外
+		ELSEIF CFLAG:416 < 2 || FLAG:7 == 2
+			PRINTFORMW 「そこは…くっ…！」
+			CFLAG:416 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;クンニ CFLAG417
+;-------------------------------------------------
+;クンニ
+IF SELECTCOM == 1 && TEQUIP:57 == 0
+	;初めて
+	IF CFLAG:417 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「口で、するのか…？」
+			PRINTFORMW %CALLNAME:MASTER%は藍の陰部に顔を近づけると、息を吹きかけてみた
+			PRINTFORMW 「ひゃっ！」
+			PRINTFORMW 過敏に反応する藍を後目に、%CALLNAME:MASTER%は秘所にそっと口付けてみた
+			PRINTFORMW 「う、うぁぁぁっ！な、何だこの感覚は…」
+			PRINTFORMW 藍は羞恥心と快感に混ざった何とも言えない表情で悶えている…
+		ELSE
+			PRINTFORMW 「やめろ…そんなところ、きたな…あっ！」
+			PRINTFORMW 藍の制止も聞かずに%CALLNAME:MASTER%は秘所に口を近づけ、口付けした…
+		ENDIF
+		CFLAG:417 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:3 >= 7 && (CFLAG:417 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「あぁン、そこ…気持ち、いいっ…！」
+			PRINTFORMW 淫核を軽く甘噛みしつつ、藍の顔を窺ってみた…
+			PRINTFORMW 程なくして愛液が洪水の如く流れ込んできた…
+			PRINTFORMW それをわざと音を立てて啜ると、藍は恥ずかしさのあまり顔を覆いながら悶えている…
+			CFLAG:417 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:417 < 4 || FLAG:7 == 2)
+			PRINTFORMW 膣口のほうを重点的に舐め回した…
+			PRINTFORMW たまに淫核を指で刺激すると、それだけで藍の腰が泳いでいく…
+			PRINTFORMW 「あ、あぅぅぅん…」
+			PRINTFORMW 藍の表情はすっかり快楽にふやけ切っているのが見て取れた
+			CFLAG:417 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:417 < 3 || FLAG:7 == 2)
+			PRINTFORMW 膣口の方を舌で丹念に舐め回すと、藍は艶やかな声を上げている
+			CFLAG:417 = 3
+		;それ以外
+		ELSEIF CFLAG:417 < 2 || FLAG:7 == 2
+			PRINTFORMW 「汚い…そんなところ舐め回すなぁ…！」
+			CFLAG:417 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;岩清水 CFLAG418
+;意味が分からないのではしょりますた（ｒｙ
+;-------------------------------------------------
+IF SELECTCOM == 1 && TEQUIP:57
+	;初めて
+	IF CFLAG:418 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:418 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:418 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:418 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:418 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:418 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:418 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:418 = 3
+		;それ以外
+		ELSEIF CFLAG:418 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:418 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;自慰（公開除く） CFLAG419
+;-------------------------------------------------
+IF SELECTCOM == 3 && TEQUIP:18 == 0 && TEQUIP:53 == 0
+	;初めて
+	IF CFLAG:419 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「え、自分でして見せろって…？」
+			PRINTFORMW 「そ、そんなことできるわけ…」
+			PRINTFORMW と藍がふと%CALLNAME:MASTER%の顔の懇願する顔を見ると、ばつの悪そうな顔をして
+			PRINTFORMW 「分かった、分かった！…仕方ないな…」
+			PRINTFORMW とおもむろに自らの手を秘所に当て、こすり始めた…
+			PRINTFORMW しかし%CALLNAME:MASTER%に見られていると言う羞恥心からかあまり集中できてないようだ…
+		ELSE
+			PRINTFORMW 「自分でしろだと！？」
+			PRINTFORMW 「くっ…異変解決のためとはいえ…なんたる屈辱…！」
+		ENDIF
+		CFLAG:419 = 1
+	;二回目以降
+	ELSE
+		;恋慕+自慰中毒Lv5以上
+		IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:419 < 5 || FLAG:7 == 2)
+			PRINTFORMW 藍はすっかり慣れた手つきで自分の性感帯を巧みに刺激し、そして秘所を%CALLNAME:MASTER%に見せつけるように突き出している…
+			PRINTFORMW 「お前に、あっ、見られて、あんっ、いると…とても気持ちがいいんだ…」
+			PRINTFORMW その目は快楽の虜になったように、藍はだらしなく口を開き牝の匂いを充満させている…
+			CFLAG:419 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:419 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「見られているとやっぱり恥ずかしい…だが…」
+			PRINTFORMW 「同時にお前に見てほしい、という気持ちもあるんだ…」
+			PRINTFORMW 「私はどうしてしまったのだ…きっとお前のせいだ」
+			PRINTFORMW 藍はそう言って苦笑しつつ、行為に集中し始めた…
+			PRINTFORMW しばらくするとピチャ、ピチャと淫らな音が静かな空間に響き渡り、%CALLNAME:MASTER%の欲情を煽りたてていく…
+			CFLAG:419 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:419 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「やはり慣れないな…」
+			PRINTFORMW 未だに藍の指使いはぎこちない、羞恥心が未だ勝っているようだ
+			PRINTFORMW しかし%CALLNAME:MASTER%のためと、必死に指を動かしている。稚拙な動きが却って%CALLNAME:MASTER%の欲情を加速させていった…
+			CFLAG:419 = 3
+		;それ以外
+		ELSEIF CFLAG:419 < 2 || FLAG:7 == 2
+			PRINTFORMW 「ううっ…こんな…」
+			CFLAG:419 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シャワーオナニー（公開除く） CFLAG420
+;-------------------------------------------------
+IF SELECTCOM == 3 && TEQUIP:18 && TEQUIP:53 == 0
+	;初めて
+	IF CFLAG:420 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW シャワーを膣口に当てながら、藍は自分の秘所を刺激し始めた…
+			PRINTFORMW 「お湯が、あそこに当たって、いいかも…」
+			PRINTFORMW お湯の刺激も加わり更なる快楽を求めようと藍は指を強くしていく…
+		ELSE
+			PRINTFORMW 「くっ、シャワーとは言え自分でやれなんて…！」
+		ENDIF
+		CFLAG:420 = 1
+	;二回目以降
+	ELSE
+		;恋慕+自慰中毒Lv5以上
+		IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:420 < 5 || FLAG:7 == 2)
+			PRINTFORMW 藍はシャワーの刺激では飽き足らず、シャワーの口を膣口に挿入して出し入れし始めた…
+			PRINTFORMW 「あ、ああん…いいぃぃぃぃっ！」
+			PRINTFORMW %CALLNAME:MASTER%の陰茎と同じかそれ以上の異物を膣に挿入し、更なる快楽を求めもう片方の手はその豊満な胸を揉みしだいている…
+			CFLAG:420 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:420 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あ、ああん…」
+			PRINTFORMW シャワーの刺激に更に指を這わせ、指も膣口へと出し入れして自慰行為に没頭している
+			PRINTFORMW 目の前に%CALLNAME:MASTER%がいるのに我関せずのように自分の世界へと入りこんでいるようだ…
+			CFLAG:420 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:420 < 3 || FLAG:7 == 2)
+			PRINTFORMW お湯が時折膣口の中へ入るたびに、藍は嬌声を上げ胸を揺らした
+			CFLAG:420 = 3
+		;それ以外
+		ELSEIF CFLAG:420 < 2 || FLAG:7 == 2
+			PRINTFORMW 「くっ…こんなことで私は屈しない…！」
+			CFLAG:420 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;胸愛撫 CFLAG421
+;-------------------------------------------------
+IF SELECTCOM == 5
+	;初めて
+	IF CFLAG:421 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「おっぱいを触りたいのか…？」
+			PRINTFORMW 「フフッ…やはりこれだけ大きいと気にならないわけはないな」
+			PRINTFORMW %CALLNAME:MASTER%は手におさまらない程の双乳を縦へ横へと揉みしだいていった…
+		ELSE
+			PRINTFORMW 「胸を触りたいだと…！？」
+			PRINTFORMW 「こ、こらやめろ乱暴に触るな！」 
+		ENDIF
+		CFLAG:421 = 1
+	;二回目以降
+	ELSE
+		;恋慕+B感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:14 >= 7 && (CFLAG:421 < 5 || FLAG:7 == 2)
+			PRINTFORMW すっかり開発されきって敏感になった胸を一揉みしただけで、藍は歓喜の声を上げた
+			PRINTFORMW 乳首を少し引っ張って伸ばしてみたり、乳首の周りをじらしつつ一気に乳首を責めたりと変化をつけてみる
+			PRINTFORMW そのたびに藍はだらしない声を上げ、快楽へと堕ちていく…
+			PRINTFORMW 胸を揉んだだけで藍の秘所は洪水状態になっていた…
+			CFLAG:421 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:421 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あ、ああん…こんなに感じるなんて…」
+			PRINTFORMW 乳首を吸うとみるみるうちに乳首がとがっていった…
+			CFLAG:421 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:421 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「う…あん…そこ…」
+			PRINTFORMW 少しずつだが藍は嬌声を上げる頻度が上がってきたようだ
+			CFLAG:421 = 3
+		;それ以外
+		ELSEIF CFLAG:421 < 2 || FLAG:7 == 2
+			PRINTFORMW 「くそっ…こんな屈辱…！」
+			CFLAG:421 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;キス CFLAG422
+;-------------------------------------------------
+IF SELECTCOM == 6
+	;初めて
+	IF CFLAG:422 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「ん…」
+			PRINTFORMW 「こうして裸で抱き合ってのキスはまた、服を着ている時とはまた違った感覚だな…」
+			PRINTFORMW 「お前をより近くで感じられる…そんな気がする」
+		ELSE
+			PRINTFORMW 嫌がる藍を無理やり組み敷いて唇を奪う…
+			PRINTFORMW 「…酷いっ…！」
+			PRINTFORMW 藍は悲壮な顔で%CALLNAME:MASTER%を睨みつけている…
+		ENDIF
+		CFLAG:422 = 1
+	;二回目以降
+	ELSE
+		;親愛
+		IF TALENT:88 == 1 && (CFLAG:422 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「好きだ…好きだ…好きだ…！」
+			PRINTFORMW 体全てをとろかしてしまいそうな長い間の接吻を終えてもなお、二人は体を離そうとはしなかった
+			CFLAG:422 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:422 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「やはりこうして重ねあうだけで、凄く安心した気分になれる」
+			PRINTFORMW お前だからな…と藍はその後に続けるようにつぶやいた
+			CFLAG:422 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:422 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「フフッ…恋人同士のキスってのはどうしてこんなに甘いんだろうな」
+			CFLAG:422 = 3
+		;それ以外
+		ELSEIF CFLAG:422 < 2 || FLAG:7 == 2
+			PRINTFORMW 「ん、んむっ、んーっっ！」
+			CFLAG:422 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;何もしない CFLAG423
+;-------------------------------------------------
+IF SELECTCOM == 7
+	;初めて
+	IF CFLAG:423 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「小休止か…まあそれもいいだろう」
+			PRINTFORMW 藍は軽く伸びをしたりストレッチを始めた。
+		ELSE
+			PRINTFORMW 「休める…ふぅ」
+			PRINTFORMW 極度の緊張から解放されたからか藍は実にリラックスしているようだ
+		ENDIF
+		CFLAG:423 = 1
+	;二回目以降
+	ELSE
+		;親愛
+		IF TALENT:88 == 1 && (CFLAG:423 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「何もしなくて…私を焦らす作戦か…？」
+			PRINTFORMW 藍は居心地が悪いように悶えている
+			PRINTFORMW その間にも膣からは一筋の愛液が垂れてきている…
+			CFLAG:423 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:423 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「そうだな…少し休もうか…」
+			PRINTFORMW 「これからももっと激しい事をしてくれるんだろう？」
+			PRINTFORMW 妖艶な香りをたなびかせ藍が%CALLNAME:MASTER%に聞いてきた
+			CFLAG:423 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:423 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「そうだな…少し休もうか…」
+			CFLAG:423 = 3
+		;それ以外
+		ELSEIF CFLAG:423 < 2 || FLAG:7 == 2
+			PRINTFORMW 藍は非常にリラックスしているようだ
+			CFLAG:423 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;指挿入れ CFLAG424
+;-------------------------------------------------
+IF SELECTCOM == 8
+	;初めて
+	IF CFLAG:424 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「あ、あンッ！」
+				PRINTFORMW 藍の子宮へと指を入れていく。鮮血が%CALLNAME:MASTER%の指を汚していく…
+				PRINTFORMW 「初めては、お前のそれが良かったんだがな…」
+				PRINTFORMW 藍は指で散らされた事に若干の不満感を覚えているようだ
+			ELSE
+				PRINTFORMW 「あっ、そ、そこは駄目、やめろぉー！」
+				PRINTFORMW 藍の懇願空しく、%CALLNAME:MASTER%は無慈悲に膣へと指を突っ込んでいく…
+				PRINTFORMW プチッという音の後指を抜くと、赤く染まっていた…
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「指が、膣奥に当たって、ああん！」
+				PRINTFORMW 膣内に指を出し入れするたびに藍の体は大きくはね、嬌声を漏らしていく…
+			ELSE
+				PRINTFORMW 「やめろ、そんなところに指を…あうっ！」
+			ENDIF
+		ENDIF
+		CFLAG:424 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:424 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「あ、ああン、ああん…」
+			PRINTFORMW リズミカルに指を抜き差し、中の襞を丹念に味わうようにして出し入れすると、藍はそのたびにピュッ、ピュッと愛液を噴き出していく
+			PRINTFORMW 時折Gスポットに指が当たるだけで、
+			PRINTFORMW 「あ、あっ、あお、あおぉぉぉぉぉぉん…」
+			PRINTFORMW と獣のような声を上げてのたうちまわる
+			PRINTFORMW 彼女の足元には水たまりができていて、目は若干白目をむいているようだ
+			CFLAG:424 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:424 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「ああ、そこ…いい…」
+			CFLAG:424 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:424 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「胸やクリトリスを触られるのもいいけど…ここもやはり…気持ち、いいな…あぅん！」
+			PRINTFORMW 敏感なところを触られるたびに腰が盛り上がる
+			CFLAG:424 = 3
+		;それ以外
+		ELSEIF CFLAG:424 < 2 || FLAG:7 == 2
+			PRINTFORMW 「くっ…やめろ…」
+			CFLAG:424 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Gスポット刺激 CFLAG425
+;-------------------------------------------------
+IF SELECTCOM == 84
+	;初めて
+	IF CFLAG:425 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 膣口に指を入れ、少し曲げてみた…
+				PRINTFORMW その刹那藍の体は弓のようにはねたかと思うと、ぐったりしてしまった…
+				PRINTFORMW 恐らく痛みと快楽の二重の波によって気絶してしまったようだ…
+				PRINTFORMW %CALLNAME:MASTER%は藍を介抱してあげた…
+			ELSE
+				PRINTFORMW 膣口に指を突き入れ、曲げてみた…
+				PRINTFORMW 「ぐ…あ…」
+				PRINTFORMW 絶叫にもならない断末魔を藍が上げたと同時に倒れてしまった…
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 膣口のさらに奥に指を入れ関節を曲げてみた…
+				PRINTFORMW ざらざらしたところをつつくと藍はけたたましい絶叫を上げて激しく痙攣した…
+			ELSE
+				PRINTFORMW 嫌がる藍を押しのけ膣口に指を入れ、奥まで挿入した…
+				PRINTFORMW 途中で指を曲げると、いきなり藍は白目をむいて倒れてしまった…
+			ENDIF
+		ENDIF
+		CFLAG:425 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:425 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「ああん…二本じゃ物足りないのぉ…」
+			PRINTFORMW %CALLNAME:MASTER%は指三本で膣口へと侵入し、一気にGスポットを突いた…
+			PRINTFORMW そこを突くたびに白い潮が吹き出してきた…
+			PRINTFORMW 時々体がピンと張り詰めるかと思うと獣の声をあげている…
+			PRINTFORMW 声を上げるたびに鉄砲水が勢いよく噴き出し、絶頂に達しているようだ…
+			CFLAG:425 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:425 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あっ、そこは…あぅぅん！」
+			PRINTFORMW 性感帯を突かれ、藍は可愛い声で鳴いている…
+			CFLAG:425 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:425 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「――――――っ！！」
+			PRINTFORMW 声にならない悲鳴を上げ藍はこみ上げる快感に耐えているようだ…
+			CFLAG:425 = 3
+		;それ以外
+		ELSEIF CFLAG:425 < 2 || FLAG:7 == 2
+			PRINTFORMW 「や、やめろぉ…」
+			CFLAG:425 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ローター CFLAG426
+;-------------------------------------------------
+IF SELECTCOM == 10
+	;初めて
+	IF CFLAG:426 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「え、何だそれは…あうっ！」
+			PRINTFORMW 今まで味わったことのない異物感に藍は驚きの声を上げているようだ
+ 			PRINTFORMW スイッチを入れるとその初めて味わう振動に複雑な表情を浮かべた…
+		ELSE
+			PRINTFORMW 「そんな道具に頼って…うぁぁぁぁっ！」
+		ENDIF
+		CFLAG:426 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:3 >= 7 && (CFLAG:426 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「そこは…弱いんだ…あうぅぅぅん！」
+			PRINTFORMW 淫核にローターを激しく当てるだけで藍の体は快楽を全身で表現している…
+			PRINTFORMW 淫核は苦しい程に隆起している
+			PRINTFORMW 「次は道具じゃなくて…その…%CALLNAME:MASTER%のチンポで…」
+			PRINTFORMW 藍は激しい快楽を身をゆだねながらも%CALLNAME:MASTER%の煽情を掻きたてていった
+			CFLAG:426 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:426 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あっ…気持ち良くなってきたかも、しれない…」
+			PRINTFORMW 艶やかな声を上げる頻度が明らかに上がってきた
+			CFLAG:426 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:426 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「あぅぅ…」
+			PRINTFORMW 藍は時折嬌声を上げるがまだ羞恥心が勝っており、声を出さないようにと我慢している…
+			CFLAG:426 = 3
+		;それ以外
+		ELSEIF CFLAG:426 < 2 || FLAG:7 == 2
+			PRINTFORMW 「くっ、や、やめろぉ…」
+			CFLAG:426 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;バイブ開始時 CFLAG427
+;-------------------------------------------------
+IF SELECTCOM == 11 && TEQUIP:11
+	;初めて
+	IF CFLAG:427 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「な、何だそれは…お前のアレに似ているが…」
+				PRINTFORMW 「な、そ、それを私のココに…？」
+				PRINTFORMW 藍は自分の秘所を指さして言った。少々戸惑っているようだ…
+				PRINTFORMW %CALLNAME:MASTER%は藍に自分で入り口を押し広げるよう促した…
+				PRINTFORMW 「う、ああっ、入ってくる…膣に…」
+				PRINTFORMW %CALLNAME:MASTER%がスイッチを入れると藍の顔が歪んでいく…膣口からは純潔の証が流れ出ていた…
+			ELSE
+				PRINTFORMW 「馬鹿、そんなの入らな…ぐぁぁぁぁぁっ！」
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「ん…それは…何だ…？」
+				PRINTFORMW 「張り型、か…」
+				PRINTFORMW %CALLNAME:MASTER%は優しく挿入すると言ったが、藍は戸惑っているようだ…
+				PRINTFORMW %CALLNAME:MASTER%はゆっくりと先端から馴らすようにして挿入していった…
+			ELSE
+				PRINTFORMW 「や、やめ、…うぁぁぁぁっ！」
+			ENDIF
+		ENDIF
+		CFLAG:427 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:427 < 5 || FLAG:7 == 2)
+			PRINTFORMW バイブの先端に挿入しただけで藍は歓喜の声を上げている…
+			PRINTFORMW すっかり快楽を覚え、奥へ入れるごとに声を上げ、よだれを垂らしただらしない顔で快楽を貪っている…
+			PRINTFORMW 電源を入れると更にけたたましい声で吠えた…
+			PRINTFORMW 更なる快楽を求めようと手の片方は豊満な双乳、片方は勃起している淫核へと伸ばしている
+			CFLAG:427 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:427 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「やはり大きいな…だがお前のソレのほうがもっと…」
+			PRINTFORMW 藍は%CALLNAME:MASTER%の陰茎を指さしている
+			CFLAG:427 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:427 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「くっ、うぁぁぁ…」
+			PRINTFORMW 膣で暴れる棒の快楽に未だ余り慣れてないのが見て取れた
+			CFLAG:427 = 3
+		;それ以外
+		ELSEIF CFLAG:427 < 2 || FLAG:7 == 2
+			PRINTFORMW 「ぐっ…こんなもので惑わされると思うな…！」
+			CFLAG:427 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;バイブ終了時 CFLAG428
+;-------------------------------------------------
+IF SELECTCOM == 11 && TEQUIP:11 == 0
+	;恋慕+V感覚Lv7以上
+	IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:428 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「あっ、ああん…」
+		PRINTFORMW 愛液にまみれたバイブを抜き去る。膣口からはだらしなく液体が噴き出ている…
+		PRINTFORMW 快楽の余韻に浸ってぐったりしている藍が口を開く
+		PRINTFORMW 「次は…%CALLNAME:MASTER%のチンポで…私のぐしょ濡れの嫌らしいマンコ…かき回してぇ！」
+		PRINTFORMW そう懇願すると藍は自ら膣口をめいっぱい広げて%CALLNAME:MASTER%を誘惑していく…その姿は理性を失ったただの獣だ…
+		CFLAG:428 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:428 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「あ、あぅっ…」
+		PRINTFORMW バイブを抜き去る際も快楽を感じ藍は震えていた
+		PRINTFORMW 「次は、お前のそれをいれてくれるんだろう…？」
+		PRINTFORMW 幾許かの期待を込めた目で、藍は怒張した%CALLNAME:MASTER%の陰茎を見つめている…
+		CFLAG:428 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:428 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「ううっ…」
+		PRINTFORMW 藍は快楽を感じていると言うよりも異物感による拒否感が強いように見えた…
+		CFLAG:428 = 3
+	;それ以外
+	ELSEIF CFLAG:428 < 2 || FLAG:7 == 2
+		PRINTFORMW 「満足したか…？お前の手でやられるよりは、マシかもな…」
+		CFLAG:428 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｅマッサージャ CFLAG429
+;-------------------------------------------------
+IF SELECTCOM == 12
+	;初めて
+	IF CFLAG:429 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「な、何だそれは…？」
+			PRINTFORMW %CALLNAME:MASTER%は「本来は」マッサージ器だと説明した
+			PRINTFORMW 「何だ、マッサージ器か…ってどこに当てて…うひぁん！」
+			PRINTFORMW 気持ちいいと言うよりはくすぐったいという反応である
+		ELSE
+			PRINTFORMW 「何だそれは…ひぁん！？」
+		ENDIF
+		CFLAG:429 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:3 >= 7 && (CFLAG:429 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「うぁぁぁぁっ…本来そのように使うものではないと分かっていても…」
+			PRINTFORMW 「やはり気持ちいい…ク、クリトリスがこすれて…うぁぁぁっ！」
+			PRINTFORMW 藍はすっかりマッサージ器による快感を覚え陶酔しきっているようだ
+			CFLAG:429 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:429 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「ああっ…だんだん、気持ち良くなってきた、かも…」
+			PRINTFORMW 快楽の色が藍の表情に現れてきたのが見てとれた
+			CFLAG:429 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:429 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「やはり慣れないな…あっ、ちょっと気持ちいいかもしれない…」
+			PRINTFORMW しかしその言葉はむしろ%CALLNAME:MASTER%に気遣って言っているように感じた…
+			CFLAG:429 = 3
+		;それ以外
+		ELSEIF CFLAG:429 < 2 || FLAG:7 == 2
+			PRINTFORMW 「道具などで…私は屈しない…！」
+			CFLAG:429 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;クリキャップ開始時 CFLAG430
+;途中まで書いてJはデフォ封印だと気付いたorz
+;-------------------------------------------------
+IF SELECTCOM == 14 && TEQUIP:14
+	;初めて
+	IF CFLAG:430 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「な、何だそれは…それを、その…クリトリスにつけるのか？」
+			PRINTFORMW 敏感な豆に取り付けられた藍は電流が走ったようにのたうちまわった
+		ELSE
+			PRINTFORMW 「くっ、そ、それを…？」
+			PRINTFORMW 「うっ、うぁぁぁぁっ！？」
+		ENDIF
+		CFLAG:430 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:3 >= 7 && (CFLAG:430 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「ク、クリが気持ちいい…意識が飛びそうだ…！」
+			PRINTFORMW 快楽によるまどろみの渦に身をゆだねるように快楽を全身で味わっている
+			PRINTFORMW 「ココにも…お前のその太いチンポを入れてくれ…」
+			PRINTFORMW ヴァギナを自分で広げ、尻尾を振りながら%CALLNAME:MASTER%を誘惑した…
+			CFLAG:430 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:430 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:430 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:430 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:430 = 3
+		;それ以外
+		ELSEIF CFLAG:430 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:430 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;クリキャップ終了時 CFLAG431
+;-------------------------------------------------
+IF SELECTCOM == 14 && TEQUIP:14 == 0
+	;恋慕+C感覚Lv7以上
+	IF TALENT:85 == 1 && ABL:3 >= 7 && (CFLAG:431 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「ああっ、うう…」
+		PRINTFORMW 快楽の渦から解放され藍はその場に突っ伏した
+		PRINTFORMW 足元には水たまりが…
+		PRINTFORMW 「まだだ…もっと気持ち良くしてくれ…私を、もっと狂わせてくれぇ！」
+		CFLAG:431 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:431 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:431 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:431 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:431 = 3
+	;それ以外
+	ELSEIF CFLAG:431 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:431 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ニプルキャップ開始時 CFLAG432
+;-------------------------------------------------
+IF SELECTCOM == 15 && TEQUIP:15
+	;初めて
+	IF CFLAG:432 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:432 = 1
+	;二回目以降
+	ELSE
+		;恋慕+B感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:14 >= 5 && (CFLAG:432 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:432 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:432 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:432 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:432 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:432 = 3
+		;それ以外
+		ELSEIF CFLAG:432 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:432 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ニプルキャップ終了時 CFLAG433
+;-------------------------------------------------
+IF SELECTCOM == 15 && TEQUIP:15 == 0
+	;恋慕+B感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:14 >= 5 && (CFLAG:433 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:433 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:433 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:433 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:433 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:433 = 3
+	;それ以外
+	ELSEIF CFLAG:433 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:433 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シャワー開始時 CFLAG434
+;-------------------------------------------------
+IF SELECTCOM == 18 && TEQUIP:18
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:434 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「あっ…アソコからお前の精液が…」
+		PRINTFORMW 流れててくる性交の証が藍の太股から流れ出てきた…
+		CFLAG:434 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:434 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「気持ちいい…さて…次は何がしたい？」
+		PRINTFORMW 藍はその豊満な胸を%CALLNAME:MASTER%の背中に押し付けてきた…
+		CFLAG:434 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:434 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「ふぅ…さっぱりできたよ」
+		CFLAG:434 = 3
+	;それ以外
+	ELSEIF CFLAG:434 < 2 || FLAG:7 == 2
+		PRINTFORMW 「…」
+		PRINTFORMW 藍は湯あみをしながらも、警戒している様子だ…
+		CFLAG:434 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シャワー終了時 CFLAG435
+;-------------------------------------------------
+IF SELECTCOM == 18 && TEQUIP:18 == 0
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:435 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「さて…次はどんなことで私を悦ばせてくれるんだ…？」
+		PRINTFORMW 「それとも…私がお前を悦ばせようか？フフッ」
+		CFLAG:435 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:435 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:435 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:435 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:435 = 3
+	;それ以外
+	ELSEIF CFLAG:435 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:435 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;正常位 CFLAG436
+;-------------------------------------------------
+IF SELECTCOM == 20
+	;初めて
+	IF CFLAG:436 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「ついに…お前のソレが、私のココに入るんだな…」
+				PRINTFORMW 「私の初めて…お前に捧げよう…」
+				PRINTFORMW %CALLNAME:MASTER%はひくひくとしている膣口に先端をあてがうと、少しずつ膣奥へと侵入させていった…
+				PRINTFORMW 「あっ、くぅぅぅぅっ！」
+				PRINTFORMW 処女を散らした痛みが藍を襲う
+				PRINTFORMW 「痛いけど…お前に捧げられてうれしい気分もあるんだ…さあ、遠慮なく」
+				PRINTFORMW かなり藍が無理しているように見えたが、%CALLNAME:MASTER%はその要求に応じ腰のグラインドを開始した…
+				PRINTFORMW 「あ、あん…」
+				PRINTFORMW 藍も痛みが大分おさまったのか、悦楽の声を上げ始めた…
+				PRINTFORMW 「気持ちいい…これが、交尾…いや…セックスというものなんだな…」
+			ELSE
+				PRINTFORMW 「や、やめろ…それだけは…うぁぁぁぁぁぁっ！！」
+				PRINTFORMW 破瓜の痛みに藍は悲鳴を上げた
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「そうか…ようやく一つになるんだな…」
+				PRINTFORMW 藍は決意したように足を広げ、陰茎を迎え入れた…
+				PRINTFORMW 一気に奥まで貫くと、膣の襞が全て%CALLNAME:MASTER%の陰茎を迎え入れているような感覚にとらわれた
+				PRINTFORMW さらなる快楽を得ようと自然と腰が動く…腰を振るたびに藍は甘い声をあげ更に欲情を加速させていく…
+			ELSE
+				PRINTFORMW 「…」
+				PRINTFORMW 藍はあきらめの表情を浮かべているようだ
+			ENDIF
+		ENDIF
+		CFLAG:436 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:436 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「この体位はお前の顔が見られて安心できる…」
+			PRINTFORMW 「それに…お前と繋がっている部分を見ていると凄く興奮するんだ…」
+			PRINTFORMW 「もっとだ、もっと突いてくれ…ああン！」
+			PRINTFORMW %CALLNAME:MASTER%は締め付ける藍の肉壺の快楽に夢中で腰を振っている
+			PRINTFORMW 藍の子宮を付き上げるたびに、白い液体が溢れ出てきた…
+			CFLAG:436 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:436 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「繋がっているという感じがしていいな…」
+			PRINTFORMW 「ああその左…ああん、そこだ…もっと突いてくれ」 
+			CFLAG:436 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:436 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「キスしてくれないか…」
+			PRINTFORMW 「ふぁ…うむ…んんん…」
+			PRINTFORMW 藍はキスをされて心が大分落ち着いたのと同時に、更なる快楽を感じているように見えた
+			CFLAG:436 = 3
+		;それ以外
+		ELSEIF CFLAG:436 < 2 || FLAG:7 == 2
+			PRINTFORMW 「あ…く…」
+			PRINTFORMW 快楽を感じているようには程遠いのが見て分かった
+			CFLAG:436 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;後背位 CFLAG437
+;-------------------------------------------------
+IF SELECTCOM == 21
+	;初めて
+	IF CFLAG:437 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「後ろから…？」
+				PRINTFORMW 藍は少し面食らった表情で呟いたが意を決し%CALLNAME:MASTER%の方に尻を突き出す
+				PRINTFORMW 「初めてだから…優しく…そう…ゆっくりだ…」
+				PRINTFORMW 「あ、入ってきた…い、痛い…」
+				PRINTFORMW 「…大丈夫だ、動いても、いい…」
+				PRINTFORMW %CALLNAME:MASTER%は彼女の膣内を味わいだした…
+				PRINTFORMW ヌチャッ、ヌチャッと腰を打ちつけるたびに淫らな響きが聞こえてきた…
+			ELSE
+				PRINTFORMW 「後ろからだと…？」
+				PRINTFORMW 「ぐっ、あああっ！！」
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「後ろから…？」
+				PRINTFORMW 「すごく背徳的な感じがするな…お前の顔もここからだと見えないし…」
+				PRINTFORMW %CALLNAME:MASTER%は自らの怒張を藍の膣口にあてがうと、一気に奥へと貫いた…
+				PRINTFORMW 「あぅっ…！は、入った…」
+				PRINTFORMW たまらず%CALLNAME:MASTER%は腰を打ちつけ、快楽を貪る。藍も突きいれられるたびに快楽の声を上げていた…
+			ELSE
+				PRINTFORMW ｢後ろからなんて…うぁぁぁっ！」
+			ENDIF
+		ENDIF
+		CFLAG:437 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:437 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「この体位は子宮口をごつんごつん叩きつけられて…ああっ、凄くいいっっっ！」
+			PRINTFORMW 感じて降りてきた子宮の奥まで遠慮なく叩きつけると膣は生き物のように収縮し、%CALLNAME:MASTER%の精液を絞り取るようにうごめく…
+			PRINTFORMW ｢すごく気持ちいい…もっと、もっとだ…奥まで突いてぇ…！%CALLNAME:MASTER%のチンポ汁…藍の子宮で味あわせてぇぇぇぇぇっ！」
+			CFLAG:437 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:437 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「膣奥に、当たって、あんっ、すご、く、気持ちが、あっ、いいっ！」
+			CFLAG:437 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:437 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「そんなに乱暴にがっつくな…あんっ！」
+			CFLAG:437 = 3
+		;それ以外
+		ELSEIF CFLAG:437 < 2 || FLAG:7 == 2
+			PRINTFORMW 「くっ…」
+			CFLAG:437 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;対面座位 CFLAG438
+;-------------------------------------------------
+IF SELECTCOM == 24
+	;初めて
+	IF CFLAG:438 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「二人で向かい合ってするのか…」
+				PRINTFORMW 「確かにこれなら密着感があって…キスもしやすいし…しかし…」
+				PRINTFORMW 初めてだから優しくな、と藍は消え入りそうな声で呟く
+				PRINTFORMW その様子に思わず興奮した%CALLNAME:MASTER%はゆっくりと鈴口を膣口に近づけ、ゆっくりと腰を入れていった…
+				PRINTFORMW 「つっ…！」
+				PRINTFORMW 純潔を散らした藍の顔が歪む。すぐさま%CALLNAME:MASTER%は彼女の唇を塞ぎ、安心させるように舌を絡めあった…
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「こうして向かい合うと照れるな。…今更だが」
+				PRINTFORMW 藍のはにかんだ表情が可愛くて%CALLNAME:MASTER%は早く入れたいとせかしてしまう
+				PRINTFORMW 「こら、がっつくな…そんなに急がなくても私は逃げない…。優しく…そう、優しくだ…」
+				PRINTFORMW 藍は不慣れな%CALLNAME:MASTER%をリードするように膣へと陰茎を導いていく…
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+		CFLAG:438 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:438 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「ああん…おまんこと、おっぱいと口を同時に犯されて…でもお前だから、凄く、感じるんだ…」
+			PRINTFORMW 「お前のせいだからな…ちゃんと責任を取ってお前のエキスを一杯出してくれよ…？」
+			PRINTFORMW 乳首を刺激しつつランダムに腰の打ちつけ方を変えて藍の体をねぶり回すと、藍もいい声で鳴いている…
+			CFLAG:438 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:438 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「キスしてくれ…ああっ、そこだ…そこがすごく感じるのぉ！！」
+			CFLAG:438 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:438 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「少し動くのは待ってくれないか」
+			PRINTFORMW もう少しこの温もりを感じていたい…との藍の要求に%CALLNAME:MASTER%は頭を撫でてやり、藍の体を抱きしめてやった…
+			CFLAG:438 = 3
+		;それ以外
+		ELSEIF CFLAG:438 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:438 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;背面座位 CFLAG439
+;-------------------------------------------------
+IF SELECTCOM == 25 && TEQUIP:57 == 0
+	;初めて
+	IF CFLAG:439 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW ｢後ろから…腰掛けるようにか…」
+				PRINTFORMW 「こうか…？うまく入らないな…」
+				PRINTFORMW ぎこちなさの残る藍の行動に少しほほえましさを感じつつ、%CALLNAME:MASTER%は自分の陰茎を固定し誘導してやる
+				PRINTFORMW 「うぁぁ、全部入ったぁ…」
+				PRINTFORMW 破瓜の痛みに藍は必死に耐えている。いくらかの時間が流れ、%CALLNAME:MASTER%はゆっくりと腰を持ち上げ、突き始めた…
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 「こ、こうか…？」
+				PRINTFORMW 隆々とそそり立つ%CALLNAME:MASTER%の肉棒を後目に、藍は%CALLNAME:MASTER%の上に腰かけるようにして挿入していった…
+				PRINTFORMW 「ふ、深いぃぃぃ…」
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+		CFLAG:439 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && (CFLAG:439 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「そんなに腰を打ちつけたら…だめぇ…我慢できなくなる…！」
+			PRINTFORMW 腰が踊るたびに藍の子宮はペニスを痛いくらいに締めあげてくる
+			PRINTFORMW 空いた手で胸をわしづかみしてやると、一際甲高い声で「おおぉぉぉん」と狼のような喘ぎ声を出す藍…
+			CFLAG:439 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:439 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「その…おっぱいも触ってくれないか…」
+			PRINTFORMW 藍の要求に%CALLNAME:MASTER%は応え、揉み回すと一際膣の締め上げがきつくなり、%CALLNAME:MASTER%の精子を絞り取ろうとしてきた…
+			CFLAG:439 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:439 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「後ろもいいけど、あんっ、私はやはり%CALLNAME:MASTER%の顔を見たいんだ…」
+			PRINTFORMW 「だから前でも…な？」
+			CFLAG:439 = 3
+		;それ以外
+		ELSEIF CFLAG:439 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:439 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;乱れ牡丹 CFLAG440
+;-------------------------------------------------
+IF SELECTCOM == 25 && TEQUIP:57
+	;初めて
+	IF CFLAG:440 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		;非処女
+		ELSE
+			;合意
+			IF TALENT:152 == 1
+				PRINTFORMW 
+			ELSE
+				PRINTFORMW 
+			ENDIF
+		ENDIF
+		CFLAG:440 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上+露出癖Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && ABL:7 >= 5 && (CFLAG:440 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:440 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:440 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:440 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:440 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:440 = 3
+		;それ以外
+		ELSEIF CFLAG:440 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:440 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;手淫 CFLAG441
+;-------------------------------------------------
+IF SELECTCOM == 30
+	;初めて
+	IF CFLAG:441 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 藍はまじまじと%CALLNAME:MASTER%のそそり立つ陰茎を見つめ、意を決したように掴み、こすり始めた…
+			PRINTFORMW 「どうだ…気持ち、いいか…？」
+			PRINTFORMW 正直なところかなり微妙なところであったが、愛する者がしてくれたのにそのような些事は言う必要はない
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:441 = 1
+	;二回目以降
+	ELSE
+		;恋慕+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:6 >= 10 && (CFLAG:441 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「こするだけじゃなくて…タマもこう…刺激して…」
+			PRINTFORMW 「あむ、ほうふふほ、ひもひいいはほお」
+			PRINTFORMW 睾丸を刺激したり口に含んだりして藍は精一杯奉仕している…
+			CFLAG:441 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:441 < 4 || FLAG:7 == 2)
+			PRINTFORMW カリ首を藍は重点的に刺激しているようだ…
+			PRINTFORMW 藍の賢明な奉仕により鈴口からは透明な液体が見えだしている
+			PRINTFORMW 藍はそれを手に取ると、親指と人差し指でぱっと広げてみた…
+			CFLAG:441 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:441 < 3 || FLAG:7 == 2)
+			PRINTFORMW 藍は根元から優しく、陰茎をこすり上げている…
+			PRINTFORMW ますます固く熱くなっていく%CALLNAME:MASTER%の陰茎を感じつつ、更に奉仕に没頭しているようだ…
+			CFLAG:441 = 3
+		;それ以外
+		ELSEIF CFLAG:441 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:441 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;フェラチオ CFLAG442
+;-------------------------------------------------
+IF SELECTCOM == 31
+	;初めて
+	IF CFLAG:442 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「く、口を使ってか…」
+			PRINTFORMW 藍はグロテスクな%CALLNAME:MASTER%の亀頭にそっと口付けてみた。まだ羞恥のほうが強いらしくそこまでで止めてしまった…
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:442 = 1
+	;二回目以降
+	ELSE
+		;恋慕+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:6 >= 10 && (CFLAG:442 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「どうしてこんなにいとおしく感じるのだろう…」
+			PRINTFORMW 藍はうっとりした表情でペニスを咥えると、のど奥まで一気にグラインドさせていく…
+			PRINTFORMW そして鈴口をチロチロと舌で刺激していく…%CALLNAME:MASTER%のペニスはみるみるうちに隆起し、その硬さをさらに増していく…
+			CFLAG:442 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:442 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「しかし毎度ながら思うけど、お前のペニスは本当に大きいな…」
+			PRINTFORMW そう言いつつも藍は口で%CALLNAME:MASTER%の陰茎を包み込んでいく…
+			PRINTFORMW 中でときおりまるで飴をなめるようにしてしゃぶり尽くしてくれ、%CALLNAME:MASTER%の絶頂をうながしていく…
+			CFLAG:442 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:442 < 3 || FLAG:7 == 2)
+			PRINTFORMW 鈴口に口をつけると、おずおずと舌を使って、舐め回し始めた…
+			CFLAG:442 = 3
+		;それ以外
+		ELSEIF CFLAG:442 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:442 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;パイズリ CFLAG443
+;大好きです。
+;-------------------------------------------------
+IF SELECTCOM == 32
+	;初めて
+	IF CFLAG:443 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW %CALLNAME:MASTER%は藍にそのたわわに実った乳房で陰茎を包み込んでほしいと頼んでみた…
+			PRINTFORMW 「お、おっぱいか…フフ、そうだな…私のコレにあれだけ目が行ってたんだもんな…
+			PRINTFORMW 藍はしっかりと両手で谷間を作り、陰茎を包み込むようにして谷間に導いた…
+			PRINTFORMW その中は外見の張りのあるイメージとは裏腹にまるで羽毛布団にくるまったような感触であった…
+			PRINTFORMW 藍の気持ちいいかという問いに全力で頭を上下に振ると、藍も満足そうな顔で上下に胸で愛撫していった…
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:443 = 1
+	;二回目以降
+	ELSE
+		;恋慕+B感覚Lv7以上+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:14 >= 7 && ABL:6 >= 10 && (CFLAG:443 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「お前も好きだな…だが、悪い気はしない…」
+			PRINTFORMW 「好きな人の感じてる顔を見るのは何ともいとおしいものだ…」
+			PRINTFORMW そう言うと、藍は谷間を作り、そのままペニスを突きいれるように促している…
+			PRINTFORMW 「どうだ…？まるで膣に入れているように感じるだろう？」
+			PRINTFORMW 余りの快感にその問いに応えず、%CALLNAME:MASTER%は谷間にペニスを一心不乱に打ちつけている…
+			PRINTFORMW 藍も乳房を寄せ、乳首を陰茎にこすりつけるように動かし、%CALLNAME:MASTER%の歓喜の潮を待ちかまえているかのごとく身構えている…
+			CFLAG:443 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:443 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「こうやってペニスを挟んでいると私もその感触で凄く…興奮するんだ…」
+			PRINTFORMW 「お前のペニスが跳ねるたびに、私の胸で感じてくれている…という証なのだからな」
+			PRINTFORMW そう言うと藍は更に胸でペニスをこすり上げると、はみ出た亀頭の鈴口に舌を差し入れるようにして刺激している…
+			PRINTFORMW 「フフフ…遠慮なく出していいんだ…私もお前のエキスが欲しい…」
+			PRINTFORMW そう言うと藍はスパートをかけ、%CALLNAME:MASTER%は内からこみ上げてくる奔流を感じていた…
+			CFLAG:443 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:443 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「どうだ…私の胸は…柔らかいだろう…？」
+			PRINTFORMW 「病みつきって顔してるな。だが悪い気はしない…ちゅっ」
+			PRINTFORMW 藍の顔が上気している。どうやら感じてくれていることに興奮を覚えているようだ
+			CFLAG:443 = 3
+		;それ以外
+		ELSEIF CFLAG:443 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:443 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;素股 CFLAG444
+;-------------------------------------------------
+IF SELECTCOM == 33
+	;初めて
+	IF CFLAG:444 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「お前の、ソレと、私のココを擦りつけるのか…」
+			PRINTFORMW まだ慣れない様子の藍。%CALLNAME:MASTER%は自分で亀頭を淫核の元へと持っていくと軽くつついてみた…
+			PRINTFORMW 「ふあああっ！そこは…感じ過ぎてしまう…」
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:444 = 1
+	;二回目以降
+	ELSE
+		;恋慕+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:6 >= 10 && (CFLAG:444 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「お前のチンポと、あん、私のクリトリスがキスするたびに電撃が走ったみたいに…気持ちいいぃぃぃぃっ！」
+			PRINTFORMW 藍は奉仕するのも忘れてその快楽に身を悶え続けている
+			PRINTFORMW 「我慢できない…次は、次は中でこれを…味あわせてくれ…！」
+			PRINTFORMW 懇願する藍の表情はふやけきっており、%CALLNAME:MASTER%のペニスを更に硬くさせた…
+			CFLAG:444 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:444 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「入れないのに何でこんなに気持ちがいいんだろうな…」
+			PRINTFORMW 「こうやって亀頭がこすれるだけで…気持ちが、あっ、いい、あんっ！」
+			CFLAG:444 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:444 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「こするだけで満足できるのか…？」
+			PRINTFORMW 「え？これはこれでいいものだ？…そういうものか…」
+			PRINTFORMW 藍はそう言うとその太股でも陰茎を擦り上げ始めた…
+			CFLAG:444 = 3
+		;それ以外
+		ELSEIF CFLAG:444 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:444 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;騎乗位 CFLAG445
+;-------------------------------------------------
+IF SELECTCOM == 34
+	;初めて
+	IF CFLAG:445 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW ｢私から入れてほしいって…？」
+			PRINTFORMW ベッドに寝そべった%CALLNAME:MASTER%にそびえたつ塔を見ながら藍は恥ずかしがった
+			PRINTFORMW %CALLNAME:MASTER%が懇願すると、藍はゆっくりと腰をおろし、%CALLNAME:MASTER%の陰茎を膣で呑みこんでいった…
+			PRINTFORMW 「どうだ…じゃあ、動くぞ…」
+			PRINTFORMW 腰をグラインドさせて陰茎を上下に出し入れし、%CALLNAME:MASTER%を絶頂に導こうと努力しているようだ
+			PRINTFORMW 「気持ちいいか…私も、うん、深く入れるたびに子宮に当たって…気持ちが、いいぞ…うぁん！」
+			PRINTFORMW 時折%CALLNAME:MASTER%も自発的に動き、藍の肉壺を味わっていく…
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:445 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv7以上+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:4 >= 7 && ABL:6 >= 10 && (CFLAG:445 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「征服感があるな…お前を私が犯しているという…」
+			PRINTFORMW 容赦ない藍の腰遣いに、%CALLNAME:MASTER%の顔はみるみる快楽へと溺れていく…
+			PRINTFORMW 「すごく気持ちよさそうだな…私も…もうすぐ…ううっ！」
+			PRINTFORMW 腰のグラインドをさらに強め、更に腰を回転させるように責める藍に既に%CALLNAME:MASTER%の我慢も限界に達していた…
+			CFLAG:445 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:445 < 4 || FLAG:7 == 2)
+			PRINTFORMW 藍は%CALLNAME:MASTER%が動いてほしいと提案してきた…
+			PRINTFORMW その要望通り下から突き上げてやると、藍は可愛い声で喘いでいる…
+			PRINTFORMW 奉仕する側があべこべと突っ込みたくはなったが可愛い顔が見れただけでもよしとしよう
+			CFLAG:445 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:445 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「どうだ…気持ちいいか…？」
+			PRINTFORMW 藍は得意げに笑っていた。訊くと%CALLNAME:MASTER%のイキそうな顔を見るのも悪くない、と答えた
+			CFLAG:445 = 3
+		;それ以外
+		ELSEIF CFLAG:445 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:445 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;泡踊り CFLAG446
+;-------------------------------------------------
+IF SELECTCOM == 35
+	;初めて
+	IF CFLAG:446 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「どうだ…これでいいのか…？」
+			PRINTFORMW 豊満な胸を背中にこすりつけている…乳首が当たって藍も感じているようだ…
+			PRINTFORMW 「フフフ…ここはもうこんなに爆発しそうだな…」
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:446 = 1
+	;二回目以降
+	ELSE
+		;恋慕+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:6 >= 10 && (CFLAG:446 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「すごくエッチに感じるな…お前の全身を自分の体で、洗う…」
+			PRINTFORMW 「そう考えただけで…ほら」
+			PRINTFORMW 藍はそう言うと自分の膣口を指さした。蜜があふれ出て石鹸の香りをかき消すように淫らな香りが漂っている…
+			PRINTFORMW 「フフ…それにお前のここも」
+			PRINTFORMW 藍の献身的な愛撫で%CALLNAME:MASTER%の陰茎も今にも爆発しそうなくらいいきりたっていた…
+			PRINTFORMW 「どうする…？このまま出してもいい、口の中、胸、それともおまんこか…？お前の望むようにしてやるぞ…」
+			CFLAG:446 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:446 < 4 || FLAG:7 == 2)
+			PRINTFORMW 藍はその尻尾に石鹸を塗りたくると、尻尾で%CALLNAME:MASTER%の体を愛撫してきた…
+			PRINTFORMW 「私だから出来る事、だろう？気持ちいいか…って聞くまでもなかったな」
+			PRINTFORMW すっかり悦に入っている%CALLNAME:MASTER%の顔を見て藍はフッと笑いながら愛撫を続けた…
+			CFLAG:446 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:446 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「恥ずかしいんだぞ…結構…」
+			PRINTFORMW 藍は上目遣いで%CALLNAME:MASTER%の顔を覗き込んだ
+			PRINTFORMW その表情がたまらなくそそり、%CALLNAME:MASTER%の肉棒はさらに高く天を向くのであった
+			CFLAG:446 = 3
+		;それ以外
+		ELSEIF CFLAG:446 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:446 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;スパンキング CFLAG447
+;-------------------------------------------------
+IF SELECTCOM == 40
+	;初めて
+	IF CFLAG:447 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:447 = 1
+	;二回目以降
+	ELSE
+		;恋慕+マゾっ気Lv5以上
+		IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:447 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:447 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:447 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:447 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:447 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:447 = 3
+		;それ以外
+		ELSEIF CFLAG:447 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:447 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アイマスク開始時 CFLAG448
+;-------------------------------------------------
+;開始時
+IF SELECTCOM == 43 && TEQUIP:43
+	;初めて
+	IF CFLAG:448 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:448 = 1
+	;二回目以降
+	ELSE
+		;恋慕+マゾっ気Lv5以上
+		IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:448 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:448 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:448 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:448 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:448 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:448 = 3
+		;それ以外
+		ELSEIF CFLAG:448 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:448 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アイマスク終了時 CFLAG:449
+;-------------------------------------------------
+IF SELECTCOM == 43 && TEQUIP:43 == 0
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:449 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:449 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:449 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:449 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:449 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:449 = 3
+	;それ以外
+	ELSEIF CFLAG:449 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:449 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ローション使用 CFLAG450
+;-------------------------------------------------
+IF SELECTCOM == 50
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:450 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「フフ…お前にも塗ってやるぞ…特にココにな」
+		PRINTFORMW 藍は%CALLNAME:MASTER%のペニスにもたっぷりとローションを塗りつけていった…
+		CFLAG:450 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:450 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「次はどうする？挿れるのか？それとも…」
+		PRINTFORMW 藍は自分の胸を指さしている。胸でしてやろうという意思表示のようだ…
+		CFLAG:450 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:450 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「ぬるぬるだな…次はどうするんだ？」
+		PRINTFORMW 若干期待感を匂わせる口調で藍が訊いてきた
+		CFLAG:450 = 3
+	;それ以外
+	ELSEIF CFLAG:450 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:450 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;羞恥プレイ開始時 CFLAG451
+;-------------------------------------------------
+IF SELECTCOM == 57 && TEQUIP:57
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:451 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:451 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:451 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:451 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:451 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:451 = 3
+	;それ以外
+	ELSEIF CFLAG:451 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:451 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;羞恥プレイ終了時 CFLAG452
+;-------------------------------------------------
+IF SELECTCOM == 57 && TEQUIP:57 == 0
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:452 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:452 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:452 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:452 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:452 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:452 = 3
+	;それ以外
+	ELSEIF CFLAG:452 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:452 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;お風呂場プレイ開始時 CFLAG453
+;-------------------------------------------------
+IF SELECTCOM == 58 && TEQUIP:58
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:453 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「風呂場でももっといいことしてくれるんだろう？」
+		PRINTFORMW 藍は淫らな瞳で舌舐めずりをしながら%CALLNAME:MASTER%の体を見つめている…
+		CFLAG:453 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:453 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「風呂か。もちろん、ただ入るだけじゃないんだろう…？」
+		PRINTFORMW 藍は手招きをして%CALLNAME:MASTER%を誘っている…
+		CFLAG:453 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:453 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「たまには、普通に一緒に風呂に入りたいものだな」
+		CFLAG:453 = 3
+	;それ以外
+	ELSEIF CFLAG:453 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:453 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;お風呂場プレイ終了時 CFLAG454
+;-------------------------------------------------
+IF SELECTCOM == 58 && TEQUIP:58 == 0
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:454 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「ふぅ…。これからはベッドで、な？」
+		PRINTFORMW そう言うと藍は我慢できないのか自分で秘所や胸をいじり始めた
+		CFLAG:454 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:454 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「…これで終わりじゃないんだろう？」
+		PRINTFORMW 藍は%CALLNAME:MASTER%のペニスを見つめながらこれから起こることを想像しているようだ
+		CFLAG:454 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:454 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「気持ち良かった…このまま寝てもいいよな？」
+		PRINTFORMW %CALLNAME:MASTER%が残念そうな顔をすると、藍は冗談だよと言ってベッドへと向かっていく…
+		CFLAG:454 = 3
+	;それ以外
+	ELSEIF CFLAG:454 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:454 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;新妻プレイ開始時 CFLAG455
+;-------------------------------------------------
+IF SELECTCOM == 59 && TEQUIP:59
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:455 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「こうしてエプロンしていると、本当に私がお前のお嫁さんになったみたいだな…」
+		PRINTFORMW 「…私はいいぞ。お前の伴侶になったとしても悔いはない」
+		CFLAG:455 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:455 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「本当の夫婦になったみたいだな…」
+		PRINTFORMW そう言うと藍はすぐに顔を真っ赤にした
+		CFLAG:455 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:455 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「肌に直接つけると…その…乳首がこすれて…」
+		PRINTFORMW そこまで言うと藍は口ごもった。どうやら乳首とエプロンがこすれて感じるらしい…
+		CFLAG:455 = 3
+	;それ以外
+	ELSEIF CFLAG:455 < 2 || FLAG:7 == 2
+		PRINTFORMW 「エプロンをつけたところで…何が変わるものでもないだろう」
+		CFLAG:455 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;新妻プレイ終了時 CFLAG456
+;-------------------------------------------------
+IF SELECTCOM == 59 && TEQUIP:59 == 0
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:456 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「このまま続けてもいいんだぞ？」
+		PRINTFORMW だって、お前は私の…その後は声が途切れて良く聞こえなかった
+		CFLAG:456 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:456 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「お嫁さんになったら…」
+		PRINTFORMW 藍はエプロンを脱ぎつつそんなことを呟いた。どんな想像をしているのか、顔を赤らめている…
+		CFLAG:456 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:456 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:456 = 3
+	;それ以外
+	ELSEIF CFLAG:456 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:456 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シックスナイン CFLAG457
+;-------------------------------------------------
+IF SELECTCOM == 69
+	;初めて
+	IF CFLAG:457 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「舐めあう、か…私も気持ち良くする代わりにお前も良くする。ギブアンドテイクだな」
+			PRINTFORMW そう言うと藍は陰茎を口に咥え、奉仕を開始した…
+			PRINTFORMW %CALLNAME:MASTER%も口で藍の陰部を刺激すると、ビクっと藍の体が跳ねる…
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:457 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv7以上+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:3 >= 7 && ABL:6 >= 10 && (CFLAG:457 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「気持ちいいか…私も気持ちいい…」
+			PRINTFORMW 藍はうっとりとした表情でペニスを咥えている。時折%CALLNAME:MASTER%のアヌスに手に入れ、前立腺を刺激し%CALLNAME:MASTER%が激しく痙攣するのを見て楽しんでいる…
+			CFLAG:457 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:457 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「カウパーが出てるぞ…」
+			PRINTFORMW 藍はそう言うとカウパーを啜り、再び激しくバキュームを開始した…
+			PRINTFORMW 「遠慮するな…私も…もう少しで…」
+			CFLAG:457 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:457 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「ああん！…私だって…」
+			PRINTFORMW %CALLNAME:MASTER%が淫核を軽く甘噛みすると、藍もそれに対抗するようにバキュームを開始した…
+			CFLAG:457 = 3
+		;それ以外
+		ELSEIF CFLAG:457 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:457 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;イラマチオ CFLAG458
+;-------------------------------------------------
+IF SELECTCOM == 80
+	;初めて
+	IF CFLAG:458 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「んほぉ！…ゴフッ…！」
+			PRINTFORMW どうやら勢いよく突きすぎてしまったようだ。藍はえづいてしまっている
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:458 = 1
+	;二回目以降
+	ELSE
+		;恋慕+奉仕精神Lv10以上
+		IF TALENT:85 == 1 && ABL:6 >= 10 && (CFLAG:458 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「口をマンコに見立てて犯されている…」
+			PRINTFORMW そう考えると、濡れてくる…と藍は続けた
+			PRINTFORMW 乱暴に突きいれても藍の口内はまるで膣内のほうに優しく包み込んでくる…
+			CFLAG:458 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:458 < 4 || FLAG:7 == 2)
+			PRINTFORMW 藍も自発的にバキュームをし、%CALLNAME:MASTER%を絶頂へと導くべく頑張っている…
+			CFLAG:458 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:458 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「お前だから我慢するんだ…他の男にされたなんて考えたら…」
+			PRINTFORMW ぞっとしない、と答える藍。%CALLNAME:MASTER%はそんなことはない、自分だけが藍を独占すると言うと藍は嬉しそうな反応を返した…
+			CFLAG:458 = 3
+		;それ以外
+		ELSEIF CFLAG:458 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:458 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+
+
+
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;鬼畜系コマンド
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;-------------------------------------------------
+;アナル愛撫 CFLAG459
+;-------------------------------------------------
+IF SELECTCOM == 2
+	;初めて
+	IF CFLAG:459 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「あっ…そこはお尻…！」
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:459 = 1
+	;二回目以降
+	ELSE
+		;恋慕+A感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:5 >= 5 && (CFLAG:459 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「お尻に指入れられて…感じてるのぉぉぉ！！」
+			PRINTFORMW すっかり後ろの虜になってしまった藍は指を入れられるだけで歓喜の声を上げている…
+			PRINTFORMW 既に膣は洪水状態である
+			CFLAG:459 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:459 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「お尻は…あぅぅぅん！」
+			PRINTFORMW そう言いながらも喘ぎ声を洩らす藍。その声がいとおしく、更に責め上げ、藍を喘がせた
+			CFLAG:459 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:459 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「だから汚いから…やめ…あん！」
+			PRINTFORMW 未だに不潔という意識が強いのか、藍は尻に力を入れてしまっているようだ…
+			CFLAG:459 = 3
+		;それ以外
+		ELSEIF CFLAG:459 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:459 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;公開オナニー CFLAG460
+;-------------------------------------------------
+IF SELECTCOM == 3 && TEQUIP:18 == 0 && TEQUIP:53
+	;初めて
+	IF CFLAG:460 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:460 = 1
+	;二回目以降
+	ELSE
+		;恋慕+自慰中毒Lv5以上
+		IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:460 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「ほら、見てぇ…」
+			PRINTFORMW 藍は躊躇することなく、己の膣口を片手で愛撫しながら
+			PRINTFORMW カメラに見せつけるように腰を突きだして自慰に耽っている…
+			CFLAG:460 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:460 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:460 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:460 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:460 = 3
+		;それ以外
+		ELSEIF CFLAG:460 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:460 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;公開シャワーオナニー（公開除く） CFLAG461
+;-------------------------------------------------
+;シャワーオナニー
+IF SELECTCOM == 3 && TEQUIP:18 && TEQUIP:53
+	;初めて
+	IF CFLAG:461 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:461 = 1
+	;二回目以降
+	ELSE
+		;恋慕+自慰中毒Lv5以上
+		IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:461 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:461 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:461 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:461 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:461 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:461 = 3
+		;それ以外
+		ELSEIF CFLAG:461 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:461 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;フェラされる CFLAG462
+;-------------------------------------------------
+IF SELECTCOM == 4
+	;初めて
+	IF CFLAG:462 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:462 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:462 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:462 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:462 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:462 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:462 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:462 = 3
+		;それ以外
+		ELSEIF CFLAG:462 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:462 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルバイブ開始時 CFLAG463
+;-------------------------------------------------
+IF SELECTCOM == 13 && TEQUIP:13
+	;初めて
+	IF CFLAG:463 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「ん、それは…？」
+			PRINTFORMW 「尻に入れるって…」
+			PRINTFORMW 藍は余りの事に若干言葉を失う、しかしやがて首を縦に振る
+			PRINTFORMW 未だ体感したことのない異物感が藍を襲い、声にならない声を一瞬上げた
+			PRINTFORMW そのままスイッチを入れると、ブーンという機械音と同時に藍の身体はびくんと大きく痙攣した
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:463 = 1
+	;二回目以降
+	ELSE
+		;恋慕+A感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:5 >= 7 && (CFLAG:463 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「それじゃなくて、お前のチンポが欲しいのに…」
+			PRINTFORMW 「でもこれも、好きぃ…」
+			PRINTFORMW 尻穴に少し入った瞬間に、白い愛液がとめどなく膣から流れ出てくる
+			PRINTFORMW 躊躇なく不浄の穴の異物を抜き差しし、時折痙攣したかと思うと、鉄砲水を膣から噴き出している
+			CFLAG:463 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:463 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「え、自分で抜き差ししろって…？」
+			PRINTFORMW %CALLNAME:MASTER%が頭を下げると断りに断り切れず、恐る恐る尻穴に入る異物に手を回す
+			PRINTFORMW 少しいたずらと%CALLNAME:MASTER%がバイブを奥まで押し入れると、四つん這いの態勢を維持できず藍は
+			PRINTFORMW その場に突っ伏して悶えている…
+			CFLAG:463 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:463 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:463 = 3
+		;それ以外
+		ELSEIF CFLAG:463 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:463 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルバイブ終了時 CFLAG464
+;-------------------------------------------------
+IF SELECTCOM == 13 && TEQUIP:13 == 0
+	;恋慕+A感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && (CFLAG:464 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:464 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:464 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:464 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:464 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:464 = 3
+	;それ以外
+	ELSEIF CFLAG:464 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:464 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;搾乳機開始時 CFLAG465
+;Q:何故書いたし
+;A:おっぱい！おっぱい！
+;-------------------------------------------------
+IF SELECTCOM == 16 && TEQUIP:16
+	;初めて
+	IF CFLAG:465 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「それはなんだ…？何！？私のおっぱいを吸い出すもの？」
+			PRINTFORMW 「お前との営みで確かに私には母乳が出るようになった。しかし…」
+			PRINTFORMW %CALLNAME:MASTER%は敢えて答えずに取りつけ、スイッチを入れる…
+			PRINTFORMW 「う、うわぁぁぁぁ…乳首が、吸い込まれるぅ…！？」
+			PRINTFORMW 藍は初めて味わう感覚に体震わせた…
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:465 = 1
+	;二回目以降
+	ELSE
+		;恋慕+B感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:14 >= 7 && (CFLAG:465 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「ああっ…いい…もっと、私のおっぱいみるく絞り出してぇぇぇぇ！！」
+			PRINTFORMW 藍はすっかり乳首から大量の母乳を絞りだされる感覚に心奪われている
+			CFLAG:465 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:465 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「こんなことしなくても…俺はお前に飲んでほしいのに…うはぁん！」
+ 			PRINTFORMW 藍はそうも言いつつもこの独特の感覚に快楽を感じてきているようだった
+			CFLAG:465 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:465 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:465 = 3
+		;それ以外
+		ELSEIF CFLAG:465 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:465 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;搾乳機終了時 CFLAG466
+;-------------------------------------------------
+IF SELECTCOM == 16 && TEQUIP:16 == 0
+	;恋慕+B感覚Lv7以上
+	IF TALENT:85 == 1 && ABL:14 >= 7 && (CFLAG:466 < 5 || FLAG:7 == 2)
+		PRINTFORMW 取り外すと藍の乳首からは再び白い液体があふれ出てきた…
+		PRINTFORMW %CALLNAME:MASTER%が吸いつくと、藍は再び歓喜の渦へと呑みこまれていった…
+		CFLAG:466 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:466 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「あっ…くぅっ…」
+		PRINTFORMW 取り外すと藍はぐったりしてその場に倒れこんだ。どうやらかなり消耗しているようだ…
+		CFLAG:466 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:466 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:466 = 3
+	;それ以外
+	ELSEIF CFLAG:466 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:466 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;オナホール開始時 CFLAG467
+;-------------------------------------------------
+IF SELECTCOM == 17 && TEQUIP:17
+	;初めて
+	IF CFLAG:467 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:467 = 1
+	;二回目以降
+	ELSE
+		;恋慕+C感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:467 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:467 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:467 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:467 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:467 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:467 = 3
+		;それ以外
+		ELSEIF CFLAG:467 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:467 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;オナホール終了時 CFLAG468
+;-------------------------------------------------
+IF SELECTCOM == 17 && TEQUIP:17 == 0
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:468 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:468 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:468 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:468 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:468 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:468 = 3
+	;それ以外
+	ELSEIF CFLAG:468 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:468 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルセックス CFLAG469
+;-------------------------------------------------
+IF SELECTCOM == 22
+	;初めて
+	IF CFLAG:469 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 「し、尻に入れるのか？」
+			PRINTFORMW 藍は思わず素っ頓狂な声を上げたが、おずおずと尻穴を%CALLNAME:MASTER%に見えるように向け、
+			PRINTFORMW 両手の人差し指と中指で拡げて%CALLNAME:MASTER%のいきり立つ陰茎を導いた…
+			PRINTFORMW 「あぐぅ…」
+			PRINTFORMW 初めて味わう異物感に藍はうめき声をあげる
+			PRINTFORMW そのままゆっくりと動かすと、その度に中は収縮し陰茎を締め付ける
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:469 = 1
+	;二回目以降
+	ELSE
+		;恋慕+A感覚Lv7以上
+		IF TALENT:85 == 1 && ABL:5 >= 7 && (CFLAG:469 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「お尻、もう準備できてるぞ…」
+			PRINTFORMW 藍はそう言うと尻穴に指を突っ込み、上下に拡げた
+			PRINTFORMW 勢い良く肉棒を突きいれると、藍は快楽の波に飲まれうぉぉぉぉぉんと吠えた後
+			PRINTFORMW エビ反りになり快感を全身で味わっている…
+			CFLAG:469 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:469 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「だから、そこは…赤ちゃんも出来ない穴なんだぞ」
+			PRINTFORMW 「そもそも排泄の穴なんて…んああっ！」
+			PRINTFORMW 返答を待たず膣口より狭い穴に突きいれると、呻き声に時々混じって熱っぽい声が聞こえている…
+			CFLAG:469 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:469 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:469 = 3
+		;それ以外
+		ELSEIF CFLAG:469 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:469 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;逆レイプ CFLAG470
+;-------------------------------------------------
+IF SELECTCOM == 23
+	;初めて
+	IF CFLAG:470 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:470 = 1
+	;二回目以降
+	ELSE
+		;淫乱
+		IF TALENT:76 == 1 && (CFLAG:470 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「やられっぱなしってのも良くないだろう？」
+			PRINTFORMW 藍はそう言うと、%CALLNAME:MASTER%の上に跨り本能を赴くまま腰を地に叩きつけるようにグラインドさせた
+			PRINTFORMW 「ほらほら、どんどんお前のチンポミルクで私の淫乱マンコを満たしつくしてくれ…」
+			PRINTFORMW 突きいれられる度に藍の膣は収縮し、際限なく%CALLNAME:MASTER%の精液を絞りつくす
+			PRINTFORMW その度に%CALLNAME:MASTER%の鈴口からは白い奔流が子宮に注がれていく…
+			CFLAG:470 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:470 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:470 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:470 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:470 = 3
+		;それ以外
+		ELSEIF CFLAG:470 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:470 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;鞭 CFLAG471
+;-------------------------------------------------
+IF SELECTCOM == 41
+	;初めて
+	IF CFLAG:471 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:471 = 1
+	;二回目以降
+	ELSE
+		;恋慕+マゾっ気Lv5以上
+		IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:471 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:471 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:471 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:471 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:471 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:471 = 3
+		;それ以外
+		ELSEIF CFLAG:471 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:471 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;針 CFLAG472
+;-------------------------------------------------
+IF SELECTCOM == 42
+	;初めて
+	IF CFLAG:472 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:472 = 1
+	;二回目以降
+	ELSE
+		;恋慕+マゾっ気Lv5以上
+		IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:472 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:472 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:472 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:472 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:472 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:472 = 3
+		;それ以外
+		ELSEIF CFLAG:472 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:472 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;縄開始時 CFLAG473
+;-------------------------------------------------
+IF SELECTCOM == 44 && TEQUIP:44
+	;初めて
+	IF CFLAG:473 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:473 = 1
+	;二回目以降
+	ELSE
+		;恋慕+マゾっ気Lv5以上
+		IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:473 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:473 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:473 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:473 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:473 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:473 = 3
+		;それ以外
+		ELSEIF CFLAG:473 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:473 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;縄終了時 CFLAG:474
+;-------------------------------------------------
+IF SELECTCOM == 44 && TEQUIP:44 == 0
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:474 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:474 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:474 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:474 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:474 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:474 = 3
+	;それ以外
+	ELSEIF CFLAG:474 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:474 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ボールギャグ開始時 CFLAG475
+;-------------------------------------------------
+IF SELECTCOM == 45 && TEQUIP:45
+	;初めて
+	IF CFLAG:475 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:475 = 1
+	;二回目以降
+	ELSE
+		;恋慕+マゾっ気Lv5以上
+		IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:475 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:475 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:475 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:475 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:475 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:475 = 3
+		;それ以外
+		ELSEIF CFLAG:475 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:475 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ボールギャグ終了時 CFLAG:476
+;-------------------------------------------------
+IF SELECTCOM == 45 && TEQUIP:45 == 0
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:476 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:476 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:476 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:476 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:476 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:476 = 3
+	;それ以外
+	ELSEIF CFLAG:476 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:476 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;浣腸 CFLAG477
+;-------------------------------------------------
+IF SELECTCOM == 46 && TEQUIP:46
+	;恋慕+A感覚Lv5以上+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && ABL:8 >= 5 && (CFLAG:477 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:477 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:477 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:477 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:477 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:477 = 3
+	;それ以外
+	ELSEIF CFLAG:477 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:477 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;排泄 CFLAG478
+;-------------------------------------------------
+IF TEQUIP:46 == 0 && SELECTCOM == 46
+	;恋慕+A感覚Lv5以上+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && ABL:8 >= 5 && (CFLAG:478 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:478 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:478 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:478 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:478 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:478 = 3
+	;それ以外
+	ELSEIF CFLAG:478 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:478 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;媚薬使用 CFLAG479
+;-------------------------------------------------
+IF SELECTCOM == 51
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:479 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「フフフ…実にいい気分だ…」
+		PRINTFORMW 「さあ、%CALLNAME:MASTER%も一緒に溶けよう…」
+		PRINTFORMW 既に濡れきっている膣を自分で押し広げ見せつけるようにして、藍は%CALLNAME:MASTER%を誘っている…
+		CFLAG:479 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:479 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「ん…！？体が…！」
+		PRINTFORMW 「どうしたと言うんだ…体…が…熱い…！」
+		PRINTFORMW 「こんなことしなくとも、私はお前にしてやると言うのにな…」
+		CFLAG:479 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:479 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「こ…こんな…まさか…お前…」
+		PRINTFORMW 藍は体の異変が%CALLNAME:MASTER%にあると悟ったようだ…
+		CFLAG:479 = 3
+	;それ以外
+	ELSEIF CFLAG:479 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:479 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ビデオカメラ使用 CFLAG480
+;-------------------------------------------------
+IF SELECTCOM == 53 && TEQUIP:53
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:480 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「撮るのか？」
+		PRINTFORMW 「フフフ…私達の営みを…見せつけてやろう…」
+		PRINTFORMW カメラのレンズのまん前で藍は自らの膣口や胸をこすりつけるようにしている…
+		CFLAG:480 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:480 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「やっぱり恥ずかしいな…こんな姿…万が一橙や紫様に見られたりしたら…あぅん！」
+		PRINTFORMW 会話を遮るように%CALLNAME:MASTER%は藍の体を愛撫していった…
+		CFLAG:480 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:480 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「撮る…だと…？」
+		PRINTFORMW 「本気で言っているのか…？」
+		CFLAG:480 = 3
+	;それ以外
+	ELSEIF CFLAG:480 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:480 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;野外プレイ開始時 CFLAG481
+;-------------------------------------------------
+IF SELECTCOM == 54 && TEQUIP:54
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:481 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「本当にお前は変態だな…」
+		PRINTFORMW 「だが、お前としていることを誰かに見せたい、そう思う時もある。それに…」
+		PRINTFORMW 藍は膣口を指差した。そこはもはや洪水で、愛液の滴がぽたぽたと地に落ちている
+		PRINTFORMW 「スリルがあって、凄く感じるんだ…」
+		CFLAG:481 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:481 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「お前が、そう言うのなら…」
+		PRINTFORMW そうは言いながらも、これから行われる行為の羞恥心に、藍は顔を赤らめている
+		CFLAG:481 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:481 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:481 = 3
+	;それ以外
+	ELSEIF CFLAG:481 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:481 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;野外プレイ終了時 CFLAG:482
+;-------------------------------------------------
+IF SELECTCOM == 54 && TEQUIP:54 == 0
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:482 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「やはり、スリルは快感に変わる。癖になりそうだ…」
+		PRINTFORMW 「今度はもっと、人のいそうなところでやらないか？気づかれたら、見せつけてやればいい…」
+		PRINTFORMW こんなにしたのはお前だから、ちゃんと責任を取るべきだ、と藍は続けた…
+		PRINTFORMW %CALLNAME:MASTER%は答える代わりに、その愛液と精液が飛び散った体を丁寧に愛撫していく…
+		CFLAG:482 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:482 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「今回は何もなかったようだな…」
+		PRINTFORMW 藍はそう言うが、気持ちよかったと問うと、顔を俯かせながら静かに頷いた
+		CFLAG:482 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:482 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:482 = 3
+	;それ以外
+	ELSEIF CFLAG:482 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:482 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;助手を犯す CFLAG483
+;-------------------------------------------------
+IF SELECTCOM == 56
+	;初めて
+	IF CFLAG:483 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:483 = 1
+	;二回目以降
+	ELSE
+		;淫乱
+		IF TALENT:76 == 1 && (CFLAG:483 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:483 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:483 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:483 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:483 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:483 = 3
+		;それ以外
+		ELSEIF CFLAG:483 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:483 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;フィストファック CFLAG484
+;-------------------------------------------------
+IF SELECTCOM == 81
+	;初めて
+	IF CFLAG:484 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:484 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv10以上+マゾッ気Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 10 && ABL:8 >= 5 && (CFLAG:484 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:484 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:484 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:484 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:484 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:484 = 3
+		;それ以外
+		ELSEIF CFLAG:484 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:484 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルフィスト CFLAG485
+;-------------------------------------------------
+IF SELECTCOM == 82
+	;初めて
+	IF CFLAG:485 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:485 = 1
+	;二回目以降
+	ELSE
+		;恋慕+A感覚Lv10以上+マゾッ気Lv5以上
+		IF TALENT:85 == 1 && ABL:5 >= 10 && ABL:8 >= 5 && (CFLAG:485 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:485 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:485 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:485 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:485 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:485 = 3
+		;それ以外
+		ELSEIF CFLAG:485 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:485 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;両穴フィスト CFLAG486
+;-------------------------------------------------
+IF SELECTCOM == 83
+	;初めて
+	IF CFLAG:486 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:486 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv10以上+A感覚Lv10以上+マゾッ気Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 10 && ABL:5 >= 10 && ABL:8 >= 5 && (CFLAG:486 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:486 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:486 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:486 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:486 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:486 = 3
+		;それ以外
+		ELSEIF CFLAG:486 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:486 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;触手召喚開始時 CFLAG487
+;-------------------------------------------------
+IF SELECTCOM == 100 && TEQUIP:90
+	;初めて
+	IF CFLAG:487 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:487 = 1
+	;二回目以降
+	ELSE
+		;淫乱
+		IF TALENT:76 == 1 && (CFLAG:487 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:487 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:487 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:487 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:487 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:487 = 3
+		;それ以外
+		ELSEIF CFLAG:487 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:487 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;触手召喚終了時 CFLAG:488
+;-------------------------------------------------
+IF SELECTCOM == 100 && TEQUIP:90 == 0
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:488 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:488 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:488 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:488 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:488 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:488 = 3
+	;それ以外
+	ELSEIF CFLAG:488 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:488 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;利尿剤 CFLAG489
+;-------------------------------------------------
+IF SELECTCOM == 52
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:489 < 5 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:489 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:489 < 4 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:489 = 4
+	;合意or恋人
+	ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:489 < 3 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:489 = 3
+	;それ以外
+	ELSEIF CFLAG:489 < 2 || FLAG:7 == 2
+		PRINTFORMW 
+		CFLAG:489 = 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;放尿 CFLAG490
+;-------------------------------------------------
+IF SELECTCOM == 85
+	;初めて
+	IF CFLAG:490 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:490 = 1
+	;二回目以降
+	ELSE
+		;淫乱
+		IF TALENT:76 == 1 && (CFLAG:490 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:490 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:490 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:490 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:490 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:490 = 3
+		;それ以外
+		ELSEIF CFLAG:490 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:490 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;強制放尿 CFLAG491
+;-------------------------------------------------
+IF SELECTCOM == 85 && (TALENT:57 == 0 && ABL:0 >= 4 && ABL:1 >= 3 && ABL:8 >= 3) || (TALENT:57 && TEQUIP:22 == 0)
+	;初めて
+	IF CFLAG:491 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:491 = 1
+	;二回目以降
+	ELSE
+		;淫乱
+		IF TALENT:76 == 1 && (CFLAG:491 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:491 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:491 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:491 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:491 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:491 = 3
+		;それ以外
+		ELSEIF CFLAG:491 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:491 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;３P CFLAG492
+;-------------------------------------------------
+IF SELECTCOM == 64
+	;初めて
+	IF CFLAG:492 == 0
+		;合意
+		IF TALENT:152 == 1
+			PRINTFORMW 
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:492 = 1
+	;二回目以降
+	ELSE
+		;淫乱
+		IF TALENT:76 == 1 && (CFLAG:492 < 5 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:492 = 5
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:492 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:492 = 4
+		;合意or恋人
+		ELSEIF (TALENT:152 == 1 || TALENT:153 == 1) && (CFLAG:492 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:492 = 3
+		;それ以外
+		ELSEIF CFLAG:492 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:492 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG関係（X1をキャラ番号に置換）
+;パラメータ変動をトリガーにした口上
+;パラメータ変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_21
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+;SIF ASSI > 0 && ASSIPLAY
+;	RETURN 0 
+;ボールギャグ着用時には口上をスキップする（OFFだと口を塞いでるのに喋りまくる）
+SIF TEQUIP:45
+	RETURN 0
+;-------------------------------------------------
+;パラメータ変動時のセリフ CFLAG 341～396を使用
+;-------------------------------------------------
+;-------------------------------------------------
+;初めて好意がLV2超えた CFLAG341
+;-------------------------------------------------
+P = PALAM:15 + UP:15
+IF P > PALAMLV:2 && CFLAG:341 == 0
+	PRINTFORMW 「この者となら、やっていける気がするよ…」
+	PRINTFORMW 藍は%CALLNAME:MASTER%に聞こえないような小さい声でそう、呟いた。
+	CFLAG:341 = 1
+ENDIF
+;-------------------------------------------------
+;初めて生活がLV2超えた CFLAG342
+;-------------------------------------------------
+P = PALAM:16 + UP:16
+IF P > PALAMLV:2 && CFLAG:342 == 0
+	PRINTFORMW 「貴重な経験をしたような気がするな」
+	PRINTFORMW 藍はこの経験を今後に役立てたいと考えているようだ。
+	CFLAG:342 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて優位がLV2超えた CFLAG343
+;-------------------------------------------------
+P = PALAM:17 + UP:17
+IF P > PALAMLV:2 && CFLAG:343 == 0
+	PRINTFORMW 「フフフフ…」
+	CFLAG:343 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて潤滑がLV2超えた CFLAG344
+;-------------------------------------------------
+P = PALAM:3 + UP:3
+IF P > PALAMLV:2 && CFLAG:TARGET:344 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		;ローションを使った場合
+		IF SELECTCOM == 50
+			PRINTFORMW (濡れ…それもそうか…これを塗ったんだからな)
+			PRINTFORMW 藍はローションで濡れた陰部を見つめるとそう言い聞かせた…
+		;それ以外
+		ELSE
+			PRINTFORMW (アソコが…熱い…！)
+			PRINTFORMW (この男と触れ合って…感じているのだな、私が…)
+			PRINTFORMW 藍は事実をありのまま受け入れようとしているようだ。
+		ENDIF
+	;それ以外
+	ELSE
+		;ローションを使った場合
+		IF SELECTCOM == 50
+			PRINTFORMW (濡れている…！いや…これのせいだ、決して本心では…)
+			PRINTFORMW 戸惑いながらも藍は平静を保とうとしている。
+		;それ以外
+		ELSE
+			PRINTFORMW (この私が…濡れ…バカな…)
+		ENDIF
+	ENDIF
+	CFLAG:TARGET:344 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて欲情がLV2超えた CFLAG345
+;-------------------------------------------------
+P = PALAM:5 + UP:5
+IF P > PALAMLV:2 && CFLAG:345 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		;媚薬を使った場合
+		IF SELECTCOM == 51
+			PRINTFORMW (体が熱い…何だ…さっきの薬は媚…薬…！)
+		;それ以外
+		ELSE
+			PRINTFORMW (体が火照る…欲情しているのか…)
+			PRINTFORMW 藍はばつの悪そうな顔で%CALLNAME:MASTER%を見つめている…
+		ENDIF
+	;それ以外
+	ELSE
+		;媚薬を使った場合
+		IF SELECTCOM == 51
+			PRINTFORMW (体が…！？そうか先ほどの…！)
+		;それ以外
+		ELSE
+			PRINTFORMW (体が…だが私は誇り高き式神、決して犬畜生のような獣などでは…！)
+			PRINTFORMW 藍は必死に否定しようとしているようだが、体は反応をやめなかった。
+		ENDIF
+	ENDIF
+	CFLAG:345 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて恥情がLV2超えた CFLAG345
+;-------------------------------------------------
+P = PALAM:8 + UP:8
+IF P > PALAMLV:2 && CFLAG:345 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 
+	;それ以外
+	ELSE
+		PRINTFORMW 
+	ENDIF
+	CFLAG:345 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて恐怖がLV2超えた CFLAG346
+;-------------------------------------------------
+P = PALAM:10 + UP:10
+IF P > PALAMLV:2 && CFLAG:346 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 
+	;それ以外
+	ELSE
+		PRINTFORMW 
+	ENDIF
+	CFLAG:346 = 1
+ENDIF
+
+;-------------------------------------------------
+;C絶頂 CFLAG347
+;-------------------------------------------------
+IF NOWEX:0 > 0
+	;初めて
+	IF CFLAG:347 == 0
+		;恋慕か恋人
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「ああっ、な、何か来る…ク、クリがこすれて…あああぁぁぁぁっ！！」
+			PRINTFORMW 藍は二、三度激しく痙攣したや否や、その場に倒れこんでしまった…
+		;それ以外
+		ELSE
+			PRINTFORMW 「く、あ、ああっ！？」
+			PRINTFORMW 藍は頭では必死に快感を否定しようとしているようだったが、体を震わせ、その顔は上気している…
+		ENDIF
+			CFLAG:347 = 1
+	ELSE
+		;恋慕と恋人持ち、かつC感覚がLv7以上
+		IF TALENT:85 && TALENT:153 && ABL:3 >= 7
+			PRINTFORMW 「クリをいじられただけで…んほおぉぉぉぉぉぉっっっっ！」
+			PRINTFORMW 藍は陰部から大量の白い液を勢いよく吹き出し、大きく体をのけ反らせ快感をその身に味わっている…
+		;恋慕か恋人持ち
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「あぅ、また、クリ弄られて…い、いくぅ！！」
+			PRINTFORMW 藍はクリトリスを弄られる度に艶やかな声で鳴きながら、断続的に潮を吹かせている。
+		;それ以外(愛のないセックスとな？貴様表に出ろ)
+		ELSE
+			PRINTFORMW 「ぐ…うぁっ…！！」
+			PRINTFORMW 藍は迫り来るクリトリスからの快楽に必死に耐えている
+		ENDIF
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;V絶頂 CFLAG348
+;-------------------------------------------------
+IF NOWEX:1 > 0
+	;初めて
+	IF CFLAG:348 == 0
+		;恋慕または恋人
+		IF TALENT:85 || TALENT:153
+			PRINTFORMW 「中がじんじんして…き、気持ちいい…！い、いくぅぅぅぅぅぅぅっっ！」
+			PRINTFORMW 藍の子宮は激しく収縮し、透明な液を外へと放出していった…
+		;それ以外
+		ELSE
+			PRINTFORMW 「あそこがしびれて…う、うぁぁぁぁぁっ！！」
+			PRINTFORMW 激しい絶叫の後のけぞりその場に倒れこむ藍。その膣口からは液があふれ出していた…
+		ENDIF
+			CFLAG:348 = 1
+	ELSE
+		;恋慕かつ恋人でV感覚Lv7以上
+		IF TALENT:85 && TALENT:153 && ABL:4 >= 7
+			PRINTFORMW 「おまんこ、責められて…あ、い、いく、んほぉぉぉぉっっっ！」」
+			PRINTFORMW 藍は目玉を飛び出さん勢いで目を見開き、内からこみあげてくる快楽の渦に身を任せ、
+			PRINTFORMW 膣から白っぽい噴水を噴き上げつつ、本能のままに声を上げている…
+		;恋慕または恋人
+		ELSEIF TALENT:85 || TALENT:153
+			PRINTFORMW 「あぁぁん、そこ、いい、あ、あっ、ふぁぁぁぁん！」
+			PRINTFORMW 膣内を刺激する度に藍はリズミカルに艶っぽい声を上げ、膣口からは愛液が湧き出していった
+		;それ以外(貴様、表に出ろ)
+		ELSE
+			PRINTFORMW 「うぁっ、ぁっ、ん…」
+			PRINTFORMW 藍は膣から感じる快楽は感じながらも、声を押し殺し必死に耐え自分から喘ごうとはしなかった
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;初めてA絶頂 CFLAG349
+;-------------------------------------------------
+IF NOWEX:2 > 0 && CFLAG:349 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 「そんな、お尻でいってしまう…うぁぁぁぁぁぁっ！」
+		PRINTFORMW 全身を二三度激しく揺さぶったかと思うと、アナルが激しく収縮していった…
+	;それ以外
+	ELSE
+		PRINTFORMW 
+	ENDIF
+	CFLAG:TARGET:349 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めてB絶頂 CFLAG350
+;-------------------------------------------------
+IF NOWEX:3 > 0 && CFLAG:350 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 「おっぱいが…気持ち良過ぎて…ああ、イク、はぁぁぁぁぁぁぁんっっ！」
+		PRINTFORMW 勃起し尽くした乳首が更に張り詰めたかと思うと、藍はその場に倒れこんでしまった…
+	;それ以外
+	ELSE
+		PRINTFORMW 「そんな…胸で…ああん！！」
+	ENDIF
+	CFLAG:TARGET:350 = 1
+ENDIF
+
+;-------------------------------------------------
+;処女喪失(処女のみ) CFLAG351
+;-------------------------------------------------
+A = UP:11 + UP:12
+IF TFLAG:3 > 0 && CFLAG:351 == 0
+	;恋慕かつ主人のセックスによる処女喪失
+	IF TFLAG:20
+		;恋慕かつ反発感情未取得
+		IF TALENT:TARGET:85 == 1 && (A < 500 || TFLAG:150 == 1)
+			PRINTFORMW 「フフフ…これで私は心も…身も…お前だけのものだ…」
+			PRINTFORMW 藍はいたずらっぽく笑った後、ぐったりとしてしまった…
+			PRINTFORMW %CALLNAME:MASTER%は藍を自分の胸の中へと抱き寄せ、しばしの時間を過ごした
+		;恋慕かつ反発感情取得
+		ELSE
+			PRINTFORMW 「…」
+			PRINTFORMW 藍はあまりの出来事に茫然自失しているようだった…
+		ENDIF
+	;指挿入れで処女喪失（反感がかなり少ない）
+	ELSEIF SELECTCOM == 8
+		;恋慕
+		IF TALENT:TARGET:85 == 1
+			PRINTFORMW 「指じゃなくて、お前のソレで突き破ってほしか…いや何でもない」
+			PRINTFORMW 藍は言いかけるとすぐに何でもないと後ろを向いてしまった。
+		;それ以外
+		ELSE
+			PRINTFORMW 「指で散らされた…くっ…！」
+		ENDIF
+	;それ以外の時に処女喪失
+	ELSE
+		;恋慕
+		IF TALENT:TARGET:85 == 1
+			PRINTFORMW 「痛いけど…お前に捧げられたなら…それで幸せだ…」
+			PRINTFORMW 藍は満足そうな顔を浮かべている…
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+	ENDIF
+	CFLAG:TARGET:351 = 1
+ENDIF
+
+;-------------------------------------------------
+;セックスで射精させた CFLAG352 CFLAG353
+;-------------------------------------------------
+IF TFLAG:2 > 0
+	;アナルセックスか？（アナルセックス、正常位アナル、後背位アナル、対面座位アナル、背面座位アナル、騎乗位アナル）
+	IF SELECTCOM == 22 || SELECTCOM == 26 || SELECTCOM == 27 || SELECTCOM == 28 || SELECTCOM == 29 || SELECTCOM == 36
+		;恋慕
+		IF TALENT:TARGET:85 == 1 && (CFLAG:352 <= 3 || FLAG:7 == 2)
+			PRINTFORMW 「お尻に…どくどくお前のが注がれている…」
+			CFLAG:352 = 4
+		;既成事実Lv3
+		ELSEIF MARK:2 == 3 && (CFLAG:352 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「フフフ…お前の子種が…あったかい…」
+			CFLAG:352 = 3
+		;それ以外
+		ELSEIF CFLAG:352 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:352 = 2
+		ENDIF
+	;それ以外
+	ELSE
+		;淫乱
+		IF TALENT:76 == 1 && (CFLAG:353 <= 5 || FLAG:7 == 2)
+			PRINTFORMW 「あ、出たぁ、%CALLNAME:MASTER%のちんぽみるく、藍の膣に勢い良く注がれてるぅ」
+			PRINTFORMW 「もっと、もっと注いでぇ」
+			PRINTFORMW そこにいるのは誇り高き式神ではなく、ただ%CALLNAME:MASTER%の精液を貪る一体の獣である
+			PRINTFORMW 精液を藍の膣内に注ぐ度に膣は収縮し、更なる射精を促していく…
+			CFLAG:353 = 6
+		;V感覚Lv7以上
+		ELSEIF ABL:4 >= 7 && (CFLAG:353 <= 4 || FLAG:7 == 2)
+			PRINTFORMW 「あ、出たぁ、お前の熱い精液来たぁ」
+			PRINTFORMW 「はしたないけど、あん、注がれると、おまんこ、喜んじゃうのぉ」
+			PRINTFORMW 恐らく%CALLNAME:MASTER%の前でしか見せた事が無いであろうだらしない顔で、
+			PRINTFORMW %CALLNAME:MASTER%の生命のエキスを膣で搾り取っている…
+			CFLAG:353 = 5
+		;恋慕
+		ELSEIF TALENT:TARGET:85 && (CFLAG:353 <= 3 || FLAG:7 == 2)
+			PRINTFORMW 「お前の子種がこんなに膣に注がれて…」
+			PRINTFORMW 「赤ちゃん…出来るかもな…」
+			CFLAG:353 = 4
+		;既成事実Lv3
+		ELSEIF MARK:2 == 3 && (CFLAG:353 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「ああん…こんなにいっぱい…」
+			PRINTFORMW 「フフ…あったかい…」
+			CFLAG:353 = 3
+		;それ以外
+		ELSEIF CFLAG:353 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:353 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;手で射精させた CFLAG354
+;-------------------------------------------------
+IF TFLAG:1 > 0
+	;奉仕精神Lv10
+	IF ABL:6 >= 10 && (CFLAG:354 <= 2 || FLAG:7 == 2)
+		PRINTFORMW 「手に、これだけ出して…」
+		PRINTFORMW 藍は%CALLNAME:MASTER%に見せつけるように手についた精液を啜っていった…
+		PRINTFORMW 「まだまだ出るだろう？次は…どこに？」
+		CFLAG:354 = 3
+	;奉仕精神Lv8
+	ELSEIF ABL:6 >= 8 && (CFLAG:354 <= 1 || FLAG:7 == 2)
+		PRINTFORMW 手に付着した精液を、おいしそうに舐め回していく藍。
+		PRINTFORMW その姿はなんとも煽情的で、出したばかりのはずの%CALLNAME:MASTER%の肉棒は急速に硬さを取り戻していった…
+		CFLAG:354 = 2
+	;それ以外
+	ELSEIF CFLAG:354 <= 0 || FLAG:7 == 2
+		PRINTFORMW 「あっ…」
+		PRINTFORMW 手に出した精液。藍は少しの休憩の後、丁寧に拭き取っていった…
+		CFLAG:354 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;口で射精させた CFLAG355 CFLAG356
+;-------------------------------------------------
+IF TFLAG:0 > 0
+	;フェラ、イラマチオの場合
+	IF SELECTCOM == 31 || SELECTCOM == 80
+		;精液中毒Lv5
+		IF ABL:11 >= 5 && (CFLAG:355 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「お前のミルク…」
+			PRINTFORMW 藍はゴクゴクと咽喉をならしながら奔流を受け止めていった…。
+			PRINTFORMW 「お前が私のために出してくれたんだ。全て飲み干すのは当たり前の事だ…」
+			PRINTFORMW 「また飲ませてくれるよな…？」
+			PRINTFORMW 藍は淫らな目で%CALLNAME:MASTER%の肉棒を見据えつつ、睾丸を刺激している…
+			CFLAG:355 = 5
+		;精液中毒Lv3
+		ELSEIF ABL:11 >= 3 && (CFLAG:355 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「こんなにいっぱい…！」
+			PRINTFORMW 藍は少し戸惑いの表情を見せた後、それらを飲み干し、ペニスを綺麗に舐めとっていく…
+			CFLAG:355 = 3
+		;奉仕精神Lv8以上
+		ELSEIF ABL:6 >= 8 && (CFLAG:355 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「私の口でこんなに感じてくれたんだな…分かるよ」
+			PRINTFORMW 口に入った精液をそのまま溜め、口を開けて%CALLNAME:MASTER%に見せてきた…
+			PRINTFORMW そしてそのまま飲み込んでいき、ペニスの汚れを丹念に舐めとっていく…
+			CFLAG:355 = 2
+		;それ以外
+		ELSEIF CFLAG:355 < 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:355 = 1
+		ENDIF
+	;パイズリの場合
+	ELSEIF SELECTCOM == 32
+		;奉仕精神Lv10
+		IF ABL:6 >= 10 && (CFLAG:356 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「フフ…胸にこんなにお前のザーメンを出してくれて…」
+			PRINTFORMW 藍は淫らな顔を浮かべると勢いよく精液を吸い取っていった。
+			PRINTFORMW そして%CALLNAME:MASTER%の出したばかりの肉棒にもしゃぶりつき、精液を絞りだそうとしている…
+			PRINTFORMW 「またこのおっぱいで出しても…いいんだぞ？」
+			PRINTFORMW どうやら藍も胸で奉仕することに快楽を感じきっているようだ…
+			CFLAG:356 = 3
+		;奉仕精神Lv8以上
+		ELSEIF ABL:TARGET:6 >= 8 && (CFLAG:356 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「こんなに出して…ん…苦い…」
+			PRINTFORMW 胸で出されたということに若干の戸惑いは感じつつも、藍は胸についた精液を舐めとっていった…
+			CFLAG:356 = 2
+		;それ以外
+		ELSEIF CFLAG:356 < 1 || FLAG:7 == 2
+			PRINTFORMW 「あっ、胸に…」
+			PRINTFORMW 藍はしばらく呆けた後、胸についた汚れを拭き取っていった…
+			CFLAG:356 = 1
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;射精した(ふたなり/オトコのみ) CFLAG357
+;-------------------------------------------------
+IF TFLAG:10 > 0
+	;初めて
+	IF CFLAG:357 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:357 = 1
+		RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:357 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:357 = 3
+		;それ以外
+		ELSEIF CFLAG:357 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:357 = 2
+		ENDIF
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;噴乳した(母乳体質のみ) CFLAG358
+;-------------------------------------------------
+IF TFLAG:11 > 0
+	;初めて
+	IF CFLAG:TARGET:358 == 0
+		;親密Lv13以上
+		IF ABL:TARGET:0 >= 13
+			PRINTFORMW 「お、おっぱいが…乳首が…しびれて…な、何か出るぅぅぅぅぅぅぅぅぅっっっ！」
+			PRINTFORMW 藍の絶叫の後、乳首からは白い液体が噴き出していった…
+			PRINTFORMW 「母、母乳…！？」
+			PRINTFORMW 藍は呆けながらもその白い液体を手にとると、口に含んでみた…
+			PRINTFORMW その顔は酷く淫らで、%CALLNAME:MASTER%のそそり立つペニスは更にその硬さを増していく…
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:358 = 1
+		RETURN 0
+	;二回目以降
+	ELSE
+		;親密Lv13以上
+		IF ABL:TARGET:0 >= 13 && (CFLAG:358 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「おっぱいがぁ、おっぱいみるくがぁぁぁぁぁ、出るぅぅぅぅ」
+			PRINTFORMW そう言うと藍の乳首からは噴水のようにミルクが吹き出した。%CALLNAME:MASTER%が赤ん坊のように懸命に吸いだしているのを見て、
+			PRINTFORMW 藍は%CALLNAME:MASTER%の頭をまるで自分の子供のようになでていた…
+			CFLAG:358 = 3
+		;それ以外
+		ELSEIF CFLAG:358 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:358 = 2
+		ENDIF
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｃ感覚Lv7でＣ絶頂50以上 CFLAG359
+;-------------------------------------------------
+IF ABL:3 >= 7 && EX:0 >= 50 && NOWEX:0 > 0
+	;初めて
+	IF CFLAG:359 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 「そんなにクリばかり弄ったら、あたま、ふやけふぅ」
+			PRINTFORMW 絶え間なく続く勃起し自己主張する藍の陰核、%CALLNAME:MASTER%が少し手を触れただけで
+			PRINTFORMW 藍は顔をふやけさせ、更なる快楽の渦へと飛び込んでいく…
+		;それ以外
+		ELSE
+			PRINTFORMW
+		ENDIF
+		CFLAG:359 = 1
+		RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:359 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「もう、らめぇ…」
+			PRINTFORMW 既に呂律が回らない程快楽に溺れ、膣から絶え間なく愛液を垂れ流しながら、
+			PRINTFORMW 淫核は乳首と同じくらいに肥大化し、絶え間なく痙攣している…
+			CFLAG:359 = 3
+		;それ以外
+		ELSEIF CFLAG:359 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:359 = 2
+		ENDIF
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｖ感覚Lv7でＶ絶頂50以上 CFLAG360
+;-------------------------------------------------
+IF ABL:4 >= 7 && EX:1 >= 50 && NOWEX:1 > 0
+	;初めて
+	IF CFLAG:360 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 「フフフ…お前のチンポ好みにすっかり私の膣内は開発されてしまったよ…」
+			PRINTFORMW 「だがもっとだ…もっと私を…狂わせてくれ…！」
+			PRINTFORMW あれだけ激しい絶頂の後でも藍の性欲はおさまらないようだ…
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:360 = 1
+		RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:360 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「ああ、マンコもっとイジって…貫いて…%CALLNAME:MASTER%のチンポ汁、藍の膣奥に注ぎ込んでイカせてぇぇぇぇぇぇっ！」
+			PRINTFORMW そこにいたのはもはや式神などでは無く、一匹の色狂いになった狐だった…
+			PRINTFORMW 自分で自分の秘所に手を入れ、常に快楽を感じていなければ気が済まないようだ…
+			CFLAG:360 = 3
+		;それ以外
+		ELSEIF CFLAG:360 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:360 = 2
+		ENDIF
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ａ感覚Lv5でＡ絶頂50以上 CFLAG361
+;-------------------------------------------------
+IF ABL:5 >= 5 && EX:2 >= 50 && NOWEX:2 > 0
+	;初めて
+	IF CFLAG:361 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 「病みつきになりそうだな…藍のケツマンコ…存分に使ってくれ…」
+			PRINTFORMW 藍はそう言うと尻穴を押し広げ、%CALLNAME:MASTER%に見せつけていった…
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:361 = 1
+		RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:361 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「もっと、もっとかき回して…藍の、藍のケツマンコ…お前好みに開発し尽くしてぇぇぇぇぇ！」
+			PRINTFORMW 藍は絶叫しつつ懇願してきた…
+			CFLAG:361 = 3
+		;それ以外
+		ELSEIF CFLAG:361 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:361 = 2
+		ENDIF
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｂ感覚Lv7でＢ絶頂50以上 CFLAG362
+;-------------------------------------------------
+IF ABL:14 >= 7 && EX:3 >= 50 && NOWEX:3 > 0
+	;初めて
+	IF CFLAG:362 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 「そんなに執拗におっぱいばかり…ああっ、駄目だ、頭が、頭がおかしくなって…い、イクッ、ああああああああぁぁぁぁぁぁぁん！」
+			PRINTFORMW 藍は今までに上げた事の無い牝の声で吠えた…
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+		CFLAG:362 = 1
+		RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:362 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「おっぱいが…おっぱいが…ふぁぁぁぁぁぁぁぁぁぁん！」
+			PRINTFORMW 藍はいつも以上に張り詰めた乳房をぶるぶると震わせ、激しい絶頂の波へとその体を委ねていった…
+			CFLAG:362 = 3
+		;それ以外
+		ELSEIF CFLAG:362 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:362 = 2
+		ENDIF
+		RETURN 0
+	ENDIF
+ENDIF
+
+

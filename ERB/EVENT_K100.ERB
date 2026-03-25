@@ -1,0 +1,4354 @@
+;-------------------------------------------------
+;茨木華扇口上（キャラクターの名前を入れる、下にコンセプトなど一言あれば入れる）
+;かなり笑いをとりにいってます。こんなの華扇さんじゃないよぅ！という人には
+;合わないかもです。それでもよかったらどうぞ。　　　　　新井　博之　作
+;-------------------------------------------------
+
+;-------------------------------------------------
+;純愛口上用雛形
+;このテンプレートはeratohoJ用の口上テンプレートですので、
+;eratohoJ系列以外のバリアントでは使用しないようにしてください
+;純愛イベント口上ではCALL COMMON_PLANE_TEXTを挿入することで、共通の地の文を呼び出せます
+;X1、X2をキャラ番号に置換してください。
+;なお、キャラ番号が0番代の場合はX1は一桁で置換（例:1）し、
+;X2は0を含めて二桁で置換（例:01）してください
+;-------------------------------------------------
+
+;--------------------------------------------------
+;口上ファイルの存在判定（X2をキャラ番号に置換）
+;--------------------------------------------------
+@EVENTTRAIN
+#PRI
+FLAG:200 = 1
+SIF FLAG:7 == 0
+FLAG:7 = 2
+
+@EVENTEND
+#LATER
+FLAG:200 = 0
+
+;--------------------------------------------------
+;純愛イベント口上　 CFLAG221
+;--------------------------------------------------
+@KOJO_JUN_K100
+;--------------------------------------------------
+;エキストラモード構文　CFLAG:220を使用
+;はいを選択した時に初調教時に口上設定用の素質に変更できます
+;下記に処女化する場合の構文をサンプルとして載せておきます
+;------------------------------------------------
+IF TFLAG:600 == 0 && CFLAG:220 == 0
+	PRINTL 華扇を処女にします。
+	PRINTL [0] いいですよ
+	PRINTL [1] そのままでいいですよ
+	$INPUT_LOOP
+	INPUT
+	IF RESULT == 0
+		PRINTFORMW ―処女モードに素質、能力を変更します―
+;素質：処女を得る、能力：V感覚を0にする、経験：V経験を0にする。
+		TALENT:TARGET:0 = 1
+		ABL:TARGET:4 = 0
+		EXP:TARGET:0 = 0
+	ELSEIF RESULT == 1
+		PRINTFORMW やっぱり経験があるんですかねぇ
+	ELSE
+		GOTO INPUT_LOOP
+	ENDIF
+	CFLAG:220 = 1
+ENDIF
+
+;-------------------------------------------------
+;オープニング
+;-------------------------------------------------
+IF TFLAG:600 == 28
+	CALL COMMON_PLANE_TEXT
+	PRINTFORML 「あなたがこの霧の影響を受けない人ね？」
+	PRINTFORMW 「私の名前は茨木華扇」
+	PRINTFORMW 「霧を受け付けないその力を貸してくれないかしら？」
+ENDIF
+
+;-------------------------------------------------
+;朝になったとき CFLAG221
+;-------------------------------------------------
+IF TFLAG:600 == 38
+	;デート後一回目
+	IF EXP:94 > 0 && CFLAG:221 < 1
+		PRINTFORMW 「おはよう。昨日はたのしかったわ」
+		CFLAG:221 = 1
+	;キス後一回目
+	ELSEIF EXP:96 > 0 && CFLAG:221 < 2
+		PRINTFORMW 「あ、起きたわね。それじゃあ今日もよろしくね」
+		PRINTFORMW そう言う華扇の頬は、仄かに赤みがかかっている。
+		CFLAG:221 = 2
+	;恋慕後一回目
+	ELSEIF TALENT:85 == 1 && CFLAG:221 < 3
+		PRINTFORMW 「あ……お、おはよう。その……な、なんでもないわ」
+		PRINTFORMW 華扇は%CALLNAME:MASTER%と視線を合わさず、挨拶だけした。
+		PRINTFORMW %CALLNAME:MASTER%はどうしたのと尋ねた。
+		PRINTFORMW 「べ、別に大したことじゃないわよ！」
+		PRINTFORMW （%CALLNAME:MASTER%の顔、まともにみれない…。）
+		PRINTFORMW (もしかして私、い、いやそんなことないわよね…)
+		CFLAG:221 = 3
+	;エンディング後一回目
+	ELSEIF FLAG:28 > 0 && CFLAG:221 < 4
+		PRINTFORMW 「%CALLNAME:MASTER%。いいかしら？」
+		PRINTFORMW どうしたんです？
+		PRINTFORML 「まだ霧が残ってるみたいなの」
+		PRINTFORMW 「霧の影響が無くなるのにはもうしばらくかかりそうね」
+		PRINTFORML 「まだ行方知れずの人も居るみたいだし、ね？」
+		PRINTFORMW そういうことならもう少し頑張りましょうか
+		PRINTFORMW 「ふふ、わかってるじゃない。これからもよろしくね、%CALLNAME:MASTER%♪」
+		PRINTFORMW こちらこそよろしくです華扇さん♪
+		CFLAG:221 = 4
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ファーストキス
+;-------------------------------------------------
+IF TFLAG:600 == 1
+	;デート経験有り
+	IF EXP:94 > 0
+		PRINTFORMW 華扇さん、俺…もう…
+		PRINTFORMW 「えっ、ちょっ…んっ！？」
+		PRINTFORMW ん…
+		PRINTFORML 「い、いきなりすぎよ…驚いたじゃない…もう♪」
+		PRINTFORMW 華扇はそう言うと、今度は自分から唇を重ねた。
+	;それ以外
+	ELSE
+		PRINTFORMW 華扇さん、俺…もう…
+		PRINTFORMW 「えっ、ちょっ…んっ！？」
+		PRINTFORMW ん…
+		PRINTFORML 「い、いきなりすぎよ…驚いたじゃない…もう♪」
+		PRINTFORMW 華扇はそう言うと、今度は自分から唇を重ねた。
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;告白成功
+;-------------------------------------------------
+IF TFLAG:600 == 2
+	;キス経験有り
+	IF EXP:96 > 0
+		PRINTFORMW 「ななななんああえええ！！！？」
+		PRINTFORMW 「ほ、本気でいってるの…？」
+		PRINTFORMW 本気です。
+		PRINTFORMW 「…わ、私も%CALLNAME:MASTER%のこと好きよ…」
+		PRINTFORMW %CALLNAME:MASTER%を見る華扇の瞳はうるんでいる
+		PRINTFORMW 「こ、これからはもっと厳しく指導してきますからね！」
+		PRINTFORMW 華扇は少しはずかしそうに、でも嬉しそうにそう言った
+	;デート経験有り
+	ELSEIF EXP:94 > 0
+		PRINTFORMW 「ななななんああえええ！！！？」
+		PRINTFORMW 「ほ、本気でいってるの…？」
+		PRINTFORMW 本気です。
+		PRINTFORMW 「…わ、私も%CALLNAME:MASTER%のこと好きよ…」
+		PRINTFORMW %CALLNAME:MASTER%を見る華扇の瞳はうるんでいる
+		PRINTFORMW 「こ、これからはもっと厳しく指導してきますからね！」
+		PRINTFORMW 華扇は少しはずかしそうに、でも嬉しそうにそう言った
+	;それ以外
+	ELSE
+		PRINTFORMW 「ななななんああえええ！！！？」
+		PRINTFORMW 「ほ、本気でいってるの…？」
+		PRINTFORMW 本気です。
+		PRINTFORMW 「…わ、私も%CALLNAME:MASTER%のこと好きよ…」
+		PRINTFORMW %CALLNAME:MASTER%を見る華扇の瞳はうるんでいる
+		PRINTFORMW 「こ、これからはもっと厳しく指導してきますからね！」
+		PRINTFORMW 華扇は少しはずかしそうに、でも嬉しそうにそう言った
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;告白失敗　 CFLAG222
+;-------------------------------------------------
+IF TFLAG:600 == 3
+	;キス経験有り
+	IF EXP:96 > 0 && (CFLAG:222 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「冗談は顔だけにしてください」
+		CFLAG:222 = 3
+	;デート経験有り
+	ELSEIF EXP:94 > 0 && (CFLAG:222 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「冗談は顔だけにしてください」
+		CFLAG:222 = 2
+	;それ以外
+	ELSEIF CFLAG:222 < 1 || FLAG:7 == 2
+		PRINTFORMW 「冗談は顔だけにしてください」
+		CFLAG:222 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;服を無理矢理脱がせる　 CFLAG223
+;-------------------------------------------------
+IF TFLAG:600 == 4
+	;恋人
+	IF TALENT:153 == 1 && (CFLAG:223 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「ちょっ！？じ、自分で脱ぐからいいわよ！！」
+		PRINTFORMW 「もう…スケベ」
+		CFLAG:223 = 2
+	;それ以外
+	ELSEIF CFLAG:223 < 1 || FLAG:7 == 2
+		PRINTFORMW 「こ、こらぁ！服脱がさないでよ！！」
+		PRINTFORMW %CALLNAME:MASTER%はなら脱いでくださいと
+		PRINTFORMW 「むむぅ…仕方ないわね、あっち向いてて！」
+		CFLAG:223 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;服を脱がせる　 CFLAG224
+;-------------------------------------------------
+IF TFLAG:600 == 5
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:224 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%のエッチ♪」
+		PRINTFORMW 華扇は顔を赤らめながら服を一枚づつ丁寧に脱いでいった
+		PRINTFORMW 「…ど、どう？ って、%CALLNAME:MASTER%脱いでないじゃない！！」
+		PRINTFORMW 華扇に脱がされました
+		CFLAG:224 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:224 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%のエッチ♪」
+		PRINTFORMW 華扇は顔を赤らめながら服を一枚づつ丁寧に脱いでいった
+		PRINTFORMW 「…ど、どう？ って、%CALLNAME:MASTER%脱いでないじゃない！！」
+		PRINTFORMW 華扇に脱がされました
+		CFLAG:224 = 2
+	;それ以外
+	ELSEIF CFLAG:224 < 1 || FLAG:7 == 2
+		PRINTFORMW 「も、もう仕方ないわね、あっちむいてて」
+		PRINTFORMW 華扇はそう言うと、服を脱ぎ始めた。
+		CFLAG:224 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;服脱がせ失敗　 CFLAG225
+;-------------------------------------------------
+IF TFLAG:600 == 6
+	;恋人
+	IF TALENT:153 == 1 && (CFLAG:225 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「こ、こらぁっ！！」
+		PRINTFORMW 殴られたました…痛いです…
+		PRINTFORMW 「自業自得よ！もう！」
+		CFLAG:225 = 2
+	;それ以外
+	ELSEIF CFLAG:225 < 1 || FLAG:7 == 2
+		PRINTFORMW 「こ、こらぁっ！！」
+		PRINTFORMW 殴られたました…痛いです…
+		PRINTFORMW 「自業自得よ！もう！」
+		CFLAG:225 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;「合意」で服脱がせる　 CFLAG226
+;-------------------------------------------------
+IF TFLAG:600 == 7
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:226 < 3 || FLAG:7 == 2)
+			A = RAND:6
+			IF A == 0
+				PRINTFORMW 「いいいいいつでもいいわよぉう！！？？」
+				PRINTFORMW か、華扇さん、動揺しすぎです…
+				PRINTFORMW 「しょうがないでしょ、え、えっちなことするんだから…」
+				PRINTFORMW 可愛い…押し倒します！！
+				PRINTFORMW 「こ、こらぁっ！！」
+			ELSEIF A == 1
+				PRINTFORMW 華扇さんが脱ぎはじめました
+				PRINTFORMW 「脱いでるとこみないでよ…えっち」
+				PRINTFORMW 可愛い…押し倒します！！
+				PRINTFORMW 「こ、こらぁっ！！」
+			ELSEIF A == 2
+				PRINTFORMW 華扇さんは服を脱ぐと、俺に抱きついてきました
+				PRINTFORMW 「まさか%CALLNAME:MASTER%とこんな関係になるなんてね」
+				PRINTFORMW 華扇さん、嬉しそうに笑ってます。可愛い…押し倒します！！
+				PRINTFORMW 「こ、こらぁっ！！」
+			ELSEIF A == 3
+				PRINTFORMW 「えっち、するんでしょ？」
+				PRINTFORMW 華扇さんは一糸纏わぬ姿になって自分の胸を俺に押し当ててきました
+				PRINTFORMW 「%CALLNAME:MASTER%は大きいほうが好き？」
+				PRINTFORMW 大好きです！！押し倒します！！
+				PRINTFORMW 「ちょ、もう…えっち♪」
+			ELSEIF A == 4
+				PRINTFORMW 「じゃあ、今回は私が脱がしてあげる♪」
+				PRINTFORMW 華扇さんに脱がされた…この淫ピ！！
+				PRINTFORMW 「なんですって？」
+				PRINTFORMW あばばばばばばばばばば
+			ELSE
+				PRINTFORMW 「%CALLNAME:MASTER%、そんなにジロジロ見ないでよ」
+				PRINTFORMW 無理です、みちゃいます。
+				PRINTFORMW 「も、もう…%CALLNAME:MASTER%のばか、えっち♪」
+			ENDIF
+				CFLAG:226 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:226 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「さ、さあ%CALLNAME:MASTER%！きなさい！！」
+		PRINTFORMW か、華扇さん…俺にどうしろと？そんなポーズきめて
+		PRINTFORMW ドコぞのガンダムファイターですか、あなたは…
+		PRINTFORMW 「服着たままじゃやっぱりダメ？…ダメよね」
+		CFLAG:226 = 2
+	;それ以外
+	ELSEIF CFLAG:226 < 1 || FLAG:7 == 2
+		PRINTFORMW 「す、するのね、わかったわ。とうとうこの日がきたわね…」
+		PRINTFORMW 華扇さん、なんか気合はいってるんですけど
+		PRINTFORMW 「さ、さあ%CALLNAME:MASTER%！どっからでもきなさい！！」
+		PRINTFORMW おかしい、おかしいですよ！華扇さん！？
+		CFLAG:226 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;道中攻略成功　 CFLAG227
+;-------------------------------------------------
+IF TFLAG:600 == 8
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:227 < 3 || FLAG:7 == 2)
+		A = RAND:5
+		IF A == 0
+			PRINTFORMW 「%CALLNAME:MASTER%、私達の編み出した技をみせる時よ！」
+			PRINTFORMW えっ？そんなんありました？
+		ELSEIF A == 1
+			PRINTFORMW 「私達に勝てると？このばっかも～ん！！」
+			PRINTFORMW 真面目にやってください！！
+		ELSEIF A == 2
+			PRINTFORMW 「%CALLNAME:MASTER%、これが終わったら…」
+			PRINTFORMW もしかしてえっちのおねだりですか？
+			PRINTFORMW 　　　　　ガンッ！！
+			PRINTFORMW 殴られた…
+		ELSEIF A == 3
+			PRINTFORMW 「さあ、いくわよ！」
+			PRINTFORMW イキます！！
+			PRINTFORMW 「ん？今、変な言い方しなかった？」
+		ELSE
+			PRINTFORMW 「さあ、次いくわよ！」
+			PRINTFORMW いいぃくぞおおおぉぉぉぉっ！！！！
+			PRINTFORMW 「ちょ、やる気だしすぎ！！」
+		ENDIF
+		CFLAG:227 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:227 < 2 || FLAG:7 == 2)
+		A = RAND:3
+		IF A == 0
+			PRINTFORMW 「%CALLNAME:MASTER%、準備はいい？」
+			PRINTFORMW いつでもどうぞ
+		ELSEIF A == 1
+			PRINTFORMW 「あなた達の相手は%CALLNAME:MASTER%がしてくれるわ！」
+			PRINTFORMW ちょ！？こ、こらぁ！！
+		ELSE
+			PRINTFORMW 「さっさと次行くわよ！」
+			PRINTFORMW あ、華扇さん、まって～！
+		ENDIF
+		CFLAG:227 = 2
+	;それ以外
+	ELSEIF CFLAG:227 < 1 || FLAG:7 == 2
+		A = RAND:3
+		IF A == 0
+			PRINTFORMW 「これも修行かしら」
+			PRINTFORMW いきますよ！
+		ELSEIF A == 1
+			PRINTFORMW 「大したことないわね」
+			PRINTFORMW 俺達の勝利ですね！
+		ELSE
+			PRINTFORMW 「次行くわよー」
+			PRINTFORMW は、はやい…
+		ENDIF
+		CFLAG:227 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;道中攻略失敗　 CFLAG228
+;-------------------------------------------------
+IF TFLAG:600 == 9
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:228 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+		CFLAG:228 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:228 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+		CFLAG:228 = 2
+	;それ以外
+	ELSEIF CFLAG:228 < 1 || FLAG:7 == 2
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+		CFLAG:228 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;特殊ボス戦開始
+;ボスの名前はSTR:1で参照可能です
+;XXにボスのキャラ番号を入れてください
+;TFLAG:120が1ならば下記のボス戦開始と相手のボスとして登場をスキップし、バッティングを防ぎます
+;-------------------------------------------------
+;IF TFLAG:600 == 40
+	;キャラの指定
+;	IF FLAG:25 == XX
+;		PRINTFORMW 
+;		TFLAG:120 = 1
+;	ENDIF
+;ENDIF
+
+;-------------------------------------------------
+;ボス戦開始　 CFLAG229
+;ボスの名前はSTR:1で参照可能です
+;-------------------------------------------------
+IF TFLAG:600 == 10
+	;三面まで
+	IF FLAG:24 <= 3
+		;恋人
+		IF TALENT:153 == 1 && (CFLAG:229 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「さあ、はじめましょう！」
+			PRINTFORMW 強敵ですね～
+			CFLAG:229 = 3
+		;キス経験有り
+		ELSEIF EXP:96 > 0 && (CFLAG:229 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「さあ、はじめましょう！」
+			PRINTFORMW 強敵ですね～
+			CFLAG:229 = 2
+		;それ以外
+		ELSEIF CFLAG:229 < 1 || FLAG:7 == 2
+			PRINTFORMW 「さあ、はじめましょう！」
+			PRINTFORMW 強敵ですね～
+			CFLAG:229 = 1
+		ENDIF
+	;三面以降（六面除く）
+	ELSEIF FLAG:24 > 3
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:229 < 6 || FLAG:7 == 2)
+			PRINTFORMW 「さあ、はじめましょう！」
+			PRINTFORMW 強敵ですね～
+			CFLAG:229 = 6
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:229 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「さあ、はじめましょう！」
+			PRINTFORMW 強敵ですね～
+			CFLAG:229 = 5
+		;それ以外
+		ELSEIF CFLAG:229 < 4 || FLAG:7 == 2
+			PRINTFORMW 「さあ、はじめましょう！」
+			PRINTFORMW 強敵ですね～
+			CFLAG:229 = 4
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;特殊ボス戦勝利
+;ボスの名前はSTR:1で参照可能です
+;XXにボスのキャラ番号を入れてください
+;TFLAG:120が1ならば下記のボス戦勝利と相手のボスとして敗北をスキップし、バッティングを防ぎます
+;-------------------------------------------------
+;IF TFLAG:600 == 41
+	;キャラの指定
+;	IF FLAG:25 == XX
+;		PRINTFORMW 
+;		TFLAG:120 = 1
+;	ENDIF
+;ENDIF
+
+;-------------------------------------------------
+;ボス戦勝利　 CFLAG230
+;ボスの名前はSTR:1で参照可能です
+;FLAG:24でステージを参照、FLAG:27が10で中ボス、20以上でボスとなります
+;-------------------------------------------------
+IF TFLAG:600 == 11
+	;三面まで
+	IF FLAG:24 <= 3
+		;恋人
+		IF TALENT:153 == 1 && (CFLAG:230 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「まあ、当然の結果ね」
+			PRINTFORMW ああ、敵に同情してしまいそうです…
+			CFLAG:230 = 3
+		;キス経験有り
+		ELSEIF EXP:96 > 0 && (CFLAG:230 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「私たちの敵じゃないわ」
+			PRINTFORMW 大丈夫かな、敵の方…
+			CFLAG:230 = 2
+		;それ以外
+		ELSEIF CFLAG:230 < 1 || FLAG:7 == 2
+			PRINTFORMW 「あら、もう終わったわ」
+			PRINTFORMW 以外と早かったですね
+			CFLAG:230 = 1
+		ENDIF
+	;三面以降（六面ラスボス除く）
+	ELSEIF FLAG:24 > 3 && (FLAG:24 != 6 || FLAG:27 == 10)
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:230 < 6 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%、やるじゃない」
+			PRINTFORMW 華扇さんのおかげです、色々な意味でですけど…
+			CFLAG:230 = 6
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:230 < 5 || FLAG:7 == 2)
+			PRINTFORMW 「まあ、当然の結果ね」
+			PRINTFORMW ああ、敵に同情してしまいそうです…
+			CFLAG:230 = 5
+		;それ以外
+		ELSEIF CFLAG:230 < 4 || FLAG:7 == 2
+			PRINTFORMW 「まあ、当然の結果ね」
+			PRINTFORMW ああ、敵に同情してしまいそうです…
+			CFLAG:230 = 4
+		ENDIF
+	;ラストバトル
+	ELSEIF FLAG:24 == 6 && FLAG:27 >= 20
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 「これで終わりね」
+			PRINTFORMW そうですね…
+		;恋人
+		ELSEIF TALENT:153 == 1
+			PRINTFORMW 「修行して出直しなさい！！」
+			PRINTFORMW いやいや、それだとまた同じ異変おこりますって！！
+		;それ以外
+		ELSE
+			PRINTFORMW 「さ、帰りましょ」
+			PRINTFORMW ずいぶんあっけなかったですね
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ボス戦敗北　 CFLAG231
+;ボスの名前はSTR:1で参照可能です
+;FLAG:24でステージを参照、FLAG:27が10で中ボス、20以上でボスとなります
+;-------------------------------------------------
+IF TFLAG:600 == 12
+	;三面まで
+	IF FLAG:24 <= 3
+		;恋人
+		IF TALENT:153 == 1 && (CFLAG:231 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+			CFLAG:231 = 3
+		;キス経験有り
+		ELSEIF EXP:96 > 0 && (CFLAG:231 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+			CFLAG:231 = 2
+		;それ以外
+		ELSEIF CFLAG:231 < 1 || FLAG:7 == 2
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+			CFLAG:231 = 1
+		ENDIF
+	;三面以降（六面ラスボス除く）
+	ELSEIF FLAG:24 > 3 && (FLAG:24 != 6 || FLAG:27 == 10)
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:231 < 6 || FLAG:7 == 2)
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+			CFLAG:231 = 6
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:231 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+			CFLAG:231 = 5
+		;それ以外
+		ELSEIF CFLAG:231 < 4 || FLAG:7 == 2
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+			CFLAG:231 = 4
+		ENDIF
+	;ラストバトル
+	ELSEIF FLAG:24 == 6 && FLAG:27 >= 20
+		;恋慕
+		IF TALENT:85 == 1
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+		;恋人
+		ELSEIF TALENT:153 == 1
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+		;それ以外
+		ELSE
+		PRINTFORMW 「もうさすがにまずいわね、撤退しましょう」
+		PRINTFORMW そうしましょう
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;３ボス後　 CFLAG232
+;-------------------------------------------------
+IF TFLAG:600 == 30
+	IF CFLAG:232 < 1 || FLAG:7 == 2
+		;共通の文章表示
+		CALL COMMON_PLANE_TEXT
+		PRINTFORMW 「そういうこと…」
+		PRINTFORMW 「これはお灸をすえてやらないとね」
+		;[合意][恋慕]どちらも未取得
+		IF TALENT:152 == 0 && TALENT:85 == 0
+			PRINTFORMW 「さて、どうしたものか」
+			PRINTFORMW 「%CALLNAME:MASTER%、す、少しだけならいいわよ」
+		ENDIF
+		CFLAG:232 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;６ボス前　 CFLAG233
+;-------------------------------------------------
+IF TFLAG:600 == 31
+	;レミリア（レミリアがパートナーの場合はフラン）
+;	IF FLAG:25 == 10 || FLAG:25 == 11
+;		PRINTFORMW 
+	;永琳（永琳がパートナーの場合は輝夜）
+;	ELSEIF FLAG:25 == 29 || FLAG:25 == 30
+;		PRINTFORMW 
+	;紫（紫がパートナーの場合は幽々子）
+;	ELSEIF FLAG:25 == 22 || FLAG:25 == 20
+;		PRINTFORMW 
+	;霊夢（霊夢がパートナーの場合は魔理沙）
+;	ELSEIF FLAG:25 == 1 || FLAG:25 == 2
+;		PRINTFORMW 
+	;共通の文章表示
+;	ELSE
+		CALL COMMON_PLANE_TEXT
+;	ENDIF
+	PRINTL  
+	PRINTFORMW 「ようやくってとこかしら」
+	PRINTFORMW 「まあ、いい修行になったってことにしとくわ」
+	IF TALENT:153
+		PRINTFORMW 「ほら、%CALLNAME:MASTER%、やるわよ！」
+		PRINTFORMW はい、華扇さん！
+	ENDIF
+	PRINTFORMW 「これで終わりよ！」
+	PRINTFORMW これで終わりです！
+	CFLAG:233 = 1
+	FLAG:27 = 21
+ENDIF
+
+
+;-------------------------------------------------
+;ボスとして出現　 CFLAG234
+;-------------------------------------------------
+IF TFLAG:600 == 32
+	PRINTFORMW 「誰だあぁぁっ！！私のこと淫ピっていったのは！！」
+	CFLAG:234 = 1
+ENDIF
+
+;-------------------------------------------------
+;ボスとして倒される　 CFLAG235
+;-------------------------------------------------
+IF TFLAG:600 == 33
+	PRINTFORMW 「暴れすぎ？な、なんのことかしら？」
+	CFLAG:235 = 1
+ENDIF
+
+
+
+;-------------------------------------------------
+;耐力ゼロ　 CFLAG236
+;-------------------------------------------------
+IF TFLAG:600 == 13
+	IF CFLAG:236 < 1 || FLAG:7 == 2
+		PRINTFORMW 「%CALLNAME:MASTER%！逃げるわよ！」
+		PRINTFORMW はい！逃げるが勝ちです！！
+		CFLAG:236 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;全滅　 CFLAG237
+;-------------------------------------------------
+IF TFLAG:600 == 14
+	IF CFLAG:237 < 1 || FLAG:7 == 2
+		PRINTFORMW 「撤退！てった～い！！」
+		PRINTFORMW 撤退だ～！！
+		PRINTL  
+		CFLAG:237 = 1
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;主人公だけやられる　 CFLAG238
+;-------------------------------------------------
+IF TFLAG:600 == 15
+	IF CFLAG:238 < 1 || FLAG:7 == 2
+		PRINTFORMW 「%CALLNAME:MASTER%！しっかりしなさい！逃げるわよ！」
+		PRINTFORMW ぬお～逃げるべし！
+		;恋慕 OR 恋人
+		IF (TALENT:85 == 1 || TALENT:153 == 1)
+			PRINTFORML 「%CALLNAME:MASTER%、大丈夫…みたいね」
+			PRINTFORMW す、すみません…
+		ELSE
+			PRINTFORML 「%CALLNAME:MASTER%、大丈夫…みたいね」
+			PRINTFORMW す、すみません…
+		ENDIF
+		PRINTL  
+		CFLAG:238 = 1
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;主人公がお金稼ぎ　 CFLAG239
+;-------------------------------------------------
+IF TFLAG:600 == 16
+	A = RAND:3
+	;恋慕 OR 恋人
+	IF (TALENT:85 == 1 || TALENT:153 == 1) && (CFLAG:239 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「お金稼ぎね」
+		IF A == 0
+			PRINTFORMW 「それじゃあ仕方ないわね、いってらっしゃい」
+			PRINTFORMW いってきます
+		ELSEIF A == 1
+			PRINTFORMW 「それじゃあ仕方ないわね、いってらっしゃい」
+			PRINTFORMW いってきます
+		ELSE
+			PRINTFORMW 「それじゃあ仕方ないわね、いってらっしゃい」
+			PRINTFORMW いってきます
+		ENDIF
+		CFLAG:239 = 2
+	;それ以外
+	ELSEIF CFLAG:239 < 1 || FLAG:7 == 2
+		PRINTFORMW 「資金稼ぎ？それじゃあ仕方ないわね、いってらっしゃい」
+		PRINTFORMW いってきます
+		IF MONEY <= 10000
+			PRINTFORMW 「それじゃあ仕方ないわね、いってらっしゃい」
+			PRINTFORMW いってきます
+		ELSE
+			PRINTFORMW 「それじゃあ仕方ないわね、いってらっしゃい」
+			PRINTFORMW いってきます
+		ENDIF
+		CFLAG:239 = 1
+	ENDIF
+ENDIF
+
+
+
+;-------------------------------------------------
+;２人でお金稼ぎ　 CFLAG240
+;-------------------------------------------------
+IF TFLAG:600 == 17
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:240 < 3 || FLAG:7 == 2)
+		A = RAND:3
+		IF A == 0
+			PRINTFORMW 「一緒にってのもいいわね」
+		ELSEIF A == 1
+			PRINTFORMW 「%CALLNAME:MASTER%と一緒にならいいかな」
+		ELSE
+			PRINTFORMW 「ほら、いくわよ」
+		ENDIF
+		CFLAG:240 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:240 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「さあ、いきましょ」
+		CFLAG:240 = 2
+	;それ以外
+	ELSEIF CFLAG:240 < 1 || FLAG:7 == 2
+		PRINTFORMW 「仕方ないわね、やるわ」
+		CFLAG:240 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;弁当販売　 CFLAG241
+;-------------------------------------------------
+IF TFLAG:600 == 18
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:241 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「目指せ完売よ！」
+		PRINTFORMW 全部でいくらになるかな～
+		CFLAG:241 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:241 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「目指せ完売よ！」
+		PRINTFORMW 全部でいくらになるかな～
+		CFLAG:241 = 2
+	;それ以外
+	ELSEIF CFLAG:241 < 1 || FLAG:7 == 2
+		PRINTFORMW 「売れるかしらね？」
+		PRINTFORMW た、多分？
+		CFLAG:241 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;弁当食べる　 CFLAG242
+;-------------------------------------------------
+IF TFLAG:600 == 19
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:242 < 3 || FLAG:7 == 2)
+		A = RAND:3
+		IF A == 0
+			PRINTFORMW 「はい、%CALLNAME:MASTER%の分」
+			PRINTFORMW わあ、華扇さんの手作り。いただきます！
+		ELSEIF A == 1
+			PRINTFORMW 「はい、%CALLNAME:MASTER%の分」
+			PRINTFORMW 華扇さん手作り淫ピ弁当じゃないですか！
+			PRINTFORMW 「殴るわよ」
+		ELSE
+			PRINTFORMW 「こうやって二人で外で食べるのもいいわね」
+			PRINTFORMW そうですね～…眠くなってきた…
+			PRINTFORMW 「膝枕してあげよっか？」
+			PRINTFORMW 是非！！
+		ENDIF
+		CFLAG:242 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:242 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「こうやって二人で外で食べるのもいいわね」
+			PRINTFORMW そうですね～…眠くなってきた…
+			PRINTFORMW 「膝枕してあげよっか？」
+			PRINTFORMW それはそれで恥ずかしいです…
+		CFLAG:242 = 2
+	;それ以外
+	ELSEIF CFLAG:242 < 1 || FLAG:7 == 2
+		PRINTFORMW 「ご飯にしましょ」
+		PRINTFORMW そうですね、そうしましょう
+		CFLAG:242 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;戦闘訓練　 CFLAG243
+;-------------------------------------------------
+IF TFLAG:600 == 20
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:243 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「大分やるようになったじゃない！」
+		PRINTFORMW うう…もうダメ…ガクッ
+		CFLAG:243 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:243 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「うん、いい感じよ」
+		PRINTFORMW そ、そう、ですか…ああ、疲れる…
+		CFLAG:243 = 2
+	;それ以外
+	ELSEIF CFLAG:243 < 1 || FLAG:7 == 2
+		PRINTFORMW 「ほら、もっと機敏に動く！！」
+		PRINTFORMW ぬおおおっ！そんな殺生な！？
+		CFLAG:243 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;休憩　 CFLAG244
+;-------------------------------------------------
+IF TFLAG:600 == 21
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:244 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「休むの？」
+		PRINTFORMW はい、たまには、ね？
+		PRINTFORMW 「そうね、それじゃあ」
+		PRINTFORMW ちょ、華扇さん？なんで抱きついてくるんです？
+		PRINTFORMW 「いいじゃない、こういうのも、ね」
+		CFLAG:244 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:244 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「一杯どう？」
+		PRINTFORMW いいですね、いただきます
+		CFLAG:244 = 2
+	;それ以外
+	ELSEIF CFLAG:244 < 1 || FLAG:7 == 2
+		PRINTFORMW 「休むといってもねえ、まあいっか」
+		CFLAG:244 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;パートナー交代　 CFLAG245
+;交代した後の相手はTで取得可能
+;-------------------------------------------------
+IF TFLAG:600 == 22
+	;恋慕
+	IF TALENT:85 == 1 && (CFLAG:245 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「…わかったわ」
+		PRINTFORMW 「でもなにかあったらすぐ声かけなさいよ」
+		CFLAG:245 = 3
+	;恋人
+	ELSEIF TALENT:153 == 1 && (CFLAG:245 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「…わかったわ」
+		PRINTFORMW 「でもなにかあったらすぐ声かけなさいよ」
+		CFLAG:245 = 2
+	;それ以外
+	ELSEIF CFLAG:245 < 1 || FLAG:7 == 2
+		PRINTFORMW 「わかったわ」
+		CFLAG:245 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;助手交代　 CFLAG246
+;-------------------------------------------------
+IF TFLAG:600 == 23
+	IF CFLAG:246 < 1 || FLAG:7 == 2
+		PRINTFORML 「もう、しょうがないわね」
+		CFLAG:246 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;別れる
+;-------------------------------------------------
+IF TFLAG:600 == 24
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「…さよなら…」
+	;恋人
+	ELSEIF TALENT:153 == 1
+		PRINTFORMW 「…さよなら…」
+	;それ以外
+	ELSE
+		PRINTFORMW 「あら、私の力は必要ないみたいね」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;デート中に向こうからファーストキス
+;-------------------------------------------------
+IF TFLAG:600 == 25
+	CALL COMMON_PLANE_TEXT
+	PRINTFORMW 「…少しくらい気づきなさいよ、この鈍感…」
+	;恋慕 OR 恋人
+	IF TALENT:85 == 1 || TALENT:153 == 1
+		PRINTFORMW 「女の子のほうからさせるなんて、甲斐性なし！」
+		PRINTFORMW させたわけじゃ…ん？女の子？
+		PRINTFORMW 「そこに疑問もつなあ！！！！」
+	;それ以外
+	ELSE
+		PRINTFORMW 「な、なに？嫌だった？」
+		PRINTFORMW そ、そういうわけじゃあ…
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;デート中に向こうから告白
+;ちなみにTALENT:151を持ってる＝キス未経験の場合、このタイミングで一緒にファーストキスもする
+;-------------------------------------------------
+IF TFLAG:600 == 26
+	PRINTFORML 「ち、ちち、ちょちょっといいいいかしら！！」
+	PRINTFORMW 華扇さんが壊れた…
+	PRINTFORMW 「違うわよ！！そうじゃなくて！」
+	PRINTFORMW どうしたんですか、ていうか顔赤いですよ
+	PRINTFORMW 「……私ね%CALLNAME:MASTER%のこと、好きになっちゃったみたい…」
+	PRINTFORMW は、えええええっ！！
+	PRINTFORMW 「しょ、しょうがないでしょ！？好きになっちゃったんだから！！」
+	PRINTFORMW そ、それはそうですけど、お、俺のことを…ですか…？
+	PRINTFORML 「い、嫌、よねやっぱり、こんな口うるさい女なんて
+	PRINTFORMW 早苗さんみたいな可愛らしい子のほうがいいん！？」
+	PRINTFORMW …
+	PRINTFORMW ……
+	PRINTFORMW ………
+	PRINTFORMW (気がつくと華扇さんにキスしてました…)
+	PRINTFORMW 「%CALLNAME:MASTER%…」
+	PRINTFORMW 俺は、華扇さんが、華扇さんがいいです、他の誰より華扇さんが好きです
+	PRINTFORML 「なっななんなばばっ馬鹿！！こ、こここんな抱きしめられながら
+	PRINTFORMW そんなこといわれたら私…ああもう！」
+	PRINTFORMW 今度は華扇さんのほうからキスされました
+ENDIF
+
+;-------------------------------------------------
+;我慢できず押し倒される
+;-------------------------------------------------
+IF TFLAG:600 == 27
+	CALL COMMON_PLANE_TEXT
+	PRINTFORMW 「そぉいっ！！」
+	PRINTFORMW あだあっ！！あにすっだあ華扇さん！！
+	PRINTFORML 「喋り方についてはつっこまないわ！まったく、いつになったら私を抱いて
+	PRINTFORMW くれるのか、ずっと待ってたんだからね！」
+ENDIF
+
+;-------------------------------------------------
+;エンディング
+;-------------------------------------------------
+IF TFLAG:600 == 29
+	;共通の文章表示
+	CALL COMMON_PLANE_TEXT
+	PRINTFORMW 「いい修行になったってことにしとくわね」
+	PRINTFORMW な、なんだかなぁ…
+	;恋人+恋慕
+	IF TALENT:85 == 1 && TALENT:153 == 1
+		PRINTFORMW …
+		PRINTFORMW ……
+		PRINTFORMW ………
+		PRINTFORMW 「ほら%CALLNAME:MASTER%！腰が引けてるわよ！！もっと機敏に動く！！」
+		PRINTFORMW ひ～ん、なんでこんなことに…
+		PRINTFORMW ―――事件が解決した後、%CALLNAME:MASTER%は華扇と一緒に暮らしている。
+		PRINTFORMW 異変解決のパートナーとしてではなく、生涯の伴侶として。
+		PRINTFORMW そのせいか、%CALLNAME:MASTER%は華扇に一から鍛え直されているのだ。
+		PRINTFORMW 「%CALLNAME:MASTER%、今度はこれよ！！」
+		PRINTFORMW す、素振り1000回！？…華扇さん、俺ちょっと用事が…
+		PRINTFORMW 「それが終わったら次はね…」
+		PRINTFORMW 人の話をきいてくださあああああぁぁぁいっ！！！！
+		PRINTFORMW 幸せかと聞かれたら無論、幸せである。
+		PRINTFORMW 「はいはい、頑張ってね、私の旦那様♪」
+		PRINTFORMW （ずっと一緒に、ね、華扇さん♪）
+	ELSE
+		PRINTFORMW …
+		PRINTFORMW ……
+		PRINTFORMW ………
+		PRINTFORMW ―――異変が解決してからも、%CALLNAME:MASTER%と華扇の交流は続いた。
+		PRINTFORMW 酒を酌み交わし、時には宴会で盛り上がり、他愛のない話で笑う。
+		PRINTFORMW 口うるさい彼女が少々鬱陶しいときもあるが、そんな日々に満足している。
+		PRINTFORMW 「%CALLNAME:MASTER%、これからもよろしくね♪」
+		PRINTFORMW 今日も幻想郷は平和だ。
+		PRINTFORMW （ずっと一緒に、ね、華扇さん♪）
+	ENDIF
+ENDIF
+	TFLAG:600 = 0
+	RETURN 1
+
+
+;-------------------------------------------------
+;イベント口上
+;-------------------------------------------------
+@SELF_KOJO_K100
+;-------------------------------------------------
+;調教後自慰 CFLAG301
+;-------------------------------------------------
+IF TFLAG:13 == 1
+	;恋慕
+	IF TALENT:85 ==1 && (CFLAG:301 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%、%CALLNAME:MASTER%！んんっ…♪」
+		CFLAG:301 = 3
+	;自慰中毒Lv3以上
+	ELSEIF ABL:10 >= 3 && (CFLAG:301 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「ん、あ…、ふぁぁ…！」
+		PRINTFORMW 「もう%CALLNAME:MASTER%の……せいよ、こん、な…あん♪」
+		CFLAG:301 = 2
+	;それ以外
+	ELSEIF CFLAG:301 < 1 || FLAG:7 == 2
+		PRINTFORMW 「あぁ、ん、や、やだ私ったら…///」
+		CFLAG:301 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;レズプレイ CFLAG302
+;-------------------------------------------------
+IF TFLAG:13 == 2
+	;恋慕
+	IF TALENT:85 ==1 && (CFLAG:302 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「いっぱい良くしてあげるね♪」
+		CFLAG:302 = 3
+	;レズ中毒Lv3以上
+	ELSEIF ABL:12 >= 3 && (CFLAG:302 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「気持ち良い…♪あんっん……♪」
+		CFLAG:302 = 2
+	;それ以外
+	ELSEIF CFLAG:302 < 1 || FLAG:7 == 2
+		PRINTFORMW 「酔った霊夢にえっちなことされそうになったのよね…」
+		CFLAG:302 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;朝フェラ CFLAG303
+;-------------------------------------------------
+IF TFLAG:13 == 3
+	;恋慕
+	IF TALENT:85 ==1 && (CFLAG:303 < 3 || FLAG:7 == 2)
+		PRINTFORMW 「んむ、はむ…ん、はぁ…あ？お、おおおはよう！！」
+		PRINTFORMW …この淫ピ！
+		PRINTFORMW 　　　　　　　ガブッ！！
+		PRINTFORMW しばらく使い物にならないかも…
+		CFLAG:303 = 3
+	;奉仕精神Lv5以上
+	ELSEIF ABL:6 >= 5 && (CFLAG:303 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「ほんと、朝からこんなにしちゃって…はむ♪」
+		PRINTFORMW ああ、華扇さんたら…
+		CFLAG:303 = 2
+	;それ以外
+	ELSEIF CFLAG:303 < 1 || FLAG:7 == 2
+		PRINTFORMW 「んちゅ、ぺろ、なんでこんな硬いのかしら？」
+		PRINTFORMW 知りません！！
+		CFLAG:303 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;調教後セックス CFLAG304
+;-------------------------------------------------
+IF TFLAG:13 == 4
+	;V感覚Lv4以上
+	IF ABL:4 >= 4 && (CFLAG:304 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「ほらぁ、まだまだできるでしょ～♪」
+		PRINTFORMW も、もう腰が…
+		CFLAG:304 = 2
+	;それ以外
+	ELSEIF CFLAG:304 < 1 || FLAG:7 == 2
+		PRINTFORMW 「もう少しいいでしょ？ね♪」
+		PRINTFORMW もう、可愛いなぁ！
+		CFLAG:304 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;調教後夜這い　 CFLAG305
+;-------------------------------------------------
+IF TFLAG:13 == 5
+	;V感覚Lv5以上
+	IF ABL:4 >= 5 && (CFLAG:305 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「まだまだ終わりじゃないわよ！ほらほらぁ♪」
+		PRINTFORMW 俺のアレが折れちゃいますよぉ…
+		CFLAG:305 = 2
+	;それ以外
+	ELSEIF CFLAG:305 < 1 || FLAG:7 == 2
+		PRINTFORMW 「%CALLNAME:MASTER%？まだ起きてるよね」
+		PRINTFORMW 「もう少しだけ、いいでしょ？」
+		PRINTFORMW 逆夜這いって、この淫ピ！
+		PRINTFORMW ああああああああ！！折れちゃうううううっ！！！！
+		CFLAG:305 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;エンゲージリング プレゼント時
+;-------------------------------------------------
+IF TFLAG:13 == 7
+	PRINTFORML 「………」
+	PRINTFORMW え～っと、華扇さん？
+	PRINTFORMW 「はっ！ああいやいや、ちょっととんでたわ！！」
+	PRINTFORMW 「ここ、これってアレよね！プロポーズってやつ！」
+	PRINTFORMW 華扇さん、動揺しすぎです…
+	PRINTFORMW 「ううううるさいっ！！ていうかしょうがないでしょ！？こ、こんな…」
+	PRINTFORMW 華扇さん、俺と一緒に生きてください！
+	PRINTFORMW 「………」
+	PRINTFORMW 華扇さん？
+	PRINTFORMW 「も、もう！馬鹿！！嫌だっていってもずっと一緒にいてやるわよ！！」
+ENDIF
+	TFLAG:13 = 0
+	RETURN 0
+
+
+;--------------------------------------------------
+;EVENTTRAIN関係（X1をキャラ番号に置換）
+;調教開始時のセリフ CFLAG 201～219を使用
+;-------------------------------------------------
+@EVENTTRAIN
+SIF FLAG:7 == 0
+	RETURN 0
+SIF NO:TARGET != 100
+	RETURN 0
+;--------------------------------------------------
+;簡易助手口上の発動時に初調教時口上をスキップ（Y1を助手のキャラ番号にする）
+;複数人いる際には、SIF NO:ASSI == Y1 || NO:ASSI == Z1と追加していく
+;--------------------------------------------------
+;IF CFLAG:201 == 0 && ASSI > 0
+;	SIF NO:ASSI == Y1
+;		CFLAG:201 =1
+;ENDIF
+;-------------------------------------------------
+;初パートナーと過ごす CFLAG201
+;-------------------------------------------------
+
+IF CFLAG:201 == 0
+	DRAWLINE
+	;素質:パートナーの場合
+	IF TALENT:150 == 1
+		PRINTFORMW 「少しの間だろうけどよろしくね」
+		PRINTFORMW こちらこそ
+	;それ以外
+	ELSE
+		PRINTFORMW 「あなたが%CALLNAME:MASTER%ね、茨木華扇よ。よろしく」
+	ENDIF
+		CFLAG:201 = 1
+	RETURN 1
+
+;-------------------------------------------------
+;パートナーと過ごす（一回のみ） CFLAG201
+;-------------------------------------------------
+
+;デート経験済み
+ELSEIF EXP:94 > 0 && TALENT:TARGET:85 == 0 && CFLAG:201 < 2
+	DRAWLINE
+	PRINTFORMW 「さ、今日はどうするの？」
+	CFLAG:201 = 2
+	RETURN 1
+
+;キス経験済み
+ELSEIF EXP:96 > 0 && TALENT:TARGET:85 == 0 && CFLAG:201 < 3
+	DRAWLINE
+	PRINTFORMW 「久々に手合わせとかどう？」
+	CFLAG:201 = 3
+	RETURN 1
+
+;恋人
+ELSEIF TALENT:TARGET:153 == 1 && TALENT:TARGET:85 == 0 && CFLAG:201 < 4
+	DRAWLINE
+	PRINTFORMW 「さあ、なにをしましょうか？」
+	PRINTFORMW 華扇さんのしたいことっていうのはどうです？
+	PRINTFORMW 「う～ん、私のしたいことかぁ…」
+	CFLAG:201 = 4
+	RETURN 1
+
+;恋慕
+ELSEIF TALENT:TARGET:85 == 1 && CFLAG:201 < 5
+	DRAWLINE
+	PRINTFORMW 「さあ、なにをしましょうか？」
+	PRINTFORMW 華扇さんのしたいことっていうのはどうです？
+	PRINTFORMW 「えっちなことでもいいのかしら」
+	PRINTFORMW …淫ピぐわああああああああああああ！！！！！
+	CFLAG:201 = 5
+	RETURN 1
+
+;助手の有無をチェック（いない場合は二回目以降へ飛ぶ）
+ELSEIF ASSI < 0 
+	CALL K100_KOJO2
+
+;-------------------------------------------------
+;簡易助手口上（Y1を助手のキャラ番号に置換、X1をキャラ番号に変更する) CFLAG202
+;掛け合いをするキャラを増やす場合は、コピー＆ペーストをして、CFLAGの数を203、204と増やす
+;-------------------------------------------------
+;助手
+;ELSEIF NO:ASSI == Y1
+;	DRAWLINE
+	;初めて
+;	IF CFLAG:202 == 0
+		;恋慕＋恋慕時初口上（陥落イベント）が発生済み
+;		IF TALENT:TARGET:85 == 1 && CFLAG:201 >= 5
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;			CFLAG:202 = 1
+;			RETURN 1
+	;二回目以降
+;	ELSEIF CFLAG:202 == 1 && FLAG:7 ==2
+		;恋慕
+;		IF TALENT:TARGET:85 == 1
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;			RETURN 1
+;	ENDIF
+
+;ELSEIF NO:ASSI == Y1
+;	DRAWLINE
+	;初めて
+;	IF CFLAG:203 == 0
+		;恋慕＋恋慕時初口上（陥落イベント）が発生済み
+;		IF TALENT:TARGET:85 == 1 && CFLAG:201 >= 5
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;			CFLAG:203 = 1
+;			RETURN 1
+	;二回目以降
+;	ELSEIF CFLAG:203 == 1 && FLAG:7 ==2
+		;恋慕
+;		IF TALENT:TARGET:85 == 1
+;			PRINTFORMW 
+		;それ以外
+;		ELSE
+;			PRINTFORMW 
+;		ENDIF
+;			RETURN 1
+;	ENDIF
+;口上のある助手が居ない場合は、通常の二回目以降の口上へ飛ぶ
+ELSE
+	CALL K100_KOJO2
+ENDIF
+
+
+;-------------------------------------------------
+;パートナーと過ごす（2回目以降、X1をキャラ番号に変更する） CFLAGなし 
+;-------------------------------------------------
+@K100_KOJO2
+;反発感情Lv1以上
+IF MARK:3 >= 1 && FLAG:7 == 2
+	DRAWLINE
+	PRINTFORMW 「むぅ…」
+	RETURN 1
+
+;進展無し（デート経験0）
+ELSEIF EXP:94 == 0 && FLAG:7 == 2
+	DRAWLINE
+	A = RAND:3
+	IF A == 0
+		PRINTFORMW 「今日は何をするの？」
+	ELSEIF A == 1
+		PRINTFORMW 「修行でもしてようかしら」
+	ELSE
+		PRINTFORMW 「ん～、ちょっと眠いわね…」
+	ENDIF
+	RETURN 1
+
+;デート経験済み
+ELSEIF EXP:94 > 0 && TALENT:TARGET:85 == 0 && FLAG:7 == 2
+	DRAWLINE
+	A = RAND:3
+	IF A == 0
+		PRINTFORMW 「あ、来たわね。これからどうするの？」
+	ELSEIF A == 1
+		PRINTFORMW 「またどこかに連れて行ってくれるのかしら？」
+	ELSE
+		PRINTFORMW 「さ、今日も気合いれていくわよ！」
+	ENDIF
+	RETURN 1
+
+;キス経験済み
+ELSEIF EXP:96 > 0 && TALENT:TARGET:85 == 0 && FLAG:7 == 2
+	DRAWLINE
+	DRAWLINE
+	A = RAND:3
+	IF A == 0
+		PRINTFORMW 「さ、今日も気合いれていくわよ！」
+	ELSEIF A == 1
+		PRINTFORMW 「あら、修行かしら、結構結構！」
+	ELSE
+		PRINTFORMW 「来たわね。今度は何するのかしら？」
+	ENDIF
+	RETURN 1
+
+;恋人
+ELSEIF TALENT:TARGET:153 == 1 && TALENT:TARGET:85 == 0 && FLAG:7 == 2
+	DRAWLINE
+	;ランダムで口上が変化する（使わない場合はすべて同じにすればよい）
+	A = RAND:3
+	IF A == 0
+		PRINTFORMW 「待ってたわ。それでどうするの？」
+	ELSEIF A == 1
+		PRINTFORMW 「折角だし変わったことをするのもいいわね」
+	ELSE
+		PRINTFORMW 「どこかに出かけてみない？」
+	ENDIF
+	RETURN 1
+
+;恋慕
+ELSEIF TALENT:TARGET:85 == 1 && FLAG:7 == 2
+	DRAWLINE
+	;ランダムで口上が変化する（使わない場合はすべて同じにすればよい）
+	A = RAND:6
+	IF A == 0
+		PRINTFORMW 「%CALLNAME:MASTER%、ちょっと遅いわよ。」
+	ELSEIF A == 1
+		PRINTFORMW 「待ってたわ。早速だけどなにする？」
+	ELSEIF A == 2
+		PRINTFORMW 今日は華扇さんとなにをしよう
+		PRINTFORMW 「%CALLNAME:MASTER%のしたいことでいいわよ」
+		PRINTFORMW えっちなこととか…
+		PRINTFORMW 「ばか」
+	ELSEIF A == 3
+		PRINTFORMW 今日は華扇さんとなにをしよう
+		PRINTFORMW 「%CALLNAME:MASTER%のしたいことでいいわよ」
+		PRINTFORMW 手合わせをおねがいします
+		PRINTFORMW 「わかったわ。どのくらい成長したかみてあげる」
+	ELSEIF A == 4
+		PRINTFORMW 「あ…もう遅いわよ、待ってたんだからね」
+		PRINTFORMW 「…な、なに？」
+		PRINTFORMW 可愛いとこあるなぁ…
+	ELSE
+		PRINTFORMW 「%CALLNAME:MASTER%、今日はとことん付き合ってもらうわよ！」
+		PRINTFORMW 明日は筋肉痛確定ですかね…
+	ENDIF
+	RETURN 1
+ENDIF
+RETURN 0
+
+;-------------------------------------------------
+;EVENTEND関係（X1をキャラ番号に置換）
+;パートナーと一旦別れる
+;-------------------------------------------------
+@EVENTEND
+SIF FLAG:7 == 0
+	RETURN 0
+SIF NO:TARGET != 100
+	RETURN 0
+;--------------------------------------------------
+;パートナーと一旦別れる
+;--------------------------------------------------
+;反発感情Lv1以上
+IF MARK:3 >= 1
+	DRAWLINE
+	PRINTFORMW 「終わり？　そう」
+	RETURN 1
+
+;進展なし
+ELSEIF EXP:94 == 0 && TALENT:TARGET:85 == 0
+	DRAWLINE
+	PRINTFORMW 「お終い？　それじゃあね」
+	RETURN 1
+
+;デート経験済み
+ELSEIF EXP:94 > 0 && TALENT:TARGET:85 == 0
+	DRAWLINE
+	PRINTFORMW 「中々やるわね。見直したわ」
+	RETURN 1
+
+;キス経験済み
+ELSEIF EXP:96 > 0 && TALENT:TARGET:85 == 0
+	DRAWLINE
+	PRINTFORMW 「なにかご褒美をあげてもいいかしらね」
+	RETURN 1
+
+;恋人
+ELSEIF TALENT:TARGET:153 == 1 && TALENT:TARGET:85 == 0
+	DRAWLINE
+	PRINTFORMW 「それじゃ、またあとでね」
+	RETURN 1
+
+;恋慕＋体力500未満
+ELSEIF TALENT:TARGET:85 == 1 && BASE:0 < 500
+	DRAWLINE
+	A = RAND:3
+	IF A == 0
+		PRINTFORMW 「ちょっと疲れたわ。」
+		PRINTFORMW 「ごめん、ちょっと休むわね」
+	ELSEIF A == 1
+		PRINTFORML 「さすがにきついわね…」
+		PRINTFORMW あまり無理しないで休んでください
+		PRINTFORMW 「ええ、そうさせてもらうわ」
+	ELSE
+		PRINTFORMW 「ふぅ、頑張りすぎたかしら」
+		PRINTFORMW 「少し休みましょう？」
+		PRINTFORMW それじゃあ、お茶でも淹れてきますね
+		PRINTFORMW 「ふふ、%CALLNAME:MASTER%、ありがとう」
+	ENDIF
+	RETURN 1
+
+;恋慕
+ELSEIF TALENT:TARGET:85 == 1
+	DRAWLINE
+	A = RAND:4
+	IF A == 0
+		PRINTFORMW 「あら、もう終わり？そう…」
+		PRINTFORMW 「仕方ないわね。また後でね？」
+	ELSEIF A == 1
+		PRINTFORMW 「え、もう終わり？はやいんじゃない」
+		PRINTFORMW 「しょうがないか、それじゃまたあとでね」
+	ELSEIF A == 2
+		PRINTFORMW 「もう少しくらいいいでしょ。それとも私と一緒じゃ嫌？」
+		PRINTFORMW 嫌じゃないですよ！時間ですから…
+		PRINTFORMW 「え、やだもうこんな時間！それじゃあまたね！」
+	ELSE
+		PRINTFORMW 「%CALLNAME:MASTER%、ありがとう。楽しかったわ」
+		PRINTFORMW 「ずっとこうしていられればいいのになぁ…」
+	ENDIF
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_MARKCNG関係（X1をキャラ番号に置換）
+;刻印変動をトリガーにした口上
+;刻印変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_MESSAGE_MARKCNG_100
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+;SIF ASSI > 0 && ASSIPLAY
+;	RETURN 0 
+;ボールギャグ着用時には口上をスキップする（OFFだと口を塞いでるのに喋りまくる）
+SIF TEQUIP:45
+	RETURN 0
+;-------------------------------------------------
+;苦痛依存Lv3取得 CFLAG397
+;-------------------------------------------------
+IF TFLAG:22 == 3 && CFLAG:397 == 0
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「いたぁっ！！それはさすがに痛いわ！」
+	ELSE
+		PRINTFORMW 「痛いってば！もう傷ついちゃうわよ！！」
+	ENDIF
+		CFLAG:397 = 1
+ENDIF
+
+;-------------------------------------------------
+;快楽依存Lv3取得 CFLAG398
+;-------------------------------------------------
+IF TFLAG:23 == 3 && CFLAG:398 == 0
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「もう、こんなにしてくれちゃって、えっち」
+	ELSE
+		PRINTFORMW (私、%CALLNAME:MASTER%のことばかり考えちゃってる…)
+	ENDIF
+		CFLAG:398 = 1
+ENDIF
+
+;-------------------------------------------------
+;既成事実Lv1～3取得 CFLAG399
+;-------------------------------------------------
+;既成事実Lv3
+IF TFLAG:24 == 3 && CFLAG:399 < 3
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「%CALLNAME:MASTER%、もう離さないんだからね！」
+	ELSE
+		PRINTFORMW (もっと私のほうから押し倒しちゃおうかな)
+	ENDIF
+		CFLAG:399 = 3
+;既成事実Lv2
+ELSEIF TFLAG:24 == 2 && CFLAG:399 < 2
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW (なんだろう、すっごいどきどきする)
+	ELSE
+		PRINTFORMW (どうした私！しっかりしろ！)
+	ENDIF
+		CFLAG:399 = 2
+;既成事実Lv1
+ELSEIF TFLAG:24 == 1 && CFLAG:399 < 1
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW (う～ん、こんなもんかしらね)
+	ELSE
+		PRINTFORMW (どうしたものか…)
+	ENDIF
+		CFLAG:399 = 1
+ENDIF
+
+;-------------------------------------------------
+;反発感情Lv1～3取得 CFLAG400
+;-------------------------------------------------
+;反発感情Lv3
+IF TFLAG:21 == 3 && CFLAG:400 < 3
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 「さすがに頭にきたわ…」
+	ELSE
+		PRINTFORMW 「ふん…」
+	ENDIF
+		CFLAG:400 = 3
+;反発感情Lv2
+ELSEIF TFLAG:21 == 2 && CFLAG:400 < 2
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 
+	ELSE
+		PRINTFORMW 
+	ENDIF
+		CFLAG:400 = 2
+;反発感情Lv1
+ELSEIF TFLAG:21 == 1 && CFLAG:400 < 1
+	;恋慕
+	IF TALENT:85 == 1
+		PRINTFORMW 
+	ELSE
+		PRINTFORMW 
+	ENDIF
+		CFLAG:400 = 1
+ENDIF
+
+;--------------------------------------------------
+;@KOJO_MESSAGE_COM関係（X1をキャラ番号に置換）
+;--------------------------------------------------
+@KOJO_MESSAGE_COM_100
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+SIF ASSI > 0 && ASSIPLAY
+	RETURN 0 
+;ボールギャグ着用時には口上をスキップする（OFFだと口を塞いでるのに喋りまくる）
+SIF TEQUIP:45 && SELECTCOM != 45
+	RETURN 0
+;-------------------------------------------------
+;コマンド実行時のセリフ CFLAG 401～500を使用
+;-------------------------------------------------
+
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;コミュニケーション系コマンド
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;-------------------------------------------------
+;弾幕ごっこ CFLAG401
+;-------------------------------------------------
+IF SELECTCOM == 300
+	;初めて
+	IF CFLAG:401 == 0
+		PRINTFORMW 「準備はいいかしら？いくわよ！！」
+		CFLAG:401 = 1
+	;二回目以降
+	ELSE
+		A = RAND:10
+		IF A == 0
+				PRINTFORMW 「こんなもんでいいかしら？」
+				PRINTFORMW 華扇さん、なんですか、そのでかい雷の塊は…
+				PRINTFORMW 「くらってみればわかるわ」
+				PRINTFORMW 死んじゃう！！
+			ELSEIF A == 1
+				PRINTFORMW 「今度はこれね」
+				PRINTFORMW 火の玉？…でかすぎでしょ！！
+				PRINTFORMW 「問答無用！！」
+				PRINTFORMW さよなら幻想郷…
+			ELSEIF A == 2
+				PRINTFORMW 「こういうのはどうかしら？」
+				PRINTFORMW 飛んでくる刃物を避けろ…わあい、死むぅっ！！！！
+			ELSEIF A == 3
+				PRINTFORMW 「%CALLNAME:MASTER%、今日はこれよ！」
+				PRINTFORMW 異変解決の前に華扇さんに殺される…
+			ELSEIF A == 4
+				PRINTFORMW 「いい%CALLNAME:MASTER%、ただ避けるだけじゃだめ」
+				PRINTFORMW 「できるだけ最小限の動きでかわすの」
+				PRINTFORMW この馬鹿でかい鉄球を？死ぬっ！！
+			ELSEIF A == 5
+				PRINTFORMW 「ほら、がんばんなさい！この程度やってみせてよね！」
+				PRINTFORMW 華扇さんのペット達の攻撃を避け続ける…落雷みたいなのもある
+				PRINTFORMW これのどこがその程度ですか！！
+			ELSEIF A == 6
+				PRINTFORMW 「まだまだね。なっちゃないわ」
+				PRINTFORMW 華扇師匠、厳しすぎます…
+				PRINTFORMW 「口ごたえしない！！」
+				PRINTFORMW 理不尽だああぁぁぁぁぁぁっ！！！！
+			ELSEIF A == 7
+				PRINTFORMW 「これができたらご褒美をあげるわ」
+				PRINTFORMW ご褒美…？
+				PRINTFORMW 「さあ、いくわよ！」
+			ELSEIF A == 8
+				PRINTFORMW 「これができたらご褒美をあげるわ」
+				PRINTFORMW えっちなご褒美とかですか？
+				PRINTFORMW 　　　　　ガンッ！！！！
+				PRINTFORMW すみませんでした…
+			ELSE
+				PRINTFORMW 「そんなんじゃいつまでたっても攻めにまわれないわよ！」
+				PRINTFORMW えっちの攻めになら意地でもまわれるのに！！
+				PRINTFORMW 　　　　　ドーン！！！！
+				PRINTFORMW 「どすけべ…」
+				PRINTFORMW ご、ごもっともで…
+		ENDIF
+		CFLAG:401 = 2
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;会話 CFLAG402
+;-------------------------------------------------
+IF SELECTCOM == 301
+	;初めて
+	IF CFLAG:402 == 0
+		PRINTFORMW 「まずはお互いのことを知ることからね」
+		CFLAG:402 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:402 < 4 || FLAG:7 == 2)
+			A = RAND:5
+			IF A == 0
+				PRINTFORMW 「なんかもうずいぶん長いことここにいる気がしてきたわ」
+			ELSEIF A == 1
+				PRINTFORMW 「はい%CALLNAME:MASTER%の分。」
+				PRINTFORMW ありがとうございます
+			ELSEIF A == 2
+				PRINTFORMW 「この辺りも大分変わったわね…」
+				PRINTFORMW 「昔はここら一帯なにも無かったのよ」
+			ELSEIF A == 3
+				PRINTFORMW 「ふあ～、いい天気…このまま寝ちゃおうかしら」
+				PRINTFORMW そんなことしたら俺、寝込みを襲っちゃいますよ
+				PRINTFORMW 「ばか…」
+			ELSE
+				PRINTFORMW う～ん、眠いなぁ…
+				PRINTFORMW 「寝たらそこをおそっちゃうわよ？」
+				PRINTFORMW 淫ピ…ああばばばばばばば！！！！
+			ENDIF
+			CFLAG:402 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:402 < 3 || FLAG:7 == 2)
+			A = RAND:5
+			IF A == 0
+				PRINTFORMW 「幻想郷もどんどん変わっていくわね…」
+				PRINTFORMW どうしたんです、急に年寄りみたいなこと…あいたぁっ！！
+			ELSEIF A == 1
+				PRINTFORMW 「平和ねえ、異変の最中とは思えないわ」
+			ELSEIF A == 2
+				PRINTFORMW 「ねえ、今私のおっぱい見てたでしょ」
+				PRINTFORMW 見てません
+				PRINTFORMW 「ほんとすけべなんだから」
+				PRINTFORMW み、見てないでござる…
+			ELSEIF A == 3
+				PRINTFORMW 「あ、猫の顔した雲」
+				PRINTFORMW え！？猫面蜘蛛！？
+				PRINTFORMW 「そっちの蜘蛛じゃないわよ」
+			ELSE
+				PRINTFORMW 「裏の畑にあるあのサボテン、どこで手に入れたの？」
+				PRINTFORMW 香霖堂っていう雑貨屋さんです、店主の霖之助さんが
+				PRINTFORMW イケメンだとかでけっこう女性に人気のお店なんですよ
+			ENDIF
+			CFLAG:402 = 3
+		;それ以外
+		ELSEIF CFLAG:402 < 2 || FLAG:7 == 2
+			A = RAND:5
+			IF A == 0
+				PRINTFORMW 「いい天気ねえ…行楽日和だわ」
+			ELSEIF A == 1
+				PRINTFORMW はい、華扇さんの分のお茶です
+				PRINTFORMW 「あら、気が利くわね。ありがとう」
+			ELSEIF A == 2
+				PRINTFORMW 「ねえ%CALLNAME:MASTER%、折角だしどこかへ行かない？」
+				PRINTFORMW どこにします？
+				PRINTFORMW 「そうねえ、どこがいいかしら」
+			ELSEIF A == 3
+				PRINTFORMW 「う～ん、いい風…」
+			ELSE
+				PRINTFORMW 「こんなにのんびりしてていいの？修行したほうがいいんじゃない」
+				PRINTFORMW 少しは加減してくれるのなら考えてもいいですよ
+			ENDIF
+			CFLAG:402 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;プレゼント CFLAG403
+;-------------------------------------------------
+IF SELECTCOM == 302
+	;初めて
+	IF CFLAG:403 == 0
+		PRINTFORMW 「私に？なにかしら」
+		CFLAG:403 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:403 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あ、ありがとう。今度なにかお返しするわね」
+			PRINTFORMW それなら華扇さんのおっぱいで…
+			PRINTFORMW 　　　　　　　ゴンッ！！！！
+			PRINTFORMW 「えっち…」
+			PRINTFORMW ごめんなさい、調子にのりました
+			CFLAG:403 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:403 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「なんか気を使わせちゃったかしら」
+			PRINTFORMW いつもお世話になってるお礼です、気にしないでください
+			CFLAG:403 = 3
+		;それ以外
+		ELSEIF CFLAG:403 < 2 || FLAG:7 == 2
+			PRINTFORMW 「あら、ありがとう」
+			CFLAG:403 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;宴会に参加 CFLAG404
+;-------------------------------------------------
+IF SELECTCOM == 320
+	;初めて
+	IF CFLAG:404 == 0
+		PRINTFORMW 「ほんとみんな宴会が好きよね」
+		PRINTFORMW 華扇さんは嫌いですか？
+		PRINTFORMW 「嫌いじゃないわよ。そこまで好きでもないけどね」
+		CFLAG:404 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:404 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「う～ん、美味しい。%CALLNAME:MASTER%もどう？」
+			ELSEIF A == 1
+				PRINTFORMW 「ちょっと飲みすぎたかしらね」
+				PRINTFORMW なんか華扇さん色っぽい…
+				PRINTFORMW 「こんなとこで欲情しちゃだめよ」
+				PRINTFORMW それくらいわかってますよ！
+			ELSE
+				PRINTFORMW 「%CALLNAME:MASTER%、今度は二人きりで飲みましょ、ね」
+			ENDIF
+			CFLAG:404 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:404 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「う～ん、この料理美味しい。…こうやって太ってしまうのね…」
+			PRINTFORMW い、いきなり落ち込まないでくださいよ
+			CFLAG:404 = 3
+		;それ以外
+		ELSEIF CFLAG:404 < 2 || FLAG:7 == 2
+			PRINTFORMW 「すごい騒ぎっぷりね」
+			PRINTFORMW 俺、ついてけそうにないです…
+			CFLAG:404 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;スキンシップ CFLAG405
+;-------------------------------------------------
+IF SELECTCOM == 303
+	;初めて
+	IF CFLAG:405 == 0
+		PRINTFORMW 「きゃっ！なに、いきなり…」
+		CFLAG:405 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:405 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「%CALLNAME:MASTER%、ドコをさわってるのかしら？」
+				PRINTFORMW 華扇さんのおっぱ…
+				PRINTFORMW 「いわなくていいわよ！」
+			ELSEIF A == 1
+				PRINTFORMW 「えい」
+				PRINTFORMW わぁっ！！な、なんです？いきなり
+				PRINTFORMW 「いやぁ、女のほうからっていうのもいいかなってね」
+				PRINTFORMW …淫ピ…ぐわああぁぁぁぁっ！！！！
+			ELSE
+				PRINTFORMW 「さわりかたがやらしいわよ？」
+				PRINTFORMW えっ！？そんなでした？ショックです…
+				PRINTFORMW 「冗談よ。からかいがいがあるわ♪」
+			ENDIF
+			CFLAG:405 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:405 < 3 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「さわりたいの？ふふ、いいわよ」
+				PRINTFORMW 華扇さん、なんかエロいですよ
+				PRINTFORMW 「やっぱりさわらせない」
+				PRINTFORMW ごめんなさい！
+			ELSEIF A == 1
+				PRINTFORMW 「けっこう%CALLNAME:MASTER%って、ガタイがいいわね」
+				PRINTFORMW 華扇さんが修行とかいってあれこれさせるからですよ
+				PRINTFORMW 「ふ～む、もっときつい修行に変えようかしら」
+				PRINTFORMW やめてくだ、ちょ、ドコさわって、のわあぁ！
+			ELSE
+				PRINTFORMW 「%CALLNAME:MASTER%、膝枕して」
+				PRINTFORMW 俺がするんですか？いいですよ、どうぞ
+				PRINTFORMW 「う～ん、硬いわね…」
+				PRINTFORMW まだ硬くなってませんよ
+				PRINTFORMW 「そこのことじゃないわよ！」
+			ENDIF
+			CFLAG:405 = 3
+		;それ以外
+		ELSEIF CFLAG:405 < 2 || FLAG:7 == 2
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「さわりっこじゃなくてどつきあいとかどう？」
+				PRINTFORMW 俺、死んじゃいますよ…
+			ELSEIF A == 1
+				PRINTFORMW 「肩くらいならいいけど」
+			ELSE
+				PRINTFORMW 「怒るわよ？」
+				PRINTFORMW ごめんなさい…
+			ENDIF
+			CFLAG:405 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;遊びに行く CFLAG406
+;-------------------------------------------------
+IF SELECTCOM == 321
+	;初めて
+	IF CFLAG:406 == 0
+		PRINTFORMW 「遊びに？まあいいけど、でもやること忘れちゃだめよ」
+		PRINTFORMW わかってますって
+		CFLAG:406 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:406 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「今日はどこにいくの？」
+			PRINTFORMW 「しっかりエスコートしてね♪」
+			PRINTFORMW むむぅ、俺任せですか
+			CFLAG:406 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:406 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「手、つなぐの？い、いいけど…」
+			CFLAG:406 = 3
+		;それ以外
+		ELSEIF CFLAG:406 < 2 || FLAG:7 == 2
+			PRINTFORMW 「息抜きも必要だし、付き合うわ」
+			CFLAG:406 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;デート CFLAG407
+;-------------------------------------------------
+IF SELECTCOM == 323 && TEQUIP:2 > 0
+	;初めて
+	IF CFLAG:407 == 0
+		PRINTFORMW 「で、デート！？…ってなに？」
+		PRINTFORMW わからないのに驚いたんですか…
+		CFLAG:407 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:407 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あら、デートのお誘い？いいわよ」
+			PRINTFORMW 今日はですね…
+			CFLAG:407 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:407 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「今度はドコに連れて行ってくれるのかしら♪」
+			CFLAG:407 = 3
+		;それ以外
+		ELSEIF CFLAG:407 < 2 || FLAG:7 == 2
+			PRINTFORMW 「こんなことしてていいのかしら？」
+			CFLAG:407 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;まったりする CFLAG408
+;-------------------------------------------------
+IF SELECTCOM == 304
+	;初めて
+	IF CFLAG:408 == 0
+		PRINTFORMW 「すぅ…」
+		PRINTFORMW 華扇さん、寝ちゃった…こうしてると可愛いのに
+		PRINTFORMW まぁ、起きてる時も可愛いですけどね…
+		PRINTFORMW 「…ばか…」
+		PRINTFORMW お、起きてましたか…
+		CFLAG:408 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:408 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「ふぅ～、落ち着くわねぇ～」
+			PRINTFORMW しばらくこうしていたいですねぇ～
+			PRINTFORMW 「だめよ、まだ今日の修行が残ってるわ」
+			PRINTFORMW いぃやぁぁ～、死むぅ～
+			CFLAG:408 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:408 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「一瞬、異変のこと忘れてたわ」
+			PRINTFORMW ちょっ！？
+			CFLAG:408 = 3
+		;それ以外
+		ELSEIF CFLAG:408 < 2 || FLAG:7 == 2
+			PRINTFORMW 「たまには、ね」
+			CFLAG:408 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;家事 CFLAG409
+;-------------------------------------------------
+IF SELECTCOM == 305
+	;初めて
+	IF CFLAG:409 == 0
+		PRINTFORMW 「%CALLNAME:MASTER%、これなに？」
+		PRINTFORMW 調味料ですよ、魔理沙さんが色々なキノコを調合してつくったんですよ
+		PRINTFORMW 「へ、へぇ～、やばそうだからさわらないでおこう…」
+		CFLAG:409 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:409 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「%CALLNAME:MASTER%、ちょっとこっち手伝って」
+				PRINTFORMW はいはい、今行きますね
+			ELSEIF A == 1
+				PRINTFORMW 華扇さん、こんな感じでどうでしょう？
+				PRINTFORMW 「うん、いいわね。やるじゃない%CALLNAME:MASTER%♪」
+			ELSE
+				PRINTFORMW 「ふむ、こんなもんね」
+				PRINTFORMW そろそろ休憩しましょうか
+			ENDIF
+			CFLAG:409 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:409 < 3 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「蕎麦うち？できるの？」
+				PRINTFORMW ちょっとやってみようかなと…
+			ELSEIF A == 1
+				PRINTFORMW 「うん、綺麗になったわね」
+				PRINTFORMW こんなとこでしょうかね、休憩にしましょう
+			ELSE
+				PRINTFORMW 「洗濯ね、ってそれ私の下着じゃない！！」
+				PRINTFORMW 一緒に洗っちゃおうかなって、あいたぁっ！！
+				PRINTFORMW 「%CALLNAME:MASTER%のえっち！！」
+				PRINTFORMW な、なぜ？
+			ENDIF
+			CFLAG:409 = 3
+		;それ以外
+		ELSEIF CFLAG:409 < 2 || FLAG:7 == 2
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「さ、ちゃっちゃと終わらせるわよ」
+			ELSEIF A == 1
+				PRINTFORMW 「これはゴミかしら」
+				PRINTFORMW あぁ、それは捨てちゃだめです！
+			ELSE
+				PRINTFORMW 「%CALLNAME:MASTER%はあっち、私はこっちを片付けるわ」
+				PRINTFORMW 了解です大佐！
+				PRINTFORMW 「大佐じゃないわ、将軍よ！」
+				PRINTFORMW なんてこったです…
+			ENDIF
+			CFLAG:409 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;バードキス CFLAG410
+;-------------------------------------------------
+IF SELECTCOM == 340
+	;初めて
+	IF CFLAG:410 == 0
+		PRINTFORMW 「ん、…こういうのもいいかも…♪」
+		PRINTFORMW そ、そうですね、あはは…
+		CFLAG:410 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:410 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「たまにならこういうのもいいけど、どうせなら…ね」
+				PRINTFORMW 激しいのをご所望ですか？
+				PRINTFORMW 「そういうことはいわないの！」
+			ELSEIF A == 1
+				PRINTFORMW 「ちゅ、ん、、な、なんかくすぐったいわね」
+			ELSE
+				PRINTFORMW 「もっと、ほら…ん…」
+				PRINTFORMW ん…華扇さん…
+			ENDIF
+			CFLAG:410 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:410 < 3 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「やっぱり照れるわね」
+				PRINTFORMW 俺もですよ
+			ELSEIF A == 1
+				PRINTFORMW 「ほら、眼閉じて…」
+			ELSE
+				PRINTFORMW 「えい！ん…」
+				PRINTFORMW いきなりすぎですよ、お返しです
+				PRINTFORMW 「ちゅ、ん…」
+			ENDIF
+			CFLAG:410 = 3
+		;それ以外
+		ELSEIF CFLAG:410 < 2 || FLAG:7 == 2
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「ん、これでいいのかしら」
+			ELSEIF A == 1
+				PRINTFORMW 「もう、しょうがないわね」
+			ELSE
+				PRINTFORMW 「え～、するの？」
+			ENDIF
+			CFLAG:410 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ソフトキス CFLAG411
+;-------------------------------------------------
+IF SELECTCOM == 341
+	;初めて
+	IF CFLAG:411 == 0
+		PRINTFORMW 「よ、よし。さあ、いいわよ！！」
+		PRINTFORMW そんなに気合いれなくても…
+		CFLAG:411 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:411 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「ふん！」
+				PRINTFORMW ちょっ！？かせ、んむ…！
+				PRINTFORMW 「ふぅ～、ちょっと強引だったかしら」
+			ELSEIF A == 1
+				PRINTFORMW 「%CALLNAME:MASTER%の唇柔らかい…」
+				PRINTFORMW か、華扇さんのだって柔らかいですよ
+				PRINTFORMW 「そこ、胸だから」
+			ELSE
+				PRINTFORMW 「とう！」
+				PRINTFORMW ぶむ！？か、華扇さん！？
+				PRINTFORMW 「必殺、唇を奪う！」
+				PRINTFORMW まんまじゃないですか！
+			ENDIF
+			CFLAG:411 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:411 < 3 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「恋人同士なんだし…ねぇ？」
+				PRINTFORMW そ、そうですよね…
+			ELSEIF A == 1
+				PRINTFORMW 「%CALLNAME:MASTER%はちゅーとキス、どっちがいい？」
+				PRINTFORMW それ、意味同じですよ
+			ELSE
+				PRINTFORMW 「むむむ、えい！」
+				PRINTFORMW ん、華扇さんに唇を奪われました…
+				PRINTFORMW 「むふふ、奪ってやったわ！！」
+			ENDIF
+			CFLAG:411 = 3
+		;それ以外
+		ELSEIF CFLAG:411 < 2 || FLAG:7 == 2
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「うぬぬ、仕方ない、ああ、でもな～」
+			ELSEIF A == 1
+				PRINTFORMW 「どうせならもっと仲良くなってからしない？」
+			ELSE
+				PRINTFORMW 「ふぅ、ほら、さっさとする…はぁ」
+			ENDIF
+			CFLAG:411 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ディープキス CFLAG412
+;-------------------------------------------------
+IF SELECTCOM == 342
+	;初めて
+	IF CFLAG:412 == 0
+		PRINTFORMW 「し、舌を…！？ぃ、いよぉし！いいい、いいわよ、きなさい！！」
+		PRINTFORMW か、華扇さん、そんなに動揺しなくても…
+		CFLAG:412 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:412 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「なんでこういうキスの仕方があるのかしらね」
+				PRINTFORMW さ、さあ…誰が考えたんでしょうね…
+			ELSEIF A == 1
+				PRINTFORMW 「%CALLNAME:MASTER%、わかってるわね！！」
+				PRINTFORMW はい、華扇さん！いきますよ！！
+				PRINTFORMW 「いざ、唇対唇！！」
+				PRINTFORMW ぬぅぉおおおおぉぉっ！！華扇さあぁぁぁん！！
+			ELSE
+				PRINTFORMW …
+				PRINTFORMW 「だ、大丈夫？」
+				PRINTFORMW ええ、あんろか…
+				PRINTFORMW 「%CALLNAME:MASTER%の舌、おもいっきり噛んじゃった…」
+			ENDIF
+			CFLAG:412 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:412 < 3 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「さあ、勝負よ%CALLNAME:MASTER%！！」
+				PRINTFORMW えっ！？なんです！？いきなんむうぅ～！？
+			ELSEIF A == 1
+				PRINTFORMW 「さ、%CALLNAME:MASTER%、いいわね♪」
+				PRINTFORMW ああ、淫ピに食われんむう～！！！！
+			ELSE
+				PRINTFORML 「な、なんかすっごい疲れるわね…」
+				PRINTFORMW そ、そうですね…
+			ENDIF
+			CFLAG:412 = 3
+		;それ以外
+		ELSEIF CFLAG:412 < 2 || FLAG:7 == 2
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「さ、さすがにそれはきついわ…」
+			ELSEIF A == 1
+				PRINTFORMW 「さ、さすがにそれはきついわ…」
+			ELSE
+				PRINTFORMW 「さ、さすがにそれはきついわ…」
+			ENDIF
+			CFLAG:412 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;胸愛撫 CFLAG413
+;-------------------------------------------------
+IF SELECTCOM == 360
+	;初めて
+	IF CFLAG:413 == 0
+		PRINTFORMW 「%CALLNAME:MASTER%はやっぱり大きいほうが好み？」
+		PRINTFORMW や、やっぱりって、そういう風に見られてるんですね…ショック…
+		PRINTFORMW 「ほら、落ち込まないの。ふふ、可愛いわねほんと♪」
+		CFLAG:413 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:413 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「今、この巨乳淫ピとか思ったでしょう？」
+				PRINTFORMW な！？おおお、おもってませんよおおおう！？
+				PRINTFORMW 「動揺しすぎ！」
+			ELSEIF A == 1
+				PRINTFORMW 「そんなにおっぱい好きかああぁぁぁぁっ！！」
+				PRINTFORMW 好きに決まってるでしょ！！馬鹿なこと言わないでください！！
+				PRINTFORMW 「そ、そう…、なんて気迫なの…修行中もこのくらいだったらなぁ…」
+			ELSE
+				PRINTFORMW 「%CALLNAME:MASTER%の指、綺麗ね…」
+				PRINTFORMW そうですかね、けっこう傷ありますけど
+				PRINTFORMW 「そういうことじゃないわよ。もう鈍感よね…」
+			ENDIF
+			CFLAG:413 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:413 < 3 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「今、この巨乳淫ピとか思ったでしょう？」
+				PRINTFORMW な！？おおお、おもってませんよおおおう！？
+				PRINTFORMW 「動揺しすぎ！」
+			ELSEIF A == 1
+				PRINTFORMW 「そんなにおっぱい好きかああぁぁぁぁっ！！」
+				PRINTFORMW 好きに決まってるでしょ！！馬鹿なこと言わないでください！！
+				PRINTFORMW 「そ、そう…、なんて気迫なの…修行中もこのくらいだったらなぁ…」
+			ELSE
+				PRINTFORMW 「%CALLNAME:MASTER%の指、綺麗ね…」
+				PRINTFORMW そうですかね、けっこう傷ありますけど
+				PRINTFORMW 「そういうことじゃないわよ。もう鈍感よね…」
+			ENDIF
+			CFLAG:413 = 3
+		;それ以外
+		ELSEIF CFLAG:413 < 2 || FLAG:7 == 2
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「やっぱりそうきたか…」
+			ELSEIF A == 1
+				PRINTFORMW 「ほんと、胸が好きよねぇ」
+			ELSE
+				PRINTFORMW 「揉むのね、仕方ないわね…」
+			ENDIF
+			CFLAG:413 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;愛撫 CFLAG414
+;-------------------------------------------------
+IF SELECTCOM == 361
+	;初めて
+	IF CFLAG:414 == 0
+		PRINTFORMW 「まさか%CALLNAME:MASTER%と、こんな関係になってしまうなんてね」
+		PRINTFORMW 俺もまさか華扇さんとこんなことになるなんて思いませんでした
+		CFLAG:414 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:414 < 4 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「%CALLNAME:MASTER%の手、気持ちいい…」
+				PRINTFORMW 華扇さんの体、すべすべです…
+			ELSEIF A == 1
+				PRINTFORMW 「さあ、どっからでもいいわよ！」
+				PRINTFORMW ムードもなにもあったもんじゃないですね…
+			ELSE
+				PRINTFORMW 「私が%CALLNAME:MASTER%にしてあげよっか」
+				PRINTFORMW 華扇さんの淫ピ…ああぁぁぁばばばばば！！！！
+			ENDIF
+			CFLAG:414 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:414 < 3 || FLAG:7 == 2)
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「%CALLNAME:MASTER%の手、気持ちいい…」
+				PRINTFORMW 華扇さんの体、すべすべです…
+			ELSEIF A == 1
+				PRINTFORMW 「さあ、どっからでもいいわよ！」
+				PRINTFORMW ムードもなにもあったもんじゃないですね…
+			ELSE
+				PRINTFORMW 「私が%CALLNAME:MASTER%にしてあげよっか」
+				PRINTFORMW 華扇さんの淫ピ…ああぁぁぁばばばばば！！！！
+			ENDIF
+			CFLAG:414 = 3
+		;それ以外
+		ELSEIF CFLAG:414 < 2 || FLAG:7 == 2
+			A = RAND:3
+			IF A == 0
+				PRINTFORMW 「あ、愛撫かぁ…」
+			ELSEIF A == 1
+				PRINTFORMW 「あ、愛撫かぁ…」
+			ELSE
+				PRINTFORMW 「あ、愛撫かぁ…」
+			ENDIF
+			CFLAG:414 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;告白する CFLAG415
+;-------------------------------------------------
+IF SELECTCOM == 399
+	;初めて
+	IF CFLAG:415 == 0
+		PRINTFORMW 「…もう♪」
+		CFLAG:415 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:415 < 4 || FLAG:7 == 2)
+			PRINTFORMW 「あぁえ～っと、ちょっと待って！？」
+			PRINTFORMW 「ほ、本気なの？…わかったわ。」
+			PRINTFORMW 「私、茨木華扇は%CALLNAME:MASTER%についていくわ」
+			PRINTFORMW 「これからも、よろしくね♪」
+			PRINTFORMW こちらこそ華扇さん
+			CFLAG:415 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:415 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「私達、もう恋人同士でしょ」
+			CFLAG:415 = 3
+		;それ以外
+		ELSEIF CFLAG:415 < 2 || FLAG:7 == 2
+			PRINTFORMW 「あ、あなたねぇ…」
+			CFLAG:415 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ストリートライブ CFLAG493
+;-------------------------------------------------
+IF SELECTCOM == 322
+	;初めて
+	IF CFLAG:493 == 0
+		PRINTFORMW 
+		CFLAG:493 = 1
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:493 < 4 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:493 = 4
+		;恋人
+		ELSEIF TALENT:153 == 1 && (CFLAG:493 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:493 = 3
+		;それ以外
+		ELSEIF CFLAG:493 < 2 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:493 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+
+
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;純愛系コマンド
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;ウフフコマンドで、恋慕が無い場合には、共通口上で済ます
+IF TALENT:85 == 0 && SELECTCOM < 300
+	;合意or恋人
+	IF (TALENT:152 == 1 || TALENT:153 == 1)
+		;反発感情を持っている場合
+		IF MARK:3 > 0
+			PRINTFORMW 
+		;苦痛を伴うコマンドの場合
+		ELSEIF SOURCE:6 > 0
+			PRINTFORMW 「あたた…、もっと優しくしてよね…」
+		;それ以外
+		ELSE
+			PRINTFORMW 「こ、これでいいかしら？」
+		ENDIF
+	;それ以外（本当に無理矢理脱がせてる場合）
+	ELSE
+		;反発感情を持っている場合
+		IF MARK:3 > 0
+			PRINTFORMW 
+		;苦痛を伴うコマンドの場合
+		ELSEIF SOURCE:6 > 0
+			PRINTFORMW 
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+	ENDIF
+RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;愛撫 CFLAG416
+;-------------------------------------------------
+IF SELECTCOM == 0
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:416 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%の指、すごくいいわ…ぁ、ん」
+		PRINTFORMW 華扇さんが淫ピに、いや元からああああばばばば！！！！
+		CFLAG:416 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:416 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「ほら%CALLNAME:MASTER%ここも、ね」
+		PRINTFORMW 淫ピここに極まる！あいだだだだだ！！！！
+		CFLAG:416 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;クンニ CFLAG417
+;-------------------------------------------------
+;クンニ
+IF SELECTCOM == 1 && TEQUIP:57 == 0
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:417 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%、ここ舐めて、ほらぁ♪」
+		PRINTFORMW 自分から広げるなんて、この淫ピいたあああ！！！！
+		CFLAG:417 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:417 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「こ、こらぁ、広げちゃだめよぉ…あん♪」
+		PRINTFORMW 華扇さんのここ、ピンク色で綺麗です…ぺろ
+		PRINTFORMW 「ひゃぁ！も、もう、ん、あぁん…♪」
+		CFLAG:417 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;岩清水 CFLAG418
+;-------------------------------------------------
+IF SELECTCOM == 1 && TEQUIP:57
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:418 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「なるほど、顔面騎上位ね。いいわよ♪」
+		PRINTFORMW その言い方はやめてください！
+		CFLAG:418 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:418 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「なるほど、顔面騎上位ね。いいわよ♪」
+		PRINTFORMW その言い方はやめてください！
+		CFLAG:418 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;自慰（公開除く） CFLAG419
+;-------------------------------------------------
+IF SELECTCOM == 3 && TEQUIP:18 == 0 && TEQUIP:53 == 0
+	;恋慕+自慰中毒Lv5以上
+	IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:419 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「え～、折角だし%CALLNAME:MASTER%がしてよ」
+		PRINTFORMW 華扇さんの淫ピ…
+		PRINTFORMW 「こんなことさせる%CALLNAME:MASTER%にいわれたくないわね！」
+		CFLAG:419 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:419 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「え～、折角だし%CALLNAME:MASTER%がしてよ」
+		PRINTFORMW 華扇さんの淫ピ…
+		PRINTFORMW 「こんなことさせる%CALLNAME:MASTER%にいわれたくないわね！」
+		CFLAG:419 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シャワーオナニー（公開除く） CFLAG420
+;-------------------------------------------------
+IF SELECTCOM == 3 && TEQUIP:18 && TEQUIP:53 == 0
+	;恋慕+自慰中毒Lv5以上
+	IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:420 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「え～、折角だし%CALLNAME:MASTER%がしてよ」
+		PRINTFORMW 華扇さんの淫ピ…
+		PRINTFORMW 「こんなことさせる%CALLNAME:MASTER%にいわれたくないわね！」」
+		CFLAG:420 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:420 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「え～、折角だし%CALLNAME:MASTER%がしてよ」
+		PRINTFORMW 華扇さんの淫ピ…
+		PRINTFORMW 「こんなことさせる%CALLNAME:MASTER%にいわれたくないわね！」
+		CFLAG:420 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;胸愛撫 CFLAG421
+;-------------------------------------------------
+IF SELECTCOM == 5
+	;恋慕+B感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:14 >= 5 && (CFLAG:421 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「さぁ、%CALLNAME:MASTER%！私の胸を思う存分揉みしばくといいわ！！」
+		PRINTFORMW うおぉぉぉぉっ！！華扇さあぁぁんんん！！
+		CFLAG:421 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:421 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「さぁ、%CALLNAME:MASTER%！私の胸を思う存分揉みしばくといいわ！！」
+		PRINTFORMW うおぉぉぉぉっ！！華扇さあぁぁんんん！！
+		CFLAG:421 = 4
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;キス CFLAG422
+;-------------------------------------------------
+IF SELECTCOM == 6
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:422 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「こうして%CALLNAME:MASTER%の顔を抑えて、ん～♪」
+		PRINTFORMW 華扇さ、んむ♪
+		CFLAG:422 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:422 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「こうして%CALLNAME:MASTER%の顔を抑えて、ん～♪」
+		PRINTFORMW か、華扇さん…俺の顔つぶれちゃいますよぉ…
+		CFLAG:422 = 4
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;何もしない CFLAG423
+;-------------------------------------------------
+IF SELECTCOM == 7
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:423 < 5 || FLAG:7 == 2)
+		PRINTFORMW 「？あれ、なにもしないの？」
+		PRINTFORMW たまにはこういうのも…だめですか？
+		CFLAG:423 = 5
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:423 < 4 || FLAG:7 == 2)
+		PRINTFORMW 「たしか放置プレイってやつよね、これ」
+		PRINTFORMW 何故知ってるのでしょう…
+		CFLAG:423 = 4
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;指挿入れ CFLAG424
+;-------------------------------------------------
+IF SELECTCOM == 8
+	;初めて
+	IF CFLAG:424 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 「指じゃなくて%CALLNAME:MASTER%のあれでして欲しかったわ…」
+			PRINTFORMW ご、ごめんなさい！！あぁ…俺の馬鹿…
+		;非処女
+		ELSE
+			PRINTFORMW 「%CALLNAME:MASTER%の指づかい、なんかやらしい、ふふ♪」
+			PRINTFORMW 華扇さん程じゃないですよおおおあだだだだだ！！！！
+		ENDIF
+			CFLAG:424 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:424 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「やっぱり%CALLNAME:MASTER%の指すごいわ♪」
+			PRINTFORMW 華扇さんの愛液で指がふやけちゃいました
+			CFLAG:424 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:424 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「やっぱり%CALLNAME:MASTER%の指すごいわ♪」
+			PRINTFORMW 華扇さんの愛液で指がふやけちゃいました
+			CFLAG:424 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Gスポット刺激 CFLAG425
+;-------------------------------------------------
+IF SELECTCOM == 84
+	;恋慕+V感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:425 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%、Gスポットってなに？」
+		PRINTFORMW 俺もさっぱりです…
+		CFLAG:425 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:425 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%、Gスポットってなに？」
+		PRINTFORMW 俺もさっぱりです…
+		CFLAG:425 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ローター CFLAG426
+;-------------------------------------------------
+IF SELECTCOM == 10
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:426 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:426 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:426 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:426 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;バイブ開始時 CFLAG427
+;-------------------------------------------------
+IF SELECTCOM == 11 && TEQUIP:11
+	;初めて
+	IF CFLAG:427 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 
+		;非処女
+		ELSE
+			PRINTFORMW 
+		ENDIF
+			CFLAG:427 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:427 < 3 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:427 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:427 < 2 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:427 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;バイブ終了時 CFLAG428
+;-------------------------------------------------
+IF SELECTCOM == 11 && TEQUIP:11 == 0
+	;恋慕+V感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:428 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:428 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:428 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:428 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｅマッサージャ CFLAG429
+;-------------------------------------------------
+IF SELECTCOM == 12
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:429 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:429 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:429 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:429 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;クリキャップ開始時 CFLAG430
+;-------------------------------------------------
+IF SELECTCOM == 14 && TEQUIP:14
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:430 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:430 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:430 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:430 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;クリキャップ終了時 CFLAG431
+;-------------------------------------------------
+IF SELECTCOM == 14 && TEQUIP:14 == 0
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:431 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:431 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:431 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:431 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ニプルキャップ開始時 CFLAG432
+;-------------------------------------------------
+IF SELECTCOM == 15 && TEQUIP:15
+	;恋慕+B感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:14 >= 5 && (CFLAG:432 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:432 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:432 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:432 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ニプルキャップ終了時 CFLAG433
+;-------------------------------------------------
+IF SELECTCOM == 15 && TEQUIP:15 == 0
+	;恋慕+B感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:14 >= 5 && (CFLAG:433 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:433 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:433 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:433 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シャワー開始時 CFLAG434
+;-------------------------------------------------
+IF SELECTCOM == 18 && TEQUIP:18
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:434 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「背中、流してあげる♪」
+		PRINTFORMW 折角なんで流しっこしましょう
+		CFLAG:434 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:434 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「あぁ～、癒されるわ～」
+		PRINTFORMW そんな年寄りみたいなこと、紫様じゃないんですから
+		PRINTFORMW 　　　　　がぱっ（スキマが開いた音）
+		PRINTFORMW あああああああああぁぁぁぁぁ………
+		PRINTFORMW 「口は災いの元ね…」
+		CFLAG:434 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シャワー終了時 CFLAG435
+;-------------------------------------------------
+IF SELECTCOM == 18 && TEQUIP:18 == 0
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:435 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「もう出るの？もう少し湯船に浸かっていたかったわ」
+		PRINTFORMW えっちなことできなくなっちゃいますよ
+		PRINTFORMW 「ば、ばか！！」
+		CFLAG:435 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:435 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「もう出るの？わかったわ」
+		CFLAG:435 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;正常位 CFLAG436
+;-------------------------------------------------
+IF SELECTCOM == 20
+	;初めて
+	IF CFLAG:436 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 「%CALLNAME:MASTER%、わかってるとは思うけど･･･」
+			PRINTFORMW は、はい華扇さん･･･
+			PRINTFORMW 「その、初めてだから･･･ね。」
+			PRINTFORMW は、ええぇっ！！？？
+			PRINTFORMW 「ちょ！？そこで驚くの！？」
+			PRINTFORMW 華扇さん経験ないんですか！？てっきり霊夢さんにもう･･･
+			PRINTFORMW 「なんでそこで霊夢の名前がでてくるのよ…もう、折角のいいムードが台無しよ…」
+			PRINTFORMW うう、すいません･･･
+			PRINTFORMW 「ふふ、%CALLNAME:MASTER%、あなたといるとほんと飽きないわ」
+			PRINTFORMW 華扇さん？ん…
+			PRINTFORMW 「ん･･･仕切り直しよ」
+			PRINTFORMW 正直、華扇さんの初めてをもらえて嬉しいです♪
+			PRINTFORMW 「もう、優しくしてよね、%CALLNAME:MASTER%♪」
+		;非処女
+		ELSE
+			PRINTFORMW 「%CALLNAME:MASTER%、優しくだからね♪」
+			PRINTFORMW わかってますよ♪
+		ENDIF
+			CFLAG:436 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:436 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%のせいよ。癖になっちゃいそうだわ･･･♪」
+			PRINTFORMW あぁ、華扇さんの淫ピレベルを上げてしまあああばばばば！！！！
+			CFLAG:436 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:436 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%のせいよ。癖になっちゃいそうだわ･･･♪」
+			PRINTFORMW あぁ、華扇さんの淫ピレベルを上げてしまあああばばばば！！！！
+			CFLAG:436 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;後背位 CFLAG437
+;-------------------------------------------------
+IF SELECTCOM == 21
+	;初めて
+	IF CFLAG:437 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 「う、後ろから？そんなにその、私のこと、その、え～と」
+			PRINTFORMW 華扇さんがおかしくなった･･･
+			PRINTFORMW 「違うわよ！･･･%CALLNAME:MASTER%は私のこと、おお、犯したかったの･･･？」
+			PRINTFORMW ぶっ！？おおおかおお犯すって、やな言い方しないでください！！
+			PRINTFORMW 「初めてだから、顔みながらしたかったな～」
+			PRINTFORMW うぅ、なんか責められてる･･･
+		;非処女
+		ELSE
+			PRINTFORMW 「後ろからとか、この変態･･･♪」
+			PRINTFORMW な！？華扇さんだって淫ピじゃないですかぁああばばばば！！！！
+		ENDIF
+			CFLAG:437 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:437 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「私、%CALLNAME:MASTER%に後ろから攻められて感じてる･･･」
+			PRINTFORMW な、なんでそんなに泣きそうなんですか？
+			PRINTFORMW 「だって後ろからとか･･･あぁ、ほんと私、淫ピかも」
+			PRINTFORMW な、なんかごめんなさい･･･
+			CFLAG:437 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:437 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「私、%CALLNAME:MASTER%に後ろから攻められて感じてる･･･」
+			PRINTFORMW な、なんでそんなに泣きそうなんですか？
+			PRINTFORMW 「だって後ろからとか･･･あぁ、ほんと私、淫ピかも」
+			PRINTFORMW な、なんかごめんなさい･･･
+			CFLAG:437 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;対面座位 CFLAG438
+;-------------------------------------------------
+IF SELECTCOM == 24
+	;初めて
+	IF CFLAG:438 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 「･･･こ、これでするの？私、初めてなんだけど･･･」
+			PRINTFORMW こ、これはちょっと恥ずかしいですね･･･やめましょうか･･･
+			PRINTFORMW 「待てぃ！これでするわよ！！」
+			PRINTFORMW えぇ！？これでするんですか！？
+			PRINTFORMW 「折角だし、それにこれはこれでいいじゃない？」
+			PRINTFORMW 華扇さんがいいならいいですけど･･･
+			PRINTFORMW 「それじゃ始めましょ♪」
+		;非処女
+		ELSE
+			PRINTFORMW 「これ、キスしながらできるわね･･･」
+			PRINTFORMW かなり顔が近いです･･･
+		ENDIF
+			CFLAG:438 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:438 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%は動いちゃだめよ。私がしてあげる♪」
+			PRINTFORMW おぉわあぁぁぁ！？折れるぅ～！？
+			CFLAG:438 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:438 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%は動いちゃだめよ。私がしてあげる♪」
+			PRINTFORMW おぉわあぁぁぁ！？折れるぅ～！？
+			CFLAG:438 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;背面座位 CFLAG439
+;-------------------------------------------------
+IF SELECTCOM == 25 && TEQUIP:57 == 0
+	;初めて
+	IF CFLAG:439 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 「後ろ向きに座るの？ちょっと恥ずかしいわね･･･」
+			PRINTFORMW 「初めてだから優しくしてね」
+			PRINTFORMW いや、華扇さんに動いてもらおうかなと･･･
+			PRINTFORMW 「わ、私が！？･･･しょうがないわねぇ･･･今回だけよ？」
+		;非処女
+		ELSE
+			PRINTFORMW 「これって後ろからと変わんなくない？」
+			PRINTFORMW そういわれればそうですねぇ･･･
+		ENDIF
+			CFLAG:439 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && (CFLAG:439 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「こ、これはこれでいいわね･･･ん、はぁ･･･♪」
+			PRINTFORMW ちょ、華扇さん、激しいですよ･･･！
+			CFLAG:439 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:439 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「こ、これはこれでいいわね･･･ん、はぁ･･･♪」
+			PRINTFORMW ちょ、華扇さん、激しいですよ･･･！
+			CFLAG:439 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;乱れ牡丹 CFLAG440
+;-------------------------------------------------
+IF SELECTCOM == 25 && TEQUIP:57
+	;初めて
+	IF CFLAG:440 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 「うおぉいっ！？これはないでしょ！！」
+			PRINTFORMW 俺もそう思います！
+			PRINTFORMW 「いやいや、だったらさ、別の仕方にしない？」
+			PRINTFORMW 「私、初めてなんだけど･･･」
+			PRINTFORMW 初めてが忘れられないことになっちゃいますね
+			PRINTFORMW 「これは忘れたいわ･･･」
+		;非処女
+		ELSE
+			PRINTFORMW 「つながってるのが丸見えじゃない･･･」
+			PRINTFORMW 俺のと華扇さんのここがくっついちゃってますね♪
+			PRINTFORMW 「ば、ばか！！」
+		ENDIF
+			CFLAG:440 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上+露出癖Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && ABL:7 >= 5 && (CFLAG:440 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%、物好きって言葉知ってる？」
+			PRINTFORMW 馬鹿にしないでください！知ってますよ！
+			PRINTFORMW 「一応言っとくけど今の%CALLNAME:MASTER%のことだからね！」
+			PRINTFORMW え？俺が？何故です？
+			PRINTFORMW 「頭痛くなってきたわ･･･」
+			CFLAG:440 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:440 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%、物好きって言葉知ってる？」
+			PRINTFORMW 馬鹿にしないでください！知ってますよ！
+			PRINTFORMW 「一応言っとくけど今の%CALLNAME:MASTER%のことだからね！」
+			PRINTFORMW え？俺が？何故です？
+			PRINTFORMW 「頭痛くなってきたわ･･･」
+			CFLAG:440 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;手淫 CFLAG441
+;-------------------------------------------------
+IF SELECTCOM == 30
+	;恋慕+奉仕精神Lv5以上
+	IF TALENT:85 == 1 && ABL:6 >= 5 && (CFLAG:441 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「私に手でしろと？」
+		PRINTFORMW はい♪
+		PRINTFORMW 「どうせなら私のここでしてあげるのに･･･」
+		PRINTFORMW 手でしてもらうのもいいかなって♪
+		CFLAG:441 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:441 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「私に手でしろと？」
+		PRINTFORMW はい♪
+		PRINTFORMW 「どうせなら私のここでしてあげるのに･･･」
+		PRINTFORMW 手でしてもらうのもいいかなって♪
+		CFLAG:441 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;フェラチオ CFLAG442
+;-------------------------------------------------
+IF SELECTCOM == 31
+	;恋慕+奉仕精神Lv5以上
+	IF TALENT:85 == 1 && ABL:6 >= 5 && (CFLAG:442 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「口でして欲しいのね。わかったわ」
+		PRINTFORMW 　　　　　がぶっ
+		PRINTFORMW あだあぁっ！！か、華扇さん、噛んじゃだめです！！
+		PRINTFORMW 「ふふ、冗談よ♪」
+		PRINTFORMW うぅ、しゃれになってない･･･
+		CFLAG:442 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:442 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「口でして欲しいのね。わかったわ」
+		PRINTFORMW 　　　　　がぶっ
+		PRINTFORMW あだあぁっ！！か、華扇さん、噛んじゃだめです！！
+		PRINTFORMW 「ふふ、冗談よ♪」
+		PRINTFORMW うぅ、しゃれになってない･･･
+		CFLAG:442 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;パイズリ CFLAG443
+;-------------------------------------------------
+IF SELECTCOM == 32
+	;恋慕+B感覚Lv5以上+奉仕精神Lv5以上
+	IF TALENT:85 == 1 && ABL:14 >= 5 && ABL:6 >= 5 && (CFLAG:443 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「胸で挟むとか、よくおもいつくもんだわ･･･」
+		PRINTFORMW ほんと、なに考えてんだかですよねぇ
+		PRINTFORMW 「あんたのこといってんのよ！」
+		CFLAG:443 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:443 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「胸で挟むとか、よくおもいつくもんだわ･･･」
+		PRINTFORMW ほんと、なに考えてんだかですよねぇ
+		PRINTFORMW 「あんたのこといってんのよ！」
+		CFLAG:443 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;素股 CFLAG444
+;-------------------------------------------------
+IF SELECTCOM == 33
+	;恋慕+奉仕精神Lv5以上
+	IF TALENT:85 == 1 && ABL:6 >= 5 && (CFLAG:444 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「股？へ、へぇ～」
+		PRINTFORMW そんなに引くことないじゃないですか
+		PRINTFORMW 「普通に入れたほうがいいんじゃない？」
+		PRINTFORMW たまにはってことで･･･ね♪
+		PRINTFORMW 「ね♪じゃないわよ！もう！」
+		CFLAG:444 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:444 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「股？へ、へぇ～」
+		PRINTFORMW そんなに引くことないじゃないですか
+		PRINTFORMW 「普通に入れたほうがいいんじゃない？」
+		PRINTFORMW たまにはってことで･･･ね♪
+		PRINTFORMW 「ね♪じゃないわよ！もう！」
+		CFLAG:444 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;騎乗位 CFLAG445
+;-------------------------------------------------
+IF SELECTCOM == 34
+	;初めて
+	IF CFLAG:445 == 0
+		;処女(処女喪失処理が既に終了しているので、V経験1の場合)
+		IF EXP:0 == 1
+			PRINTFORMW 「あのね%CALLNAME:MASTER%、私がしてもいいかな？」
+			PRINTFORMW 華扇さん、やっぱり淫ピの血が騒ぐんですね･･･わかりました
+			PRINTFORMW 「殴るわよ。そうじゃなくて、私初めてだから、その･･･」
+			PRINTFORMW はい、どうぞ♪
+			PRINTFORMW 「%CALLNAME:MASTER%･･･ありがと♪」
+		;非処女
+		ELSE
+			PRINTFORMW 「%CALLNAME:MASTER%に跨ってするのかぁ･･･ちょっといいかも♪」
+			PRINTFORMW 華扇さんに俺のアレが折られてしまう･･･
+		ENDIF
+			CFLAG:445 = 1
+	;二回目以降
+	ELSE
+		;恋慕+V感覚Lv5以上+奉仕精神Lv5以上
+		IF TALENT:85 == 1 && ABL:4 >= 5 && ABL:6 >= 5 && (CFLAG:445 < 3 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%は動いちゃだめよ。ふふ、いっぱいいかせてやるわ♪」
+			PRINTFORMW 明日の朝日が拝めますように･･･南無三！！
+			PRINTFORMW 「白蓮和尚の真似？似てないわね」
+			CFLAG:445 = 3
+		;恋慕
+		ELSEIF TALENT:85 == 1 && (CFLAG:445 < 2 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%は動いちゃだめよ。ふふ、いっぱいいかせてやるわ♪」
+			PRINTFORMW 明日の朝日が拝めますように･･･南無三！！
+			PRINTFORMW 「白蓮和尚の真似？似てないわね」
+			CFLAG:445 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;泡踊り CFLAG446
+;-------------------------------------------------
+IF SELECTCOM == 35
+	;恋慕+奉仕精神Lv5以上
+	IF TALENT:85 == 1 && ABL:6 >= 5 && (CFLAG:446 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「ふふっ、どう%CALLNAME:MASTER%、泡の下着♪」
+		PRINTFORMW えい！
+		PRINTFORMW 「ちょぉっ！？こ、こらぁっ！折角上手くできたのに！」
+		CFLAG:446 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:446 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「泡踊りってアレのこと？こうだったかしら？」
+		PRINTFORMW 華扇さん、その阿波踊りじゃないです。たまに天然ですよねぇ･･･
+		CFLAG:446 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;スパンキング CFLAG447
+;-------------------------------------------------
+IF SELECTCOM == 40
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:447 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%、覚悟おぉぉぉっ！！！！」
+		PRINTFORMW ちょぉっ！？あいだっ！！華扇さん、やめあだぁ！！
+		CFLAG:447 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:447 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「%CALLNAME:MASTER%、覚悟おぉぉぉっ！！！！」
+		PRINTFORMW ちょぉっ！？あいだっ！！華扇さん、やめあだぁ！！
+		CFLAG:447 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アイマスク開始時 CFLAG448
+;-------------------------------------------------
+;開始時
+IF SELECTCOM == 43 && TEQUIP:43
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:448 < 2 || FLAG:7 == 2)
+			PRINTFORMW
+		CFLAG:448 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:448 < 1 || FLAG:7 == 2)
+			PRINTFORMW
+		CFLAG:448 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アイマスク終了時 CFLAG:449
+;-------------------------------------------------
+IF SELECTCOM == 43 && TEQUIP:43 == 0
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:449 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:449 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:449 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:449 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ローション使用 CFLAG450
+;-------------------------------------------------
+IF SELECTCOM == 50
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:450 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「ぬるぬるフィンガぁぁぁっ！！」
+		PRINTFORMW なにやってんですか･･･
+		CFLAG:450 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:450 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「すっごいぬるぬるしてるわね、で、これをどうするの？」
+		PRINTFORMW 体にぬるらしいんですけど･･･
+		PRINTFORMW 「案の定の展開ね」
+		CFLAG:450 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;羞恥プレイ開始時 CFLAG451
+;-------------------------------------------------
+IF SELECTCOM == 57 && TEQUIP:57
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:451 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:451 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:451 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:451 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;羞恥プレイ終了時 CFLAG452
+;-------------------------------------------------
+IF SELECTCOM == 57 && TEQUIP:57 == 0
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:452 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:452 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:452 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:452 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;お風呂場プレイ開始時 CFLAG453
+;-------------------------------------------------
+IF SELECTCOM == 58 && TEQUIP:58
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:453 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「お風呂でえっちするのってなんかいつもよりエロく感じるわ」
+		PRINTFORMW 俺もそう思います。なんででしょうね？
+		PRINTFORMW 「不思議だわぁ～」不思議ですねぇ～
+		CFLAG:453 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:453 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「一緒にお風呂でもどう？」
+		PRINTFORMW いいですね、はいりましょ♪
+		CFLAG:453 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;お風呂場プレイ終了時 CFLAG454
+;-------------------------------------------------
+IF SELECTCOM == 58 && TEQUIP:58 == 0
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:454 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「もう終わり？そう･･･」
+		PRINTFORMW なんでそんなに悲しそうなんですか！？
+		PRINTFORMW 「だってお風呂でするのよかったんだもん･･･」
+		PRINTFORMW だもんって･･･（可愛いなぁ）またしましょう、ね♪
+		PRINTFORMW 「むぅ、しょうがないわね♪」
+		CFLAG:454 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:454 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「え～、もう終わりなの？」
+		PRINTFORMW 続きは部屋でしましょう、のぼせちゃいます
+		PRINTFORMW 「それもそうね」
+		CFLAG:454 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;新妻プレイ開始時 CFLAG455
+;-------------------------------------------------
+IF SELECTCOM == 59 && TEQUIP:59
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:455 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「新婚さんって感じかしらね？」
+		PRINTFORMW う～む･･･
+		PRINTFORMW 「どしたの、急にうなりだして･･･」
+		PRINTFORMW いやぁ、やっぱり素肌にエプロンだけのほうが･･･
+		PRINTFORMW 　　　　　　べちん！！
+		PRINTFORMW 「すけべ」
+		PRINTFORMW 俺は間違ってねぇ！俺は間違ってねぇ！！
+		CFLAG:455 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:455 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「ちょっと胸のとこがきついかしら･･･」
+		PRINTFORMW 華扇さんってほんときょぬーですね･･･
+		PRINTFORMW 「きょ、きょぬーってなによ･･･」
+		CFLAG:455 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;新妻プレイ終了時 CFLAG456
+;-------------------------------------------------
+IF SELECTCOM == 59 && TEQUIP:59 == 0
+	;親愛
+	IF TALENT:88 == 1 && (CFLAG:456 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「外すの？ 」
+		PRINTFORMW やっぱり裸のほうが華扇さんをちゃんとみれるから
+		PRINTFORMW 「！？も、もう、なにいってんのよ！（嬉しくて泣いちゃいそう･･･♪）」
+		CFLAG:456 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:456 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「外すのね、ふぅ～」
+		PRINTFORMW 　　　　ぷるん♪
+		PRINTFORMW うわぁ、やっぱり華扇さんのおっぱい、すごい･･･
+		PRINTFORMW 「そ、そんなに見ないでよ･･･えっち」
+		CFLAG:456 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;シックスナイン CFLAG457
+;-------------------------------------------------
+IF SELECTCOM == 69
+	;恋慕+C感覚Lv5以上+奉仕精神Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && ABL:6 >= 5 && (CFLAG:457 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「これならお互いの･･･えと、なんていえばいいかしら」
+		PRINTFORMW ピーとピーですね、もう華扇さんの淫ピ！
+		PRINTFORMW 　　　　　がぶっ！！
+		PRINTFORMW あああぁぁぁぁあおおおうううぅぅぅぅっ！！！！？？
+		PRINTFORMW 「まったく･･･！」
+		CFLAG:457 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:457 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「これならお互いの･･･えと、なんていえばいいかしら」
+		PRINTFORMW ピーとピーですね、もう華扇さんの淫ピ！
+		PRINTFORMW 　　　　　がぶっ！！
+		PRINTFORMW あああぁぁぁぁあおおおうううぅぅぅぅっ！！！！？？
+		PRINTFORMW 「まったく･･･！」
+		CFLAG:457 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;イラマチオ CFLAG458
+;-------------------------------------------------
+IF SELECTCOM == 80
+	;恋慕+奉仕精神Lv5以上
+	IF TALENT:85 == 1 && ABL:6 >= 5 && (CFLAG:458 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:458 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:458 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:458 = 1
+	ENDIF
+ENDIF
+
+
+
+
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;鬼畜系コマンド
+;～～～～～～～～～～～～～～～～～～～～～～～～～
+;-------------------------------------------------
+;アナル愛撫 CFLAG459
+;-------------------------------------------------
+IF SELECTCOM == 2
+	;恋慕+A感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && (CFLAG:459 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「そっち！？そそそそこはそういうことするとこじゃないでしょ！」
+		PRINTFORMW 華扇さんのここにもふれたいなぁって･･･だめですか？
+		PRINTFORMW 「ううぅ、わかったわよ！でも優しくだからね！！」
+		PRINTFORMW 華扇さん大好き♪
+		PRINTFORMW 「もう、ばか♪へんたい♪」
+		CFLAG:459 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:459 < 1 || FLAG:7 == 2)
+		PRINTFORMW 「そっち！？そそそそこはそういうことするとこじゃないでしょ！」
+		PRINTFORMW 華扇さんのここにもふれたいなぁって･･･だめですか？
+		PRINTFORMW 「ううぅ、わかったわよ！でも優しくだからね！！」
+		PRINTFORMW 華扇さん大好き♪
+		PRINTFORMW 「もう、ばか♪へんたい♪」
+		CFLAG:459 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;公開オナニー CFLAG460
+;-------------------------------------------------
+IF SELECTCOM == 3 && TEQUIP:18 == 0 && TEQUIP:53
+	;恋慕+自慰中毒Lv5以上
+	IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:460 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:460 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:460 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:460 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;公開シャワーオナニー（公開除く） CFLAG461
+;-------------------------------------------------
+;シャワーオナニー
+IF SELECTCOM == 3 && TEQUIP:18 && TEQUIP:53
+	;恋慕+自慰中毒Lv5以上
+	IF TALENT:85 == 1 && ABL:10 >= 5 && (CFLAG:461 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:461 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:461 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:461 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;フェラされる CFLAG462
+;-------------------------------------------------
+IF SELECTCOM == 4
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:462 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:462 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:462 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:462 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルバイブ開始時 CFLAG463
+;-------------------------------------------------
+IF SELECTCOM == 13 && TEQUIP:13
+	;恋慕+A感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && (CFLAG:463 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:463 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:463 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:463 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルバイブ終了時 CFLAG464
+;-------------------------------------------------
+IF SELECTCOM == 13 && TEQUIP:13 == 0
+	;恋慕+A感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && (CFLAG:464 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:464 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:464 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:464 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;搾乳機開始時 CFLAG465
+;-------------------------------------------------
+IF SELECTCOM == 16 && TEQUIP:16
+	;恋慕+B感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:14 >= 5 && (CFLAG:465 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:465 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:465 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:465 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;搾乳機終了時 CFLAG466
+;-------------------------------------------------
+IF SELECTCOM == 16 && TEQUIP:16 == 0
+	;恋慕+B感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:14 >= 5 && (CFLAG:466 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:466 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:466 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:466 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;オナホール開始時 CFLAG467
+;-------------------------------------------------
+IF SELECTCOM == 17 && TEQUIP:17
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:467 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:467 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:467 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:467 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;オナホール終了時 CFLAG468
+;-------------------------------------------------
+IF SELECTCOM == 17 && TEQUIP:17 == 0
+	;恋慕+C感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:3 >= 5 && (CFLAG:468 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:468 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:468 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:468 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルセックス CFLAG469
+;-------------------------------------------------
+IF SELECTCOM == 22
+	;恋慕+A感覚Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && (CFLAG:469 < 2 || FLAG:7 == 2)
+		PRINTFORMW 「お尻でとかなに考えてんのよぉ･･･」
+		PRINTFORMW 華扇さんのお尻も感じてみたくなっちゃって･･･だめ、ですよね
+		PRINTFORMW 「･･･いいわよ。でも優しくだからね！！」
+		PRINTFORMW 華扇さん、愛してます！！！！
+		PRINTFORMW 「もう、現金すぎ！！」
+		CFLAG:469 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:469 < 1 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:469 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;逆レイプ CFLAG470
+;-------------------------------------------------
+IF SELECTCOM == 23
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:470 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:470 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:470 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:470 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;鞭 CFLAG471
+;-------------------------------------------------
+IF SELECTCOM == 41
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:471 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:471 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:471 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:471 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;針 CFLAG472
+;-------------------------------------------------
+IF SELECTCOM == 42
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:472 < 2 || FLAG:7 == 2)
+		PRINTFORMW 
+		CFLAG:472 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:472 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:472 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;縄開始時 CFLAG473
+;-------------------------------------------------
+IF SELECTCOM == 44 && TEQUIP:44
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:473 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:473 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:473 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:473 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;縄終了時 CFLAG:474
+;-------------------------------------------------
+IF SELECTCOM == 44 && TEQUIP:44 == 0
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:474 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:474 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:474 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:474 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ボールギャグ開始時 CFLAG475
+;純愛でギャグはねーべ……（僕もそう思います。by新井博之）
+;-------------------------------------------------
+IF SELECTCOM == 45 && TEQUIP:45
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:475 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:475 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:475 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:475 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ボールギャグ終了時 CFLAG:476
+;-------------------------------------------------
+IF SELECTCOM == 45 && TEQUIP:45 == 0
+	;恋慕+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:8 >= 5 && (CFLAG:476 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:476 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:476 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:476 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;浣腸 CFLAG477
+;-------------------------------------------------
+IF SELECTCOM == 46 && TEQUIP:46
+	;恋慕+A感覚Lv5以上+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && ABL:8 >= 5 && (CFLAG:477 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:477 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:477 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:477 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;排泄 CFLAG478
+;-------------------------------------------------
+IF TEQUIP:46 == 0 && SELECTCOM == 46
+	;恋慕+A感覚Lv5以上+マゾっ気Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 5 && ABL:8 >= 5 && (CFLAG:478 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:478 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:478 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:478 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;媚薬使用 CFLAG479
+;-------------------------------------------------
+IF SELECTCOM == 51
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:479 < 2 || FLAG:7 == 2)
+		PRINTFORML
+		CFLAG:479 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:479 < 1 || FLAG:7 == 2)
+			PRINTFORMW
+		CFLAG:479 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;ビデオカメラ使用 CFLAG480
+;-------------------------------------------------
+IF SELECTCOM == 53 && TEQUIP:53
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:480 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:480 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:480 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:480 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;野外プレイ開始時 CFLAG481
+;-------------------------------------------------
+IF SELECTCOM == 54 && TEQUIP:54
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:481 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:481 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:481 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:481 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;野外プレイ終了時 CFLAG:482
+;-------------------------------------------------
+IF SELECTCOM == 54 && TEQUIP:54 == 0
+	;恋慕+露出癖Lv5以上
+	IF TALENT:85 == 1 && ABL:7 >= 5 && (CFLAG:482 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:482 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:482 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:482 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;助手を犯す CFLAG483
+;-------------------------------------------------
+IF SELECTCOM == 56
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:483 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:483 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:483 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:483 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;フィストファック CFLAG484
+;-------------------------------------------------
+IF SELECTCOM == 81
+	;恋慕+V感覚Lv10以上+マゾッ気Lv5以上
+	IF TALENT:85 == 1 && ABL:4 >= 10 && ABL:8 >= 5 && (CFLAG:484 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:484 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:484 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:484 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルフィスト CFLAG485
+;-------------------------------------------------
+IF SELECTCOM == 82
+	;恋慕+A感覚Lv10以上+マゾッ気Lv5以上
+	IF TALENT:85 == 1 && ABL:5 >= 10 && ABL:8 >= 5 && (CFLAG:485 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:485 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:485 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:485 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;両穴フィスト CFLAG486
+;-------------------------------------------------
+IF SELECTCOM == 83
+	;恋慕+V感覚Lv10以上+A感覚Lv10以上+マゾッ気Lv5以上
+	IF TALENT:85 == 1 && ABL:4 >= 10 && ABL:5 >= 10 && ABL:8 >= 5 && (CFLAG:486 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:486 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:486 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:486 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;触手召喚開始時 CFLAG487
+;-------------------------------------------------
+IF SELECTCOM == 100 && TEQUIP:90
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:487 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:487 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:487 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:487 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;触手召喚終了時 CFLAG:488
+;-------------------------------------------------
+IF SELECTCOM == 100 && TEQUIP:90 == 0
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:488 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:488 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:488 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:488 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;利尿剤 CFLAG489
+;-------------------------------------------------
+IF SELECTCOM == 52
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:489 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:489 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:489 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:489 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;放尿 CFLAG490
+;-------------------------------------------------
+IF SELECTCOM == 85
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:490 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:490 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:490 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:490 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;強制放尿 CFLAG491
+;-------------------------------------------------
+IF SELECTCOM == 85 && (TALENT:57 == 0 && ABL:0 >= 4 && ABL:1 >= 3 && ABL:8 >= 3) || (TALENT:57 && TEQUIP:22 == 0)
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:491 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:491 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:491 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:491 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;３P CFLAG492
+;-------------------------------------------------
+IF SELECTCOM == 64
+	;淫乱
+	IF TALENT:76 == 1 && (CFLAG:492 < 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:492 = 2
+	;恋慕
+	ELSEIF TALENT:85 == 1 && (CFLAG:492 < 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:492 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG関係（X1をキャラ番号に置換）
+;パラメータ変動をトリガーにした口上
+;パラメータ変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_100
+;助手が調教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+;SIF ASSI > 0 && ASSIPLAY
+;	RETURN 0 
+;ボールギャグ着用時には口上をスキップする（OFFだと口を塞いでるのに喋りまくる）
+SIF TEQUIP:45
+	RETURN 0
+;-------------------------------------------------
+;パラメータ変動時のセリフ CFLAG 341～396を使用
+;-------------------------------------------------
+;-------------------------------------------------
+;初めて好意がLV2超えた CFLAG341
+;-------------------------------------------------
+P = PALAM:15 + UP:15
+IF P > PALAMLV:2 && CFLAG:341 == 0
+	PRINTFORMW (ふーん、中々やるようになってきたじゃない)
+	CFLAG:341 = 1
+ENDIF
+;-------------------------------------------------
+;初めて生活がLV2超えた CFLAG342
+;-------------------------------------------------
+P = PALAM:16 + UP:16
+IF P > PALAMLV:2 && CFLAG:342 == 0
+	PRINTFORMW 「ここでの生活にも慣れてきたし、さてなにしよっかな」
+	CFLAG:342 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて優位がLV2超えた CFLAG343
+;-------------------------------------------------
+P = PALAM:17 + UP:17
+IF P > PALAMLV:2 && CFLAG:343 == 0
+	PRINTFORMW 「さぁ、ガンガンいくわよ！！」
+	CFLAG:343 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて潤滑がLV2超えた CFLAG344
+;-------------------------------------------------
+P = PALAM:3 + UP:3
+IF P > PALAMLV:2 && CFLAG:TARGET:344 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		;ローションを使った場合
+		IF SELECTCOM == 50
+			PRINTFORMW
+		;それ以外
+		ELSE
+			PRINTFORMW 「やだ私、こんなに濡れてる･･･%CALLNAME:MASTER%のせいだからね♪」
+		ENDIF
+	;それ以外
+	ELSE
+		;ローションを使った場合
+		IF SELECTCOM == 50
+			PRINTFORMW
+		;それ以外
+		ELSE
+			PRINTFORMW
+		ENDIF
+	ENDIF
+		CFLAG:TARGET:344 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて欲情がLV2超えた CFLAG345
+;-------------------------------------------------
+P = PALAM:5 + UP:5
+IF P > PALAMLV:2 && CFLAG:345 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		;媚薬を使った場合
+		IF SELECTCOM == 51
+			PRINTFORMW
+		;それ以外
+		ELSE
+			PRINTFORMW
+		ENDIF
+	;それ以外
+	ELSE
+		;媚薬を使った場合
+		IF SELECTCOM == 51
+			PRINTFORMW
+		;それ以外
+		ELSE
+			PRINTFORMW
+		ENDIF
+	ENDIF
+		CFLAG:345 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて恥情がLV2超えた CFLAG345
+;-------------------------------------------------
+P = PALAM:8 + UP:8
+IF P > PALAMLV:2 && CFLAG:345 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW
+	;それ以外
+	ELSE
+		PRINTFORMW
+	ENDIF
+		CFLAG:345 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めて恐怖がLV2超えた CFLAG346
+;-------------------------------------------------
+P = PALAM:10 + UP:10
+IF P > PALAMLV:2 && CFLAG:346 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW
+	;それ以外
+	ELSE
+		PRINTFORMW
+	ENDIF
+		CFLAG:346 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めてC絶頂 CFLAG347
+;-------------------------------------------------
+IF NOWEX:0 > 0 && CFLAG:347 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 「んんっ！%CALLNAME:MASTER%、くぅっ！･･･はぁ、はぁ、いっちゃった･･･♪」
+		PRINTFORMW 華扇さん、気持ち良かったですか？
+		PRINTFORMW 「ばかぁ、そんなこと聞かないでよぉ･･･」
+	;それ以外
+	ELSE
+		PRINTFORMW
+	ENDIF
+		CFLAG:347 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めてV絶頂 CFLAG348
+;-------------------------------------------------
+IF NOWEX:1 > 0 && CFLAG:348 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 「あっ！すご、きちゃう！あぁっ！！」
+		PRINTFORMW 華扇さんの、いっぱい垂れてきてる･･･
+		PRINTFORMW 「しょ、しょうがないでしょ、いっちゃったんだから！」
+	;それ以外
+	ELSE
+		PRINTFORMW
+	ENDIF
+		CFLAG:348 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めてA絶頂 CFLAG349
+;-------------------------------------------------
+IF NOWEX:2 > 0 && CFLAG:349 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 「う、嘘っ！？お尻で、あん！いっちゃぁんあああっ！！」
+		PRINTFORMW 華扇さん、お尻でいきましたね、これで淫ピレベルアップです
+		PRINTFORMW 「殴りたいけど殴れないわ･･･ぐすん」
+	;それ以外
+	ELSE
+		PRINTFORMW
+	ENDIF
+		CFLAG:TARGET:349 = 1
+ENDIF
+
+;-------------------------------------------------
+;初めてB絶頂 CFLAG350
+;-------------------------------------------------
+IF NOWEX:3 > 0 && CFLAG:350 == 0
+	;恋慕
+	IF TALENT:TARGET:85 == 1
+		PRINTFORMW 「胸でいってしまったわ･･･ショック･･･」
+		PRINTFORMW か、華扇さん気にしちゃだめですよ
+		PRINTFORMW 「いっとくけど%CALLNAME:MASTER%のせいだからね！」
+	;それ以外
+	ELSE
+		PRINTFORMW
+	ENDIF
+		CFLAG:TARGET:350 = 1
+ENDIF
+
+;-------------------------------------------------
+;処女喪失(処女のみ) CFLAG351
+;-------------------------------------------------
+A = UP:11 + UP:12
+IF TFLAG:3 > 0 && CFLAG:351 == 0
+	;恋慕かつ主人のセックスによる処女喪失
+	IF TFLAG:20
+		;恋慕かつ反発感情未取得
+		IF TALENT:TARGET:85 == 1 && (A < 500 || TFLAG:150 == 1)
+			PRINTFORMW 「%CALLNAME:MASTER%、すごく気持ち良かったわ♪」
+			PRINTFORMW 華扇さんの、すごく気持ち良かったです･･･
+			PRINTFORMW 「ふふ♪%CALLNAME:MASTER%･･･ん♪」
+			PRINTFORMW 華扇さん･･･ん♪
+			PRINTFORMW 「ふふ、次もよくしてね♪」
+		;恋慕かつ反発感情取得
+		ELSE
+			PRINTFORMW 「痛かったわよ･･･」
+			PRINTFORMW ごめんなさい、すごく気持ち良かったんでつい･･･
+			PRINTFORMW 「い、いいわよ、わ、私も気持ち良かったから･･･」
+			PRINTFORMW 華扇さん･･･
+			PRINTFORMW 「ふふ、次はもっとよくしてね♪」
+		ENDIF
+	;指挿入れで処女喪失（反感がかなり少ない）
+	ELSEIF SELECTCOM == 8
+		;恋慕
+		IF TALENT:TARGET:85 == 1
+			PRINTFORMW
+		;それ以外
+		ELSE
+			PRINTFORMW
+		ENDIF
+	;それ以外の時に処女喪失
+	ELSE
+		;恋慕
+		IF TALENT:TARGET:85 == 1
+			PRINTFORMW
+		;それ以外
+		ELSE
+			PRINTFORMW
+		ENDIF
+	ENDIF
+		CFLAG:TARGET:351 = 1
+ENDIF
+
+;-------------------------------------------------
+;セックスで射精させた CFLAG352 CFLAG353
+;にんっしんっさせては正義
+;-------------------------------------------------
+IF TFLAG:2 > 0
+	;アナルセックスか？（アナルセックス、正常位アナル、後背位アナル、対面座位アナル、背面座位アナル、騎乗位アナル）
+	IF SELECTCOM == 22 || SELECTCOM == 26 || SELECTCOM == 27 || SELECTCOM == 28 || SELECTCOM == 29 || SELECTCOM == 36
+		;恋慕
+		IF TALENT:TARGET:85 == 1 && (CFLAG:352 <= 3 || FLAG:7 == 2)
+			PRINTFORMW 「お尻に出すなんて･･･」
+			PRINTFORMW だって、華扇さんのお尻すごい締め付けてくるから･･･
+			PRINTFORMW 「しょ、しょうがないでしょ、き、気持ち良かったんだから･･･」
+			CFLAG:352 = 4
+		;既成事実Lv3
+		ELSEIF MARK:2 == 3 && (CFLAG:352 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%のでお尻がいっぱいよ♪」
+			PRINTFORMW か、華扇さんエロい、エロすぎます！！
+			CFLAG:352 = 3
+		;それ以外
+		ELSEIF CFLAG:352 <= 1 || FLAG:7 == 2
+			PRINTFORMW
+			CFLAG:352 = 2
+		ENDIF
+		;それ以外
+	ELSE
+		;恋慕
+		IF TALENT:TARGET:85 == 1 && (CFLAG:353 <= 3 || FLAG:7 == 2)
+			A = RAND:10
+			IF A == 0
+				PRINTFORMW 「%CALLNAME:MASTER%、できちゃったら責任とってね♪」
+				PRINTFORMW いわれるまでもないですよ！
+			ELSEIF A == 1
+				PRINTFORMW 「%CALLNAME:MASTER%のが私の膣であばれてるわ･･･♪」
+				PRINTFORMW 華扇さんの膣、すごいです、こんなに締め付けられたら俺、もう･･･！
+				PRINTFORMW 「ふふっ、いいわよ、%CALLNAME:MASTER%の私の膣に出して♪」
+			ELSEIF A == 2
+				PRINTFORMW 「%CALLNAME:MASTER%、すっごい量ね、孕んじゃうわ♪」
+				PRINTFORMW つ、疲れた･･･
+			ELSEIF A == 3
+				PRINTFORMW 「ほら、もっと出るでしょ？」
+				PRINTFORMW か、華扇さんの淫ピ！ああああああああああああ！！！！
+				PRINTFORMW 「ほらほら、もっと出しなさい♪ふふ♪」
+			ELSEIF A == 4
+				PRINTFORMW 「私がしてあげてるんだからいっぱい出しなさいよね！」
+				PRINTFORMW う、で、出る･･･！！
+				PRINTFORMW 「んん！出てる、私の膣に%CALLNAME:MASTER%の熱いのが･･･♪」
+			ELSEIF A == 5
+				PRINTFORMW 「ほら、もっと激しく突きなさいよ！！」
+				PRINTFORMW も、もう腰が壊れそう･･･です･･･がくっ
+				PRINTFORMW 「情けないわねぇ、このくらいじゃ満たされないわよ♪」
+			ELSEIF A == 6
+				PRINTFORMW 「今度から腰を重点的に鍛えましょう」
+				PRINTFORMW はいぃぃぃぃぃっ！！？？
+			ELSEIF A == 7
+				PRINTFORMW 「私が動いたほうがいいかもね･･･ということで♪」
+				PRINTFORMW きゃー華扇さんの淫ピ！ああばばばばばば！！！！
+			ELSEIF A == 8
+				PRINTFORMW 「さあ、%CALLNAME:MASTER%！修行の成果をみせなさい！！」
+				PRINTFORMW えっちの修行なんてした覚えはありません！！
+			ELSE
+				PRINTFORMW か、華扇さん･･･俺もう･･･
+				PRINTFORMW 「ちょっと、もう少しくらい頑張ってよ、これからでしょ？」
+				PRINTFORMW ああ、明日の朝日が拝めますように･･･
+			ENDIF
+			CFLAG:353 = 4
+		;既成事実Lv3
+		ELSEIF MARK:2 == 3 && (CFLAG:353 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 「%CALLNAME:MASTER%とならいいかな･･･なんてね♪」
+			CFLAG:353 = 3
+		;それ以外
+		ELSEIF CFLAG:353 <= 1 || FLAG:7 == 2
+			PRINTFORMW
+			CFLAG:353 = 2
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;手で射精させた CFLAG354
+;-------------------------------------------------
+IF TFLAG:1 > 0
+	;奉仕精神Lv5
+	IF ABL:6 >= 5 && (CFLAG:354 <= 2 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:354 = 3
+	;奉仕精神Lv3
+	ELSEIF ABL:6 >= 3 && (CFLAG:354 <= 1 || FLAG:7 == 2)
+		PRINTFORMW
+		CFLAG:354 = 2
+	;それ以外
+	ELSEIF CFLAG:354 <= 0 || FLAG:7 == 2
+		PRINTFORMW
+		CFLAG:354 = 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;口で射精させた CFLAG355 CFLAG356
+;-------------------------------------------------
+IF TFLAG:0 > 0
+	;フェラ、イラマチオの場合
+	IF SELECTCOM == 31 || SELECTCOM == 80
+		;精液中毒Lv5
+		IF ABL:11 >= 5 && (CFLAG:355 < 5 || FLAG:7 == 2)
+			PRINTFORMW
+			CFLAG:355 = 5
+		;精液中毒Lv3
+		ELSEIF ABL:11 >= 3 && (CFLAG:355 < 3 || FLAG:7 == 2)
+			PRINTFORMW
+			CFLAG:355 = 3
+		;奉仕精神Lv3以上
+		ELSEIF ABL:6 >= 3 && (CFLAG:355 < 2 || FLAG:7 == 2)
+			PRINTFORMW
+			CFLAG:355 = 2
+		;それ以外
+		ELSEIF CFLAG:355 < 1 || FLAG:7 == 2
+			PRINTFORMW
+			CFLAG:355 = 1
+		ENDIF
+	;パイズリの場合
+	ELSEIF SELECTCOM == 32
+		;奉仕精神Lv5
+		IF ABL:6 >= 5 && (CFLAG:356 < 3 || FLAG:7 == 2)
+			PRINTFORMW 華扇さんのおっぱい、すごすぎますぅ～
+			PRINTFORMW 「%CALLNAME:MASTER%ったらこんなに出して･･･どうせなら私の膣に出してよ」
+			CFLAG:356 = 3
+		;奉仕精神Lv3以上
+		ELSEIF ABL:TARGET:6 >= 3 && (CFLAG:356 < 2 || FLAG:7 == 2)
+			PRINTFORMW 華扇さんのおっぱい、すごすぎますぅ～
+			PRINTFORMW 「%CALLNAME:MASTER%ったらこんなに出して･･･どうせなら私の膣に出してよ」
+			CFLAG:356 = 2
+		;それ以外
+		ELSEIF CFLAG:356 < 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:356 = 1
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;射精した(ふたなり/オトコのみ) CFLAG357
+;-------------------------------------------------
+IF TFLAG:10 > 0
+	;初めて
+	IF CFLAG:357 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW
+		;それ以外
+		ELSE
+			PRINTFORMW
+		ENDIF
+			CFLAG:357 = 1
+			RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:357 <= 2 || FLAG:7 == 2)
+			PRINTFORMW
+			CFLAG:357 = 3
+		;それ以外
+		ELSEIF CFLAG:357 <= 1 || FLAG:7 == 2
+			PRINTFORMW
+			CFLAG:357 = 2
+		ENDIF
+			RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;噴乳した(母乳体質のみ) CFLAG358
+;-------------------------------------------------
+IF TFLAG:11 > 0
+	;初めて
+	IF CFLAG:TARGET:358 == 0
+		;従順Lv4以上
+		IF ABL:TARGET:0 >= 4
+			PRINTFORMW 
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+			CFLAG:358 = 1
+			RETURN 0
+	;二回目以降
+	ELSE
+		;従順Lv4以上
+		IF ABL:TARGET:0 >= 4 && (CFLAG:358 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:358 = 3
+		;それ以外
+		ELSEIF CFLAG:358 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:358 = 2
+		ENDIF
+			RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｃ感覚Lv5でＣ絶頂50以上 CFLAG359
+;-------------------------------------------------
+IF ABL:3 >= 5 && EX:0 >= 50 && NOWEX:0 > 0
+	;初めて
+	IF CFLAG:359 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+			CFLAG:359 = 1
+			RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:359 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:359 = 3
+		;それ以外
+		ELSEIF CFLAG:359 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:359 = 2
+		ENDIF
+			RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｖ感覚Lv5でＶ絶頂50以上 CFLAG360
+;-------------------------------------------------
+IF ABL:4 >= 5 && EX:1 >= 50 && NOWEX:1 > 0
+	;初めて
+	IF CFLAG:360 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+			CFLAG:360 = 1
+			RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:360 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:360 = 3
+		;それ以外
+		ELSEIF CFLAG:360 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:360 = 2
+		ENDIF
+			RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ａ感覚Lv5でＡ絶頂50以上 CFLAG361
+;-------------------------------------------------
+IF ABL:5 >= 5 && EX:2 >= 50 && NOWEX:2 > 0
+	;初めて
+	IF CFLAG:361 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+			CFLAG:361 = 1
+			RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:361 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:361 = 3
+		;それ以外
+		ELSEIF CFLAG:361 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:361 = 2
+		ENDIF
+			RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;Ｂ感覚Lv5でＢ絶頂50以上 CFLAG362
+;-------------------------------------------------
+IF ABL:14 >= 5 && EX:3 >= 50 && NOWEX:3 > 0
+	;初めて
+	IF CFLAG:362 == 0
+		;恋慕
+		IF TALENT:85 == 1
+			PRINTFORMW 
+		;それ以外
+		ELSE
+			PRINTFORMW 
+		ENDIF
+			CFLAG:362 = 1
+			RETURN 0
+	;二回目以降
+	ELSE
+		;恋慕
+		IF TALENT:85 == 1 && (CFLAG:362 <= 2 || FLAG:7 == 2)
+			PRINTFORMW 
+			CFLAG:362 = 3
+		;それ以外
+		ELSEIF CFLAG:362 <= 1 || FLAG:7 == 2
+			PRINTFORMW 
+			CFLAG:362 = 2
+		ENDIF
+			RETURN 0
+	ENDIF
+ENDIF
+
+

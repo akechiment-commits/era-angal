@@ -1,0 +1,1260 @@
+;=================================================
+;この関数で使用しているフラグ一覧
+;CFLAG:601 イベントによってソース、珠、経験が増減してもいいか
+;CFLAG:697 お姫様抱っこ用フラグ
+;CFLAG:698 口上変更フラグA
+;CFLAG:699 口上変更フラグB(ビット管理)
+;CFLAG:701 手つなぎ状態フラグ
+;CFLAG:702 密着状態フラグ
+;CFLAG:703 手つなぎ状態経験フラグ
+;CFLAG:704 密着状態経験フラグ
+;CFLAG:705 計算用
+;CFLAG:706 前回の主導権
+;-------------------------------------------------
+;関数一覧
+;K108_RESET_SKINSHIP_FLAG
+;CFLAG:698 口上変更フラグA
+;CFLAG:699 口上変更フラグB
+;CFLAG:701 手つなぎ状態フラグ
+;CFLAG:702 密着状態フラグ
+;CFLAG:705 主導権記憶用
+;CFLAG:706 主導権記憶用
+;以上6つのフラグをリセットする
+
+;K108_CHECK_SKINSHIP_FLAG
+;CFLAG:701,CFLAG:702が立っている時に
+;それに応じたCFLAG:703,CFLAG:704を立てる
+
+;K108_CHECK_SKINSHIP_LEAD
+;前回のコマンドの主導権を記憶
+;主導権が変わったらフラグをリセットする
+
+;K108_SKINSHIP_REACTION_FLAG
+;	K108_SKINSHIP_REACTIONで使うCFLAG:699を設定する
+;	ついでに下記の関数で用いるCFLAG:698も設定
+;	更についでにCFLAG:697も
+
+;K108_SKINSHIP_REACTION
+;	スキンシップの維持/解除判定を行う
+;	反応の分類はCFLAG:699に保存されている
+;	維持された場合は追加でソースが入る(CFLAG:601を用いる予定)
+;	変数としてSを使用している
+
+;K108_SKINSHIP_TARGET
+;K108_SKINSHIP_TARGET_1
+;K108_SKINSHIP_TARGET_2
+;K108_SKINSHIP_TARGET_3
+;K108_SKINSHIP_TARGET_BACK
+;K108_SKINSHIP_TARGET_PETTING
+;K108_SKINSHIP_MASTER
+;K108_SKINSHIP_MASTER_1
+;K108_SKINSHIP_MASTER_2
+;K108_SKINSHIP_MASTER_3
+;K108_SKINSHIP_MASTER_BACK
+;K108_SKINSHIP_MASTER_PETTING
+;K108_SKINSHIP_TOGETHER
+;K108_SKINSHIP_TOGETHER_1
+;K108_SKINSHIP_TOGETHER_2
+;K108_SKINSHIP_TOGETHER_3
+;K108_SKINSHIP_TOGETHER_KISS
+;	CFLAG:701とCFLAG:702の状況を記述する
+;	どちらのフラグもある場合はCFLAG:702を優先
+;	よく使うものを関数にしてある
+;	例:%CALLNAME:TARGET%は%CALLNAME:MASTER%の膝枕で寝転がりながら
+
+;=================================================
+;-------------------------------------------------
+;K108_RESET_SKINSHIP_FLAG
+;CFLAG:697 お姫様抱っこ用フラグ
+;CFLAG:698 口上変更フラグA
+;CFLAG:699 口上変更フラグB
+;CFLAG:701 手つなぎ状態フラグ
+;CFLAG:702 密着状態フラグ
+;CFLAG:705 主導権記憶用
+;CFLAG:706 主導権記憶用
+;以上6つのフラグをリセットする
+;@EVENTENDで呼び出す
+;-------------------------------------------------
+@K108_RESET_SKINSHIP_FLAG
+CFLAG:697 = 0
+CFLAG:698 = 0
+CFLAG:699 = 0
+CFLAG:701 = 0
+CFLAG:702 = 0
+CFLAG:705 = 0
+CFLAG:706 = 0
+;-------------------------------------------------
+;K108_CHECK_SKINSHIP_FLAG
+;CFLAG:701,CFLAG:702が立っている時に
+;それに応じたCFLAG:703,CFLAG:704を立てる
+;※※※注意※※※
+;スキンシップ状態フラグを立てない場合もある(例:手を繋いだがすぐに離した)
+;その場合は自分でフラグを立てること
+;※※※｢スキンシップ｣の最後に呼び出す※※※
+;-------------------------------------------------
+@K108_CHECK_SKINSHIP_FLAG
+IF CFLAG:701 == 1
+	CFLAG:703 |= 1p0
+ELSEIF CFLAG:701 == 2
+	CFLAG:703 |= 1p1
+ELSEIF CFLAG:701 == 3
+	CFLAG:703 |= 1p2
+ELSEIF CFLAG:701 == 4
+	CFLAG:703 |= 1p3
+ENDIF
+IF CFLAG:702 == 1
+	CFLAG:704 |= 1p0
+ELSEIF CFLAG:702 == 2
+	CFLAG:704 |= 1p1
+ELSEIF CFLAG:702 == 3
+	CFLAG:704 |= 1p2
+ELSEIF CFLAG:702 == 4
+	CFLAG:704 |= 1p3
+ELSEIF CFLAG:702 == 5
+	CFLAG:704 |= 1p4
+ELSEIF CFLAG:702 == 6
+	CFLAG:704 |= 1p5
+ELSEIF CFLAG:702 == 7
+	CFLAG:704 |= 1p6
+ELSEIF CFLAG:702 == 8
+	CFLAG:704 |= 1p7
+ELSEIF CFLAG:702 == 9
+	CFLAG:704 |= 1p8
+ELSEIF CFLAG:702 == 10
+	CFLAG:704 |= 1p9
+ELSEIF CFLAG:702 == 11
+	CFLAG:704 |= 1p10
+ENDIF
+;-------------------------------------------------
+;K108_CHECK_SKINSHIP_LEAD
+;前回のコマンドの主導権を記憶
+;主導権が変わったらフラグをリセットする
+;※※※｢スキンシップ｣の最初に呼び出す※※※
+;-------------------------------------------------
+@K108_CHECK_SKINSHIP_LEAD
+IF CFLAG:705 == 0
+	CFLAG:706 = TFLAG:45
+	CFLAG:705 = 1
+ELSE
+	;主導権があなた→相手
+	IF TFLAG:45 == 1 && CFLAG:705 == 0 && MARK:3 == 0
+		IF CFLAG:702 == 1 || CFLAG:702 == 3 || CFLAG:702 == 5 || CFLAG:702 == 9
+			PRINTW 主導権が入れ替わりました
+			PRINTFORM %CALLNAME:TARGET%は
+			IF 702 == 1
+				PRINTFORMW 起き上がって%CALLNAME:MASTER%の方を向いた
+			ELSEIF 702 == 3
+				PRINTFORMW %CALLNAME:MASTER%の膝の上から降りた
+			ELSEIF 702 == 5
+				PRINTFORMW %CALLNAME:MASTER%の方を向いた
+			ELSEIF 702 == 9
+				PRINTFORMW %CALLNAME:MASTER%から降りた
+			ENDIF
+			CFLAG:702 = 0
+		ENDIF
+	;主導権が相手→あなた
+	ELSEIF TFLAG:45 == 0 && CFLAG:705 == 1 && MARK:3 == 0
+		IF CFLAG:702 == 2 || CFLAG:702 == 4 || CFLAG:702 == 6 || CFLAG:702 == 10
+			PRINTW 主導権が入れ替わりました
+			PRINTFORM %CALLNAME:MASTER%は
+			IF 702 == 2
+				PRINTFORMW 起き上がって%CALLNAME:TARGET%の方を向いた
+			ELSEIF 702 == 4
+				PRINTFORMW %CALLNAME:TARGET%の膝の上から降りた
+			ELSEIF 702 == 6
+				PRINTFORMW %CALLNAME:TARGET%の方を向いた
+			ELSEIF 702 == 10
+				PRINTFORMW %CALLNAME:TARGET%から降りた
+			ENDIF
+			CFLAG:702 = 0
+		ENDIF
+	ENDIF
+	CFLAG:706 = TFLAG:45
+ENDIF
+;-------------------------------------------------
+;SKINSHIP_RATE
+;スキンシップ状態の維持率を計算
+;現状低すぎる感じがしないでもない
+;-------------------------------------------------
+@SKINSHIP_RATE
+;ムード
+IF TFLAG:37 < 30
+	A = 0
+ELSEIF TFLAG:37 < 50
+	A = 10
+ELSEIF TFLAG:37 < 100
+	A = 20
+ELSEIF TFLAG:37 < 300
+	A = 40
+ELSE
+	A = TFLAG:37 / 6
+ENDIF
+
+;酔い値
+IF TFLAG:47 < 11
+	A += 0
+ELSEIF TFLAG:47 < 16
+	A += 5
+ELSEIF TFLAG:47 < 30
+	A += 10
+ELSEIF TFLAG:47 < 60
+	A += 20
+ELSEIF TFLAG:47 < 100
+	A += 40
+ELSE
+	A += TFLAG:47 / 2
+ENDIF
+
+;好感度
+	A = CFLAG:2 <= 10000  ? A + CFLAG:2 / 200 # A + 50
+
+;好意
+	IF PALAM:15 >= PALAMLV:2
+		A += 2
+	ELSEIF PALAM:15 >= PALAMLV:3
+		A += 4
+	ELSEIF PALAM:15 >= PALAMLV:4
+		A += 8
+	ELSEIF PALAM:15 >= PALAMLV:5
+		A += 16
+	ENDIF
+;主導権別
+;あなたに主導権
+IF TFLAG:45 == 1 && MARK:3 == 0
+	;恭順
+		IF PALAM:4 >= PALAMLV:1
+			A += 2
+		ELSEIF PALAM:4 >= PALAMLV:2
+			A += 4
+		ELSEIF PALAM:4 >= PALAMLV:3
+			A += 8
+		ELSEIF PALAM:4 >= PALAMLV:4
+			A += 16
+		ENDIF
+	;屈服
+		IF PALAM:6 >= PALAMLV:1
+			A += 2
+		ELSEIF PALAM:6 >= PALAMLV:2
+			A += 4
+		ELSEIF PALAM:6 >= PALAMLV:3
+			A += 8
+		ELSEIF PALAM:6 >= PALAMLV:4
+			A += 16
+		ENDIF
+ELSE
+	;欲情
+		IF PALAM:5 >= PALAMLV:1
+			A += 2
+		ELSEIF PALAM:5 >= PALAMLV:2
+			A += 4
+		ELSEIF PALAM:5 >= PALAMLV:3
+			A += 8
+		ELSEIF PALAM:5 >= PALAMLV:4
+			A += 16
+		ENDIF
+	;優越
+		IF PALAM:17 >= PALAMLV:1
+			A += 2
+		ELSEIF PALAM:17 >= PALAMLV:2
+			A += 4
+		ELSEIF PALAM:17 >= PALAMLV:3
+			A += 8
+		ELSEIF PALAM:17 >= PALAMLV:4
+			A += 16
+		ENDIF
+ENDIF
+
+;ペナルティ
+;恐怖
+	IF PALAM:10 >= PALAMLV:1
+		A -= 2
+	ELSEIF PALAM:10 >= PALAMLV:2
+		A -= 4
+	ELSEIF PALAM:10 >= PALAMLV:3
+		A -= 8
+	ELSEIF PALAM:10 >= PALAMLV:4
+		A -= 16
+	ENDIF
+;反感
+	IF PALAM:11 >= PALAMLV:1
+		A -= 2
+	ELSEIF PALAM:11 >= PALAMLV:2
+		A -= 4
+	ELSEIF PALAM:11 >= PALAMLV:3
+		A -= 8
+	ELSEIF PALAM:11 >= PALAMLV:4
+		A -= 16
+	ENDIF
+;不快
+	IF PALAM:12 >= PALAMLV:1
+		A -= 2
+	ELSEIF PALAM:12 >= PALAMLV:2
+		A -= 4
+	ELSEIF PALAM:12 >= PALAMLV:3
+		A -= 8
+	ELSEIF PALAM:12 >= PALAMLV:4
+		A -= 16
+	ENDIF
+
+;能力ボーナス
+;親密
+	A += ABL:0
+;欲望
+	A += ABL:1
+;奉仕精神
+	A += ABL:7
+
+;素質ボーナス
+;恋慕
+SIF TALENT:85
+	A += 25
+;親愛か妄信
+SIF TALENT:88 || TALENT:86
+	A += 25
+;淫乱
+SIF TALENT:76
+	A += 25
+;反発感情
+IF MARK:3
+	POWER B, 2, MARK:3 - 1
+	A -= 10 * B
+ENDIF
+	
+;成功/失敗
+IF TFLAG:18 == 1
+	A += 10
+ELSEIF TFLAG:18 == -1
+	A -= 10
+ENDIF
+CFLAG:800 = A
+B = PERCENT(A)
+
+;-------------------------------------------------
+;K108_SKINSHIP_REACTION_FLAG
+;CFLAG:697 お姫様抱っこ用フラグ
+;CFLAG:698 スキンシップ時の口上が少し変化する
+;CFLAG:699 スキンシップ成功/失敗時の反応の傾向を決定
+;｢パートナーと過ごす｣開始時に毎回呼び出して再設定
+;※※※EVENTTRAINとK108_KOJO2で呼び出す※※※
+;-------------------------------------------------
+@K108_SKINSHIP_REACTION_FLAG
+;CFLAG:697 お姫様抱っこ用フラグ
+;必死で持ち上げる
+IF (ABL:MASTER:88 < 5 && (TALENT:100 && !(TALENT:MASTER:100))) || (ABL:MASTER:88 < 10 && TALENT:100 == TALENT:MASTER:100) || (ABL:MASTER:88 < 15 && (!(TALENT:100) && TALENT:MASTER:100))
+	CFLAG:697 = -1
+;余裕で持ち上げる
+ELSEIF (ABL:MASTER:88 > 15 && (TALENT:100 && !(TALENT:MASTER:100))) || (ABL:MASTER:88 > 20 && TALENT:100 == TALENT:MASTER:100) || (ABL:MASTER:88 > 25 && (!(TALENT:100) && TALENT:MASTER:100))
+	CFLAG:697 = 1
+ENDIF
+;口上変更フラグA(幼稚、幼児、小型体型かつあなたが小型体型でない)
+SIF TALENT:131 || TALENT:132 || (TALENT:100 && !(TALENT:MASTER:100))
+	CFLAG:698 = 1
+;反応の概要(対応素質)
+;情緒豊か(開放、幼児、幼稚)
+SIF TALENT:33 || TALENT:131 || TALENT:132
+	CFLAG:699 |= 1p0
+;情緒乏しい(大人しい、無関心、抑圧)
+SIF TALENT:14 || TALENT:21 || TALENT:32
+	CFLAG:699 |= 1p1
+;マイナス
+;怯える(臆病、悲観的、あなたがサドで気丈でない、苦痛依存3以上)
+SIF TALENT:10 || TALENT:26 || (TALENT:MASTER:83 && !(TALENT:12)) || MARK:0 >= 3
+	CFLAG:699 |= 1p2
+;抵抗する/嫌がる(反抗的、プライド高い(主導権あなた)、生意気、抵抗、男嫌い、生理)
+SIF TALENT:11 || (TALENT:15 && !(TFLAG:45)) || TALENT:16 || TALENT:34 || (TALENT:82 && TALENT:MASTER:122) || TALENT:138
+	CFLAG:699 |= 1p3
+;消極的/取り乱す(自制心、保守的、一線超えない、貞操観念、恥じらい、快感の否定)
+SIF TALENT:20 || TALENT:24 || TALENT:27 || TALENT:30 || TALENT:35 || TALENT:71
+	CFLAG:699 |= 1p4
+;プラス
+;愛おしげ/可愛がる:主導権が相手側(プライド高い、献身的、あなたがマゾ、サド、親愛、主人、あなたが小柄体型で相手が小柄体型でない)
+SIF TFLAG:45 && (TALENT:15 || TALENT:63 || TALENT:MASTER:79 || TALENT:83 || TALENT:88 || TALENT:220 || (TALENT:MASTER:100 && !(TALENT:100)))
+	CFLAG:699 |= 1p5
+;(性的に)物足りない/甘える:非処女(貞操無頓着、恥薄い、淫乱系素質、快楽依存3以上)
+SIF !(TALENT:0) && (TALENT:31 || TALENT:36 || TALENT:74 || TALENT:75 || TALENT:76 || TALENT:77 || TALENT:78 || TALENT:79 || TALENT:155 || TALENT:589 || MARK:1 >= 3)
+	CFLAG:699 |= 1p6
+;平然とする/受け入れる(プライド低い、好奇心、楽観的、目立ちたがり、両刀であなたが男でない)
+SIF TALENT:17 || TALENT:23 || TALENT:25 || TALENT:28 || (TALENT:81 || !(TALENT:MASTER:122))
+	CFLAG:699 |= 1p7
+;-------------------------------------------------
+;K108_SKINSHIP_REACTION
+;特定のコマンド後にスキンシップの維持/解除判定を行う
+;反応の分類はCFLAG:699に保存されている
+;維持された場合は追加でソースが入る(CFLAG:601を用いる予定)
+;反発感情持ちは自分からスキンシップを取らないが一応用意しておく
+;※※※｢スキンシップ｣の最後に呼び出す※※※
+;-------------------------------------------------
+@K108_SKINSHIP_REACTION
+IF CFLAG:701 || CFLAG:702
+	CALL SKINSHIP_RATE
+	PRINTFORM %CALLNAME:TARGET%は
+ENDIF
+;◆◆◆◆◆◆◆◆◆◆
+IF CFLAG:701 == 0 && CFLAG:702 == 0
+;受け入れられる
+ELSEIF B == 1
+	IF CFLAG:702
+		SELECTCASE CFLAG:702
+			;あなたがしている
+			CASE 1, 3, 5, 7, 8, 9, 11
+				IF MARK:3
+					;情緒豊か
+					IF (CFLAG:699 & 1p0) && RAND:2
+						PRINT 頬を膨らませながらも
+					;情緒乏しい
+					ELSEIF (CFLAG:699 & 1p1) && RAND:2
+						PRINT 口を一文字に結んで
+					;怯える
+					ELSEIF (CFLAG:699 & 1p2) && RAND:2
+						PRINT 不安そうな様子で
+					;抵抗する
+					ELSEIF (CFLAG:699 & 1p3) && RAND:2
+						PRINT 憮然とした態度で
+					;取り乱す
+					ELSEIF CFLAG:699 & 1p4
+						PRINT 複雑な表情を浮かべながらも
+					ELSE
+						PRINT まだ怒った様子だが
+					ENDIF
+				ELSE
+					;情緒豊か
+					IF (CFLAG:699 & 1p0) && RAND:2
+						IF TALENT:85 || TALENT:153
+							PRINT 嬉しそうに
+						ELSE
+							PRINT 頬を膨らませながらも
+						ENDIF
+					;情緒乏しい
+					ELSEIF (CFLAG:699 & 1p1) && RAND:2
+						IF TALENT:85 || TALENT:153
+							PRINT 少し微笑んで
+						ELSE
+							PRINT 無表情のまま
+						ENDIF
+					;(性的に)物足りない
+					ELSEIF (CFLAG:699 & 1p6) && (TALENT:85 || TALENT:153) && RAND:2
+						PRINT もっとして欲しいといった様子で
+					;受け入れる
+					ELSEIF (CFLAG:699 & 1p7) && (TALENT:85 || TALENT:153) && RAND:2
+						PRINT 安心した様に
+					;怯える
+					ELSEIF (CFLAG:699 & 1p2) && !(TALENT:85 || TALENT:153) && RAND:2
+						PRINT 困った顔を浮かべながらも
+					;抵抗する
+					ELSEIF (CFLAG:699 & 1p3) && !(TALENT:85 || TALENT:153) && RAND:2
+						PRINT 嫌がる素振りをみせながらも
+					;取り乱す
+					ELSEIF CFLAG:699 & 1p4 && !(TALENT:85 || TALENT:153)
+						PRINT びっくりした様子だが
+					ELSE
+						PRINT 恥ずかしそうに
+					ENDIF
+				ENDIF
+			;あなたがされている
+			CASE 2, 4, 6, 10
+				IF MARK:3
+					PRINT まだ怒った様子だが
+				ELSE
+					;情緒豊か
+					IF (CFLAG:699 & 1p0) && RAND:2
+						PRINT 嬉しそうに
+					;情緒乏しい
+					ELSEIF (CFLAG:699 & 1p1) && RAND:2
+						PRINT 無表情のまま
+					;愛おしげ
+					ELSEIF (CFLAG:699 & 1p5) && RAND:2
+						PRINT 愛おしそうに
+					;甘える
+					ELSEIF (CFLAG:699 & 1p6) && RAND:2
+						PRINT 甘えるように
+					;平然とする
+					ELSEIF CFLAG:699 & 1p7
+						PRINT さも当然の様に
+					ELSE
+						PRINT 顔を赤らめながら
+					ENDIF
+				ENDIF
+		ENDSELECT
+	ELSE
+		IF CFLAG:701
+			IF MARK:3
+				;情緒豊か
+				IF (CFLAG:699 & 1p0) && RAND:2
+					PRINT 頬を膨らませながらも
+				;情緒乏しい
+				ELSEIF (CFLAG:699 & 1p1) && RAND:2
+					PRINT 口を一文字に結んで
+				;怯える
+				ELSEIF (CFLAG:699 & 1p2) && RAND:2
+					PRINT 不安そうな様子で
+				;抵抗する
+				ELSEIF (CFLAG:699 & 1p3) && RAND:2
+					PRINT 憮然とした態度で
+				;取り乱す
+				ELSEIF CFLAG:699 & 1p4
+					PRINTFORM %CALLNAME:MASTER%を睨みつけながらも
+				ELSE
+					PRINT まだ怒った様子だが
+				ENDIF
+			ELSE
+				;情緒豊か
+				IF (CFLAG:699 & 1p0) && RAND:2
+					IF TALENT:85 || TALENT:153
+						PRINT 嬉しそうに
+					ELSE
+						PRINT 頬を膨らませながらも
+					ENDIF
+				;情緒乏しい
+				ELSEIF (CFLAG:699 & 1p1) && RAND:2
+					IF TALENT:85 || TALENT:153
+						PRINT 少し微笑んで
+					ELSE
+						PRINT 無表情のまま
+					ENDIF
+				;(性的に)物足りない
+				ELSEIF (CFLAG:699 & 1p6) && (TALENT:85 || TALENT:153) && RAND:2
+					PRINT もっとして欲しいといった様子で
+				;受け入れる
+				ELSEIF (CFLAG:699 & 1p7) && (TALENT:85 || TALENT:153) && RAND:2
+					PRINT 安心した様に
+				;怯える
+				ELSEIF (CFLAG:699 & 1p2) && !(TALENT:85 || TALENT:153) && RAND:2
+					PRINT 困った顔を浮かべながらも
+				;抵抗する
+				ELSEIF (CFLAG:699 & 1p3) && !(TALENT:85 || TALENT:153) && RAND:2
+					PRINT 嫌がる素振りをみせながらも
+				;取り乱す
+				ELSEIF CFLAG:699 & 1p4 && !(TALENT:85 || TALENT:153)
+					PRINT びっくりした様子だが
+				ELSE
+					PRINT 恥ずかしそうに
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+;拒否される
+ELSE
+	IF CFLAG:702
+		PRINT しばらくすると
+		SELECTCASE CFLAG:702
+			;あなたがしている
+			CASE 1, 3, 5, 7, 8, 9, 11
+				IF MARK:3
+					;情緒豊かまたは抵抗する
+					IF ((CFLAG:699 & 1p0) || (CFLAG:699 & 1p3)) && RAND:2
+						PRINT 不快感を露わにして
+					;情緒乏しい
+					ELSEIF (CFLAG:699 & 1p1) && RAND:2
+						PRINT 無言のまま
+					;怯える
+					ELSEIF (CFLAG:699 & 1p2) && RAND:2
+						PRINT 悲鳴を上げて
+					;取り乱す
+					ELSEIF (CFLAG:699 & 1p4)
+						PRINT 威嚇するような表情を浮かべて
+					ELSE
+						PRINT 嫌がって
+					ENDIF
+				ELSE
+					;情緒豊か
+					IF (CFLAG:699 & 1p0) && RAND:2
+						PRINT 不満な様子で
+					;情緒乏しい
+					ELSEIF (CFLAG:699 & 1p1) && RAND:2
+						PRINT ため息を付いて
+					;怯える
+					ELSEIF (CFLAG:699 & 1p2) && RAND:2
+						PRINT 軽い悲鳴を上げて
+					;抵抗する
+					ELSEIF (CFLAG:699 & 1p3) && RAND:2
+						PRINT 嫌がって
+					;取り乱す
+					ELSEIF CFLAG:699 & 1p4
+						PRINT びっくりして
+					ELSE
+						PRINT 恥ずかしがって
+					ENDIF
+				ENDIF
+			;あなたがされている
+			CASE 2, 4, 6, 10
+				IF MARK:3
+					PRINT 怒って
+				ELSE
+					;情緒豊か
+					IF (CFLAG:699 & 1p0) && RAND:2
+						PRINT 不満な様子で
+					;情緒乏しい
+					ELSEIF (CFLAG:699 & 1p1) && RAND:2
+						PRINT ため息を付いて
+					;取り乱す
+					ELSEIF (CFLAG:699 & 1p4)
+						PRINT ひどく取り乱して
+					ELSE
+						PRINT 恥ずかしがって
+					ENDIF
+				ENDIF
+		ENDSELECT
+	ELSE
+		PRINT しばらくすると
+		IF CFLAG:701
+			IF MARK:3
+				;情緒豊かまたは抵抗する
+				IF ((CFLAG:699 & 1p0) || (CFLAG:699 & 1p3)) && RAND:2
+					PRINT 不快感を露わにして
+				;情緒乏しい
+				ELSEIF (CFLAG:699 & 1p1) && RAND:2
+					PRINT 無言のまま
+				;怯える
+				ELSEIF (CFLAG:699 & 1p2) && RAND:2
+					PRINT 悲鳴を上げて
+				;取り乱す
+				ELSEIF (CFLAG:699 & 1p4)
+					PRINT 威嚇するような表情を浮かべて
+				ELSE
+					PRINT 嫌がって
+				ENDIF
+			ELSE
+				;情緒豊か
+				IF (CFLAG:699 & 1p0) && RAND:2
+					PRINT 不満な様子で
+				;情緒乏しい
+				ELSEIF (CFLAG:699 & 1p1) && RAND:2
+					PRINT ため息を付いて
+				;取り乱す
+				ELSEIF (CFLAG:699 & 1p4)
+					PRINT ひどく取り乱して
+				ELSE
+					PRINT 恥ずかしがって
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+;◆◆◆◆◆◆◆◆◆◆
+IF CFLAG:701 == 0 && CFLAG:702 == 0
+;受け入れられる
+ELSEIF B == 1
+	IF CFLAG:702
+		SELECTCASE CFLAG:702
+			;膝枕をしている
+			CASE 1
+				PRINTFORMW %CALLNAME:MASTER%の膝枕で寝転がっている…
+			;膝枕をしてもらっている
+			CASE 2
+				PRINTFORMW %CALLNAME:MASTER%に膝枕をしている…
+			;膝の上に乗せている
+			CASE 3
+				PRINTFORM %CALLNAME:MASTER%の膝の上に
+				SIF CFLAG:698
+					PRINT ちょこんと
+				PRINTW 乗っている…
+			;膝の上に乗せられている
+			CASE 4
+				PRINTFORMW %CALLNAME:MASTER%を膝の上に乗せている…
+			;後ろから抱きついている
+			CASE 5
+				PRINTFORMW %CALLNAME:MASTER%に後ろから抱きつかれている…
+			;後ろから抱きつかれている
+			CASE 6
+				PRINTFORMW %CALLNAME:MASTER%の背中に\@ CFLAG:698 ? しがみ # 抱き \@ついている…
+				PRINT 背中に
+				IF TALENT:109 || (TALENT:100 && !(TALENT:110))
+					PRINTW 僅かだが膨らみが伝わってくる…
+				ELSEIF TALENT:110
+					SIF TALENT:100
+						PRINT 小さな身体に似合わない
+					PRINTW 豊かな膨らみを感じる…
+				ELSE
+					PRINTW やわらかいものが当たっている…
+				ENDIF
+			;抱き合っている
+			CASE 7
+				PRINTFORMW %CALLNAME:MASTER%と抱き合っている…
+			;背中合わせになる
+			CASE 8
+				PRINTFORMW %CALLNAME:MASTER%と背中合わせになっている…
+			;お姫様抱っこする
+			CASE 9
+				PRINTFORMW %CALLNAME:MASTER%にお姫様抱っこされている…
+			;お姫様抱っこされる
+			CASE 10
+				PRINTFORMW %CALLNAME:MASTER%をお姫様抱っこしている…
+			;見つめ合う
+			CASE 11
+				PRINTFORMW %CALLNAME:MASTER%と見つめ合っている…
+		ENDSELECT
+	ELSE
+		SELECTCASE CFLAG:701
+			;手を繋いでいる
+			CASE 1
+				PRINTFORMW %CALLNAME:MASTER%と手を繋いでいる…
+			;恋人繋ぎ
+			CASE 2
+				PRINTFORMW %CALLNAME:MASTER%と指を絡めている…
+			;腕を組む
+			CASE 3
+				PRINTFORMW %CALLNAME:MASTER%の腕に\@ CFLAG:698 ? しがみ # 抱き \@ついている…
+				PRINT 肘に
+				IF TALENT:109 || (TALENT:100 && !(TALENT:110))
+					PRINTW 僅かだが膨らみを感じる…
+				ELSEIF TALENT:110
+					SIF TALENT:100
+						PRINT 小さな身体に似合わない
+					PRINTW 豊かな膨らみを感じる…
+				ELSE
+					PRINTW やわらかいものが当たっている…
+				ENDIF
+			;肩を寄せあっている
+			CASE 4
+				PRINTFORMW %CALLNAME:MASTER%に寄り添っている
+		ENDSELECT
+	ENDIF
+;拒否される
+ELSE
+	IF CFLAG:702
+		SELECTCASE CFLAG:702
+			;膝枕をしている
+			CASE 1, 6, 7, 8
+				PRINTFORMW %CALLNAME:MASTER%から離れてしまった…
+			;膝枕をしてもらっている
+			CASE 2
+				PRINTW 膝枕をやめてしまった…
+			;膝の上に乗せている
+			CASE 3
+				PRINTFORMW %CALLNAME:MASTER%の膝の上から降りてしまった…
+			;膝の上に乗せられている
+			CASE 4
+				PRINTFORMW %CALLNAME:MASTER%を膝の上から\@ MARK:3 ? 振り落とし # 降ろし \@てしまった…
+			;後ろから抱きついている
+			CASE 5
+				PRINTFORMW %CALLNAME:MASTER%\@ MARK:3 ? を振りほどい # から離れ \@てしまった…
+			;お姫様抱っこする
+			CASE 9
+				PRINTFORMW %CALLNAME:MASTER%から降りてしまった…
+			;お姫様抱っこされる
+			CASE 10
+				PRINTFORMW %CALLNAME:MASTER%を\@ MARK:3 ? を振りほどい # から離れ \@てしまった…
+			;見つめ合う
+			CASE 11
+				PRINTFORMW %CALLNAME:MASTER%から目を逸らしてしまった…
+		ENDSELECT
+		CFLAG:702 = 0
+	ELSE
+		SELECTCASE CFLAG:701
+			;手を繋いでいる
+			CASE 1, 2
+				PRINTFORMW 手を\@ MARK:3 ? 振りほどい # 離し \@てしまった…
+			;腕を組む
+			CASE 3
+				PRINTFORMW 腕を\@ MARK:3 ? 振りほどい # 離し \@てしまった…
+			;肩を寄せあっている
+			CASE 4
+				PRINTFORMW %CALLNAME:MASTER%から離れてしまった…
+		ENDSELECT
+		CFLAG:701 = 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;K108_SKINSHIP_TARGET
+;K108_SKINSHIP_TARGET_1
+;K108_SKINSHIP_TARGET_2
+;K108_SKINSHIP_TARGET_3
+;K108_SKINSHIP_TARGET_BACK
+;K108_SKINSHIP_TARGET_PETTING
+;K108_SKINSHIP_MASTER
+;K108_SKINSHIP_MASTER_1
+;K108_SKINSHIP_MASTER_2
+;K108_SKINSHIP_MASTER_3
+;K108_SKINSHIP_MASTER_BACK
+;K108_SKINSHIP_MASTER_PETTING
+;K108_SKINSHIP_TOGETHER
+;K108_SKINSHIP_TOGETHER_1
+;K108_SKINSHIP_TOGETHER_2
+;K108_SKINSHIP_TOGETHER_3
+;K108_SKINSHIP_TOGETHER_KISS
+;CFLAG:701とCFLAG:702の状況を記述
+;CFLAG:702を優先的に記述
+;TARGETの主語は｢%CALLNAME:TARGET%｣
+;MASTERの主語は｢%CALLNAME:MASTER%｣
+;TOGETHERの主語は｢一緒に｣ 主導権も考慮702:7,8、11,701:1~4
+;なし すべて
+;_1 (視線が同方向) 702:3~6
+;_2 (顔を見合わせられる) 702:3~6,8以外
+;_3 (手を伸ばせる = _1 + _2 + 手つなぎ状態) 702:8以外 701:1~4
+;_4 (視線が逆方向) 8のみ パターンが限定的なので関数にはしていない
+;_PETTING (愛撫系コマンド)
+;_KISS (キスできる姿勢) 702:1~6,8以外,701全て
+;該当しない姿勢はリセットされる
+;デート中でなければ手つなぎ状態もリセットされる
+;-------------------------------------------------
+@K108_SKINSHIP_TARGET
+PRINTFORM %CALLNAME:TARGET%は
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:MASTER%の膝枕で寝転がりながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:MASTER%に膝枕をしながら
+ELSEIF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:MASTER%の膝の上に
+	SIF CFLAG:698
+		PRINT ちょこんと
+	PRINT 乗りながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:MASTER%に後ろから\@ CFLAG:698 ? しがみ # 抱き \@つかれながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:MASTER%の背中に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:MASTER%と抱き合いながら
+ELSEIF CFLAG:702 == 8
+	PRINTFORM %CALLNAME:MASTER%と背中合わせになって
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:MASTER%にお姫様抱っこされながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:MASTER%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM %CALLNAME:MASTER%と見つめ合いながら
+ELSEIF CFLAG:701 == 1
+	PRINTFORM %CALLNAME:MASTER%と手を繋ぎながら
+ELSEIF CFLAG:701 == 2
+	PRINTFORM %CALLNAME:MASTER%と指を絡めながら
+ELSEIF CFLAG:701 == 3
+	PRINTFORM %CALLNAME:MASTER%の腕に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSEIF CFLAG:701 == 4
+	PRINTFORM %CALLNAME:MASTER%に寄り添いながら
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_TARGET_1
+PRINTFORM %CALLNAME:TARGET%は
+IF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:MASTER%の膝の上に
+	SIF CFLAG:698
+		PRINT ちょこんと
+	PRINT 乗りながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:MASTER%に後ろから\@ CFLAG:698 ? しがみ # 抱き \@つかれながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:MASTER%の背中に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_TARGET_2
+PRINTFORM %CALLNAME:TARGET%は
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:MASTER%の膝枕で寝転がりながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:MASTER%に膝枕をしながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:MASTER%と抱き合いながら
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:MASTER%にお姫様抱っこされながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:MASTER%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM %CALLNAME:MASTER%と見つめ合いながら
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_TARGET_3
+PRINTFORM %CALLNAME:TARGET%は
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:MASTER%の膝枕で寝転がりながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:MASTER%に膝枕をしながら
+ELSEIF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:MASTER%の膝の上に
+	SIF CFLAG:698
+		PRINT ちょこんと
+	PRINT 乗りながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:MASTER%に後ろから抱きつかれながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:MASTER%の背中に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:MASTER%と抱き合いながら
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:MASTER%にお姫様抱っこされながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:MASTER%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM %CALLNAME:MASTER%と見つめ合いながら
+ELSEIF CFLAG:701 == 1
+	PRINTFORM %CALLNAME:MASTER%と手を繋ぎながら
+ELSEIF CFLAG:701 == 2
+	PRINTFORM %CALLNAME:MASTER%と指を絡めながら
+ELSEIF CFLAG:701 == 3
+	PRINTFORM %CALLNAME:MASTER%の腕に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSEIF CFLAG:701 == 4
+	PRINTFORM %CALLNAME:MASTER%に寄り添いながら
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_TARGET_BACK
+PRINTFORM %CALLNAME:TARGET%は
+IF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:MASTER%の背中に抱きつきながら
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_TARGET_PETTING
+PRINTFORM %CALLNAME:TARGET%は
+IF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:MASTER%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:MASTER%と抱き合いながら
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;=================================================
+@K108_SKINSHIP_MASTER
+PRINTFORM %CALLNAME:MASTER%は
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:TARGET%に膝枕をしながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:TARGET%の膝枕で寝転がりながら
+ELSEIF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:TARGET%の膝の上に乗りながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:TARGET%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:TARGET%に後ろから抱きつかれながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:TARGET%と抱き合いながら
+ELSEIF CFLAG:702 == 8
+	PRINTFORM %CALLNAME:TARGET%と背中合わせになって
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:TARGET%を
+	IF CFLAG:697 == 1
+		PRINT 軽々と
+	ELSEIF CFLAG:697 == -1
+		PRINT 必死に
+	ENDIF
+	PRINT お姫様抱っこしながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:TARGET%にお姫様抱っこされながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM %CALLNAME:TARGET%と見つめ合いながら
+ELSEIF CFLAG:701 == 1
+	PRINTFORM %CALLNAME:TARGET%と手を繋ぎながら
+ELSEIF CFLAG:701 == 2
+	PRINTFORM %CALLNAME:TARGET%と指を絡めながら
+ELSEIF CFLAG:701 == 3
+	PRINTFORM %CALLNAME:TARGET%と腕を組みながら
+ELSEIF CFLAG:701 == 4
+	PRINTFORM %CALLNAME:TARGET%\@ TALENT:MASTER:122 ? の肩を抱き # に寄り添い \@ながら
+ELSE
+	PRINTFORM %CALLNAME:MASTER%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_MASTER_1
+PRINTFORM %CALLNAME:MASTER%は
+IF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:TARGET%の膝の上に乗りながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:TARGET%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:TARGET%に後ろから抱きつかれながら
+ELSE
+	PRINTFORM %CALLNAME:TARGET%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_MASTER_2
+PRINTFORM %CALLNAME:MASTER%は
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:TARGET%に膝枕をしながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:TARGET%の膝枕で寝転がりながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:TARGET%と抱き合いながら
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:TARGET%を
+	IF CFLAG:697 == 1
+		PRINT 軽々と
+	ELSEIF CFLAG:697 == -1
+		PRINT 必死に
+	ENDIF
+	PRINT お姫様抱っこしながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:TARGET%にお姫様抱っこされながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM %CALLNAME:TARGET%と見つめ合いながら
+ELSE
+	PRINTFORM %CALLNAME:TARGET%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_MASTER_3
+PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:TARGET%に膝枕をしながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:TARGET%の膝枕で寝転がりながら
+ELSEIF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:TARGET%の膝の上に乗りながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:TARGET%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:TARGET%に後ろから抱きつかれながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:TARGET%と抱き合いながら
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:TARGET%を
+	IF CFLAG:697 == 1
+		PRINT 軽々と
+	ELSEIF CFLAG:697 == -1
+		PRINT 必死に
+	ENDIF
+	PRINT お姫様抱っこしながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:TARGET%にお姫様抱っこされながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM %CALLNAME:TARGET%と見つめ合いながら
+ELSEIF CFLAG:701 == 1
+	PRINTFORM %CALLNAME:TARGET%と手を繋ぎながら
+ELSEIF CFLAG:701 == 2
+	PRINTFORM %CALLNAME:TARGET%と指を絡めながら
+ELSEIF CFLAG:701 == 3
+	PRINTFORM %CALLNAME:TARGET%と腕を組みながら
+ELSEIF CFLAG:701 == 4
+	PRINTFORM %CALLNAME:TARGET%\@ TALENT:MASTER:122 ? の肩を抱き # に寄り添い \@ながら
+ELSE
+	PRINTFORM %CALLNAME:TARGET%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_MASTER_BACK
+PRINTFORM %CALLNAME:MASTER%は
+IF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:TARGET%の背中に抱きつきながら
+ELSE
+	PRINTFORM %CALLNAME:TARGET%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;-------------------------------------------------
+@K108_SKINSHIP_MASTER_PETTING
+PRINTFORM %CALLNAME:MASTER%は
+IF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%を膝の上に乗せながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:TARGET%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM %CALLNAME:TARGET%と抱き合いながら
+ELSE
+	PRINTFORM %CALLNAME:TARGET%の
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+;=================================================
+@K108_SKINSHIP_TOGETHER
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%に膝枕をしながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%に膝枕をしながら
+ELSEIF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%の膝の上に
+	SIF CFLAG:698
+		PRINT ちょこんと
+	PRINT 乗りながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%の膝の上に乗りながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%の背中に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と抱き合いながら
+ELSEIF CFLAG:702 == 8
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と背中合わせになって
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と見つめ合いながら
+ELSEIF CFLAG:701 == 1
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と手を繋ぎながら
+ELSEIF CFLAG:701 == 2
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と指を絡めながら
+ELSEIF CFLAG:701 == 3
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET%と腕を組み # %CALLNAME:TARGET%は%CALLNAME:MASTER%の腕に抱きつき \@ながら
+ELSEIF CFLAG:701 == 4
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET%の肩を抱き # %CALLNAME:TARGET%は%CALLNAME:MASTER%に寄り添い \@ながら
+ELSE
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+PRINT 一緒に
+;-------------------------------------------------
+@K108_SKINSHIP_TOGETHER_1
+IF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%の膝の上に
+	SIF CFLAG:698
+		PRINT ちょこんと
+	PRINT 乗りながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%の膝の上に乗りながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%の背中に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSE
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+PRINT 一緒に
+;-------------------------------------------------
+@K108_SKINSHIP_TOGETHER_2
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%に膝枕をしながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%に膝枕をしながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と抱き合いながら
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%を
+	IF CFLAG:697 == 1
+		PRINT 軽々と
+	ELSEIF CFLAG:697 == -1
+		PRINT 必死に
+	ENDIF
+	PRINT お姫様抱っこしながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と見つめ合いながら
+ELSE
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+PRINT 一緒に
+;-------------------------------------------------
+@K108_SKINSHIP_TOGETHER_3
+IF CFLAG:702 == 1
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%に膝枕をしながら
+ELSEIF CFLAG:702 == 2
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%に膝枕をしながら
+ELSEIF CFLAG:702 == 3
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%の膝の上に
+	SIF CFLAG:698
+		PRINT ちょこんと
+	PRINT 乗りながら
+ELSEIF CFLAG:702 == 4
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%の膝の上に乗りながら
+ELSEIF CFLAG:702 == 5
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%の背中に抱きつきながら
+ELSEIF CFLAG:702 == 6
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%の背中に\@ CFLAG:698 ? しがみ # 抱き \@つきながら
+ELSEIF CFLAG:702 == 7
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と抱き合いながら
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%を
+	IF CFLAG:697 == 1
+		PRINT 軽々と
+	ELSEIF CFLAG:697 == -1
+		PRINT 必死に
+	ENDIF
+	PRINT お姫様抱っこしながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と見つめ合いながら
+ELSEIF CFLAG:701 == 1
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と手を繋ぎながら
+ELSEIF CFLAG:701 == 2
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と指を絡めながら
+ELSEIF CFLAG:701 == 3
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET%と腕を組み # %CALLNAME:TARGET%は%CALLNAME:MASTER%の腕に抱きつき \@ながら
+ELSEIF CFLAG:701 == 4
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET%の肩を抱き # %CALLNAME:TARGET%は%CALLNAME:MASTER%に寄り添い \@ながら
+ELSE
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF
+PRINT 一緒に
+;-------------------------------------------------
+@K108_SKINSHIP_TOGETHER_KISS
+IF CFLAG:702 == 7
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と抱き合いながら
+ELSEIF CFLAG:702 == 9
+	PRINTFORM %CALLNAME:MASTER%は%CALLNAME:TARGET%を
+	IF CFLAG:697 == 1
+		PRINT 軽々と
+	ELSEIF CFLAG:697 == -1
+		PRINT 必死に
+	ENDIF
+	PRINT お姫様抱っこしながら
+ELSEIF CFLAG:702 == 10
+	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%をお姫様抱っこしながら
+ELSEIF CFLAG:702 == 11
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と見つめ合いながら
+ELSEIF CFLAG:701 == 1
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と手を繋ぎながら
+ELSEIF CFLAG:701 == 2
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@と指を絡めながら
+ELSEIF CFLAG:701 == 3
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET%と腕を組み # %CALLNAME:TARGET%は%CALLNAME:MASTER%の腕に抱きつき \@ながら
+ELSEIF CFLAG:701 == 4
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET%の肩を抱き # %CALLNAME:TARGET%は%CALLNAME:MASTER%に寄り添い \@ながら
+ELSE
+	PRINTFORM \@ !(TFLAG:45) ? %CALLNAME:MASTER%は%CALLNAME:TARGET% # %CALLNAME:TARGET%は%CALLNAME:MASTER% \@
+	CFLAG:702 = 0
+	SIF TEQUIP:2 == 0
+		CFLAG:701 = 0
+ENDIF

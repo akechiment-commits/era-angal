@@ -1,0 +1,1547 @@
+@CONCERT
+;奴隷に歌を歌わせてチケットを売るオプション。
+;ここでは野外ライブ成功判定を行う
+;-------------------------------------------------
+;成功判定
+;-------------------------------------------------
+H = 0
+L = 0
+P = 0
+
+;EXP:歌唱経験
+IF EXP:93 < EXPLV:1
+	L = 1
+ELSEIF EXP:93 < EXPLV:2
+	L = 2
+ELSEIF EXP:93 < EXPLV:3
+	L = 5
+ELSEIF EXP:93 < EXPLV:4
+	L = 10
+ELSEIF EXP:93 < EXPLV:5
+	L = 15
+ELSE
+	L = 20
+ENDIF
+
+;ABL:露出癖
+IF ABL:92 < 1
+	L += 1
+ELSEIF ABL:7 < 9
+	L += ABL:7
+ELSE
+	L += 10
+ENDIF
+
+;ABL:歌唱技能
+IF ABL:92 < 1
+	L += 1
+ELSEIF ABL:92 < 15
+	L += ABL:92 + 1
+ELSE
+	L += 15
+ENDIF
+
+;臆病
+SIF TALENT:10
+	L -= 2
+;恥じらい
+SIF TALENT:35
+	L -= 1
+
+;自制心
+SIF TALENT:20
+	L += 1
+;好奇心
+SIF TALENT:23
+	L += 1
+;目立ちたがり
+SIF TALENT:28
+	L += 2
+;解放
+SIF TALENT:33
+	L += 1
+;恥薄い
+SIF TALENT:36
+	L += 2
+
+SIF L <= 0
+	L = 0
+;鼓舞
+IF TALENT:118
+	L += 1 + RAND:15
+ELSE
+	L += 1 + RAND:10
+ENDIF
+
+P = 20
+;親愛
+IF TALENT:88
+	P += RAND:16
+;恋人or恋慕
+ELSEIF TALENT:153 || TALENT:85
+	P += RAND:21
+ELSE
+	P += RAND:26
+ENDIF
+
+;歌唱素質によって難易度変化
+SIF ABL:52 >= 3
+	P -= 5
+IF ASSI > 0
+	;助手の歌唱素質によって難易度低下
+	IF ABL:52 >= 3
+		P -= 3
+	;助手が鼓舞持ちまたは歌唱技能Lv20以上だと難易度低下
+	ELSEIF TALENT:ASSI:118 || ABL:ASSI:92 >= 20
+		P -= 2
+	ENDIF
+ENDIF
+;歌苦手
+SIF ABL:52 <= -2
+	P += 3
+
+IF L < P
+	;失敗
+	CALL CONCERT_FAILURE
+ELSE
+	;成功
+	CALL CONCERT_SUCCESS
+ENDIF
+
+TFLAG:79 = 1
+;休憩フラグを立てる
+FLAG:0 = 1
+BEGIN TURNEND
+
+RETURN 1
+
+@CONCERT_FAILURE
+;野外ライブ失敗
+
+L = 0
+M = 0
+N = 10
+P = 0
+
+;ABL:歌唱技能をみる
+IF ABL:92 == 0
+	L = 1
+ELSEIF ABL:92 < 10
+	L = ABL:92
+ELSEIF ABL:92 <= 20
+	L = 5 + (ABL:92 / 2)
+ELSEIF ABL:92 <= 40
+	L = 15 + (ABL:92 / 5)
+ELSEIF ABL:92 <= 64
+	L = 23 + (ABL:92 / 8)
+ELSEIF ABL:92 <= 90
+	L = 31 + (ABL:92 / 10)
+ELSE
+	L = 40 + (ABL:92 / 20)
+ENDIF
+
+;ABL:露出癖をみる
+IF ABL:7 <= 5
+	TIMES L , 0.70
+ELSEIF ABL:7 < 10
+	TIMES L , 0.90
+ELSEIF ABL:7 < 20
+	TIMES L , 1.00
+ELSEIF ABL:7 < 30
+	TIMES L , 1.10
+ELSEIF ABL:7 < 40
+	TIMES L , 1.30
+ELSEIF ABL:7 < 50
+	TIMES L , 1.40
+ELSE
+	TIMES L , 1.50
+ENDIF
+
+;EXP:歌唱経験をみる
+IF EXP:93 < EXPLV:1
+	TIMES L , 0.80
+ELSEIF EXP:93 < EXPLV:2
+	TIMES L , 1.00
+ELSEIF EXP:93 < EXPLV:3
+	TIMES L , 1.20
+ELSEIF EXP:93 < EXPLV:4
+	TIMES L , 1.40
+ELSEIF EXP:93 < EXPLV:5
+	TIMES L , 1.70
+ELSE
+	TIMES L , 2.00
+ENDIF
+
+;臆病
+SIF TALENT:10
+	TIMES L , 0.80
+
+;目立ちたがり
+SIF TALENT:28
+	TIMES L , 1.20
+
+;献身的
+SIF TALENT:63
+	TIMES L , 1.20
+
+;恋慕
+SIF TALENT:85
+	TIMES L , 2.00
+
+;歌の上手そうな人ボーナス
+CALL SINGER_BONUS
+
+;カットフラグを退避
+Z:302 = CFLAG:99
+;!;LOCAL:100 = CFLAG:99
+;口上開始前の地の文をカットするか
+TFLAG:13 = 17
+CALL SELF_MAEKOJO
+;地の文章カット
+IF (CFLAG:99 & 1) == 0 && FLAG:6
+	PRINTL 
+	PRINTFORMW %CALLNAME:TARGET%は野外ライブを開いた
+	PRINTL 　
+	PRINTW   「♪～」
+	PRINTW  「♪♪～」
+	PRINTW 「♪～♪～」
+	PRINTW 「…………」
+	PRINTW ………………
+	PRINTL 　
+	PRINTFORML 緊張しすぎたのか、歌っている最中に%CALLNAME:TARGET%は固まってしまった。
+	PRINTW どうやら今回のライブは失敗したようだ……
+	PRINTW      ･
+	PRINTW      ･
+	PRINTW      ･
+ENDIF
+;イベント口上野外ライブ失敗用
+;TFLAG:13 = 17
+H = 0
+CALL SELF_KOJO
+;地の文章カット
+SIF (CFLAG:99 & 1) == 0 && FLAG:6
+	PRINTFORMW 部屋に戻った%CALLNAME:MASTER%は泣いている%CALLNAME:TARGET%の頭を抱き寄せるとそっと撫でてやった……
+PRINTL 　
+P = ABL:92
+SIF P > 6
+	P = 5
+O = (P + RAND:6) / 2
+SIF O <= 1
+	O = 1
+JUEL:4 += L * 20
+PRINTFORML %PALAMNAME:4%の珠+{L*20}
+IF P > 0
+	JUEL:7 += L * P * (ABL:92 / 4 + 1)
+	PRINTFORML %PALAMNAME:7%の珠+{L * P * (ABL:92 / 4 + 1)}
+ENDIF
+JUEL:8 += N * (P+15)
+PRINTFORML %PALAMNAME:8%の珠+{N * (P+15)}
+EXP:93 += O
+PRINTFORML %EXPNAME:93% +{O}
+SIF ASSI > 0
+	EXP:ASSI:93 += 1 + RAND:O
+PRINTL 
+WAIT
+;カットフラグを戻す
+CFLAG:99 = Z:302
+;!;CFLAG:99 = LOCAL:100
+
+RETURN 1
+
+@CONCERT_SUCCESS
+;野外ライブ成功
+;-------------------------------------------------
+;K = 歌の種類
+;L = 音楽チケットの値段の補正を決定
+;M = 音楽チケットの値段
+;N = 音楽チケットの値段の基礎
+;O = 習得の珠増加量
+;P = 乱数処理用
+;-------------------------------------------------
+
+;K = RAND:21
+K = 0
+L = 0
+M = 0
+N = 0
+P = 0
+
+;ABL:歌唱技能
+IF ABL:92 <= 10
+	L += ABL:92
+ELSEIF ABL:92 <= 20
+	L += 20 + ABL:92 / 2
+ELSEIF ABL:92 <= 40
+	L += 30 + ABL:92 / 4
+ELSEIF ABL:92 <= 60
+	L += 40 + ABL:92 / 6
+ELSEIF ABL:92 <= 80
+	L += 50 + ABL:92 / 8
+ELSE
+	L += 60 + ABL:92 / 10
+ENDIF
+
+;ABL:露出癖をみる
+IF ABL:7 <= 5
+	TIMES L , 0.70
+ELSEIF ABL:7 < 10
+	TIMES L , 0.90
+ELSEIF ABL:7 < 20
+	TIMES L , 1.00
+ELSEIF ABL:7 < 30
+	TIMES L , 1.10
+ELSEIF ABL:7 < 40
+	TIMES L , 1.30
+ELSEIF ABL:7 < 50
+	TIMES L , 1.40
+ELSE
+	TIMES L , 1.50
+ENDIF
+
+;EXP:歌唱経験をみる
+IF EXP:93 < EXPLV:1
+	TIMES L , 0.80
+ELSEIF EXP:93 < EXPLV:2
+	TIMES L , 1.00
+ELSEIF EXP:93 < EXPLV:3
+	TIMES L , 1.20
+ELSEIF EXP:93 < EXPLV:4
+	TIMES L , 1.40
+ELSEIF EXP:93 < EXPLV:5
+	TIMES L , 1.70
+ELSE
+	TIMES L , 2.00
+ENDIF
+
+;臆病
+SIF TALENT:10
+	TIMES L , 0.80
+
+;目立ちたがり
+SIF TALENT:28
+	TIMES L , 1.20
+
+;献身的
+SIF TALENT:63
+	TIMES L , 1.20
+
+;恋慕
+SIF TALENT:85
+	TIMES L , 2.00
+
+;クリア後なら技能補正で安定させる
+IF (FLAG:28 & 1) != 0
+	;K = 歌の種類
+	IF K == 0 && ABL:92 >= 5
+		;キャラの持ち歌
+		N += 100
+	ELSEIF K == 1 || K == 2
+		N += 90 + ABL:92 / 10
+	ELSEIF K >= 3 && K < 6
+		N += 70 + ABL:92 / 8
+	ELSEIF K >= 6 && K < 10
+		N += 50 + ABL:92 / 6
+	ELSEIF K >= 10 && K < 15
+		N += 30 + ABL:92 / 4
+	ELSE
+		N += 10 + ABL:92 / 2
+	ENDIF
+ELSE
+	;K = 歌の種類
+	IF K == 0 && ABL:92 >= 5
+		;キャラの持ち歌
+		N += 100
+	ELSEIF K == 1 || K == 2
+		N += 90
+	ELSEIF K >= 3 && K < 6
+		N += 70
+	ELSEIF K >= 6 && K < 10
+		N += 50
+	ELSEIF K >= 10 && K < 15
+		N += 30
+	ELSE
+		N += 10
+	ENDIF
+ENDIF
+
+;歌うのが上手そうな人ボーナス
+CALL SINGER_BONUS
+
+;アイドル補正
+;謎の魅力
+SIF TALENT:92
+	TIMES N , 1.10
+;魅力
+SIF TALENT:113
+	TIMES N , 1.10
+;鼓舞
+SIF TALENT:113
+	TIMES N , 1.30
+;人気
+SIF TALENT:126
+	TIMES N , 1.25
+
+;カットフラグを退避
+Z:302 = CFLAG:99
+;!;LOCAL:100 = CFLAG:99
+;口上開始前の地の文をカットするか
+TFLAG:13 = 17
+CALL SELF_MAEKOJO
+
+;キャラ固有の持ち歌
+SIF K == 0 && ABL:92 >= 5
+	CALL SP_SONG_CONCERT
+SIF N <= 0
+	N = 0
+N += L
+;地の文章カット
+IF (CFLAG:99 & 1) == 0 && FLAG:6
+	PRINTL 
+	PRINTFORMW %CALLNAME:TARGET%は野外ライブを開いた
+	PRINTL 　
+	PRINTW   「♪～」
+	PRINTW  「♪♪～」
+	PRINTW 「♪～♪～」
+	PRINTW ………………
+	PRINTW      !
+	PRINTL 　
+	PRINTFORM %CALLNAME:TARGET%
+	IF K == 0 && ABL:92 >= 5
+		PRINTFORM が披露したとっておきの持ち歌%TSTR:1%
+	ELSE
+		PRINT のライブ
+	ENDIF
+	PRINT は
+	IF N >= 180
+		PRINTW 大成功だ。
+		PRINTFORML %CALLNAME:TARGET%の魅力的な歌声に、会場に集まった観客は熱狂的な歓声を上げている。
+		PRINTFORMW 一通り歌い終わると%CALLNAME:TARGET%は達成感溢れる笑みを観客、そして%CALLNAME:MASTER%へと送った……
+	ELSEIF N >= 120 && N < 180
+		PRINTW 成功だ。
+		PRINTFORML 歌い終え、%CALLNAME:TARGET%が去った後も歓声が聞こえてくる。
+		PRINTFORMW タオルで顔に付いた汗を拭きとると、%CALLNAME:TARGET%は満足そうな笑顔をこちらに向けた
+	ELSEIF N >= 60 && N < 120
+		PRINTW いい感じに成功したようだ。
+		PRINTFORMW %CALLNAME:TARGET%は歌い終えた後も気分が高揚しているのか、さっきからずっと鼻歌を歌っている……
+	ELSEIF N < 60 && EXP:93 == 0
+		PRINTFORMW まだまだ完璧には程遠い。
+		PRINTL しかしどうやらファンを作ることには成功したようだ。
+		PRINTFORMW 練習を積めば%CALLNAME:TARGET%の人気は今以上に出るかもしれない……
+	ELSE
+		PRINTW 失敗せずに済んだようだ。
+		PRINTFORMW %CALLNAME:TARGET%は緊張していたのか、舞台を降りるとほっとした表情を浮かべている。
+	ENDIF
+	PRINTW      ･
+	PRINTW      ･
+	PRINTW      ･
+ENDIF
+;イベント口上野外ライブ成功用
+;TFLAG:13 = 17
+H = 1
+CALL SELF_KOJO
+IF ABL:92 <= 10
+	P = ABL:92
+ELSEIF ABL:92 <= 20
+	P = 10 + (ABL:92 / 4)
+ELSEIF ABL:92 <= 30
+	P = 15 + (ABL:92 / 6)
+ELSEIF ABL:92 <= 40
+	P = 20 + (ABL:92 / 8)
+ELSEIF ABL:92 <= 50
+	P = 25 + (ABL:92 / 10)
+ELSEIF ABL:92 <= 60
+	P = 30 + (ABL:92 / 12)
+ELSEIF ABL:92 <= 70
+	P = 35 + (ABL:92 / 14)
+ELSEIF ABL:92 <= 80
+	P = 40 + (ABL:92 / 16)
+ELSEIF ABL:92 <= 90
+	P = 45 + (ABL:92 / 18)
+ELSE
+	P = 50 + (ABL:92 / 20)
+ENDIF
+O = 5 + RAND:16
+JUEL:4 += L * 10
+PRINTFORML %PALAMNAME:4%の珠+{L*10}
+JUEL:7 += L * O
+PRINTFORML %PALAMNAME:7%の珠+{L * O}
+JUEL:8 += N * (P+5) / 5
+PRINTFORML %PALAMNAME:8%の珠+{N * (P+5) / 5}
+IF ABL:92 <= 5
+	O = 2
+ELSEIF ABL:92 <= 30
+	O = P / 2
+ELSEIF ABL:92 <= 50
+	O = P / 3
+ELSEIF ABL:92 <= 70
+	O = P / 4
+ELSE
+	O = P / 5
+ENDIF
+EXP:93 += O
+PRINTFORML %EXPNAME:93% +{O}
+SIF ASSI > 0
+	EXP:ASSI:93 += 1 + RAND:O
+PRINTL 
+
+M = L + N
+;クリア後インフレ
+IF (FLAG:28 & 1) != 0
+	IF DAY >= 120
+		M += RAND:(1 + (EXP:93 / 10))
+	ELSEIF DAY >= 90
+;		M = L + N
+	ELSEIF DAY >= 60
+		M /= 5
+	ELSEIF DAY >= 48
+		M /= 10
+	ELSEIF DAY >= 30
+		M /= 15
+	ELSE
+		M /= 20
+	ENDIF
+ELSE
+	M /= 25
+ENDIF
+
+;地の文章カット
+IF (CFLAG:99 & 1) == 0 && FLAG:6
+	PRINTFORM %CALLNAME:TARGET%が
+	PRINTFORML 開いたライブで{M}枚の音楽チケットが売れた。
+ENDIF
+;カットフラグを戻す
+CFLAG:99 = Z:302
+;!;CFLAG:99 = LOCAL:100
+
+;ここでL+Mを再計算する必要性はあるのだろうか
+;無いと思ったので書き換えてやるー
+;さらに安定処理
+IF P > 0
+	P = (P + RAND:P) / 2
+	M *= 5 * P
+ELSE
+	M *= 5
+ENDIF
+MONEY += M
+PRINTFORML 売上金 +${M}
+PRINTL 
+WAIT
+RETURN 1
+
+;------------------------------------------
+;歌うのが上手そうな方(個人的主観入ってます)
+;妹紅は、貴族の娘なので歌の類は達者な筈…天子は、後天的な上に天人くずれらしいのでそのまま
+;------------------------------------------
+@SINGER_BONUS
+;歌唱素質で補正をかける
+SIF ABL:52 == 3
+	TIMES N , 1.50
+SIF ABL:52 == 2
+	TIMES N , 1.25
+SIF ABL:52 == 1
+	TIMES N , 1.10
+SIF ABL:52 == -1
+	TIMES N , 0.90
+SIF ABL:52 == -2
+	TIMES N , 0.80
+RETURN 0
+
+;------------------------------------------
+;キャラ固有の持ち歌
+;------------------------------------------
+@SP_SONG_CONCERT
+IF NO:TARGET == 1 && CFLAG:0 == 0
+	;霊夢
+	TSTR:1 = 『楽園の巫女』
+	N -= 20
+	N += RAND:71
+ELSEIF NO:TARGET == 1 && CFLAG:0
+	;霊夢様
+	P = RAND:512
+	IF P == 0
+		TSTR:1 = 『烙炎の巫女』
+		N = 200
+		N += RAND:500
+	ELSE
+		TSTR:1 = 『楽園の支配者』
+		N += RAND:100
+	ENDIF
+ELSEIF NO:TARGET == 2
+	;魔理沙
+	TSTR:1 = 『弾幕はパワー』
+	N -= 15
+	N += RAND:66
+ELSEIF NO:TARGET == 3
+	;ルーミア
+	TSTR:1 = 『宵闇飛行隊』
+	N -= 25
+	N += RAND:66
+ELSEIF NO:TARGET == 4
+	;大妖精
+	P = RAND:3
+	IF P == 0
+		TSTR:1 = 『名もなき者の詩』
+		N = 150
+	ELSE
+		TSTR:1 = 『大ちゃん子守唄』
+		N -= 21
+		N += RAND:62
+	ENDIF
+ELSEIF NO:TARGET == 5
+	;チルノ
+	P = RAND:256
+	IF P == 0
+		TSTR:1 = 『あたいったらサイキョーね！～⑨重奏』
+		N = 999
+	ELSEIF P == 1
+		TSTR:1 = 『チルノのパーフェクトさんすう教室』
+		N = 99
+	ELSE
+		TSTR:1 = 『あたいったらサイキョーね！』
+		N += 9
+	ENDIF
+ELSEIF NO:TARGET == 6
+	;美鈴
+	TSTR:1 = 『彩光円舞』
+	N -= 50
+	N += RAND:101
+ELSEIF NO:TARGET == 7
+	;こぁ
+	TSTR:1 = 『名もなき者の詩』
+	N = 150
+ELSEIF NO:TARGET == 8
+	;パチュリー
+	TSTR:1 = 『唱えて今日の魔法』
+	N -= 23
+	N += RAND:45
+ELSEIF NO:TARGET == 9
+	;咲夜さん
+	TSTR:1 = 『本気狩る☆咲夜ちゃん』
+	N -= 30
+	N += RAND:56
+ELSEIF NO:TARGET == 10
+	;レミリア
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『私のこの手が真っ赤に燃える！全世界ナイトメア・吸血鬼れみりあちゃん』
+		N -= 40
+		N += RAND:171
+	ELSE
+		TSTR:1 = 『モケーレムベンベのバラード』
+		N -= 20
+		N += RAND:101
+	ENDIF
+ELSEIF NO:TARGET == 11
+	;フラン
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『キュッとしてどーん』
+		N -= 30
+		N += RAND:151
+	ELSE
+		TSTR:1 = 『クランベリートラップ』
+		N -= 15
+		N += RAND:126
+	ENDIF
+ELSEIF NO:TARGET == 12
+	;レティ
+	P = RAND:3
+	IF P == 0
+		TSTR:1 = 『猛吹雪のセレナーデ』
+		N -= 29
+		N += RAND:125
+	ELSE
+		TSTR:1 = 『吹雪のセレナーデ』
+		N -= 24
+		N += RAND:95
+	ENDIF
+ELSEIF NO:TARGET == 13
+	;橙
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『黒猫のワルツ』
+		N -= 20
+		N += RAND:110
+	ELSE
+		TSTR:1 = 『黒猫の団子』
+		N -= 6
+		N += RAND:181
+	ENDIF
+ELSEIF NO:TARGET == 14 && CFLAG:0 == 0
+	;アリス
+	TSTR:1 = 『突撃マイハニー』
+	N += 10
+	N += RAND:91
+ELSEIF NO:TARGET == 14 && CFLAG:0
+	;ちびアリス
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = “Mystic Dream”
+		N += RAND:100
+	ELSE
+		TSTR:1 = 『不思議の国へようこそ』
+		N -= 20
+		N += RAND:88
+	ENDIF
+ELSEIF NO:TARGET == 15 || NO:TARGET == 56
+	;ダブルリリー
+	TSTR:1 = 『春の歌』
+	N -= 40
+	N += RAND:111
+ELSEIF NO:TARGET == 16 || NO:TARGET == 17 || NO:TARGET == 18
+	;騒霊三姉妹
+	TSTR:1 = 『%CALLNAME:TARGET%・ソロ』
+	N -= 17
+	N += RAND:256
+ELSEIF NO:TARGET == 19
+	;妖夢
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『白玉楼ブルース』
+		N -= 37
+		N += RAND:172
+	ELSE
+		TSTR:1 = 『丁々発止』
+		N -= 31
+		N += RAND:60
+	ENDIF
+ELSEIF NO:TARGET == 20
+	;ゆゆ様
+	TSTR:1 = 『幽雅に咲かせ、墨染めの桜』
+	N -= 18
+	N += RAND:145
+ELSEIF NO:TARGET == 21
+	;藍様
+	TSTR:1 = 『四面楚歌☆チャーミング』
+	N -= 21
+	N += RAND:101
+ELSEIF NO:TARGET == 22
+	;ゆかりん
+	TSTR:1 = 『美しく残酷に』
+	N -= 13
+	N += RAND:146
+ELSEIF NO:TARGET == 23
+	;萃香
+	TSTR:1 = 『幻想郷酒飲み音頭』
+	N -= 23
+	N += RAND:86
+ELSEIF NO:TARGET == 24
+	;リグル
+	TSTR:1 = 『全世界ナイトバグ』
+	N -= 8
+	N += RAND:65
+ELSEIF NO:TARGET == 25
+	;みすちー
+	P = RAND:3
+	IF P == 0
+		TSTR:1 = 『ミスティア音頭』
+		N -= 27
+		N += RAND:252
+	ELSEIF P == 1
+		TSTR:1 = 『みっすみすにしてやんよ！』
+		N -= 74
+		N += RAND:512
+	ELSE
+		TSTR:1 = 『ちんちんワールド』
+		N -= 21
+		N += RAND:120
+	ENDIF
+ELSEIF NO:TARGET == 26
+	;慧音
+	TSTR:1 = 『満月必堀』
+	N -= 24
+	N += RAND:48
+ELSEIF NO:TARGET == 27
+	;てゐ
+	TSTR:1 = “Lucky joker”
+	N /= 5
+	N += RAND:256
+ELSEIF NO:TARGET == 28
+	;鈴仙
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『月兎自暴自棄曲(バーサーカーノイズ) ～エーリングセンス～』
+		N -= 11
+		N += RAND:142
+	ELSE
+		TSTR:1 = 『月兎自暴自棄曲(バーサーカーノイズ)』
+		N -= 11
+		N += RAND:71
+	ENDIF
+ELSEIF NO:TARGET == 29
+	;永琳
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『胡蝶夢丸ナイトメア』
+		N -= 41
+		N += RAND:120
+	ELSE
+		TSTR:1 = 『アポロ11号』
+		N -= 28
+		N += RAND:56
+	ENDIF
+ELSEIF NO:TARGET == 30
+	;輝夜
+	TSTR:1 = 『男は黙って金閣寺』
+	N -= 13
+	N += RAND:179
+ELSEIF NO:TARGET == 31
+	;妹紅
+	P = RAND:3
+	IF P == 0
+		TSTR:1 = 『無限一夜』
+		N -= 21
+		N += RAND:160
+	ELSEIF P == 1
+		TSTR:1 = 『蓬莱蓮華』
+		N -= 16
+		N += RAND:87
+	ELSE
+		TSTR:1 = 『凱風快晴』
+		N -= 11
+		N += RAND:45
+	ENDIF
+ELSEIF NO:TARGET == 32
+	;文
+	TSTR:1 = 『風神少女』
+	N -= 20
+	N += RAND:80
+ELSEIF NO:TARGET == 33
+	;メディスン
+	TSTR:1 = 『スイート☆ポイズン』
+	N -= 26
+	N += RAND:110
+ELSEIF NO:TARGET == 34
+	;ゆうかりん
+	IF ABL:TARGET:15 >= 10
+		P = RAND:2
+		IF P == 0
+			TSTR:1 = 『破滅のスカッド』
+			N -= 40
+			N += RAND:256
+		ELSE
+			TSTR:1 = 『崩壊デュアルスパーク』
+			N -= 15
+			N += RAND:192
+		ENDIF
+	ELSE
+		P = RAND:2
+		IF P == 0
+			TSTR:1 = “Inanimate Dream”
+			N -= 25
+			N += RAND:100
+		ELSE
+			TSTR:1 = 『散り逝く花へのレクイエム』
+			N -= 15
+			N += RAND:80
+		ENDIF
+	ENDIF
+ELSEIF NO:TARGET == 35
+	;小町
+	TSTR:1 = 『Sabotage ～ もう何もしたくない』
+	N -= 24
+	N += RAND:72
+ELSEIF NO:TARGET == 36
+	;えーき様
+	TSTR:1 = 『ヤマザナドゥ音頭』
+	N += RAND:678
+ELSEIF NO:TARGET == 37
+	;静葉
+	TSTR:1 = 『紅葉一巡』
+	N -= 32
+	N += RAND:129
+ELSEIF NO:TARGET == 38
+	;穣子
+	TSTR:1 = 『豊作祈願の舞』
+	N -= 16
+	N += RAND:91
+ELSEIF NO:TARGET == 39
+	;雛
+	TSTR:1 = 『厄い日曜日』
+	N -= 50
+	N += RAND:210
+ELSEIF NO:TARGET == 40
+	;にとり
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『超妖怪弾頭』
+		N -= 13
+		N += RAND:105
+	ELSE
+		TSTR:1 = 『キュウリハンター』
+		N -= 17
+		N += RAND:111
+	ENDIF
+ELSEIF NO:TARGET == 41
+	;もみっち
+	P = RAND:2
+	IF P == 1
+		TSTR:1 = 『将棋は歩から』
+		N -= 20
+		N += RAND:70
+	ELSE
+		TSTR:1 = 『犬のみまわりさん』
+		N -= 25
+		N += RAND:65
+	ENDIF
+ELSEIF NO:TARGET == 42 && CFLAG:0 == 0
+	;早苗
+	TSTR:1 = 『信濃の子守唄』
+	N -= 15
+	N += RAND:84
+ELSEIF NO:TARGET == 42 && CFLAG:0
+	;早苗様
+	PRINT 『桃色幻想郷』
+	N -= 25
+	N += RAND:89
+ELSEIF NO:TARGET == 43
+	;神奈子
+	P = RAND:4
+	IF P == 0
+		TSTR:1 = 『神話戦隊オンバシラー』
+		N -= 30
+		N += RAND:120
+	ELSEIF P == 1
+		TSTR:1 = 『神話戦隊オンバシラーDX』
+		N -= 25
+		N += RAND:125
+	ELSEIF P == 2
+		TSTR:1 = 『神話戦隊オンバシラー外伝』
+		N -= 20
+		N += RAND:130
+	ELSE
+		TSTR:1 = 『神話戦隊オンバシラー・FinalEdition』
+		N -= 20
+		N += RAND:150
+	ENDIF
+ELSEIF NO:TARGET == 44
+	;ケロちゃん
+	P = RAND:16
+	IF P == 0
+		TSTR:1 = 『明日ハレの日、ケの昨日』
+		N /= 2
+		N += 196
+	ELSE
+		TSTR:1 = 『蛙の気持ち』
+		N -= 30
+		N += RAND:60
+	ENDIF
+ELSEIF NO:TARGET == 45
+	;サニー
+	TSTR:1 = 『太陽燦々』
+	N -= 24
+	N += RAND:75
+ELSEIF NO:TARGET == 46
+	;ルナ
+	TSTR:1 = 『夜だから眠らない』
+	N -= 25
+	N += RAND:72
+ELSEIF NO:TARGET == 47
+	;スター
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『星に願いを』
+		N -= 24
+		N += RAND:70
+	ELSE
+		TSTR:1 = 『星を見る妖精』
+		N -= 10
+		N += RAND:50
+	ENDIF
+ELSEIF NO:TARGET == 48
+	;阿求
+	TSTR:1 = 『転生人 ～ Reincarnation』
+	N -= 25
+	N += RAND:130
+ELSEIF NO:TARGET == 49
+	;蓮子
+	IF ASSI > 0
+		IF NO:ASSI == 50 && ABL:ASSI:12 >= 3 && ABL:TARGET:12 >= 3
+			TSTR:1 = 『少女秘封倶楽部』
+			N /= 2
+			N += RAND:512
+		ELSE
+			TSTR:1 = 『時詠み』
+			N -= 12
+			N += RAND:60
+		ENDIF
+	ELSE
+		TSTR:1 = 『時詠み』
+		N -= 12
+		N += RAND:60
+	ENDIF
+ELSEIF NO:TARGET == 50
+	;メリー
+	IF ASSI > 0
+		IF NO:ASSI == 49 && ABL:ASSI:12 >= 3 && ABL:TARGET:12 >= 3
+			TSTR:1 = 『少女秘封倶楽部』
+			N /= 2
+			N += RAND:512
+		ELSE
+			TSTR:1 = 『夢現』
+			N -= 12
+			N += RAND:60
+		ENDIF
+	ELSE
+		TSTR:1 = 『夢現』
+		N -= 12
+		N += RAND:60
+	ENDIF
+ELSEIF NO:TARGET == 51
+	;魅魔様
+	TSTR:1 = “Darkness Soul”
+	N -= 6
+	N += RAND:66
+ELSEIF NO:TARGET == 52
+	;神綺様
+	TSTR:1 = “Song of GOD”
+	N /= 2
+	N += RAND:164
+ELSEIF NO:TARGET == 53 || NO:TARGET == 54
+	;豊姫、依姫
+	P = RAND:3
+	IF P == 0
+		TSTR:1 = 『望月』
+		N -= 10
+		N += RAND:111
+	ELSEIF P == 1
+		TSTR:1 = 『朧月』
+		N -= 25
+		N += RAND:126
+	ELSE
+		TSTR:1 = “Lunatic Blue”
+		N -= 28
+		N += RAND:90
+	ENDIF
+ELSEIF NO:TARGET == 55
+	;レイセン
+	P = RAND:6
+	IF P == 0
+		TSTR:1 = 『月のカケラ』
+		N -= 20
+		N += RAND:60
+	ELSE
+		TSTR:1 = 『ムーンライト伝承』
+		N -= 14
+		N += RAND:50
+	ENDIF
+ELSEIF NO:TARGET == 57
+	;サラ
+	TSTR:1 = 『夢列車』
+	N -= 31
+	N += RAND:98
+ELSEIF NO:TARGET == 58
+	;ルイズ
+	;旅行好きってことで幻想郷に繋がっていそうな場所を軒並み
+	P = RAND:6
+	IF P == 0
+		;ログにあった月世界旅行に一文字加えて
+		TSTR:1 = 『月面世界旅行』
+		N /= 2
+		N *= 1 + RAND:3
+	ELSEIF P == 1
+		TSTR:1 = 『幻想世界旅行』
+		N -= 25
+		N += RAND:96
+	ELSEIF P == 2
+		TSTR:1 = 『地底世界旅行』
+		N -= 20
+		N += RAND:61
+	ELSEIF P == 3
+		TSTR:1 = 『冥界旅行』
+		N -= 15
+		N += RAND:41
+	ELSEIF P == 4
+		TSTR:1 = 『天界旅行』
+		N -= 10
+		N += RAND:36
+	ELSE
+		TSTR:1 = 『魔界旅行』
+		N -= 5
+		N += RAND:21
+	ENDIF
+ELSEIF NO:TARGET == 59
+	;ユキ
+	TSTR:1 = “Black in Mind”
+	N -= 24
+	N += RAND:84
+ELSEIF NO:TARGET == 60
+	;マイ
+	TSTR:1 = “Judas Kiss”
+	N -= 24
+	N += RAND:84
+ELSEIF NO:TARGET == 61
+	;夢子
+	TSTR:1 = 『メイドガール』
+	N -= 10
+	N += RAND:100
+ELSEIF NO:TARGET == 62
+	;衣玖さん
+	P = RAND:3
+	IF P == 0
+		;フィーバーを無理やり和訳
+		TSTR:1 = 『土曜日狂想曲』
+		N -= 22
+		N += RAND:144
+	ELSEIF P == 1
+		;カブキロックスってゲームにあるんだこれ
+		TSTR:1 = 『お嫁サンダー』
+		N -= 22
+		N += RAND:100
+	ELSE
+		TSTR:1 = 『君の頭上に100万ボルト』
+		N -= 22
+		N += RAND:88
+	ENDIF
+ELSEIF NO:TARGET == 63
+	;天子
+	TSTR:1 = 『ピーチアップ・ガール』
+	N -= 20
+	N += RAND:75
+ELSEIF NO:TARGET == 64
+	;里香
+	TSTR:1 = 『戦車むすめのこいのうた』
+	N -= 12
+	N += RAND:66
+ELSEIF NO:TARGET == 65
+	;明羅
+	P = RAND:3
+	IF P == 0
+		TSTR:1 = 『夕暮埋まり女侍』
+		N -= 21
+		N += RAND:96
+	ELSE
+		TSTR:1 = 『陽の終わり、月の始まり』
+		N -= 13
+		N += RAND:108
+	ENDIF
+ELSEIF NO:TARGET == 66
+	;エレン
+	TSTR:1 = 『恋するふわふわ娘』
+	N -= 10
+	N += RAND:80
+ELSEIF NO:TARGET == 67
+	;小兎姫
+	TSTR:1 = 『プリンセススマイル』
+	N -= 22
+	N += RAND:88
+ELSEIF NO:TARGET == 68
+	;カナ
+	TSTR:1 = 『カナベラルの夢幻少女』
+	N -= 15
+	N += RAND:80
+ELSEIF NO:TARGET == 69
+	;理香子
+	TSTR:1 = 『科学神話』
+	N -= 45
+	N += RAND:70
+ELSEIF NO:TARGET == 70
+	;ちゆり
+	TSTR:1 = 『ちゆちゆチェリー』
+	N -= 6
+	N += RAND:66
+ELSEIF NO:TARGET == 71
+	;夢美
+	P = RAND:4
+	IF P == 0
+		TSTR:1 = 『スロトベリーダンス』
+		N /= 5
+		P = 1 + RAND:15
+		REPEAT P
+			N += RAND:15
+		REND
+	ELSE
+		TSTR:1 = “Strawberry Crisis!!”
+		N -= 12
+		N += RAND:111
+	ENDIF
+ELSEIF NO:TARGET == 72
+	;オレンジ
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『蜜柑色の夏休み』
+		N -= 22
+		N += RAND:96
+	ELSE
+		TSTR:1 = 『ぴゅっぴゅっぴゅ～のぴゅ～』
+		N -= 34
+		N += RAND:70
+	ENDIF
+ELSEIF NO:TARGET == 73
+	;くるみ
+	TSTR:1 = 『紅い湖のパヴァーヌ』
+	N -= 45
+	N += RAND:80
+ELSEIF NO:TARGET == 74
+	;エリー
+	TSTR:1 = 『夢幻館の門前へ』
+	N -= 25
+	N += RAND:77
+ELSEIF NO:TARGET == 75 || NO:TARGET == 76
+	;夢月、幻月
+	TSTR:1 = 『夢幻の月』
+	N -= 24
+	N += RAND:120
+ELSEIF NO:TARGET == 77
+	;キスメ
+	TSTR:1 = 『釣瓶落としの冬休み』
+	N /= 2
+	N += RAND:180
+ELSEIF NO:TARGET == 78
+	;ヤマメ
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = “Lunatic Underground”
+		N += RAND:256
+	ELSE
+		TSTR:1 = “Hi-tension Feaver”
+		N += RAND:101
+	ENDIF
+ELSEIF NO:TARGET == 79
+	;パルスィ
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『叶わぬ恋の嫉妬歌』
+		N -= 50
+		N += RAND:196
+	ELSE
+		TSTR:1 = “Slinking Cat”
+		N /= 2
+		N += RAND:145
+	ENDIF
+ELSEIF NO:TARGET == 80
+	;勇儀
+	TSTR:1 = 『三歩必殺』
+	N -= 35
+	N += RAND:85
+ELSEIF NO:TARGET == 81
+	;さとり
+	TSTR:1 = 『少女S』
+	N -= 12
+	N += RAND:143
+ELSEIF NO:TARGET == 82
+	;燐
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『おりんりんワールド』
+		N += 31
+		N += RAND:60
+	ELSE
+		TSTR:1 = 『おりんりんランド』
+		N -= 30
+		N += RAND:70
+	ENDIF
+ELSEIF NO:TARGET == 83
+	;おくう
+	P = RAND:32
+	IF P == 0
+		TSTR:1 = “Melty Kiss”
+		N -= 25
+		N += RAND:150
+	ELSEIF P == 1
+		;核と言ったら世紀末
+		TSTR:1 = 『愛を取り戻せ！！』
+		N -= 30
+		N += RAND:140
+	ELSE
+		TSTR:1 = 『灼熱のファイヤーガール』
+		N -= 30
+		N += RAND:80
+	ENDIF
+ELSEIF NO:TARGET == 84
+	;こいし
+	P = RAND:64
+	IF P == 0
+		TSTR:1 = 『一粒無意識に300メートル』
+		N -= 20
+		N += RAND:240
+	ELSE
+		TSTR:1 = 『ポッキーCMソング』
+		N -= 20
+		N += RAND:50
+	ENDIF
+ELSEIF NO:TARGET == 86
+	;朱鷺子
+	TSTR:1 = 『名もなき者の詩』
+	N = 150
+ELSEIF NO:TARGET == 87
+	;半霊
+	TSTR:1 = 『半分幻の恋』
+	N -= 30
+	N += RAND:70
+ELSEIF NO:TARGET == 88
+	;上海人形
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『上海ドール』
+		N -= 27
+		N += RAND:143
+	ELSE
+		TSTR:1 = 『人形たちのロンド』
+		N -= 10
+		N += RAND:123
+	ENDIF
+ELSEIF NO:TARGET == 89
+	;蓬莱人形
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『マリオネットミュージアム』
+		N -= 27
+		N += RAND:143
+	ELSE
+		TSTR:1 = 『人形たちのロンド』
+		N -= 10
+		N += RAND:123
+	ENDIF
+	
+ELSEIF NO:TARGET == 91
+	;ナズーリン同志
+	LOCAL:3 = RAND:3
+	IF LOCAL:3 == 0
+		PRINT 『インターナショナル』
+		N -= 30
+		N += RAND:111
+	ELSEIF LOCAL:3 == 1
+		PRINT 『聞け万国の労働者』
+		N -= 25
+		N += RAND:120
+	ELSE
+		;これはディ○ニーには絶対にないしょだぜ…
+		PRINT 『ナズーリンマウス・マーチ』
+		N -= 200
+		N += RAND:320
+	ENDIF
+ELSEIF NO:TARGET == 92
+	;小傘っち
+	LOCAL:3 = RAND:2
+	IF LOCAL:3 == 0
+		PRINT 『傘』
+		N -= 40
+		N += RAND:90
+	ELSE
+		PRINT 『忘れ傘には気をつけて』
+		N -= 60
+		N += RAND:135
+	ENDIF
+ELSEIF NO:TARGET == 93
+	;一輪
+	PRINT 『尼寺に和尚さんが』
+	N -= 75
+	N += RAND:80
+;ELSEIF NO:TARGET == 74
+;	;雲山さん
+;	PRINT 『オヤジの拳骨』
+;	N -= 35
+;	N += RAND:98
+ELSEIF NO:TARGET == 94
+	;ムラサ船長
+	LOCAL:3 = RAND:2
+	IF LOCAL:3 == 0
+		PRINT 『われは海の子』
+		N -= 30
+		N += RAND:90
+	ELSE
+		PRINT 『海賊の歌』
+		N -= 30
+		N += RAND:92
+	ENDIF
+ELSEIF NO:TARGET == 95
+	;寅丸の星さん
+	;毘沙門天に祈るお経みたいなもの。
+	PRINT 『おんべいしらまなやそわか』
+	N -= 50
+	N += RAND:115
+ELSEIF NO:TARGET == 96
+	;白蓮お姉さま
+	LOCAL:3 = RAND:2
+	IF LOCAL:3 == 0
+		PRINT “TSUGUNAI”
+		N -= 12
+		N += RAND:90
+	ELSE
+		;お、おいっ！
+		PRINT “大蓮華”
+		N -= 10
+		N += RAND:88
+	ENDIF
+ELSEIF NO:TARGET == 97
+	;ぬえ
+	LOCAL:3 = RAND:2
+	IF LOCAL:3 == 0
+		;元ネタ（おそらく誰もしらない）を思いっきり改題
+		PRINT “幻想世界少女と鵺”
+		N -= 96
+		N += RAND:132
+	ELSE
+		;お、おいっ！　その２
+		PRINT “ＵＦＯ”
+		N -= 100
+		N += RAND:100
+	ENDIF
+ELSEIF NO:TARGET == 98
+	;はたて
+	TSTR:1 = 『ダブルスポイラー』
+	N -= 20
+	N += RAND:80
+ELSEIF NO:TARGET == 99
+	;名無しキャラ
+	P = RAND:2
+	IF P == 0
+		;ひまわり妖精他種族「妖精」用
+		TSTR:1 = 『妖精燦々として』
+		N -= 32
+		N += RAND:81
+	ELSE
+		TSTR:1 = 『名もなき者の詩』
+		N = 150
+	ENDIF
+ELSEIF NO:TARGET == 100
+	;華扇
+	LOCAL:3 = RAND:2
+	IF LOCAL:3 == 0
+		TSTR:1 = 『ライオン』
+		N -= 40
+		N += RAND:75
+	ELSE
+		TSTR:1 = 『星間飛行』
+		N -= 20
+		N += RAND:50
+	ENDIF
+ELSEIF NO:TARGET == 101
+	;響子
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『木霊』
+		N -= 30
+		N += RAND:70
+	ELSE
+		TSTR:1 = 『はんにゃしんぎょう』
+		N -= 50
+		N += RAND:120
+	ENDIF
+ELSEIF NO:TARGET == 102
+	;芳香
+	TSTR:1 = 『スリラー』
+	N -= 20
+	N += 50
+	;評価低めなのはダンスのキレとかの問題であって別にあの人の評価が低い訳ではないのであしからず
+ELSEIF NO:TARGET == 103
+	;青娥
+	TSTR:1 = 『古きユアンシェン』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 104
+	;屠自古
+	TSTR:1 = 『夢殿大祠廟』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 105
+	;布都
+	TSTR:1 = 『大神神話伝』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 106
+	;神子
+	TSTR:1 = 『聖徳伝説  ～ True Administrator』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 107
+	;マミゾウ
+	TSTR:1 = 『佐渡の二ッ岩』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 108
+	;小鈴
+	;曲名に小鈴要素がある曲を宵闇の妖怪さんからお借りしました
+	TSTR:1 = 『妖魔夜行』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 109
+	;こころ
+	;やっぱこれは入れておかないと。
+	TSTR:1 = 『心綺楼』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 110
+	;わかさぎ姫
+	TSTR:1 = 『秘境のマーメイド』
+	N -= 25
+	N += RAND:130
+ELSEIF NO:TARGET == 111
+	;赤蛮奇
+	TSTR:1 = 『柳の下のデュラハン』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 112
+	;影狼
+	TSTR:1 = 『孤独のウェアウルフ』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 113
+	;弁々
+	TSTR:1 = 『幻想浄瑠璃』
+	N -= 17
+	N += RAND:256
+ELSEIF NO:TARGET == 114
+	;八橋
+	TSTR:1 = 『幻想浄瑠璃』
+	N -= 17
+	N += RAND:256
+ELSEIF NO:TARGET == 115
+	;正邪
+	TSTR:1 = 『リバースイデオロギー』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 116
+	;針妙丸
+	TSTR:1 = 『輝く針の小人族～Little_Princess』
+	N -= 30
+	N += RAND:90
+ELSEIF NO:TARGET == 117
+	;雷鼓
+	TSTR:1 = 『始原のビート　～ Pristine Beat』
+	N -= 17
+	N += RAND:256
+
+
+
+ELSEIF NO:TARGET == 198
+	;サテラ
+	P = RAND:2
+	IF P == 0
+		TSTR:1 = 『Sugar baby love』
+		N -= 126
+		N += RAND:60
+	ELSE
+		TSTR:1 = 『Garnet moon』
+		N -= 80
+		N += RAND:120
+	ENDIF
+ELSE
+	;一応例外設定
+	TSTR:1 = 『酔生夢死』
+	N -= 20
+	N += RAND:80
+ENDIF
+RETURN 0
+
+;テンプレ用
+;ELSEIF NO:TARGET == 
+;キャラ
+;	TSTR:1 = 『(歌名)』
+;	N -= 
+;	N += RAND:
+;テンプレ用2
+;ELSEIF NO:TARGET == 
+;キャラ
+;	P = RAND:2
+;	IF P == 0
+;		TSTR:1 = 『(歌名)』
+;		N -= 
+;		N += RAND:
+;	ELSE
+;		TSTR:1 = 『(歌名)』
+;		N -= 
+;		N += RAND:
+;	ENDIF
+

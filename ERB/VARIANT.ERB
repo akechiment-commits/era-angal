@@ -1,0 +1,635 @@
+;-------------------------------------------------
+;eratohoJ用VARIANT.ERB
+;eratohoJ（派生バリアント）特有の処理・関数を集めたもの
+;バリアント同士でファイル共有しやすくするのが目的
+;-------------------------------------------------
+;J+のバージョン取得関数
+@GET_VERSION_J_PLUS(ARG)
+#FUNCTION
+RETURNF GAMEBASE_VERSION
+
+;J1.06.4用イベント追加パッチまとめのバージョン取得関数
+@GET_VERSION_MATOME(ARG)
+#FUNCTION
+RETURNF 1107
+
+;--------------------------------------------------
+;EX化可能かどうかチェックする関数(黒の飴玉によるもの)
+;--------------------------------------------------
+@ABLE_EX_CHANGES(ARG)
+#FUNCTION
+;霊夢
+IF NO:ARG == 1
+	RETURNF 1
+;ルーミア
+ELSEIF NO:ARG == 3
+	RETURNF 1
+;アリス
+ELSEIF NO:ARG == 14
+	RETURNF 1
+;早苗
+ELSEIF NO:ARG == 42
+	RETURNF 1
+ENDIF
+RETURNF 0
+
+;-------------------------------------------------
+;SPキャラ加入処理
+;-------------------------------------------------
+@ADD_REIMUSAMA
+;霊夢様加入処理
+
+;絶対加入させない場合
+SIF FLAG:28 & 2
+	RETURN 1
+
+;霊夢を検索
+T = 1
+CALL GET_EXISTANCE
+;計算しやすいように、存在位置を+1された値から、本来の値に戻す
+E -= 1
+;霊夢が居ない
+IF E < 0
+	PRINTFORMW 特典として霊夢様(ドＳ版霊夢)を仲間に加える事ができます。仲間に加えますか？
+	PRINTL [0] はい
+	PRINTL [1] いいえ（次の機会に、また加入させるか聞く）
+	PRINTL [2] 絶対使わないから次から聞かなくても良い
+
+	INPUT
+	IF RESULT < 0 || RESULT > 2
+		RESTART
+	ELSEIF RESULT == 0
+		PRINTFORMW それでは霊夢様を仲間に加えます。霊夢様のご機嫌を損ねないよう、くれぐれもご注意下さい
+		CALL ADDSPCHARA_1
+	ELSEIF RESULT == 1
+		PRINTFORMW それでは今回の加入は見送ります
+	ELSEIF RESULT == 2
+		PRINTFORMW 了解です。不快な思いをさせてしまい申し訳ありませんでした
+		FLAG:28 |= 2
+	ENDIF
+	RETURN 1
+
+;霊夢が主人公
+ELSEIF E == 0
+	;変更できない
+	FLAG:28 |= 2
+;普通の霊夢が居る
+ELSEIF TALENT:E:201 == 0
+	PRINTFORMW 特典として霊夢様(ドＳ版霊夢)を仲間に加える事ができます
+	PRINTFORMW 今居る普通の霊夢は居なくなりますが、仲間に加えますか？
+	PRINTL [0] はい
+	PRINTL [1] いいえ（次の機会に、また加入させるか聞く）
+	PRINTL [2] 絶対使わないから次から聞かなくても良い
+
+	INPUT
+	IF RESULT < 0 || RESULT > 2
+		RESTART
+	ELSEIF RESULT == 0
+		PRINTFORMW それでは霊夢様を仲間に加えます。霊夢様のご機嫌を損ねないよう、くれぐれもご注意下さい
+
+		IF TARGET >= 0
+			LOCAL:1 = NO:TARGET
+		ELSE
+			LOCAL:1 = -1
+		ENDIF
+		IF ASSI >= 0
+			LOCAL:2 = NO:ASSI
+		ELSE
+			LOCAL:2 = -1
+		ENDIF
+		;パートナーフラグを記憶
+		LOCAL:3 = TALENT:E:150
+		DELCHARA E
+		CALL ADDSPCHARA_1
+		PRINTFORMW ＜霊夢の様子が変わった＞
+		REPEAT CHARANUM
+			SIF NO:COUNT == LOCAL:1
+				TARGET = COUNT
+			SIF NO:COUNT == LOCAL:2
+				ASSI = COUNT
+		REND
+		SIF LOCAL:2 == 1
+			ASSI = -1
+		
+		;パートナーフラグ復元
+		TALENT:A:150 = LOCAL:3
+	ELSEIF RESULT == 1
+		PRINTFORMW それでは今回の加入は見送ります
+	ELSEIF RESULT == 2
+		PRINTFORMW 了解です。不快な思いをさせてしまい申し訳ありませんでした
+		FLAG:28 |= 2
+	ENDIF
+	RETURN 1
+
+;もう霊夢様が居る
+ELSE
+	;多分何もしなくてOK
+ENDIF
+
+RETURN 1
+
+@ADDSPCHARA_1
+ADDCHARA 1
+A = CHARANUM - 1
+
+NAME:A = 霊夢様
+CALLNAME:A = 霊夢
+
+BASE:A:0 = 2500
+BASE:A:1 = 1500
+
+FOR LOCAL, 0, 300
+	TALENT:A:LOCAL = 0
+NEXT
+
+TALENT:A:0 = 1
+TALENT:A:11 = 1
+TALENT:A:12 = 1
+TALENT:A:15 = 1
+TALENT:A:16 = 1
+TALENT:A:32 = 1
+TALENT:A:34 = 1
+TALENT:A:36 = 1
+TALENT:A:43 = 1
+TALENT:A:53 = 1
+TALENT:A:56 = 1
+TALENT:A:64 = 1
+TALENT:A:71 = 1
+TALENT:A:76 = 1
+TALENT:A:80 = 1
+TALENT:A:83 = 1
+TALENT:A:92 = 1
+TALENT:A:101 = 1
+TALENT:A:103 = 1
+TALENT:A:105 = 1
+TALENT:A:107 = 1
+TALENT:A:123 = 1
+TALENT:A:126 = 1
+TALENT:A:201 = 1
+
+ABL:A:2 = 1
+ABL:A:50 = 1
+ABL:A:98 = 900
+ABL:A:97 = 900
+
+EXP:A:50 = 255
+
+FOR LOCAL, 2, 200
+	RELATION:A:LOCAL = 10
+NEXT
+
+CFLAG:A:0 = 1
+CFLAG:A:12 = 400
+
+;キャラ加入時の共通設定
+CALL NEWCHARA_INIT
+
+
+
+@ADD_EXRUMIA
+;ＥＸルーミア加入処理
+
+;絶対加入させない場合
+SIF FLAG:28 & 8
+	RETURN 1
+
+;ルーミアを検索
+T = 3
+CALL GET_EXISTANCE
+;計算しやすいように、存在位置を+1された値から、本来の値に戻す
+E -= 1
+;ルーミアが居ない
+IF E < 0
+	PRINTFORMW 特典としてＥＸルーミア(ドＳ版ルーミア)を仲間に加える事ができます。仲間に加えますか？
+	PRINTL [0] はい
+	PRINTL [1] いいえ（次の機会に、また加入させるか聞く）
+	PRINTL [2] 絶対使わないから次から聞かなくても良い
+
+	INPUT
+	IF RESULT < 0 || RESULT > 2
+		RESTART
+	ELSEIF RESULT == 0
+		PRINTFORMW それではＥＸルーミアを仲間に加えます。
+		CALL ADDSPCHARA_3
+	ELSEIF RESULT == 1
+		PRINTFORMW それでは今回の加入は見送ります
+	ELSEIF RESULT == 2
+		PRINTFORMW 了解です。不快な思いをさせてしまい申し訳ありませんでした
+		FLAG:28 |= 8
+	ENDIF
+	RETURN 1
+	
+	
+;ルーミアが主人公
+ELSEIF E == 0
+	;変更できない
+	FLAG:28 |= 8
+;普通のルーミアが居る
+ELSEIF CFLAG:E:0 == 0
+	PRINTFORMW 特典としてＥＸルーミアを仲間に加える事ができます
+	PRINTFORMW 今居る普通のルーミアは居なくなりますが、仲間に加えますか？
+	PRINTL [0] はい
+	PRINTL [1] いいえ（次の機会に、また加入させるか聞く）
+	PRINTL [2] 絶対使わないから次から聞かなくても良い
+
+	INPUT
+	IF RESULT < 0 || RESULT > 2
+		RESTART
+	ELSEIF RESULT == 0
+		PRINTFORMW それではＥＸルーミアを仲間に加えます。
+
+		IF TARGET >= 0
+			LOCAL:1 = NO:TARGET
+		ELSE
+			LOCAL:1 = -1
+		ENDIF
+		IF ASSI >= 0
+			LOCAL:2 = NO:ASSI
+		ELSE
+			LOCAL:2 = -1
+		ENDIF
+		;パートナーフラグを記憶
+		LOCAL:3 = TALENT:E:150
+		DELCHARA E
+		CALL ADDSPCHARA_3
+		PRINTFORMW ＜ルーミアの封印を解除した＞
+		PRINTFORMW ＜ルーミアはＥＸルーミアになった＞
+		REPEAT CHARANUM
+			SIF NO:COUNT == LOCAL:1
+				TARGET = COUNT
+			SIF NO:COUNT == LOCAL:2
+				ASSI = COUNT
+		REND
+		SIF LOCAL:2 == 1
+			ASSI = -1
+		
+		;パートナーフラグ復元
+		TALENT:A:150 = LOCAL:3
+	ELSEIF RESULT == 1
+		PRINTFORMW それでは今回の加入は見送ります
+	ELSEIF RESULT == 2
+		PRINTFORMW 了解です。不快な思いをさせてしまい申し訳ありませんでした
+		FLAG:28 |= 8
+	ENDIF
+	RETURN 1
+
+;もうＥＸルーミアが居る
+ELSE
+	;多分何もしなくてOK
+ENDIF
+
+RETURN 1
+
+@ADDSPCHARA_3
+ADDCHARA 3
+A = CHARANUM - 1
+
+NAME:A = ＥＸルーミア
+CALLNAME:A = ルーミア
+
+BASE:A:0 = 2200
+BASE:A:1 = 1500
+
+FOR LOCAL, 0, 300
+	TALENT:A:LOCAL = 0
+NEXT
+
+TALENT:A:0 = 1
+TALENT:A:12 = 1
+TALENT:A:15 = 1
+TALENT:A:20 = 1
+TALENT:A:24 = 1
+TALENT:A:30 = 1
+TALENT:A:41 = 1
+TALENT:A:60 = 1
+TALENT:A:62 = 1
+TALENT:A:63 = 1
+TALENT:A:83 = 1
+TALENT:A:72 = 1
+TALENT:A:113 = 1
+TALENT:A:116 = 1
+
+ABL:A:50 = -1
+ABL:A:98 = 830
+ABL:A:97 = 830
+
+CFLAG:A:0 = 1
+CFLAG:A:12 = -20
+
+;キャラ加入時の共通設定
+CALL NEWCHARA_INIT
+
+
+
+@ADD_SP_ALICE
+;ちびアリス加入処理
+LOCAL = RESULT
+
+IF TARGET >= 0
+	LOCAL:1 = NO:TARGET
+ELSE
+	LOCAL:1 = -1
+ENDIF
+IF ASSI >= 0
+	LOCAL:2 = NO:ASSI
+ELSE
+	LOCAL:2 = -1
+ENDIF
+;パートナーフラグを記憶
+LOCAL:3 = TALENT:LOCAL:150
+DELCHARA LOCAL
+CALL ADDSPCHARA_14
+
+PRINTFORMW ＜アリスは子供の姿になった＞
+REPEAT CHARANUM
+	SIF NO:COUNT == LOCAL:1
+		TARGET = COUNT
+	SIF NO:COUNT == LOCAL:2
+		ASSI = COUNT
+REND
+SIF LOCAL:2 == 1
+	ASSI = -1
+
+;パートナーフラグ復元
+TALENT:A:150 = LOCAL:3
+
+@ADDSPCHARA_14
+ADDCHARA 14
+A = CHARANUM - 1
+
+NAME:A = ちびアリス
+CALLNAME:A = アリス
+
+BASE:A:0 = 1500
+BASE:A:1 = 1500
+
+FOR LOCAL, 0, 300
+	TALENT:A:LOCAL = 0
+NEXT
+
+TALENT:A:0 = 1
+TALENT:A:11 = 1
+TALENT:A:15 = 1
+TALENT:A:23 = 1
+TALENT:A:50 = 1
+TALENT:A:60 = 1
+TALENT:A:72 = 1
+TALENT:A:100 = 1
+TALENT:A:109 = 1
+TALENT:A:125 = 1
+TALENT:A:132 = 1
+
+ABL:A:1 = 1
+ABL:A:2 = 1
+ABL:A:3 = 0
+ABL:A:9 = 3
+ABL:A:98 = 80
+ABL:A:97 = 70
+
+FOR LOCAL, 0, 200
+	RELATION:A:LOCAL = 100
+NEXT
+
+RELATION:A:1 = 200
+RELATION:A:2 = 200
+RELATION:A:34 = 80
+RELATION:A:51 = 80
+RELATION:A:52 = 200
+
+CFLAG:A:0 = 1
+CFLAG:A:12 = 0
+
+CSTR:A:21 = 
+CSTR:A:22 = 
+CSTR:A:23 = 
+CSTR:A:24 = 
+
+;キャラ加入時の共通設定
+CALL NEWCHARA_INIT
+
+
+
+;-------------------------------------------------
+;東方関連のイベント
+;-------------------------------------------------
+@EVENTTRAIN
+
+;調教対象が慧音で時間が夜の時、1/3の確率で変身
+IF TARGET >= 0
+	IF NAME_CSV(NO:TARGET, 0) == "慧音" && TIME != 0 && RAND:3 == 0
+		CALL HENSHIN
+		DRAWLINE
+		PRINTFORMW ＜慧音はハクタクの姿になった＞
+	ENDIF
+ENDIF
+
+;助手が慧音で時間が夜の時、1/3の確率で変身
+IF ASSI >= 0
+	IF NAME_CSV(NO:ASSI, 0) == "慧音" && TIME != 0 && RAND:3 == 0
+		CALL HENSHIN
+		DRAWLINE
+		PRINTFORMW ＜慧音はハクタクの姿になった＞
+	ENDIF
+ENDIF
+
+@HENSHIN
+;たぶん今後も使われないと思うので変身フラグにTEQUIP:1を使用。変身での素質変更を行なう。
+IF TEQUIP:1 == 0
+	;変身時(ハクタク化)
+	TEQUIP:1 = 1
+	IF NAME_CSV(NO:TARGET, 0) == "慧音"
+		;種族変更
+		CFLAG:14 = 6
+		REPEAT 200
+		L = COUNT + 600
+		;素質の消滅処理。既に消滅している場合、PBAND:600～799に1を立てるだけで消滅しない
+		;消滅素質：自制心(20)、保守的(24)、一線を越えない(27)、貞操観念(30)、濡れにくい(43)、人気(126)
+		IF COUNT == 20 || COUNT == 24 || COUNT == 27 || COUNT == 30 || COUNT == 43 || COUNT == 126
+			IF TALENT:COUNT == 0
+				PBAND:L = 1
+			ELSE
+				PBAND:L = 0
+				TALENT:COUNT = 0
+			ENDIF
+		;素質の習得処理。既に習得している場合、PBAND:600～799に2を立てるだけで習得しない
+		;習得素質：解放(33)、濡れやすい(42)、汚れ無視(64)、両刀(81)、月光浴(116)
+		ELSEIF COUNT == 33 || COUNT == 42 || COUNT == 64 || COUNT == 81 || COUNT == 116
+			IF TALENT:COUNT == 1
+				PBAND:L = 2
+			ELSE
+				PBAND:L = 0
+				TALENT:COUNT = 1
+			ENDIF
+		ENDIF
+		REND
+	ELSE
+		;種族変更
+		CFLAG:ASSI:14 = 6
+		REPEAT 200
+		L = COUNT + 800
+		;素質の消滅処理。既に消滅している場合、PBAND:800～999に1を立てるだけで消滅しない
+		;消滅素質：自制心(20)、保守的(24)、一線を越えない(27)、貞操観念(30)、濡れにくい(43)、人気(126)
+		IF COUNT == 20 || COUNT == 24 || COUNT == 27 || COUNT == 30 || COUNT == 43 || COUNT == 126
+			IF TALENT:ASSI:COUNT == 0
+				PBAND:L = 1
+			ELSE
+				PBAND:L = 0
+				TALENT:ASSI:COUNT = 0
+			ENDIF
+		;素質の習得処理。既に習得している場合、PBAND:800～999に2を立てるだけで習得しない
+		;習得素質：解放(33)、濡れやすい(42)、汚れ無視(64)、両刀(81)、月光浴(116)
+		ELSEIF COUNT == 33 || COUNT == 42 || COUNT == 64 || COUNT == 81 || COUNT == 116
+			IF TALENT:ASSI:COUNT == 1
+				PBAND:L = 2
+			ELSE
+				PBAND:L = 0
+				TALENT:ASSI:COUNT = 1
+			ENDIF
+		ENDIF
+		REND
+	ENDIF
+ELSE
+	;解除時(ハクタク解除)
+	TEQUIP:1 = 0
+	IF NAME_CSV(NO:TARGET, 0) == "慧音"
+		;種族変更(人間になりた～い)
+		CFLAG:14 = 1
+		REPEAT 200
+		L = COUNT + 600
+		;変身解除時、習得処理を行なう(消滅していた素質は除く。PBAND:600～799に1が立っていたら習得処理を飛ばす)
+		;習得素質：自制心(20)、保守的(24)、一線を越えない(27)、貞操観念(30)、濡れにくい(43)、人気(126)
+		IF COUNT == 20 || COUNT == 24 || COUNT == 27 || COUNT == 30 || COUNT == 43 || COUNT == 126
+			SIF PBAND:L == 0
+				TALENT:COUNT = 1
+		;変身解除時、消滅処理を行なう(習得していた素質は除く。PBAND:600～799に2が立っていたら消滅処理を飛ばす)
+		;消滅素質：解放(33)、濡れやすい(42)、汚れ無視(64)、両刀(81)、月光浴(116)
+		ELSEIF COUNT == 33 || COUNT == 42 || COUNT == 64 || COUNT == 81 || COUNT == 116
+			SIF PBAND:L == 0
+				TALENT:COUNT = 0
+		ENDIF
+		REND
+	ELSE
+		;種族変更(人間になりた～い)
+		CFLAG:ASSI:14 = 1
+		REPEAT 200
+		L = COUNT + 800
+		;変身解除時、習得処理を行なう(消滅していた素質は除く。PBAND:800～999に1が立っていたら習得処理を飛ばす)
+		;習得素質：自制心(20)、保守的(24)、一線を越えない(27)、貞操観念(30)、濡れにくい(43)、人気(126)
+		IF COUNT == 20 || COUNT == 24 || COUNT == 27 || COUNT == 30 || COUNT == 43 || COUNT == 126
+			SIF PBAND:L == 0
+				TALENT:ASSI:COUNT = 1
+		;変身解除時、消滅処理を行なう(習得していた素質は除く。PBAND:800～999に2が立っていたら消滅処理を飛ばす)
+		;消滅素質：解放(33)、濡れやすい(42)、汚れ無視(64)、両刀(81)、月光浴(116)
+		ELSEIF COUNT == 33 || COUNT == 42 || COUNT == 64 || COUNT == 81 || COUNT == 116
+			SIF PBAND:L == 0
+				TALENT:ASSI:COUNT = 0
+		ENDIF
+		REND
+	ENDIF
+ENDIF
+
+@EVENT_NEXTDAY_T
+;調教対象が慧音(ハクタク)の時、元に戻る
+IF TARGET >= 0
+	IF NAME_CSV(NO:TARGET, 0) == "慧音" && TEQUIP:1
+		CALL HENSHIN
+		PRINTFORMW ＜慧音は元の姿にもどった＞
+	ENDIF
+ENDIF
+
+;助手が慧音(ハクタク)の時、元に戻る
+IF ASSI >= 0
+	IF NAME_CSV(NO:ASSI, 0) == "慧音" && TEQUIP:1
+		CALL HENSHIN
+		PRINTFORMW ＜慧音は元の姿にもどった＞
+	ENDIF
+ENDIF
+
+@SPELL_NAME_CHANGE
+CALL WEEK_MOYASHI
+
+@WEEK_MOYASHI
+;ぱっちぇさんのスペルは毎日変化するようにする
+;※ただしイk…変えてないときに限る
+P = -1
+REPEAT CHARANUM
+	SIF NO:COUNT == 8
+		P = COUNT
+REND
+IF P > -1
+	IF (CSTR:P:21 == "月符" && CSTR:P:22 == "サイレントセレナ") || (CSTR:P:21 == "火符" && CSTR:P:22 == "アグニレイディアンス") || (CSTR:P:21 == "水符" && CSTR:P:22 == "ベリーインレイク") || (CSTR:P:21 == "木符" && CSTR:P:22 == "グリーンストーム") || (CSTR:P:21 == "金符" && CSTR:P:22 == "シルバードラゴン") || (CSTR:P:21 == "土符" && CSTR:P:22 == "トリリトンシェイク") || (CSTR:P:21 == "日符" && CSTR:P:22 == "ロイヤルフレア")
+		IF DAY:5 == 0
+			CSTR:P:21 = 月符
+			CSTR:P:22 = サイレントセレナ
+		ELSEIF DAY:5 == 1
+			CSTR:P:21 = 火符
+			CSTR:P:22 = アグニレイディアンス
+		ELSEIF DAY:5 == 2
+			CSTR:P:21 = 水符
+			CSTR:P:22 = ベリーインレイク
+		ELSEIF DAY:5 == 3
+			CSTR:P:21 = 木符
+			CSTR:P:22 = グリーンストーム
+		ELSEIF DAY:5 == 4
+			CSTR:P:21 = 金符
+			CSTR:P:22 = シルバードラゴン
+		ELSEIF DAY:5 == 5
+			CSTR:P:21 = 土符
+			CSTR:P:22 = トリリトンシェイク
+		ELSE
+			CSTR:P:21 = 日符
+			CSTR:P:22 = ロイヤルフレア
+		ENDIF
+	ENDIF
+	IF (CSTR:P:23 == "日＆月符" && CSTR:P:24 == "ロイヤルダイアモンドリング") || (CSTR:P:23 == "火水木金土符" && CSTR:P:24 == "賢者の石")
+		IF DAY:5 == 0 || DAY:5 == 6
+			CSTR:P:23 = 日＆月符
+			CSTR:P:24 = ロイヤルダイアモンドリング
+		ELSE
+			CSTR:P:23 = 火水木金土符
+			CSTR:P:24 = 賢者の石
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------------------
+;口上があるキャラ強調表示判定
+;キャラ強調表示用の関数を用意する代わりに@SELF_KOJO_K関数で判定
+;-------------------------------------------------------------
+@KOJO_EXIST, ARG
+VARSET LOCAL, 0
+;現在のTARGET保存
+LOCAL:1 = TARGET
+
+;キャラの素質等の判定時にエラーが出るため一時的にあなたをTARGETにする
+ADDCHARA 0
+TARGET = CHARANUM - 1
+
+;念のため非表示
+SKIPDISP 1
+;TFLAG:13に設定されていない数値を入れた上で呼び出す
+TFLAG:13 = 999
+
+TRYCCALLFORM SELF_KOJO_K{ARG}
+	;口上がある場合
+	LOCAL = 1
+CATCH
+	;口上がない場合
+	LOCAL = 0
+ENDCATCH
+
+;非表示解除
+SKIPDISP 0
+DELCHARA TARGET
+
+;TARGETを戻す
+TARGET = LOCAL:1
+
+;口上があれば1、なければ0でRETURN
+RETURN LOCAL
+
+;-------------------------------------------------
+;エラー回避用関数
+;-------------------------------------------------
+@CAVED
+@NYOTAIMORI_PARTY
