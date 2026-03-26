@@ -11,7 +11,6 @@ REPEAT 99
 REND
 
 ;キャラ選択で表示するためのフラグ設定(キャラが増えた時のために200までREPEAT)
-;EXISTCSVでCSVの有無を判定し、ない番号はフラグを立てない。
 FOR LOCAL, 1, 200
 	EXISTCSV LOCAL,0
 	IF RESULT == 1
@@ -26,141 +25,34 @@ PBAND = 4
 FLAG:6 = 1
 TIME:6 = 2
 
-;モード選択
-PRINTL ★★モードを選択してください★★
-PRINTL [ 0]EASY   （Stage数*15日期限、所持金$50000）ラスボス：紅魔館組
-PRINTL [ 1]NORMAL （Stage数*10日期限、所持金$20000）ラスボス：永遠亭組
-PRINTL [ 2]HARD   （Stage数* 8日期限、所持金$10000）ラスボス：妖々夢組
-PRINTL [ 3]LUNATIC（Stage数* 5日期限、所持金$ 5000）ラスボス：主人公組
+;難易度選択
+PRINTL ★★難易度を選択してください★★
+PRINTL [ 0]EASY   （所持金 $50000 / 期限なし）
+PRINTL [ 1]NORMAL （所持金 $20000）
+PRINTL [ 2]HARD   （所持金 $10000）
 PRINTL 
-PRINTL [ 9]EXTRA  （期限なし、所持金$100000）       ラスボス：支配者
-PRINTL [10]PHANTASM(期限なし、所持金$ 10000）※誰にもオススメできない難易度です
-PRINTL [20]INVISIBLE　　　　　　　　　　　　 ※ステータスが見えない特殊モードです
-;PRINTL [100]タイトルに戻る
 $INPUT_LOOP
 INPUT
 
 IF RESULT == 100
 	BEGIN TITLE
 ELSEIF RESULT == 998
-	PRINTW “DEBUG”モードを選択しました
-	TALENT:MASTER:240 = 1
+	PRINTW "DEBUG"モードを選択しました
 	TALENT:MASTER:998 = 1
 	RESULT = 1
-ELSEIF RESULT == 20
-	PRINTL ★★INVISIBLEモードの難易度を選択してください★★
-	PRINTL [11]I-EASY   （Stage数*15日期限、所持金$50000）ラスボス：風神録組
-	PRINTL [12]I-NORMAL （Stage数*10日期限、所持金$20000）ラスボス：地霊殿組
-	PRINTL [13]I-HARD   （Stage数* 8日期限、所持金$10000）ラスボス：命蓮寺組
-	PRINTL [14]I-LUNATIC（Stage数* 5日期限、所持金$ 5000）ラスボス：主人公組
-	;PRINTL [100]タイトルに戻る
-	$INPUT_LOOP_I
-	INPUT
-	IF RESULT == 100
-		BEGIN TITLE
-	ELSEIF RESULT >= 11 && RESULT <= 15
-		;攻略ルート
-		FLAG:3 = RESULT
-		;I-LUNATICとI-S-LUNAは主人公組（I-LUNATICは神霊廟組にしたかったけれど未実装なので……）
-		IF RESULT == 14 || RESULT == 15
-			FLAG:3 = RESULT - 11
-		ENDIF
-		;難易度
-		FLAG:5 = RESULT - 11
-		;インビジブルモードON
-		FLAG:2 = 1
-	ELSE
-		PRINTFORML 正しい値を入力してください
-		GOTO INPUT_LOOP_I
-	ENDIF
-ELSEIF (RESULT >= 0 && RESULT <= 4) || RESULT == 9 || RESULT == 10
-	;攻略ルート（デフォルトでは難易度と同じ）
-	FLAG:3 = RESULT
-	;難易度
+ELSEIF RESULT >= 0 && RESULT <= 2
 	FLAG:5 = RESULT
-	;インビジブルモードは念のためOFF
+	FLAG:3 = 0
 	FLAG:2 = 0
 ELSE
 	PRINTFORML 正しい値を入力してください
 	GOTO INPUT_LOOP
 ENDIF
-;攻略ルート選択(デフォルトでは選択不可能。選択可能にしたい場合はSYSTEM_DEBUG.ERBの該当関数参照。)
-SIF TALENT:MASTER:998 == 0
-	CALL EDIT_GAME_ROOT
 
 ;日付を1日に設定
 DAY:1 = 1
-;この直後の行を削除すると、全モードでキャラ選択可能
-SIF FLAG:5 == 9 || FLAG:5 == 10
-	CALL START_CHARA_SELECT
 
-;ラスボスで困った事が起きないようにフラグを折っておく
-IF FLAG:3 == 0 
-	IF NO:MASTER == 10
-		D = 11 + 999
-		FLAG:D = 0
-	ELSEIF NO:MASTER == 11
-		D = 10 + 999
-		FLAG:D = 0
-	ENDIF
-ELSEIF FLAG:3 == 1
-	IF NO:MASTER == 29
-		D = 30 + 999
-		FLAG:D = 0
-	ELSEIF NO:MASTER == 30
-		D = 29 + 999
-		FLAG:D = 0
-	ENDIF
-ELSEIF FLAG:3 == 2
-	IF NO:MASTER == 20
-		D = 22 + 999
-		FLAG:D = 0
-	ELSEIF NO:MASTER == 22
-		D = 20 + 999
-		FLAG:D = 0
-	ENDIF
-ELSEIF FLAG:3 == 3
-	IF NO:MASTER == 1
-		D = 2 + 999
-		FLAG:D = 0
-	ELSEIF  NO:MASTER == 2
-		D = 1 + 999
-		FLAG:D = 0
-	ENDIF
-ELSEIF FLAG:3 == 4
-	IF NO:MASTER == 1
-		D = 2 + 999
-		FLAG:D = 0
-	ELSEIF  NO:MASTER == 2
-		D = 1 + 999
-		FLAG:D = 0
-	ENDIF
-ELSEIF FLAG:3 == 11
-	IF NO:MASTER == 43
-		D = 44 + 999
-		FLAG:D = 0
-	ELSEIF NO:MASTER == 44
-		D = 43 + 999
-		FLAG:D = 0
-	ENDIF
-ELSEIF FLAG:3 == 12
-	IF NO:MASTER == 81
-		D = 84 + 999
-		FLAG:D = 0
-	ELSEIF NO:MASTER == 84
-		D = 81 + 999
-		FLAG:D = 0
-	ENDIF
-ELSEIF FLAG:3 == 13
-	IF NO:MASTER == 96
-		D = 52 + 999
-		FLAG:D = 0
-	ELSEIF NO:MASTER == 52
-		D = 96 + 999
-		FLAG:D = 0
-	ENDIF
-ENDIF
-
+;主人公の素質設定
 IF NO:MASTER == 0
 	PRINTFORML %CALLNAME:MASTER%の素質を設定できます
 	PRINTFORML どの方式で設定しますか？
@@ -171,14 +63,12 @@ IF NO:MASTER == 0
 	$INPUT_LOOP_MTS
 	INPUT
 	IF RESULT == 0
-		;質問形式
 		CALL MASTER_TALENT_SET_Q
 		CALL BIRTHDAY
 		CALL TALENT_SET_J
 		CALL MASTER_TALENT_SET_400
 		CALL STORE_GLOBAL_TALENT_SET
 	ELSEIF RESULT == 1
-		;選択形式
 		CALL MASTER_TALENT_SET_DEFAULT
 		CALL MASTER_TALENT_SET
 	ELSEIF RESULT == 2
@@ -211,59 +101,30 @@ SIF FLAG:5 == 1
 	MONEY = 20000
 SIF FLAG:5 == 2
 	MONEY = 10000
-SIF FLAG:5 == 3 || FLAG:5 == 4
-	MONEY = 5000
-SIF FLAG:5 == 9
-	MONEY = 100000
-SIF FLAG:5 == 10
-	MONEY = 10000
 
-;J用アイテムをいくつか所持させる
+;初期アイテム
 ITEM:500 = 1
 ITEM:503 = 1
 ITEM:506 = 1
 ITEM:510 = 1
 ITEM:513 = 1
 
-;現在のStageは1から
+;Stageカウンタ初期化
 FLAG:24 = 1
 
 ;初期のオプション設定
-;主導権は面倒だと思うので最初からON
-;ボス戦はコマンドバトルして欲しいので最初からON
-;FLAG:23 |= 8
-;FLAG:23 |= 64
 CALL CONFIGURE_ALL_DEFAULT
 
 ;最初は１周目
 FLAG:26 = 1
 
-IF NO:TARGET == 14
-	;アリスなら最初から上海蓬莱が居る
-	FLAG:25 = 88
-	CALL ADD_NEW_CHARA_COMMON
-	FLAG:25 = 89
-	CALL ADD_NEW_CHARA_COMMON
-ELSEIF NO:TARGET == 19
-	;妖夢なら最初から半霊が居る
-	FLAG:25 = 87
-	CALL ADD_NEW_CHARA_COMMON
-ENDIF
-
-;ボス選択初期化
-FLAG:25 = 0
-
 ;初期の耐力と魔力を計算
 REPEAT CHARANUM
 	IF COUNT == MASTER
-		;主人公限定で、パートナーを絶頂させた回数で最大耐力増加
 		MAXBASE:COUNT:4 = MAXBASE:COUNT:0 * (100 + CFLAG:COUNT:2) / 100
-		;主人公限定で魔力＝気力の約3%を基準値として、射精経験で増加
 		MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 30 * (50 + EXP:COUNT:3) / 50
 	ELSE
-		;耐力＝体力を基準値として、絶頂経験で増加
 		MAXBASE:COUNT:4 = MAXBASE:COUNT:0 * (100 + EXP:COUNT:2) / 100
-		;魔力＝気力の10%を基準値として、精液経験で増加
 		MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 10 * (50 + EXP:COUNT:20) / 50
 	ENDIF
 	BASE:COUNT:4 = MAXBASE:COUNT:4
@@ -273,34 +134,19 @@ REND
 ;種族設定
 TRYCALL GET_STRAINVALUE
 
-$OPENING_SELECT
-IF FLAG:5 == 10
-	PRINTFORML PHANTASMモードへようこそ。このモードには特にクリア目標が設定されていません
-	PRINTFORML Stage6のクリア、霊夢様を倒す、どのStageまで行けるかに挑戦する……
-	PRINTFORMW 好きな目標を自分で設定し、それに挑戦すると良いでしょう
-	PRINTL 
-	PRINTFORML 最初に、主人公に特殊能力を３つまで持たせることができます
-	PRINTFORMW 恋人が増えると持てる特殊能力も増えていくので、頑張ってください
-	CALL GET_FEAT
-	CALL GET_FEAT
-	CALL GET_FEAT
-	PRINTL 
-	PRINTFORMW それではPHANTASMモードを開始します
-ELSE
-	PRINTL オープニングストーリーを見ますか？
-	PRINTL [0] はい
-	PRINTL [1] いいえ
+PRINTL オープニングストーリーを見ますか？
+PRINTL [0] はい
+PRINTL [1] いいえ
 
-	$INPUT_LOOP_5
-	INPUT
+$INPUT_LOOP_5
+INPUT
 
-	IF RESULT < 0 || RESULT > 1
-		PRINTFORML 正しい値を入力してください
-		GOTO INPUT_LOOP_5
-	ELSEIF RESULT == 0
-		TFLAG:600 = 28
-		CALL KOJO_JUN
-	ENDIF
+IF RESULT < 0 || RESULT > 1
+	PRINTFORML 正しい値を入力してください
+	GOTO INPUT_LOOP_5
+ELSEIF RESULT == 0
+	TFLAG:600 = 28
+	CALL KOJO_JUN
 ENDIF
 
 ;エクストラ構文の呼び出し
@@ -308,7 +154,6 @@ TFLAG:600 = 0
 CALL KOJO_JUN
 
 BEGIN SHOP
-
 
 @EVENTCOM
 #PRI
@@ -367,8 +212,7 @@ ELSEIF CFLAG:15 == 1
 	;相手の主導権ポイントが極端に高いと、たまに持っていかれる
 	IF R >= 50
 		A = R / 10
-		;霊夢様以外は確率に上限アリ
-		SIF A > 15 && TALENT:201 == 0
+		SIF A > 15
 			A = 15
 		IF A > RAND:100
 			;相手が握る
