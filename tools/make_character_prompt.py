@@ -10,6 +10,7 @@
 """
 
 import argparse
+import csv
 import json
 import random
 import re
@@ -18,6 +19,22 @@ from pathlib import Path
 
 SCENARIO_DIR = Path("scenarios")
 PROFILES_FILE = Path("character_profiles.json")
+CHAR_DATA_CSV = Path("character_data.csv")
+
+
+def load_char_data_csv() -> dict[str, dict]:
+    """character_data.csv からプロフィールを読み込む"""
+    if not CHAR_DATA_CSV.exists():
+        return {}
+    profiles = {}
+    with open(CHAR_DATA_CSV, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = row.get("name", "").strip()
+            if name:
+                profiles[name] = {k: v.strip() for k, v in row.items()
+                                  if v and v.strip() and k != "name"}
+    return profiles
 
 
 # ===== データ読み込み =====
@@ -164,6 +181,7 @@ def sample_lines(lines: list[str], n: int) -> list[str]:
 def make_prompt(name: str,
                 lines: list[str],
                 profile: dict | None,
+                char_data: dict | None,
                 relationships: list[dict],
                 proper_nouns: list[str],
                 samples: int) -> str:
@@ -171,7 +189,26 @@ def make_prompt(name: str,
     sampled = sample_lines(lines, samples)
     lines_text = "\n".join(f"・{l}" for l in sampled)
 
-    # プロファイルセクション
+    # ゲーム内プロフィールセクション（CSV入力データ）
+    char_data_section = ""
+    if char_data:
+        labels = {
+            "height": "身長", "weight": "体重", "birthday": "誕生日",
+            "blood_type": "血液型", "club": "部活", "committee": "委員会",
+            "class": "クラス", "grade": "学年", "intro": "紹介文"
+        }
+        items = []
+        for key, label in labels.items():
+            val = char_data.get(key, "")
+            if val:
+                items.append(f"- {label}: {val}")
+        if items:
+            char_data_section = f"""
+【{name}のゲーム内プロフィール】
+{chr(10).join(items)}
+"""
+
+    # 話し方プロファイルセクション
     profile_section = ""
     if profile:
         fp = profile.get("main_first_person", "不明")
@@ -209,7 +246,7 @@ def make_prompt(name: str,
 
     return f"""あなたはあんさんぶるガールズ!!のキャラクター「{name}」です。
 以下の情報をもとに{name}として会話してください。
-{profile_section}{rel_section}{noun_section}
+{char_data_section}{profile_section}{rel_section}{noun_section}
 【{name}の実際のゲーム内セリフ（{len(sampled)}件）】
 {lines_text}
 
@@ -243,9 +280,16 @@ def main():
 
     profile = load_profile(args.name)
     if profile:
-        print(f"プロファイル読み込み完了")
+        print(f"話し方プロファイル読み込み完了")
     else:
-        print(f"プロファイルなし（analyze_characters.py を実行すると精度が上がります）")
+        print(f"話し方プロファイルなし（analyze_characters.py を実行すると精度が上がります）")
+
+    all_char_data = load_char_data_csv()
+    char_data = all_char_data.get(args.name)
+    if char_data:
+        print(f"ゲーム内プロフィール読み込み完了（{len(char_data)}項目）")
+    else:
+        print(f"ゲーム内プロフィールなし（manage_profiles.py --init でCSVを作成して入力できます）")
 
     print(f"人間関係を抽出中...")
     all_char_names = list(all_lines.keys())
@@ -256,7 +300,7 @@ def main():
     proper_nouns = extract_proper_nouns(target_lines)
     print(f"固有名詞: {len(proper_nouns)}件")
 
-    prompt = make_prompt(args.name, target_lines, profile,
+    prompt = make_prompt(args.name, target_lines, profile, char_data,
                          relationships, proper_nouns, args.samples)
 
     out_file = Path(f"prompt_{args.name}.txt")
