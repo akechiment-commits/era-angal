@@ -291,8 +291,8 @@ CHARA_DATA = [
 
     dict(no=50, name="山條ぎん",     nick="ぎん",
          hp=2400, sp=1800,
-         talents=[0,12,79,23,30,37,40,80,106,151],        # A敏感+倒錯的：マゾ・SM系に反応
-         initiative=-10),
+         talents=[0,12,23,30,37,40,80,106,151],           # A敏感+倒錯的：SM系に反応
+         initiative=-10, masochistic=3),
 
     dict(no=51, name="御影かすみ",   nick="かすみ",
          hp=1600, sp=1300,
@@ -301,8 +301,8 @@ CHARA_DATA = [
 
     dict(no=52, name="湖南やこ",     nick="やこ",
          hp=1800, sp=1600,
-         talents=[0,12,11,16,30,83,105,151],              # A鈍感：サド・自分は感じない
-         initiative=25),
+         talents=[0,12,11,16,30,105,151],                 # A鈍感：自分は感じない
+         initiative=25, sadistic=3),
 
     dict(no=53, name="花丘まり",     nick="まり",
          hp=2000, sp=1500,
@@ -342,8 +342,8 @@ CHARA_DATA = [
 
     dict(no=60, name="瀬川かえで",   nick="かえで",
          hp=1700, sp=1600,
-         talents=[0,15,83,87,30,36,52,80,105,151],        # A鈍感+倒錯的：サド・SM系で攻める側
-         initiative=30),
+         talents=[0,15,87,30,36,52,80,105,151],           # A鈍感+倒錯的：SM系で攻める側
+         initiative=30, sadistic=5),
 
     dict(no=61, name="鶴海ひまり",   nick="ひまり",
          hp=1400, sp=1600,
@@ -410,9 +410,11 @@ def generate_chara_csv(chara, output_dir):
     hp       = chara["hp"]
     sp       = chara["sp"]
     talents  = chara["talents"]
-    init_val = chara.get("initiative", -10)
-    cooking  = chara.get("cooking", 0)
-    singing  = chara.get("singing", 0)
+    init_val    = chara.get("initiative", -10)
+    cooking     = chara.get("cooking", 0)
+    singing     = chara.get("singing", 0)
+    masochistic = chara.get("masochistic", 0)   # ABL:8 マゾっ気
+    sadistic    = chara.get("sadistic", 0)       # ABL:15 サドっ気
 
     lines = [
         f"番号,{no}",
@@ -431,6 +433,10 @@ def generate_chara_csv(chara, output_dir):
     if singing > 0:
         lines.append(f"能力,52,{singing}")
         lines.append(f"能力,92,{singing}")
+    if masochistic > 0:
+        lines.append(f"能力,8,{masochistic}")
+    if sadistic > 0:
+        lines.append(f"能力,15,{sadistic}")
 
     lines.append(f"フラグ,12,{init_val}")
     lines.append("CSTR,21,")
