@@ -27,8 +27,9 @@ HEADERS = {
     "Referer": BASE + "/",
 }
 
-FIELDS = ["name", "height", "weight", "birthday", "blood_type",
-          "club", "committee", "class", "grade", "intro", "old_intro"]
+FIELDS = ["name", "height", "weight", "three_sizes", "birthday", "blood_type",
+          "club", "committee", "class", "grade", "fav_color", "family", "hobbies",
+          "intro", "old_intro"]
 
 # 明らかにキャラ名ではない文字列
 NOT_CHAR_NAMES = {
@@ -187,6 +188,9 @@ def parse_char_page(html: str, name: str) -> dict:
         "committee":  [r"([^\s。、]{2,10}委員会)"],
         "class":      [r"(\d)\s*[-ー]\s*([A-Z])"],
         "grade":      [r"(\d)\s*年生?"],
+        "fav_color":  [r"好きな色[：:\s]*([^\s。、\n]{2,20})"],
+        "family":     [r"家族構成[：:\s]*([^\n。]{5,60})", r"家族[：:\s]*([^\n。]{5,60})"],
+        "hobbies":    [r"趣味[：:\s]*([^\n。、]{2,40})"],
     }
 
     for field, pats in patterns.items():
@@ -200,6 +204,16 @@ def parse_char_page(html: str, name: str) -> dict:
                 else:
                     data[field] = m.group(1).strip()
                 break
+
+    # スリーサイズ (B/W/H)
+    ts = re.search(r"スリーサイズ[：:\s]*(\d{2,3})\s*/\s*(\d{2,3})\s*/\s*(\d{2,3})", text)
+    if not ts:
+        ts = re.search(r"B[：:\s]*(\d{2,3})\s*[/・]\s*W[：:\s]*(\d{2,3})\s*[/・]\s*H[：:\s]*(\d{2,3})", text)
+    if not ts:
+        # 数値3つのスラッシュ区切り（文脈からスリーサイズと判断できる場合）
+        ts = re.search(r"(?:バスト|ウエスト|ヒップ)[^\d]*(\d{2,3})\s*/\s*(\d{2,3})\s*/\s*(\d{2,3})", text)
+    if ts:
+        data["three_sizes"] = f"{ts.group(1)}/{ts.group(2)}/{ts.group(3)}"
 
     # 紹介文と旧紹介文：日本語の文章が入っているtd/p/divを抽出
     intro_texts = []

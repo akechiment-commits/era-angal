@@ -193,9 +193,11 @@ def make_prompt(name: str,
     char_data_section = ""
     if char_data:
         labels = {
-            "height": "身長", "weight": "体重", "birthday": "誕生日",
-            "blood_type": "血液型", "club": "部活", "committee": "委員会",
+            "height": "身長", "weight": "体重", "three_sizes": "スリーサイズ",
+            "birthday": "誕生日", "blood_type": "血液型",
+            "club": "部活", "committee": "委員会",
             "class": "クラス", "grade": "学年",
+            "fav_color": "好きな色", "family": "家族構成", "hobbies": "趣味",
             "intro": "紹介文", "old_intro": "旧紹介文",
         }
         items = []

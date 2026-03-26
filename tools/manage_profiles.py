@@ -21,12 +21,16 @@ FIELDS = [
     "name",        # キャラ名（キー）
     "height",      # 身長 (cm)
     "weight",      # 体重 (kg)
+    "three_sizes", # スリーサイズ (B/W/H)
     "birthday",    # 誕生日 (MM/DD)
     "blood_type",  # 血液型
     "club",        # 部活
     "committee",   # 委員会
     "class",       # クラス (例: 2-A)
     "grade",       # 学年
+    "fav_color",   # 好きな色
+    "family",      # 家族構成
+    "hobbies",     # 趣味
     "intro",       # 紹介文（新）
     "old_intro",   # 旧紹介文
 ]
@@ -97,9 +101,12 @@ def show_profile(name: str):
     p = profiles[name]
     print(f"\n【{name}】")
     labels = {
-        "height": "身長", "weight": "体重", "birthday": "誕生日",
-        "blood_type": "血液型", "club": "部活", "committee": "委員会",
-        "class": "クラス", "grade": "学年", "intro": "紹介文"
+        "height": "身長", "weight": "体重", "three_sizes": "スリーサイズ",
+        "birthday": "誕生日", "blood_type": "血液型",
+        "club": "部活", "committee": "委員会",
+        "class": "クラス", "grade": "学年",
+        "fav_color": "好きな色", "family": "家族構成", "hobbies": "趣味",
+        "intro": "紹介文", "old_intro": "旧紹介文",
     }
     for key, label in labels.items():
         val = p.get(key, "")
