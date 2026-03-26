@@ -1,33 +1,57 @@
 #!/usr/bin/env python3
 """
 あんガル キャラクター台詞生成スクリプト
-実際のゲームセリフをもとにClaude APIでキャラらしい台詞を生成する
+実際のゲームセリフをもとにGoogle Gemini API（無料）でキャラらしい台詞を生成する
 
 使い方:
-  python generate_dialogue.py 小鳥遊音花
-  python generate_dialogue.py 小鳥遊音花 --situation "放課後に主人公に話しかける"
+  python generate_dialogue.py ひまり
+  python generate_dialogue.py ひまり --situation "放課後に主人公に話しかける"
   python generate_dialogue.py --list   # キャラ一覧表示
+
+APIキー取得（無料）:
+  1. aistudio.google.com を開く
+  2. 「Get API key」→「Create API key」
+  3. PowerShellで: $env:GEMINI_API_KEY = "AIzaSy..."
 """
 
 import argparse
 import json
+import os
 import random
 import re
+import urllib.request
+import urllib.error
 from pathlib import Path
-
-import anthropic
 
 SCENARIO_DIR = Path("scenarios")
 PROFILES_FILE = Path("character_profiles.json")
 
-client = anthropic.Anthropic()  # ANTHROPIC_API_KEY 環境変数から自動取得
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+
+def call_gemini(prompt: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY が設定されていません。\n"
+                           "aistudio.google.com で無料APIキーを取得して:\n"
+                           '$env:GEMINI_API_KEY = "AIzaSy..."')
+
+    url = f"{GEMINI_API_URL}?key={api_key}"
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": 2048}
+    }).encode("utf-8")
+
+    req = urllib.request.Request(url, data=body,
+                                  headers={"Content-Type": "application/json"},
+                                  method="POST")
+    with urllib.request.urlopen(req, timeout=30) as res:
+        result = json.loads(res.read())
+
+    return result["candidates"][0]["content"]["parts"][0]["text"]
 
 
 def load_character_lines(name: str, max_samples: int = 800) -> list[str]:
-    """シナリオファイルから指定キャラのセリフを収集する
-    全行数が max_samples 以下ならすべて使う。
-    超える場合は短文・中文・長文をバランスよくサンプリング。
-    """
     all_lines = []
     pattern = re.compile(rf"^【{re.escape(name)}】(.+)$", re.MULTILINE)
 
@@ -42,7 +66,6 @@ def load_character_lines(name: str, max_samples: int = 800) -> list[str]:
     if len(all_lines) <= max_samples:
         return all_lines
 
-    # 短文(〜20字)・中文(21〜50字)・長文(51字〜)に分けて均等サンプリング
     short  = [l for l in all_lines if len(l) <= 20]
     medium = [l for l in all_lines if 21 <= len(l) <= 50]
     long_  = [l for l in all_lines if len(l) > 50]
@@ -53,7 +76,6 @@ def load_character_lines(name: str, max_samples: int = 800) -> list[str]:
         random.sample(medium, min(each, len(medium))) +
         random.sample(long_,  min(each, len(long_)))
     )
-    # 端数を補充
     if len(result) < max_samples:
         rest = [l for l in all_lines if l not in set(result)]
         result += random.sample(rest, min(max_samples - len(result), len(rest)))
@@ -61,7 +83,6 @@ def load_character_lines(name: str, max_samples: int = 800) -> list[str]:
 
 
 def load_profile(name: str) -> dict | None:
-    """character_profiles.json からプロフィールを読み込む"""
     if not PROFILES_FILE.exists():
         return None
     with open(PROFILES_FILE, encoding="utf-8") as f:
@@ -73,11 +94,12 @@ def load_profile(name: str) -> dict | None:
 
 
 def generate_dialogue(name: str, situation: str, n: int = 10) -> list[str]:
-    """Claude APIでキャラらしい台詞を生成"""
     lines = load_character_lines(name)
     if not lines:
         print(f"エラー: 「{name}」のセリフが見つかりません")
         return []
+
+    print(f"  ({len(lines)}行のセリフを参照中...)")
 
     profile = load_profile(name)
     profile_info = ""
@@ -110,14 +132,12 @@ def generate_dialogue(name: str, situation: str, n: int = 10) -> list[str]:
 ...
 """
 
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    try:
+        text = call_gemini(prompt)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        raise RuntimeError(f"APIエラー {e.code}: {body}")
 
-    text = response.content[0].text
-    # 番号付きリストをパース
     result = []
     for line in text.splitlines():
         m = re.match(r"^\d+\.\s*(.+)$", line.strip())
@@ -127,7 +147,6 @@ def generate_dialogue(name: str, situation: str, n: int = 10) -> list[str]:
 
 
 def list_characters():
-    """利用可能なキャラ一覧を表示"""
     if not PROFILES_FILE.exists():
         print("character_profiles.json が見つかりません。analyze_characters.py を先に実行してください")
         return
@@ -151,7 +170,7 @@ DEFAULT_SITUATIONS = [
 
 
 def main():
-    parser = argparse.ArgumentParser(description="あんガル キャラ台詞生成")
+    parser = argparse.ArgumentParser(description="あんガル キャラ台詞生成（Gemini無料API使用）")
     parser.add_argument("name", nargs="?", help="キャラ名")
     parser.add_argument("--situation", "-s", help="状況・シチュエーション")
     parser.add_argument("--count", "-n", type=int, default=10, help="生成する台詞数")
