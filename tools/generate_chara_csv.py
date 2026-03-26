@@ -101,7 +101,7 @@ CHARA_DATA = [
 
     dict(no=13, name="羽森つばさ",   nick="つばさ",
          hp=1800, sp=1600,
-         talents=[0,25,17,28,30,31,113,223,108,151],      # B敏感：アイドル・魅力的
+         talents=[0,25,17,28,31,113,223,108,151],         # B敏感：アイドル・魅力的
          initiative=5, singing=3),
 
     dict(no=14, name="花音ことり",   nick="ことり",
@@ -147,7 +147,7 @@ CHARA_DATA = [
 
     dict(no=22, name="鯱いかり",     nick="いかり",
          hp=2200, sp=1600,
-         talents=[0,11,23,28,30,31,70,41,107,151],        # B鈍感：気丈・痛みに強い
+         talents=[0,11,23,28,31,70,41,107,151],            # B鈍感：気丈・痛みに強い
          initiative=20),
 
     dict(no=23, name="鶯木こはる",   nick="こはる",
@@ -183,7 +183,7 @@ CHARA_DATA = [
 
     dict(no=29, name="春風なな",     nick="なな",
          hp=2000, sp=1700,
-         talents=[0,25,28,30,31,70,102,104,151],          # C敏感+V敏感：快感に素直
+         talents=[0,25,28,31,70,102,104,151],              # C敏感+V敏感：快感に素直
          initiative=5),
 
     dict(no=30, name="長居ゆう",     nick="ゆう",
@@ -204,7 +204,7 @@ CHARA_DATA = [
 
     dict(no=33, name="柊るな",       nick="るな",
          hp=2000, sp=1600,
-         talents=[0,16,23,87,30,31,106,151],              # A敏感：貞操無頓着・経験あり気
+         talents=[0,16,23,87,31,106,151],                  # A敏感：貞操無頓着・経験あり気
          initiative=20),
 
     dict(no=34, name="桐島かいり",   nick="かいり",
@@ -230,7 +230,7 @@ CHARA_DATA = [
     # ───── 2年C組 ─────
     dict(no=38, name="クー・カロア", nick="カロア",
          hp=2200, sp=1800,
-         talents=[0,13,25,23,30,31,70,111,102,104,151],   # C敏感+V敏感：快感に素直
+         talents=[0,13,25,23,31,70,111,102,104,151],       # C敏感+V敏感：快感に素直
          initiative=5),
 
     dict(no=39, name="冴木もも",     nick="もも",
@@ -250,7 +250,7 @@ CHARA_DATA = [
 
     dict(no=42, name="榊むつみ",     nick="むつみ",
          hp=2100, sp=1600,
-         talents=[0,16,23,30,31,106,151],                 # A敏感：貞操無頓着・積極的
+         talents=[0,16,23,31,106,151],                     # A敏感：貞操無頓着・積極的
          initiative=15),
 
     dict(no=43, name="砂賀みどり",   nick="みどり",
@@ -348,7 +348,7 @@ CHARA_DATA = [
     dict(no=61, name="鶴海ひまり",   nick="ひまり",
          hp=1400, sp=1600,
          talents=[0,13,25,23,35,30,108,151],              # B敏感：素直・楽観的
-         initiative=-5),
+         initiative=-5, masochistic=2),
 
     dict(no=62, name="黒森すず",     nick="すず",
          hp=1600, sp=1500,
@@ -364,7 +364,7 @@ CHARA_DATA = [
     dict(no=64, name="峰山しおん",   nick="しおん",
          hp=1300, sp=1200,
          talents=[0,14,21,24,30,35,101,151],              # C鈍感：無関心・保守的
-         initiative=-15),
+         initiative=-15, sadistic=2),
 
     dict(no=65, name="時国そら",     nick="そら",
          hp=1200, sp=1500,
