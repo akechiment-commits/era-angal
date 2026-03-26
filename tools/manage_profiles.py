@@ -27,7 +27,8 @@ FIELDS = [
     "committee",   # 委員会
     "class",       # クラス (例: 2-A)
     "grade",       # 学年
-    "intro",       # 紹介文（ゲーム内の説明文）
+    "intro",       # 紹介文（新）
+    "old_intro",   # 旧紹介文
 ]
 
 

@@ -195,7 +195,8 @@ def make_prompt(name: str,
         labels = {
             "height": "身長", "weight": "体重", "birthday": "誕生日",
             "blood_type": "血液型", "club": "部活", "committee": "委員会",
-            "class": "クラス", "grade": "学年", "intro": "紹介文"
+            "class": "クラス", "grade": "学年",
+            "intro": "紹介文", "old_intro": "旧紹介文",
         }
         items = []
         for key, label in labels.items():
