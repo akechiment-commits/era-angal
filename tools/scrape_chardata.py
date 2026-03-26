@@ -9,6 +9,7 @@ hatotank.net からあんガルキャラデータを取得して character_data.
 
 import argparse
 import csv
+import html as html_module
 import re
 import time
 import urllib.request
@@ -149,26 +150,43 @@ def get_all_list_pages() -> list[str]:
     return pages
 
 
+def clean_text(s: str) -> str:
+    """HTMLエンティティをデコードして余分な空白を除去"""
+    s = html_module.unescape(s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def is_intro_text(s: str) -> bool:
+    """紹介文らしいテキストかどうか判定（日本語の文章であること）"""
+    # 数字・記号・スラッシュだけはNG（スリーサイズ等を除外）
+    if re.match(r"^[\d\s/\-・&;nbsp]+$", s):
+        return False
+    # 日本語文字が10文字以上含まれていること
+    jp_chars = re.findall(r"[ぁ-んァ-ン一-龥]", s)
+    if len(jp_chars) < 10:
+        return False
+    return True
+
+
 def parse_char_page(html: str, name: str) -> dict:
     """個別キャラページからプロフィールを抽出"""
     data = {"name": name}
+
+    # HTMLエンティティをデコードしてテキスト化
     text = re.sub(r"<[^>]+>", " ", html)
-    text = re.sub(r"&nbsp;", " ", text)
-    text = re.sub(r"\s+", " ", text)
+    text = clean_text(text)
 
     # 各フィールドの抽出パターン
     patterns = {
-        "height":     [r"身長[：:\s]*(\d{3})\s*cm", r"(\d{3})cm"],
-        "weight":     [r"体重[：:\s]*(\d{2,3})\s*kg", r"(\d{2})kg"],
-        "birthday":   [r"誕生日[：:\s]*(\d{1,2})[月/](\d{1,2})日?",
-                       r"(\d{1,2})/(\d{1,2})"],
-        "blood_type": [r"血液型[：:\s]*([ABO]{1,2}[+\-型]?)\b"],
-        "club":       [r"部活動?[：:\s]*([^\s。、]{2,12}部)",
-                       r"所属部活[：:\s]*([^\s。、]{2,12})"],
-        "committee":  [r"委員会[：:\s]*([^\s。、]{2,10}委員会)",
-                       r"委員[：:\s]*([^\s。、]{2,10})"],
-        "class":      [r"(\d)\s*[-ー年]\s*([A-Zａ-ｚA-Z])"],
-        "grade":      [r"(\d)\s*年生?(?:生|組)?"],
+        "height":     [r"身長[：:\s]*(\d{3})\s*(?:cm|ｃｍ)?", r"(\d{3})cm"],
+        "weight":     [r"体重[：:\s]*(\d{2,3})\s*(?:kg|ｋｇ)?", r"(\d{2})kg"],
+        "birthday":   [r"誕生日[：:\s]*(\d{1,2})[月/](\d{1,2})日?"],
+        "blood_type": [r"血液型[：:\s]*([ABOB]{1,2}型?)"],
+        "club":       [r"部活動?[：:\s]*([^\s。、\d]{2,12}部)"],
+        "committee":  [r"([^\s。、]{2,10}委員会)"],
+        "class":      [r"(\d)\s*[-ー]\s*([A-Z])"],
+        "grade":      [r"(\d)\s*年生?"],
     }
 
     for field, pats in patterns.items():
@@ -183,21 +201,37 @@ def parse_char_page(html: str, name: str) -> dict:
                     data[field] = m.group(1).strip()
                 break
 
-    # 紹介文と旧紹介文を抽出（長いテキストブロックから）
-    # td/p/div 内の20文字以上のテキストを収集
-    long_texts = re.findall(
-        r'<(?:td|p|div)[^>]*>\s*([^\n<]{20,300})\s*</(?:td|p|div)>',
-        html, re.DOTALL
-    )
-    long_texts = [t.strip() for t in long_texts if len(t.strip()) >= 20]
-    # ナビゲーション・UI文字列を除外
-    long_texts = [t for t in long_texts
-                  if not re.search(r"Copyright|ページ|メニュー|ログイン|検索", t)]
+    # 紹介文と旧紹介文：日本語の文章が入っているtd/p/divを抽出
+    intro_texts = []
+    for tag in ("td", "p", "div", "span"):
+        for m in re.finditer(
+            rf'<{tag}[^>]*>(.*?)</{tag}>',
+            html, re.DOTALL | re.IGNORECASE
+        ):
+            raw = m.group(1)
+            # 内部タグを除去してテキスト化
+            t = re.sub(r"<[^>]+>", "", raw)
+            t = clean_text(t)
+            if len(t) >= 25 and is_intro_text(t):
+                intro_texts.append(t)
 
-    if len(long_texts) >= 1:
-        data["intro"] = long_texts[0][:150]
-    if len(long_texts) >= 2:
-        data["old_intro"] = long_texts[1][:150]
+    # 重複除去・長い順にソート
+    seen = set()
+    unique_intros = []
+    for t in intro_texts:
+        key = t[:30]
+        if key not in seen:
+            seen.add(key)
+            unique_intros.append(t)
+
+    # 除外ワード（ナビ・UI系）
+    unique_intros = [t for t in unique_intros
+                     if not re.search(r"Copyright|メニュー|ログイン|検索|一覧に戻|プロフィール", t)]
+
+    if len(unique_intros) >= 1:
+        data["intro"] = unique_intros[0][:200]
+    if len(unique_intros) >= 2:
+        data["old_intro"] = unique_intros[1][:200]
 
     return data
 
