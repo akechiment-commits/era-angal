@@ -26,12 +26,49 @@ Chara1.csv〜Chara71.csvを生成する
 """
 
 import os
+import csv as csv_module
+
+# ────────────────────────────────────────────────────────
+# character_data.csv から実データを読み込む
+# ────────────────────────────────────────────────────────
+def _load_char_data():
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "character_data.csv")
+    result = {}
+    with open(path, encoding="utf-8-sig") as f:
+        for row in csv_module.DictReader(f):
+            result[row["name"]] = row
+    return result
+
+CHAR_DATA_CSV = _load_char_data()
+
+def _birthday_to_era(birthday_str):
+    """'MM/DD' → (day:int, season:int)  season: 0=春 1=夏 2=秋 3=冬"""
+    if not birthday_str:
+        return 0, 0
+    month, day = int(birthday_str.split("/")[0]), int(birthday_str.split("/")[1])
+    if month in (3, 4, 5):   season = 0
+    elif month in (6, 7, 8): season = 1
+    elif month in (9,10,11): season = 2
+    else:                     season = 3   # 12,1,2
+    return day, season
+
+def _body_talents(height, bust):
+    """身長・バストから自動付与すべき素質セットを返す"""
+    t = set()
+    if height <= 145:
+        t.add(100)   # 小柄体型
+    if bust <= 70:
+        t.add(109)   # 貧乳
+    elif bust >= 87:
+        t.add(110)   # 巨乳
+    return t
 
 # ────────────────────────────────────────────────────────
 # キャラクター定義
 #   hp        : 基礎体力（運動部上位2500、運動部2000〜2200、普通1400〜1800、虚弱〜1000）
 #   sp        : 基礎気力
 #   talents   : 素質リスト（0=処女はほぼ全員に付ける）
+#               ※ 小柄(100)/貧乳(109)/巨乳(110) は測定値から自動設定されるため不要
 #   initiative: フラグ12 主導権基準値
 #   cooking   : 料理素質レベル(0〜3)
 #   singing   : 歌唱素質レベル(0〜3)
@@ -409,12 +446,47 @@ def generate_chara_csv(chara, output_dir):
     nick     = chara["nick"]
     hp       = chara["hp"]
     sp       = chara["sp"]
-    talents  = chara["talents"]
     init_val    = chara.get("initiative", -10)
     cooking     = chara.get("cooking", 0)
     singing     = chara.get("singing", 0)
     masochistic = chara.get("masochistic", 0)   # ABL:8 マゾっ気
     sadistic    = chara.get("sadistic", 0)       # ABL:15 サドっ気
+
+    # ── character_data.csv から実データ取得 ──
+    profile = CHAR_DATA_CSV.get(name, {})
+    height  = int(profile.get("height", 155))
+    weight  = int(profile.get("weight", 47))
+    sizes   = profile.get("three_sizes", "")         # "B/W/H"
+    blood   = profile.get("blood_type", "")
+    birthday_str = profile.get("birthday", "")
+    club    = profile.get("club", "")
+    klass   = profile.get("class", "")
+
+    bust = int(sizes.split("/")[0]) if sizes else 80
+
+    # 身長・バストから自動付与する素質
+    auto_body = _body_talents(height, bust)
+
+    # 手動設定の素質リストから body 系を除去して auto に統合
+    BODY_TALENTS = {100, 109, 110}
+    base_talents = [t for t in chara["talents"] if t not in BODY_TALENTS]
+    final_talents = sorted(set(base_talents) | auto_body)
+
+    # 誕生日 → era エンジン用
+    bday, bseason = _birthday_to_era(birthday_str)
+
+    # スリーサイズ表示文字列
+    if sizes:
+        b, w, h = sizes.split("/")
+        sizes_str = f"B{b}/W{w}/H{h}"
+    else:
+        sizes_str = ""
+
+    # CSTR プロフィール文字列
+    month_day = ""
+    if birthday_str:
+        m, d = birthday_str.split("/")
+        month_day = f"{int(m)}月{int(d)}日"
 
     lines = [
         f"番号,{no}",
@@ -424,7 +496,7 @@ def generate_chara_csv(chara, output_dir):
         f"基礎,1,{sp}",
     ]
 
-    for t in talents:
+    for t in final_talents:
         lines.append(f"素質,{t}")
 
     if cooking > 0:
@@ -439,10 +511,17 @@ def generate_chara_csv(chara, output_dir):
         lines.append(f"能力,15,{sadistic}")
 
     lines.append(f"フラグ,12,{init_val}")
-    lines.append("CSTR,21,")
-    lines.append("CSTR,22,")
-    lines.append("CSTR,23,")
-    lines.append("CSTR,24,")
+
+    # 誕生日
+    if bday:
+        lines.append(f"TIME,2,{bday}")
+        lines.append(f"TIME,3,{bseason}")
+
+    # CSTR:21〜24 プロフィール情報（あんガル用に再定義）
+    lines.append(f"CSTR,21,{month_day}")           # 誕生日
+    lines.append(f"CSTR,22,{height}cm/{weight}kg") # 身長/体重
+    lines.append(f"CSTR,23,{sizes_str}")            # スリーサイズ
+    lines.append(f"CSTR,24,{blood}")               # 血液型
 
     filepath = os.path.join(output_dir, f"Chara{no}.csv")
     with open(filepath, "w", encoding="cp932") as f:
