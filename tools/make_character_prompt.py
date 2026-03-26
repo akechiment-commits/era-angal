@@ -266,52 +266,50 @@ def make_prompt(name: str,
 
 def main():
     parser = argparse.ArgumentParser(description="キャラクタープロンプト生成（フル版）")
-    parser.add_argument("name", help="キャラ名")
+    parser.add_argument("name", nargs="?", help="キャラ名（省略時は --all が必要）")
     parser.add_argument("--samples", "-n", type=int, default=80,
                         help="サンプルセリフ数（デフォルト80）")
+    parser.add_argument("--all", action="store_true", help="全キャラのプロンプトを一括生成")
     args = parser.parse_args()
+
+    if not args.name and not args.all:
+        parser.error("キャラ名を指定するか --all を使ってください")
 
     print(f"データ読み込み中...")
     all_lines, char_files = load_all_lines()
-
-    target_lines = all_lines.get(args.name)
-    if not target_lines:
-        print(f"エラー: 「{args.name}」のセリフが見つかりません")
-        return
-
-    print(f"「{args.name}」: {len(target_lines)}行")
-
-    profile = load_profile(args.name)
-    if profile:
-        print(f"話し方プロファイル読み込み完了")
-    else:
-        print(f"話し方プロファイルなし（analyze_characters.py を実行すると精度が上がります）")
-
     all_char_data = load_char_data_csv()
-    char_data = all_char_data.get(args.name)
-    if char_data:
-        print(f"ゲーム内プロフィール読み込み完了（{len(char_data)}項目）")
+
+    targets = sorted(all_lines.keys()) if args.all else [args.name]
+
+    for name in targets:
+        target_lines = all_lines.get(name)
+        if not target_lines:
+            if args.all:
+                print(f"[スキップ] 「{name}」のセリフが見つかりません")
+                continue
+            print(f"エラー: 「{name}」のセリフが見つかりません")
+            return
+
+        print(f"\n【{name}】{len(target_lines)}行", end=" ")
+
+        profile = load_profile(name)
+        char_data = all_char_data.get(name)
+
+        all_char_names = list(all_lines.keys())
+        relationships = extract_relationships(name, target_lines, all_char_names, char_files)
+        proper_nouns = extract_proper_nouns(target_lines)
+
+        prompt = make_prompt(name, target_lines, profile, char_data,
+                             relationships, proper_nouns, args.samples)
+
+        out_file = Path(f"prompt_{name}.txt")
+        out_file.write_text(prompt, encoding="utf-8")
+        print(f"→ {out_file} ({len(prompt):,}文字)")
+
+    if args.all:
+        print(f"\n完了: {len(targets)}件生成しました")
     else:
-        print(f"ゲーム内プロフィールなし（manage_profiles.py --init でCSVを作成して入力できます）")
-
-    print(f"人間関係を抽出中...")
-    all_char_names = list(all_lines.keys())
-    relationships = extract_relationships(args.name, target_lines, all_char_names, char_files)
-    print(f"関連キャラ: {len(relationships)}人")
-
-    print(f"固有名詞を抽出中...")
-    proper_nouns = extract_proper_nouns(target_lines)
-    print(f"固有名詞: {len(proper_nouns)}件")
-
-    prompt = make_prompt(args.name, target_lines, profile, char_data,
-                         relationships, proper_nouns, args.samples)
-
-    out_file = Path(f"prompt_{args.name}.txt")
-    out_file.write_text(prompt, encoding="utf-8")
-
-    print(f"\n→ {out_file} 保存完了")
-    print(f"   文字数: {len(prompt):,}文字")
-    print(f"\n使い方: claude.ai で新しい会話を開いて {out_file} の内容を貼り付けてください")
+        print(f"\n使い方: claude.ai で新しい会話を開いて prompt_{args.name}.txt の内容を貼り付けてください")
 
 
 if __name__ == "__main__":
