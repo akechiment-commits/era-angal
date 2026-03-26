@@ -328,7 +328,7 @@ CHARA_DATA = [
 
     dict(no=50, name="山條ぎん",     nick="ぎん",
          hp=2400, sp=1800,
-         talents=[0,12,23,30,37,40,80,106,151],           # A敏感+倒錯的：SM系に反応
+         talents=[0,12,23,30,40,80,106,151],              # A敏感+倒錯的：SM系に反応
          initiative=-10, masochistic=3),
 
     dict(no=51, name="御影かすみ",   nick="かすみ",
