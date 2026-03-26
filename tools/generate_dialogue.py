@@ -111,7 +111,7 @@ def generate_dialogue(name: str, situation: str, n: int = 10) -> list[str]:
 """
 
     response = client.messages.create(
-        model="claude-opus-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}]
     )
