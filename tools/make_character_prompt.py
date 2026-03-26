@@ -37,6 +37,17 @@ def load_char_data_csv() -> dict[str, dict]:
     return profiles
 
 
+def find_char_data(char_data_all: dict, name: str) -> dict | None:
+    """シナリオ名（短縮形）でCSVを検索。完全一致→部分一致の順で試みる"""
+    if name in char_data_all:
+        return char_data_all[name]
+    # CSVフルネームがシナリオ短縮名を含むケース（例: 「悠木ともこ」→「ともこ」）
+    for csv_name, data in char_data_all.items():
+        if csv_name.endswith(name) or csv_name.startswith(name):
+            return data
+    return None
+
+
 # ===== データ読み込み =====
 
 def load_all_lines() -> dict[str, list[str]]:
@@ -293,7 +304,7 @@ def main():
         print(f"\n【{name}】{len(target_lines)}行", end=" ")
 
         profile = load_profile(name)
-        char_data = all_char_data.get(name)
+        char_data = find_char_data(all_char_data, name)
 
         all_char_names = list(all_lines.keys())
         relationships = extract_relationships(name, target_lines, all_char_names, char_files)
