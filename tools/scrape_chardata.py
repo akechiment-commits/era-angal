@@ -69,21 +69,84 @@ def is_valid_char_name(name: str) -> bool:
 
 
 def parse_char_links(html: str) -> list[tuple[str, str]]:
-    """一覧ページからキャラ名とURLを抽出"""
-    # egchar.php?id=XX 形式のリンクを探す
-    links = re.findall(
-        r'href=["\']?(egchar[^"\'>\s]*)["\']?[^>]*>([^<]{2,20})</a',
-        html, re.IGNORECASE
-    )
+    """一覧ページからキャラ名とURLを抽出（画像リンク・テキストリンク両対応）"""
     seen_urls = set()
     result = []
-    for url, name in links:
-        name = re.sub(r"<[^>]+>", "", name).strip()
+
+    # パターン1: <a href="egchar.php?...">キャラ名</a>（テキストリンク）
+    for url, name in re.findall(
+        r'href=["\']?(egchar[^"\'>\s]*)["\']?[^>]*>([^<\[\]]{2,15})</a',
+        html, re.IGNORECASE
+    ):
+        name = name.strip()
         url_full = f"{BASE}/{url}"
         if url_full not in seen_urls and is_valid_char_name(name):
             seen_urls.add(url_full)
             result.append((url_full, name))
+
+    # パターン2: alt="[キャラ名]" の img タグから名前を抽出してURLを取得
+    for m in re.finditer(
+        r'<a\s+href=["\']?(egchar[^"\'>\s]*)["\']?[^>]*>\s*<img[^>]+alt=["\'\[]([^\]"\']{2,15})[\]"\']*[^>]*>',
+        html, re.IGNORECASE
+    ):
+        url, name = m.group(1), m.group(2).strip()
+        url_full = f"{BASE}/{url}"
+        if url_full not in seen_urls and is_valid_char_name(name):
+            seen_urls.add(url_full)
+            result.append((url_full, name))
+
     return result
+
+
+def get_all_list_pages() -> list[str]:
+    """一覧ページを全ページ取得（ページネーション対応）"""
+    pages = []
+
+    # まず名前順ソートで全件取得を試みる
+    sort_urls = [
+        LIST_URL,
+        LIST_URL + "?sort=name",
+        LIST_URL + "?order=name",
+        LIST_URL + "?sort=kana",
+    ]
+
+    html = ""
+    for url in sort_urls:
+        try:
+            html = fetch(url)
+            pages.append(html)
+            print(f"  取得: {url}")
+            break
+        except Exception as e:
+            print(f"  失敗: {url} ({e})")
+
+    if not html:
+        return pages
+
+    # ページネーションリンクを探す
+    page_links = re.findall(
+        r'href=["\']?(egcharlist[^"\'>\s]*(?:page|p|start|offset)=[^"\'>\s&]*)["\']?',
+        html, re.IGNORECASE
+    )
+    page_links += re.findall(
+        r'href=["\']?(egcharlist\.php\?[^"\'>\s]*)["\']?',
+        html, re.IGNORECASE
+    )
+
+    seen_pages = {LIST_URL}
+    for link in page_links:
+        url = f"{BASE}/{link}" if not link.startswith("http") else link
+        if url not in seen_pages:
+            seen_pages.add(url)
+            try:
+                page_html = fetch(url)
+                pages.append(page_html)
+                print(f"  追加ページ取得: {url}")
+                time.sleep(0.3)
+            except Exception as e:
+                print(f"  追加ページ失敗: {url} ({e})")
+
+    return pages
 
 
 def parse_char_page(html: str, name: str) -> dict:
@@ -278,46 +341,68 @@ def main():
     parser.add_argument("--id-scan", action="store_true", help="IDブルートフォースも実行")
     args = parser.parse_args()
 
-    print(f"一覧ページ取得中: {LIST_URL}")
-    try:
-        html = fetch(LIST_URL)
-    except Exception as e:
-        print(f"一覧ページ取得失敗: {e}")
+    print(f"一覧ページ取得中（全ページ）...")
+    pages = get_all_list_pages()
+    if not pages:
+        print("一覧ページ取得失敗")
         return
 
     if args.debug:
-        Path("debug_list.html").write_text(html, encoding="utf-8")
-        print("→ debug_list.html に保存しました（ブラウザで開いて確認できます）")
+        for i, html in enumerate(pages):
+            fname = f"debug_list_p{i+1}.html"
+            Path(fname).write_text(html, encoding="utf-8")
+            print(f"→ {fname} に保存しました")
 
     results = []
 
-    # 方法1: 個別ページリンクをたどる
+    # 方法1: 全ページから個別ページリンクをたどる
     print("\n【方法1】個別ページリンク取得")
-    link_results = scrape_by_links(html)
-    print(f"  → {len(link_results)}件取得")
-    results.extend(link_results)
+    all_links = {}
+    for html in pages:
+        for url, name in parse_char_links(html):
+            if url not in all_links:
+                all_links[url] = name
+    print(f"  リンク検出: {len(all_links)}件")
 
-    # 方法2: 一覧ページからの直接解析
-    print("\n【方法2】一覧ページ直接解析")
-    direct_results = scrape_list_direct(html)
-    # 方法1で取れなかった行だけ追加
+    for i, (url, name) in enumerate(all_links.items(), 1):
+        print(f"  [{i:2d}/{len(all_links)}] {name} ... ", end="", flush=True)
+        try:
+            char_html = fetch(url)
+            data = parse_char_page(char_html, name)
+            results.append(data)
+            filled = sum(1 for k, v in data.items() if v and k != "name")
+            print(f"OK ({filled}項目)")
+        except Exception as e:
+            print(f"失敗: {e}")
+            results.append({"name": name})
+        time.sleep(0.3)
+
+    print(f"  → {len(results)}件取得")
+
+    # 方法2: 一覧ページからの直接解析（リンクで取れなかった分の補完）
+    print("\n【方法2】一覧ページ直接解析（補完）")
     existing_names = {r["name"] for r in results}
-    new_direct = [r for r in direct_results if r["name"] not in existing_names]
-    print(f"  → {len(new_direct)}件追加")
-    results.extend(new_direct)
+    for html in pages:
+        direct_results = scrape_list_direct(html)
+        new_direct = [r for r in direct_results if r["name"] not in existing_names]
+        for r in new_direct:
+            existing_names.add(r["name"])
+        results.extend(new_direct)
+    print(f"  → 合計{len(dedup(results))}件")
 
-    # 方法3: IDブルートフォース（オプション）
-    if args.id_scan or len(results) < 60:
-        print(f"\n【方法3】IDブルートフォース（現在{len(results)}件、71件未満のため実行）")
+    # 方法3: IDブルートフォース（取得数が少ない場合）
+    if args.id_scan or len(dedup(results)) < 60:
+        print(f"\n【方法3】IDブルートフォース（現在{len(dedup(results))}件）")
         id_results = scrape_by_id(max_id=100)
         existing_names = {r["name"] for r in results}
         new_id = [r for r in id_results if r["name"] not in existing_names]
         print(f"  → {len(new_id)}件追加")
         results.extend(new_id)
 
-    print(f"\n合計: {len(dedup(results))}件")
-    if results:
-        save_csv(results)
+    final = dedup(results)
+    print(f"\n合計: {len(final)}件")
+    if final:
+        save_csv(final)
     else:
         print("データが取得できませんでした")
 
