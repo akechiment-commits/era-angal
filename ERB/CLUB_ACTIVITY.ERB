@@ -1,0 +1,342 @@
+;---------------------------------------------------------
+;部活動システム
+;
+;@CLUB_ACTIVITY           - 部活動メインメニュー
+;@DO_CLUB_ACTIVITY        - 部活動実行（ARG:0=部活タイプ）
+;@CLUB_RANDOM_EVENT       - 部活ランダムイベント（ARG:0=部活タイプ）
+;@SHOW_CLUB_STATUS        - 現在の部活技能を表示
+;---------------------------------------------------------
+;使用変数
+;CFLAG:char:25 -> 部活タイプ (0=帰宅/無所属, 1=運動部, 2=表現部, 3=知識部)
+;CSTR:char:25  -> 部活名（例: 吹奏楽部, バレー部 等）
+;ABL:char:93   -> 運動技能（プレイ中に成長）
+;ABL:char:94   -> 表現技能（プレイ中に成長）
+;ABL:char:95   -> 知識技能（プレイ中に成長）
+;ABL:char:54   -> 運動素質（成長速度に影響）
+;ABL:char:55   -> 表現素質（成長速度に影響）
+;ABL:char:56   -> 知識素質（成長速度に影響）
+;---------------------------------------------------------
+
+;---------------------------------------------------------
+;部活動メインメニュー
+;放課後（平日のTIME=1）にSHOP.ERBから呼び出す
+;---------------------------------------------------------
+@CLUB_ACTIVITY
+DRAWLINE
+
+;パートナーチェック
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+;部活タイプ確認
+A = CFLAG:TARGET:25
+IF A == 0
+	PRINTFORMW %CALLNAME:TARGET%は帰宅部のため、一緒に部活動はできません。
+	RETURN 0
+ENDIF
+
+;部活情報の表示
+PRINTFORML 【放課後の部活動】
+PRINTFORML パートナー：%CALLNAME:TARGET%（%CSTR:TARGET:25%）
+PRINTL 
+
+IF A == 1
+	PRINTFORML 種別：運動部
+	PRINTFORML 効果：運動技能UP（素質：運動素質{ABL:TARGET:54}）
+	PRINTFORML 消費：耐力を消費します
+ELSEIF A == 2
+	PRINTFORML 種別：表現部
+	PRINTFORML 効果：表現技能UP（素質：表現素質{ABL:TARGET:55}）
+	PRINTFORML 消費：気力を消費します
+ELSEIF A == 3
+	PRINTFORML 種別：知識部
+	PRINTFORML 効果：知識技能UP（素質：知識素質{ABL:TARGET:56}）
+	PRINTFORML 消費：体力を少し消費します
+ENDIF
+
+PRINTL 
+CALL SHOW_CLUB_STATUS
+
+PRINTL 
+PRINTFORML [0] %CALLNAME:TARGET%と一緒に部活動をする
+PRINTFORML [1] やめる
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	CALL DO_CLUB_ACTIVITY, A
+	RETURN RESULT
+ELSEIF RESULT == 1
+	RETURN 0
+ELSE
+	PRINTFORML 正しい値を入力してください
+	GOTO INPUT_LOOP
+ENDIF
+
+;---------------------------------------------------------
+;部活動実行
+;ARG:0 = 部活タイプ（1=運動, 2=表現, 3=知識）
+;RESULT = 1 で成功
+;---------------------------------------------------------
+@DO_CLUB_ACTIVITY
+A = ARG:0
+
+;体力チェック（耐力が20%以下では参加できない）
+IF BASE:MASTER:4 <= MAXBASE:MASTER:4 / 5
+	PRINTFORMW %CALLNAME:MASTER%は疲れていて部活に参加できません。（耐力不足）
+	RETURN 0
+ENDIF
+
+DRAWLINE
+PRINTFORML 【%CSTR:TARGET:25%の活動】
+
+IF A == 1
+	;----- 運動部 -----
+	PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は一緒に%CSTR:TARGET:25%の練習をした。
+
+	;主人公の技能成長（運動素質に応じた成長量）
+	P = RAND:5 + ABL:MASTER:54 / 15 + 1
+	SIF P > 10
+		P = 10
+	ABL:MASTER:93 += P
+	SIF ABL:MASTER:93 > 100
+		ABL:MASTER:93 = 100
+	PRINTFORML 【%CALLNAME:MASTER%の運動技能 +{P}（現在：{ABL:MASTER:93}/100）】
+
+	;パートナーの技能成長
+	P = RAND:5 + ABL:TARGET:54 / 15 + 1
+	SIF P > 10
+		P = 10
+	ABL:TARGET:93 += P
+	SIF ABL:TARGET:93 > 100
+		ABL:TARGET:93 = 100
+	PRINTFORML 【%CALLNAME:TARGET%の運動技能 +{P}（現在：{ABL:TARGET:93}/100）】
+
+	;耐力消費
+	LOCAL:2 = MAXBASE:MASTER:4 / 5
+	BASE:MASTER:4 -= LOCAL:2
+	SIF BASE:MASTER:4 < 0
+		BASE:MASTER:4 = 0
+	PRINTFORML 　耐力 -{LOCAL:2}（残り：{BASE:MASTER:4}/{MAXBASE:MASTER:4}）
+
+ELSEIF A == 2
+	;----- 表現部 -----
+	PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は一緒に%CSTR:TARGET:25%の練習をした。
+
+	;主人公の技能成長
+	P = RAND:5 + ABL:MASTER:55 / 15 + 1
+	SIF P > 10
+		P = 10
+	ABL:MASTER:94 += P
+	SIF ABL:MASTER:94 > 100
+		ABL:MASTER:94 = 100
+	PRINTFORML 【%CALLNAME:MASTER%の表現技能 +{P}（現在：{ABL:MASTER:94}/100）】
+
+	;パートナーの技能成長
+	P = RAND:5 + ABL:TARGET:55 / 15 + 1
+	SIF P > 10
+		P = 10
+	ABL:TARGET:94 += P
+	SIF ABL:TARGET:94 > 100
+		ABL:TARGET:94 = 100
+	PRINTFORML 【%CALLNAME:TARGET%の表現技能 +{P}（現在：{ABL:TARGET:94}/100）】
+
+	;気力消費
+	LOCAL:2 = MAXBASE:MASTER:1 / 5
+	BASE:MASTER:1 -= LOCAL:2
+	SIF BASE:MASTER:1 < 0
+		BASE:MASTER:1 = 0
+	PRINTFORML 　気力 -{LOCAL:2}（残り：{BASE:MASTER:1}/{MAXBASE:MASTER:1}）
+
+ELSEIF A == 3
+	;----- 知識部 -----
+	PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は一緒に%CSTR:TARGET:25%の活動をした。
+
+	;主人公の技能成長
+	P = RAND:5 + ABL:MASTER:56 / 15 + 1
+	SIF P > 10
+		P = 10
+	ABL:MASTER:95 += P
+	SIF ABL:MASTER:95 > 100
+		ABL:MASTER:95 = 100
+	PRINTFORML 【%CALLNAME:MASTER%の知識技能 +{P}（現在：{ABL:MASTER:95}/100）】
+
+	;パートナーの技能成長
+	P = RAND:5 + ABL:TARGET:56 / 15 + 1
+	SIF P > 10
+		P = 10
+	ABL:TARGET:95 += P
+	SIF ABL:TARGET:95 > 100
+		ABL:TARGET:95 = 100
+	PRINTFORML 【%CALLNAME:TARGET%の知識技能 +{P}（現在：{ABL:TARGET:95}/100）】
+
+	;体力消費（軽微）
+	LOCAL:2 = MAXBASE:MASTER:0 / 10
+	SIF LOCAL:2 < 10
+		LOCAL:2 = 10
+	BASE:MASTER:0 -= LOCAL:2
+	SIF BASE:MASTER:0 < 0
+		BASE:MASTER:0 = 0
+	PRINTFORML 　体力 -{LOCAL:2}（残り：{BASE:MASTER:0}/{MAXBASE:MASTER:0}）
+
+ENDIF
+
+;一緒に頑張ったことで好感度UP
+CFLAG:TARGET:2 += 2
+PRINTFORML 　%CALLNAME:TARGET%の好感度 +2（現在：{CFLAG:TARGET:2}）
+
+;互換素質の同期（表現→撮影/歌唱等）
+CALL SYNC_CLUB_ABL
+
+;ランダムイベント（25%の確率）
+LOCAL:1 = RAND:4
+SIF LOCAL:1 == 0
+	CALL CLUB_RANDOM_EVENT, ARG:0
+
+PRINTL 
+WAIT
+RETURN 1
+
+;---------------------------------------------------------
+;部活ランダムイベント
+;ARG:0 = 部活タイプ（1=運動, 2=表現, 3=知識）
+;---------------------------------------------------------
+@CLUB_RANDOM_EVENT
+A = ARG:0
+B = RAND:4
+
+DRAWLINE
+PRINTFORML 【部活イベント！】
+
+IF A == 1
+	;運動部イベント
+	IF B == 0
+		PRINTFORML 練習試合が行われた！
+		PRINTFORML 気合いを入れて頑張ったおかげで、いつも以上に動けた。
+		ABL:MASTER:93 += 3
+		SIF ABL:MASTER:93 > 100
+			ABL:MASTER:93 = 100
+		ABL:TARGET:93 += 3
+		SIF ABL:TARGET:93 > 100
+			ABL:TARGET:93 = 100
+		PRINTFORML 　運動技能 さらに+3（主人公：{ABL:MASTER:93}　%CALLNAME:TARGET%：{ABL:TARGET:93}）
+	ELSEIF B == 1
+		PRINTFORMW %CALLNAME:TARGET%が素晴らしいプレーを見せてくれた！
+		PRINTFORML 思わず見とれてしまったが、刺激を受けてやる気が出た。
+		CFLAG:TARGET:2 += 3
+		ABL:MASTER:93 += 2
+		SIF ABL:MASTER:93 > 100
+			ABL:MASTER:93 = 100
+		PRINTFORML 　好感度 +3　運動技能 +2（現在：{ABL:MASTER:93}）
+	ELSEIF B == 2
+		PRINTFORML 顧問の先生から直接指導を受けた。
+		PRINTFORML 基礎フォームの見直しで、効率が上がった。
+		ABL:MASTER:54 += 1
+		SIF ABL:MASTER:54 > 100
+			ABL:MASTER:54 = 100
+		PRINTFORML 　運動素質 +1（現在：{ABL:MASTER:54}）
+	ELSE
+		PRINTFORML 全力で動き回り、くたくたになった。
+		PRINTFORML でも、充実した放課後だった……。
+		BASE:MASTER:4 -= MAXBASE:MASTER:4 / 5
+		SIF BASE:MASTER:4 < 0
+			BASE:MASTER:4 = 0
+		ABL:MASTER:93 += 2
+		SIF ABL:MASTER:93 > 100
+			ABL:MASTER:93 = 100
+		PRINTFORML 　疲労増加　運動技能 +2（現在：{ABL:MASTER:93}）
+	ENDIF
+
+ELSEIF A == 2
+	;表現部イベント
+	IF B == 0
+		PRINTFORML 発表会の合同練習が行われた！
+		PRINTFORML みんなの前で披露することで、度胸がついた。
+		ABL:MASTER:94 += 3
+		SIF ABL:MASTER:94 > 100
+			ABL:MASTER:94 = 100
+		ABL:TARGET:94 += 3
+		SIF ABL:TARGET:94 > 100
+			ABL:TARGET:94 = 100
+		PRINTFORML 　表現技能 さらに+3（主人公：{ABL:MASTER:94}　%CALLNAME:TARGET%：{ABL:TARGET:94}）
+	ELSEIF B == 1
+		PRINTFORMW %CALLNAME:TARGET%の演奏（演技）に感動してしまった……！
+		PRINTFORML あんなふうになりたいと、強く思った。
+		CFLAG:TARGET:2 += 4
+		ABL:MASTER:55 += 1
+		SIF ABL:MASTER:55 > 100
+			ABL:MASTER:55 = 100
+		PRINTFORML 　好感度 +4　表現素質 +1（現在：{ABL:MASTER:55}）
+	ELSEIF B == 2
+		PRINTFORML インスピレーションが湧いてきた！
+		PRINTFORML 新しい表現のアイデアを思いついた。
+		ABL:MASTER:94 += 2
+		SIF ABL:MASTER:94 > 100
+			ABL:MASTER:94 = 100
+		PRINTFORML 　表現技能 +2（現在：{ABL:MASTER:94}）
+	ELSE
+		PRINTFORML 長時間の練習でへとへとになった。
+		PRINTFORML 帰る頃には夜になっていた……。
+		BASE:MASTER:1 -= MAXBASE:MASTER:1 / 5
+		SIF BASE:MASTER:1 < 0
+			BASE:MASTER:1 = 0
+		ABL:MASTER:94 += 2
+		SIF ABL:MASTER:94 > 100
+			ABL:MASTER:94 = 100
+		PRINTFORML 　疲労増加　表現技能 +2（現在：{ABL:MASTER:94}）
+	ENDIF
+
+ELSEIF A == 3
+	;知識部イベント
+	IF B == 0
+		PRINTFORML 調べものをしていたら、面白い発見があった！
+		PRINTFORML 部活の仲間と議論が弾み、知識がぐっと深まった。
+		ABL:MASTER:95 += 3
+		SIF ABL:MASTER:95 > 100
+			ABL:MASTER:95 = 100
+		ABL:TARGET:95 += 3
+		SIF ABL:TARGET:95 > 100
+			ABL:TARGET:95 = 100
+		PRINTFORML 　知識技能 さらに+3（主人公：{ABL:MASTER:95}　%CALLNAME:TARGET%：{ABL:TARGET:95}）
+	ELSEIF B == 1
+		PRINTFORMW %CALLNAME:TARGET%が面白い話を教えてくれた。
+		PRINTFORML 視野が広がった気がする。
+		CFLAG:TARGET:2 += 3
+		ABL:MASTER:95 += 2
+		SIF ABL:MASTER:95 > 100
+			ABL:MASTER:95 = 100
+		PRINTFORML 　好感度 +3　知識技能 +2（現在：{ABL:MASTER:95}）
+	ELSEIF B == 2
+		PRINTFORML 部活の活動が試験勉強にも役立つと気づいた。
+		PRINTFORML 学力も少し伸びた気がする。
+		ABL:MASTER:88 += 3
+		SIF ABL:MASTER:88 > 9999
+			ABL:MASTER:88 = 9999
+		PRINTFORML 　学力 +3（現在：{ABL:MASTER:88}）
+	ELSE
+		PRINTFORML 集中しすぎて気づいたら外が暗くなっていた。
+		PRINTFORML 体は少しだるいが、充実感がある。
+		BASE:MASTER:0 -= MAXBASE:MASTER:0 / 10
+		SIF BASE:MASTER:0 < 0
+			BASE:MASTER:0 = 0
+		ABL:MASTER:95 += 2
+		SIF ABL:MASTER:95 > 100
+			ABL:MASTER:95 = 100
+		PRINTFORML 　疲労増加　知識技能 +2（現在：{ABL:MASTER:95}）
+	ENDIF
+
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+;現在の部活技能を表示
+;---------------------------------------------------------
+@SHOW_CLUB_STATUS
+PRINTFORML 【現在の部活技能】
+SIF TARGET >= 0
+	PRINTFORML 　運動技能：{ABL:MASTER:93}/100　（%CALLNAME:TARGET%：{ABL:TARGET:93}/100）
+	PRINTFORML 　表現技能：{ABL:MASTER:94}/100　（%CALLNAME:TARGET%：{ABL:TARGET:94}/100）
+	PRINTFORML 　知識技能：{ABL:MASTER:95}/100　（%CALLNAME:TARGET%：{ABL:TARGET:95}/100）
+RETURN 1
