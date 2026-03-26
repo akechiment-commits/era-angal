@@ -383,11 +383,50 @@ def save_csv(results: list[dict]):
     print(f"\n→ {OUT_CSV} に{len(results)}件保存しました")
 
 
+def dump_char_html(name: str):
+    """1キャラのHTMLと抽出テキストをファイルに保存してデバッグ"""
+    print(f"一覧ページ取得中...")
+    pages = get_all_list_pages()
+    all_links = {}
+    for html in pages:
+        for url, n in parse_char_links(html):
+            all_links[n] = url
+
+    if name not in all_links:
+        print(f"「{name}」が見つかりません。検出済み: {list(all_links.keys())[:10]}")
+        return
+
+    url = all_links[name]
+    print(f"取得中: {url}")
+    html = fetch(url)
+
+    # 生HTML保存
+    Path(f"debug_{name}.html").write_text(html, encoding="utf-8")
+    print(f"→ debug_{name}.html に保存")
+
+    # タグ除去テキスト保存
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = clean_text(text)
+    Path(f"debug_{name}_text.txt").write_text(text, encoding="utf-8")
+    print(f"→ debug_{name}_text.txt に保存")
+
+    # parse結果表示
+    data = parse_char_page(html, name)
+    print(f"\n抽出結果:")
+    for k, v in data.items():
+        print(f"  {k}: {v!r}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true", help="HTMLをファイルに保存")
     parser.add_argument("--id-scan", action="store_true", help="IDブルートフォースも実行")
+    parser.add_argument("--dump-char", metavar="キャラ名", help="1キャラのHTMLを保存してデバッグ")
     args = parser.parse_args()
+
+    if args.dump_char:
+        dump_char_html(args.dump_char)
+        return
 
     print(f"一覧ページ取得中（全ページ）...")
     pages = get_all_list_pages()
