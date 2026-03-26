@@ -205,13 +205,12 @@ def parse_char_page(html: str, name: str) -> dict:
                     data[field] = m.group(1).strip()
                 break
 
-    # スリーサイズ (B/W/H)
-    ts = re.search(r"スリーサイズ[：:\s]*(\d{2,3})\s*/\s*(\d{2,3})\s*/\s*(\d{2,3})", text)
+    # スリーサイズ (B/W/H) - サイトでは「3サイズ」と表記
+    ts = re.search(r"[3三]サイズ[：:\s]*(\d{2,3})\s*/\s*(\d{2,3})\s*/\s*(\d{2,3})", text)
+    if not ts:
+        ts = re.search(r"スリーサイズ[：:\s]*(\d{2,3})\s*/\s*(\d{2,3})\s*/\s*(\d{2,3})", text)
     if not ts:
         ts = re.search(r"B[：:\s]*(\d{2,3})\s*[/・]\s*W[：:\s]*(\d{2,3})\s*[/・]\s*H[：:\s]*(\d{2,3})", text)
-    if not ts:
-        # 数値3つのスラッシュ区切り（文脈からスリーサイズと判断できる場合）
-        ts = re.search(r"(?:バスト|ウエスト|ヒップ)[^\d]*(\d{2,3})\s*/\s*(\d{2,3})\s*/\s*(\d{2,3})", text)
     if ts:
         data["three_sizes"] = f"{ts.group(1)}/{ts.group(2)}/{ts.group(3)}"
 
