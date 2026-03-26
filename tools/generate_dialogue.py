@@ -19,6 +19,7 @@ import json
 import os
 import random
 import re
+import time
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -51,7 +52,7 @@ def call_gemini(prompt: str) -> str:
     return result["candidates"][0]["content"]["parts"][0]["text"]
 
 
-def load_character_lines(name: str, max_samples: int = 800) -> list[str]:
+def load_character_lines(name: str, max_samples: int = 150) -> list[str]:
     all_lines = []
     pattern = re.compile(rf"^【{re.escape(name)}】(.+)$", re.MULTILINE)
 
@@ -132,11 +133,29 @@ def generate_dialogue(name: str, situation: str, n: int = 10) -> list[str]:
 ...
 """
 
-    try:
-        text = call_gemini(prompt)
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        raise RuntimeError(f"APIエラー {e.code}: {body}")
+    for attempt in range(3):
+        try:
+            text = call_gemini(prompt)
+            break
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            if e.code == 429 and attempt < 2:
+                wait = 60
+                try:
+                    info = json.loads(body)
+                    for d in info.get("error", {}).get("details", []):
+                        delay = d.get("retryDelay", "")
+                        if delay:
+                            wait = int(delay.rstrip("s")) + 5
+                            break
+                except Exception:
+                    pass
+                print(f"  レート制限中、{wait}秒待ちます...")
+                time.sleep(wait)
+            else:
+                raise RuntimeError(f"APIエラー {e.code}: {body}")
+    else:
+        raise RuntimeError("リトライ上限に達しました")
 
     result = []
     for line in text.splitlines():
