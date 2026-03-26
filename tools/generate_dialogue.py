@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-あんガル キャラクター台詞生成スクリプト（マルコフ連鎖・API不要）
-ゲームセリフを学習してキャラらしい新しい台詞を生成する
+あんガル キャラクター台詞生成スクリプト（フレーズ連鎖・API不要）
+読点で区切ったフレーズを繋いで自然な日本語のセリフを生成する
 
 使い方:
   python generate_dialogue.py ひまり
-  python generate_dialogue.py ひまり --count 20
   python generate_dialogue.py ひまり --keyword 好き
-  python generate_dialogue.py --list
+  python generate_dialogue.py ひまり --situation 励ます・応援
   python generate_dialogue.py ひまり --all
+  python generate_dialogue.py --list
 """
 
 import argparse
@@ -22,11 +22,11 @@ SCENARIO_DIR = Path("scenarios")
 PROFILES_FILE = Path("character_profiles.json")
 
 SITUATION_KEYWORDS = {
-    "挨拶・会う":     ["おはよ", "こんにち", "こんばん", "はじめまして", "久しぶ", "やあ"],
+    "挨拶・会う":     ["おはよ", "こんにち", "こんばん", "はじめまして", "久しぶ"],
     "好意・好き":     ["好き", "大好き", "嬉し", "素敵", "かわい", "ありがと"],
-    "励ます・応援":   ["頑張", "諦めない", "大丈夫", "できる", "応援", "一緒に"],
+    "励ます・応援":   ["頑張", "諦めない", "大丈夫", "できる", "応援", "一緒"],
     "照れ・恥ずかし": ["えっ", "そんな", "恥ずかし", "照れ", "もう", "やだ"],
-    "怒る・不満":     ["もう", "なんで", "どうして", "信じられない", "ひどい", "怒"],
+    "怒る・不満":     ["もう", "なんで", "どうして", "信じられない", "ひどい"],
     "悲しむ":         ["悲し", "つらい", "寂し", "泣", "辛い", "どうしよう"],
     "楽しい・喜ぶ":   ["楽し", "嬉し", "やった", "最高", "すごい", "わあ"],
     "テスト・勉強":   ["テスト", "勉強", "試験", "点数", "授業", "宿題"],
@@ -34,96 +34,128 @@ SITUATION_KEYWORDS = {
     "食べ物":         ["食べ", "おいし", "料理", "お腹", "ご飯", "甘い"],
 }
 
+# 文末判定
+SENTENCE_ENDS = re.compile(r"[。！？…♪～〜]$")
+# フレーズ分割（読点・文末記号で分割しつつ記号を保持）
+SPLIT_PATTERN = re.compile(r"([^、。！？…♪～〜]+[、。！？…♪～〜]?)")
 
-# ===== マルコフ連鎖 =====
 
-def build_markov(lines: list[str], n: int = 3) -> dict:
-    """n文字マルコフ連鎖モデルを構築"""
+def split_to_phrases(line: str) -> list[str]:
+    """1行を読点・文末記号単位のフレーズに分割"""
+    line = line.strip()
+    phrases = [m.group(0) for m in SPLIT_PATTERN.finditer(line) if m.group(0).strip()]
+    return phrases
+
+
+def build_model(lines: list[str]) -> dict:
+    """
+    フレーズ遷移モデルを構築
+    - transitions: フレーズ → 次のフレーズの頻度
+    - starters: 文頭になりやすいフレーズ
+    - terminals: 文末フレーズ（。！？で終わるもの）
+    - by_keyword: キーワード → そのキーワードを含むフレーズ
+    """
     transitions = defaultdict(Counter)
-    starters = []
+    starters = Counter()
+    terminals = set()
+    by_keyword = defaultdict(list)
+    all_phrases = set()
 
     for line in lines:
-        line = line.strip()
-        if len(line) < n + 1:
+        phrases = split_to_phrases(line)
+        if not phrases:
             continue
-        starters.append(line[:n])
-        for i in range(len(line) - n):
-            state = line[i:i + n]
-            next_char = line[i + n]
-            transitions[state][next_char] += 1
-        # 末尾の終端マーク
-        transitions[line[-n:]]["__END__"] += 3  # 重み強め
 
-    return {"transitions": dict(transitions), "starters": starters, "n": n}
+        starters[phrases[0]] += 1
+        for phrase in phrases:
+            all_phrases.add(phrase)
+            if SENTENCE_ENDS.search(phrase):
+                terminals.add(phrase)
+
+        for i in range(len(phrases) - 1):
+            transitions[phrases[i]][phrases[i + 1]] += 1
+
+    # キーワードインデックス
+    for phrase in all_phrases:
+        for kw_list in SITUATION_KEYWORDS.values():
+            for kw in kw_list:
+                if kw in phrase:
+                    by_keyword[kw].append(phrase)
+
+    return {
+        "transitions": dict(transitions),
+        "starters": starters,
+        "terminals": terminals,
+        "by_keyword": dict(by_keyword),
+        "all_phrases": list(all_phrases),
+    }
 
 
-def markov_generate(model: dict, max_len: int = 60, seed: str = None) -> str:
-    """マルコフ連鎖で1文生成"""
+def sample_weighted(counter: Counter) -> str:
+    total = sum(counter.values())
+    r = random.randint(0, total - 1)
+    for item, cnt in counter.items():
+        r -= cnt
+        if r < 0:
+            return item
+    return random.choice(list(counter.keys()))
+
+
+def generate_line(model: dict, keyword: str = None, max_phrases: int = 5) -> str:
+    """フレーズ連鎖で1文生成"""
     transitions = model["transitions"]
     starters = model["starters"]
-    n = model["n"]
+    terminals = model["terminals"]
+    by_keyword = model["by_keyword"]
 
-    if not starters:
-        return ""
+    # 開始フレーズを選択
+    if keyword:
+        # キーワードを含むフレーズからスタート
+        candidates = by_keyword.get(keyword[:2], [])
+        if candidates:
+            start = random.choice(candidates)
+        else:
+            start = sample_weighted(starters)
+    else:
+        start = sample_weighted(starters)
 
-    state = seed if (seed and len(seed) >= n and seed[:n] in transitions) else random.choice(starters)
-    result = state
+    phrases = [start]
 
-    for _ in range(max_len):
-        if state not in transitions:
+    for _ in range(max_phrases - 1):
+        current = phrases[-1]
+        # 既に文末なら終了
+        if SENTENCE_ENDS.search(current):
             break
-        counter = transitions[state]
-        total = sum(counter.values())
-        r = random.randint(0, total - 1)
-        cumsum = 0
-        next_char = None
-        for ch, cnt in counter.items():
-            cumsum += cnt
-            if r < cumsum:
-                next_char = ch
+        # 遷移先があれば続ける
+        if current in transitions:
+            next_phrase = sample_weighted(transitions[current])
+            phrases.append(next_phrase)
+            if SENTENCE_ENDS.search(next_phrase):
                 break
-
-        if next_char == "__END__" or next_char in ("。", "！", "？", "…", "\n"):
-            if next_char != "__END__":
-                result += next_char
+        else:
+            # 遷移先がなければ文末フレーズをランダムに付ける
+            if terminals:
+                phrases.append(random.choice(list(terminals)))
             break
 
-        result += next_char
-        state = result[-n:]
-
-    return result.strip()
+    return "".join(phrases)
 
 
-def generate_many(model: dict, n_lines: int = 10, keyword: str = None,
-                  min_len: int = 8) -> list[str]:
-    """複数行生成。短すぎる・重複を除去してn_lines個返す"""
+def generate_many(model: dict, n: int = 10, keyword: str = None,
+                  min_len: int = 6) -> list[str]:
+    """重複なしでn個生成"""
     results = []
     seen = set()
-    attempts = 0
-
-    # キーワードに近いstarterを選ぶ
-    seed = None
-    if keyword and model["starters"]:
-        kw_starters = [s for s in model["starters"] if keyword[:2] in s]
-        if kw_starters:
-            seed = random.choice(kw_starters)
-
-    while len(results) < n_lines and attempts < n_lines * 20:
-        attempts += 1
-        use_seed = seed if (seed and random.random() < 0.3) else None
-        line = markov_generate(model, seed=use_seed)
-
-        if len(line) < min_len:
-            continue
-        if line in seen:
+    for _ in range(n * 15):
+        if len(results) >= n:
+            break
+        line = generate_line(model, keyword=keyword)
+        if len(line) < min_len or line in seen:
             continue
         seen.add(line)
         results.append(line)
-
     return results
 
-
-# ===== ユーティリティ =====
 
 def load_character_lines(name: str) -> list[str]:
     all_lines = []
@@ -160,13 +192,12 @@ def list_characters():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="あんガル キャラ台詞生成（マルコフ連鎖）")
+    parser = argparse.ArgumentParser(description="あんガル キャラ台詞生成（フレーズ連鎖）")
     parser.add_argument("name", nargs="?", help="キャラ名")
-    parser.add_argument("--keyword", "-k", help="話題キーワード")
+    parser.add_argument("--keyword", "-k", help="話題キーワード（例: 好き）")
     parser.add_argument("--situation", "-s",
                         help=f"シチュエーション: {', '.join(SITUATION_KEYWORDS.keys())}")
     parser.add_argument("--count", "-n", type=int, default=10, help="生成する台詞数")
-    parser.add_argument("--order", type=int, default=3, help="マルコフ次数（デフォルト3）")
     parser.add_argument("--list", "-l", action="store_true", help="キャラ一覧表示")
     parser.add_argument("--all", "-a", action="store_true", help="全シチュエーション出力")
     args = parser.parse_args()
@@ -190,27 +221,26 @@ def main():
     fp = profile["main_first_person"] if profile else "?"
     print(f"\n【{name}】 {total}行を学習中... (一人称:{fp})")
 
-    model = build_markov(lines, n=args.order)
-    print(f"モデル構築完了（状態数: {len(model['transitions']):,}）\n")
-
-    if args.all:
-        out_dir = Path(f"dialogue_{name}")
-        out_dir.mkdir(exist_ok=True)
-        for situation, keywords in SITUATION_KEYWORDS.items():
-            keyword = keywords[0]
-            generated = generate_many(model, args.count, keyword=keyword)
-            out_file = out_dir / f"{situation}.txt"
-            out_file.write_text("\n".join(generated), encoding="utf-8")
-            print(f"  {situation}: {len(generated)}件")
-        print(f"\n→ {out_dir}/ に保存しました")
-        return
+    model = build_model(lines)
+    print(f"フレーズ数: {len(model['all_phrases']):,}  文頭候補: {len(model['starters']):,}\n")
 
     keyword = args.keyword
     if not keyword and args.situation:
         kws = SITUATION_KEYWORDS.get(args.situation, [])
         keyword = kws[0] if kws else None
         if keyword:
-            print(f"シチュエーション「{args.situation}」→ キーワード「{keyword}」で生成\n")
+            print(f"シチュエーション「{args.situation}」→ キーワード「{keyword}」\n")
+
+    if args.all:
+        out_dir = Path(f"dialogue_{name}")
+        out_dir.mkdir(exist_ok=True)
+        for situation, kws in SITUATION_KEYWORDS.items():
+            generated = generate_many(model, args.count, keyword=kws[0])
+            out_file = out_dir / f"{situation}.txt"
+            out_file.write_text("\n".join(generated), encoding="utf-8")
+            print(f"  {situation}: {len(generated)}件")
+        print(f"\n→ {out_dir}/ に保存しました")
+        return
 
     generated = generate_many(model, args.count, keyword=keyword)
     for i, l in enumerate(generated, 1):
