@@ -20,7 +20,7 @@ OUT_DIR = Path("scenarios")
 OUT_DIR.mkdir(exist_ok=True)
 
 
-def download(story_id: int):
+def download(story_id: int) -> bytes | None:
     url = BASE_URL.format(id=story_id)
     try:
         r = requests.get(url, timeout=10)
@@ -31,7 +31,7 @@ def download(story_id: int):
         return None
 
 
-def parse_unity3d(data: bytes):
+def parse_unity3d(data: bytes) -> list[dict] | None:
     try:
         env = UnityPy.load(data)
         for obj in env.objects:
@@ -56,31 +56,40 @@ def parse_unity3d(data: bytes):
     return None
 
 
+def format_text(story_id: int, talks: list[dict]) -> str:
+    lines = [f"=== {story_id} ===\n"]
+    for t in talks:
+        lines.append(f"【{t['speaker']}】{t['text']}")
+    return "\n".join(lines)
+
+
 def main():
     start = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     end = int(sys.argv[2]) if len(sys.argv) > 2 else 3000
 
     print(f"ID {start}〜{end} をダウンロードします")
     found = 0
+    missing = 0
 
     for story_id in range(start, end + 1):
         data = download(story_id)
         if data is None:
+            missing += 1
+            if missing % 50 == 0:
+                print(f"  {story_id}: 連続{missing}件なし")
             continue
 
+        missing = 0
         talks = parse_unity3d(data)
         if talks:
             out_file = OUT_DIR / f"{story_id}.txt"
-            out_file.write_text(
-                f"=== {story_id} ===\n" + "\n".join(f"【{t['speaker']}】{t['text']}" for t in talks),
-                encoding="utf-8"
-            )
+            out_file.write_text(format_text(story_id, talks), encoding="utf-8")
             found += 1
-            print(f"  [{story_id}] {len(talks)}行")
+            print(f"  [{story_id}] {len(talks)}行 → {out_file.name}")
         else:
-            print(f"  [{story_id}] セリフなし")
+            print(f"  [{story_id}] セリフなし（スキップ）")
 
-        time.sleep(0.1)
+        time.sleep(0.1)  # サーバー負荷軽減
 
     print(f"\n完了: {found}件取得 → {OUT_DIR}/")
 
