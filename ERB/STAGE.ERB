@@ -52,97 +52,239 @@ RETURN 1
 ;学期進行メインメニュー
 ;---------------------------------------------------------
 @STAGE_CAPTURE
-TFLAG:46 = 0
-
-$START_POINT
-
-;所持金の上限設定
-SIF MONEY >= 999999999999999999
-	MONEY = 999999999999999999
-
-PRINTL  
+;---------------------------------------------------------
+;ストーリー進行 - 学期情報の確認と学校生活エピソード
+;勉強はパートナーとの会話や部活で行う
+;---------------------------------------------------------
+DRAWLINE
 CALL GET_SEMESTER_NAME
-PRINTFORML 現在 %STR:10% （学習進度：{FLAG:27}）  所持金：${MONEY}
 
-CALL SHOW_STUDY_STATUS
+;残り日数を計算（SYSTEM_GET_LIMITDAYと同じロジック）
+LOCAL:0 = FLAG:24
+IF FLAG:5 == 0
+	LOCAL:0 *= 15
+ELSEIF FLAG:5 == 1
+	LOCAL:0 *= 10
+ELSEIF FLAG:5 == 2
+	LOCAL:0 *= 8
+ELSE
+	LOCAL:0 *= 5
+ENDIF
+LOCAL:1 = LOCAL:0 - DAY
+SIF LOCAL:1 < 0
+	LOCAL:1 = 0
 
-;初期化
-VARSET V, 0
-VARSET W, 0
-VARSET X, 0
-VARSET Y, 0
-VARSET Z, 0
-VARSET LOCAL, 0
+PRINTFORML 【ストーリー進行】
+PRINTFORML 現在学期 : %STR:10%
+PRINTFORML 試験まで : あと{LOCAL:1}日
+PRINTL
 
-PRINTFORML どうしますか？
-PRINTFORML [0] 授業を受ける
-PRINTFORML [2] 教室に戻る
-PRINTFORML [8] まとめて授業を受ける（回数指定）
-PRINTFORML [9] まとめて授業を受ける（体力の限り）
+;来たるイベントの予告
+IF DAY:2 == 2
+	IF FLAG:50 != DAY:3
+		IF DAY:1 < 12
+			PRINTFORML ★ 体育祭まであと{12 - DAY:1}日（秋 Day12-13）
+		ELSEIF DAY:1 <= 13
+			PRINTFORML ★ 今日は体育祭！（自動開始）
+		ENDIF
+	ENDIF
+	IF FLAG:51 != DAY:3
+		IF DAY:1 >= 14 && DAY:1 < 21
+			PRINTFORML ★ 文化祭まであと{21 - DAY:1}日（秋 Day21-22）
+		ELSEIF DAY:1 >= 21 && DAY:1 <= 22
+			PRINTFORML ★ 今日は文化祭！（自動開始）
+		ENDIF
+	ENDIF
+ENDIF
+PRINTL
+
+;選択肢
+PRINTFORML [0] 学校生活エピソードを見る
+IF TARGET >= 0
+	PRINTFORML [1] %CALLNAME:TARGET%との思い出を振り返る
+ENDIF
+PRINTFORML [9] 戻る
 
 $INPUT_LOOP
 INPUT
 IF RESULT == 0
-	CALL STUDY_SESSION
-	TFLAG:46 += 1
-ELSEIF RESULT == 2
-	IF TARGET >= 0
-		PRINTFORMW %CALLNAME:MASTER%と%CALLNAME:TARGET%は教室に戻ることにした
-	ELSE
-		PRINTFORMW %CALLNAME:MASTER%は教室に戻ることにした
-	ENDIF
-	TFLAG:600 = 35
-	TRYCALL KOJO_JUN
-	RETURN 1
-ELSEIF RESULT == 8
-	PRINTFORML 何コマ分受けますか？
-	INPUT
-	SIF RESULT <= 0
-		RESULT = 1
-	K:1 = RESULT
-	PRINTFORMW %CALLNAME:MASTER%は集中して授業を受けることにした……
-	REPEAT K:1
-		;体力チェック
-		IF BASE:MASTER:4 <= MAXBASE:MASTER:4 / 4
-			PRINTFORMW 疲れてきたので切り上げることにした
-			BREAK
-		ENDIF
-		CALL STUDY_SESSION
-		TFLAG:46 += 1
-	REND
+	CALL SCHOOL_LIFE_EVENT
+	SIF RESULT
+		BEGIN TURNEND
+ELSEIF RESULT == 1 && TARGET >= 0
+	CALL PARTNER_MEMORY
+	SIF RESULT
+		BEGIN TURNEND
 ELSEIF RESULT == 9
-	PRINTFORMW %CALLNAME:MASTER%は体力の続く限り授業を受けることにした……
-	REPEAT 99
-		;体力チェック
-		IF BASE:MASTER:4 <= MAXBASE:MASTER:4 / 4
-			PRINTFORMW 疲れてきたので切り上げることにした
-			BREAK
-		ENDIF
-		CALL STUDY_SESSION
-		TFLAG:46 += 1
-	REND
+	RETURN 0
 ELSE
-	PRINTFORML 正しい値を入力してください
 	GOTO INPUT_LOOP
 ENDIF
+RETURN 0
 
-;体力切れチェック
-IF BASE:MASTER:4 <= 0
-	PRINTFORMW %CALLNAME:MASTER%は疲れ果てて寝てしまった……
-	RETURN 1
+
+;---------------------------------------------------------
+;学校生活エピソード（ランダム）
+;ストーリー進行[0]から呼ばれる。小さな日常エピソード。
+;---------------------------------------------------------
+@SCHOOL_LIFE_EVENT
+DRAWLINE
+A = RAND:8
+
+IF A == 0
+	PRINTFORML 【エピソード：廊下で】
+	IF TARGET >= 0
+		PRINTFORML 廊下を歩いていると%CALLNAME:TARGET%と鉢合わせした。
+		PRINTFORML 「あ、%CALLNAME:MASTER%」と%CALLNAME:TARGET%が微笑んだ。
+		PRINTFORML 短い時間だが、他愛ない話をした。
+		CFLAG:TARGET:2 += 1
+		PRINTFORMW 好感度 +1
+	ELSE
+		PRINTFORML 廊下を歩いていると同級生に声をかけられた。
+		PRINTFORMW 君咲学院の日常はこういう偶然の出会いでできている。
+	ENDIF
+
+ELSEIF A == 1
+	PRINTFORML 【エピソード：掲示板】
+	PRINTFORML 学校の掲示板に目が止まった。
+	PRINTFORML 来週のイベント告知、部活の試合結果、進路説明会の案内……。
+	IF DAY:2 == 2
+		PRINTFORMW 「体育祭の出場クラス分けが発表されていた。」
+	ELSEIF DAY:2 == 0
+		PRINTFORMW 「入学式の写真が飾られていた。新しいスタートを思い出す。」
+	ELSE
+		PRINTFORMW 「何気ない掲示板のひとコマ。でも学校って感じがした。」
+	ENDIF
+
+ELSEIF A == 2
+	PRINTFORML 【エピソード：屋上】
+	PRINTFORML 昼休みに屋上へ行ってみた。
+	IF TARGET >= 0
+		PRINTFORML %CALLNAME:TARGET%も来ていた。
+		PRINTFORML 二人で空を見ながら、何も言わずにいた。
+		PRINTFORML それだけで、なんとなく充電できた気がした。
+		CFLAG:TARGET:2 += 2
+		PRINTFORMW 好感度 +2
+	ELSE
+		PRINTFORML 一人で空を眺めた。青い空に、少し気持ちが楽になった。
+		PRINTFORMW 体力が少し回復した。
+		BASE:MASTER:4 += MAXBASE:MASTER:4 / 10
+		SIF BASE:MASTER:4 > MAXBASE:MASTER:4
+			BASE:MASTER:4 = MAXBASE:MASTER:4
+	ENDIF
+
+ELSEIF A == 3
+	PRINTFORML 【エピソード：図書室】
+	PRINTFORML 図書室に立ち寄った。静かで、外の喧騒が遠くなる。
+	IF TARGET >= 0
+		PRINTFORML %CALLNAME:TARGET%も本を読んでいた。
+		PRINTFORML 目が合って、小さく手を振った。
+		EXP:MASTER:95 += 1
+		EXP:TARGET:95 += 1
+		PRINTFORMW 学習経験 +1（ふたりとも）
+	ELSE
+		PRINTFORML 気になった本を少し読んだ。
+		EXP:MASTER:95 += 1
+		PRINTFORMW 学習経験 +1
+	ENDIF
+
+ELSEIF A == 4
+	PRINTFORML 【エピソード：放課後の教室】
+	PRINTFORML 放課後、誰もいない教室で一人でいた。
+	PRINTFORML 窓から夕日が差し込んで、チョークの匂いがした。
+	IF TARGET >= 0
+		PRINTFORML そこに%CALLNAME:TARGET%が「まだいたの？」と入ってきた。
+		PRINTFORML 一緒に帰ることになった。
+		CFLAG:TARGET:2 += 2
+		PRINTFORMW 好感度 +2
+	ELSE
+		PRINTFORMW しばらくぼんやりした後、帰ることにした。
+	ENDIF
+
+ELSEIF A == 5
+	PRINTFORML 【エピソード：保健室】
+	PRINTFORML ちょっと頭が痛くて保健室に寄った。
+	PRINTFORML 先生に「最近無理してない？」と言われた。
+	BASE:MASTER:4 += MAXBASE:MASTER:4 / 5
+	BASE:MASTER:1 += MAXBASE:MASTER:1 / 5
+	SIF BASE:MASTER:4 > MAXBASE:MASTER:4
+		BASE:MASTER:4 = MAXBASE:MASTER:4
+	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+		BASE:MASTER:1 = MAXBASE:MASTER:1
+	PRINTFORMW 耐力・気力が少し回復した。
+
+ELSEIF A == 6
+	PRINTFORML 【エピソード：購買】
+	PRINTFORML 購買でパンを買った。人気のメロンパンは売り切れだった。
+	IF TARGET >= 0
+		PRINTFORML %CALLNAME:TARGET%が「これ好きなんだ」と言いながら同じパンを選んでいた。
+		PRINTFORML なんとなく嬉しかった。
+		CFLAG:TARGET:2 += 1
+		PRINTFORMW 好感度 +1
+	ELSE
+		PRINTFORMW 気を取り直して別のパンにした。まあ美味しかった。
+	ENDIF
+
+ELSE
+	PRINTFORML 【エピソード：朝のHR】
+	PRINTFORML 朝のホームルームで担任が「最近みんな顔色がいい」と言った。
+	IF FLAG:24 <= 2
+		PRINTFORML 「1年生、学校に慣れてきたかな」
+	ELSEIF FLAG:24 <= 4
+		PRINTFORML 「2年生、一番楽しい時期だからね」
+	ELSE
+		PRINTFORML 「3年生、後悔のないようにね」
+	ENDIF
+	PRINTFORMW 何気ない一言が、少し心に残った。
 ENDIF
-SIF TARGET >= 0 && BASE:4 <= 0
-	RETURN 1
-
-;学習進度カウント（表示用）
-IF FLAG:27 < 99
-	FLAG:27 += 1
-ENDIF
-
-GOTO START_POINT
 
 RETURN 1
 
+;---------------------------------------------------------
+;パートナーとの思い出（好感度に応じたエピソード）
+;ストーリー進行[1]から呼ばれる
+;---------------------------------------------------------
+@PARTNER_MEMORY
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。
+	RETURN 0
+ENDIF
+
+DRAWLINE
+PRINTFORML 【%CALLNAME:TARGET%との思い出】
+PRINTL
+
+;好感度で分岐
+IF CFLAG:TARGET:2 >= 500
+	PRINTFORML %CALLNAME:TARGET%と過ごした日々が走馬灯のように蘇る。
+	PRINTFORML 最初はこんなに仲良くなるとは思わなかった。
+	IF CSTR:TARGET:25 != 
+		PRINTFORML 部活の%CSTR:TARGET:25%、一緒に笑った瞬間、ふたりきりの時間……。
+	ENDIF
+	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%にとって、かけがえのない存在になっていた。
+	CFLAG:TARGET:2 += 3
+	PRINTFORMW 好感度 +3
+ELSEIF CFLAG:TARGET:2 >= 200
+	PRINTFORML 最近の%CALLNAME:TARGET%とのやりとりが頭に浮かぶ。
+	IF CSTR:TARGET:25 != 
+		PRINTFORML %CSTR:TARGET:25%での姿、授業中のふとした表情。
+	ENDIF
+	PRINTFORML 一緒にいると自然と笑顔になれる。そういう相手だった。
+	CFLAG:TARGET:2 += 2
+	PRINTFORMW 好感度 +2
+ELSEIF CFLAG:TARGET:2 >= 50
+	PRINTFORML %CALLNAME:TARGET%とのやりとりを振り返ってみる。
+	PRINTFORML まだ知らないことがたくさんある。もっと話してみたいと思った。
+	CFLAG:TARGET:2 += 1
+	PRINTFORMW 好感度 +1
+ELSE
+	PRINTFORML %CALLNAME:TARGET%とはまだそこまで話せていない。
+	PRINTFORML でも、少しずつ距離が縮まっている気がした。
+	PRINTFORMW 好感度は変わらないが、何か芽生えるものがあった。
+ENDIF
+
+WAIT
+RETURN 1
 ;---------------------------------------------------------
 ;学習状況の表示
 ;---------------------------------------------------------
