@@ -99,41 +99,10 @@ ELSEIF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 6
 	;期日を計算
 	CALL SYSTEM_GET_LIMITDAY
 	IF DAY >= A
-		;念のためターゲットを再設定
+		;学期末 - 試験を自動発動（バッドエンドの代わり）
 		SIF TARGET < 0
 			TARGET = 1
-		PRINTFORMW ある朝、%CALLNAME:MASTER%が目を覚ますと、取り返しのつかない状況になっていた
-		PRINTFORMW 君咲学院での日々は終わりを告げ、%CALLNAME:TARGET%との関係も消えてしまった
-		PRINTFORMW ……気が付けば、%CALLNAME:MASTER%はすべてを失っていた
-		PRINTFORML  
-		PRINTFORMW  
-		PRINTFORMW 　　　　　　　　―― Bad Ending
-		PRINTFORML  
-		PRINTFORMW 今の状態を引き継いで、最初からやり直せます。どうしますか？
-		PRINTFORML [0] こんな事はなかった事に！
-		PRINTFORML [1] 周回プレイ反対！俺は１周でクリアしてみせるぜ！！
-		$INPUT_LOOP
-		INPUT
-		IF RESULT != 0 && RESULT != 1
-			PRINTFORML 正しい値を入力してください
-			GOTO INPUT_LOOP
-		ELSEIF RESULT == 0
-			PRINTFORMW それでは1日目、1学期に戻ります。次は頑張って下さい
-			REPEAT CHARANUM
-				SIF TALENT:COUNT:134 || MARK:COUNT:90
-					CFLAG:COUNT:110 -= DAY
-			REND
-			DAY = 0
-			TIME = 0
-			FLAG:24 = 1
-			FLAG:25 = 0
-			FLAG:26 += 1
-			FLAG:27 = 0
-		ELSEIF RESULT == 1
-			PRINTFORMW その心意気、ご立派です。次は頑張って下さい
-			PRINTFORMW お疲れ様でした。ゲームを終了します
-			QUIT
-		ENDIF
+		CALL SEMESTER_EXAM_AUTO
 		RETURN 1
 	ENDIF
 ENDIF

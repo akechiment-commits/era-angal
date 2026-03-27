@@ -76,13 +76,6 @@ VARSET LOCAL, 0
 
 PRINTFORML どうしますか？
 PRINTFORML [0] 授業を受ける
-IF FLAG:27 == 10
-	PRINTFORML [1] 中間試験を受ける
-	LOCAL:1 = 1
-ELSEIF FLAG:27 >= 20
-	PRINTFORML [1] 期末試験を受ける
-	LOCAL:1 = 1
-ENDIF
 PRINTFORML [2] 教室に戻る
 PRINTFORML [8] まとめて授業を受ける（回数指定）
 PRINTFORML [9] まとめて授業を受ける（体力の限り）
@@ -92,11 +85,6 @@ INPUT
 IF RESULT == 0
 	CALL STUDY_SESSION
 	TFLAG:46 += 1
-ELSEIF RESULT == 1 && LOCAL:1
-	CALL TAKE_EXAM
-	;試験で学期が進んだら終了
-	SIF RESULT == 2
-		RETURN 1
 ELSEIF RESULT == 2
 	IF TARGET >= 0
 		PRINTFORMW %CALLNAME:MASTER%と%CALLNAME:TARGET%は教室に戻ることにした
@@ -146,24 +134,9 @@ ENDIF
 SIF TARGET >= 0 && BASE:4 <= 0
 	RETURN 1
 
-;試験出現判定
-IF FLAG:27 < 10 || (FLAG:27 > 10 && FLAG:27 < 20)
-	A = RAND:100
-	IF FLAG:27 < 10 && FLAG:27 >= 3
-		;3回以上授業を受ければ、進度×15%で中間試験期間に
-		IF A <= FLAG:27 * 15
-			FLAG:27 = 10
-			PRINTFORMW 中間試験の日がやってきた！（次のターンから自動で試験が始まります）
-			RETURN 1
-		ENDIF
-	ELSEIF FLAG:27 > 10 && FLAG:27 < 20 && FLAG:27 >= 13
-		;中間試験後3回以上で、進度×11%で期末試験期間に
-		IF A <= (FLAG:27 - 10) * 11
-			FLAG:27 = 20
-			PRINTFORMW 期末試験の日がやってきた！（次のターンから自動で試験が始まります）
-			RETURN 1
-			ENDIF
-	ENDIF
+;学習進度カウント（表示用）
+IF FLAG:27 < 99
+	FLAG:27 += 1
 ENDIF
 
 GOTO START_POINT
@@ -528,3 +501,62 @@ RETURN 1
 ;以下、旧戦闘システムの関数（互換性のため残置）
 ;emuera.configの設定により呼び出されなければ無視される
 ;---------------------------------------------------------
+
+;---------------------------------------------------------
+;学期末試験 自動発動版
+;ENDING_CHECK(日数切れ)から呼ばれる
+;合格 → 次の学期へ（RETURN 1）
+;不合格 → バッドエンド処理
+;---------------------------------------------------------
+@SEMESTER_EXAM_AUTO
+PRINTL
+CALL GET_SEMESTER_NAME
+PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+PRINTFORML 　%STR:10% 学期末試験の日が来ました！
+PRINTFORML 　これまでの勉強の成果を発揮しよう。
+PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+WAIT
+
+CALL TAKE_EXAM
+
+IF RESULT == 2
+	;合格 → 次の学期へ（TAKE_EXAM内でFLAG:24が進んでいる）
+	FLAG:27 = 0
+	RETURN 1
+ELSE
+	;不合格 → バッドエンド
+	PRINTFORML
+	PRINTFORML 試験に合格できなかった。
+	PRINTFORMW %CALLNAME:MASTER%の学院生活はここで終わりを迎えた……
+	PRINTFORML
+	PRINTFORMW 　　　　　　　　―― Bad Ending（試験不合格）
+	PRINTFORML
+	PRINTFORMW 今の状態を引き継いで、最初からやり直せます。どうしますか？
+	PRINTFORML [0] こんな事はなかった事に！
+	PRINTFORML [1] やり直さない（ゲーム終了）
+	$INPUT_LOOP_FAIL
+	INPUT
+	SIF RESULT != 0 && RESULT != 1
+		GOTO INPUT_LOOP_FAIL
+	IF RESULT == 0
+		PRINTFORMW それでは1日目、1学期に戻ります。
+		REPEAT CHARANUM
+			SIF TALENT:COUNT:134 || MARK:COUNT:90
+				CFLAG:COUNT:110 -= DAY
+		REND
+		DAY = 0
+		TIME = 0
+		FLAG:24 = 1
+		FLAG:25 = 0
+		FLAG:26 += 1
+		FLAG:27 = 0
+		TARGET = -1
+		ASSI = -1
+		CALL START_PARTNER_SELECT
+	ELSEIF RESULT == 1
+		PRINTFORMW お疲れ様でした。
+		QUIT
+	ENDIF
+ENDIF
+RETURN 1
+
