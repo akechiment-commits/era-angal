@@ -202,8 +202,12 @@ ENDIF
 
 ;0-99に自動的に売り物が表示される。
 ;今回は何も無い
-PRINT_SHOPITEM
-
+;ショップアイテムはFLAG:70==1の時のみ表示
+IF FLAG:70 == 1
+	PRINTFORML 【ショップ】購入したい商品の番号を入力してください
+	PRINT_SHOPITEM
+	DRAWLINE
+ENDIF
 ;エッチなアイテム非表示(販売フラグを戻す。見えて無くても購入可能になってしまうけど、処理が楽なのでとりあえず暫定)
 IF FLAG:23 & 16
 	REPEAT 60
@@ -255,7 +259,11 @@ REPEAT 30
 	ELSEIF COUNT == 11 && FLAG:28
 		PRINTLC [114] - 強くてニューゲーム
 	ELSEIF COUNT == 12
-		CONTINUE
+		IF FLAG:70 == 1
+			PRINTLC [115] - ショップを閉じる  
+		ELSE
+			PRINTLC [115] - ショップ          
+		ENDIF
 	ELSEIF COUNT == 13 && TALENT:MASTER:208 && FLAG:24 > 1
 		PRINTLC [116] - 前の学期に戻る   
 	ELSEIF COUNT == 14 && (CHARANUM - T) > 1
@@ -321,6 +329,16 @@ IF RESULT == 100 && TARGET >= 0 && MONEY > 0
 	CALL ACCESSORY_EQUIP
 	BEGIN TRAIN
 	RETURN 1
+;ショップ表示切替
+ELSEIF RESULT == 115
+	IF FLAG:70 == 1
+		FLAG:70 = 0
+	ELSE
+		FLAG:70 = 1
+	ENDIF
+	BEGIN SHOP
+	RETURN 1
+
 ;攻略開始
 ELSEIF RESULT == 101
 	TFLAG:600 = 34
@@ -533,7 +551,7 @@ ELSEIF RESULT == 170 && FLAG:62 & 1 && FLAG:97
 ELSEIF RESULT == 180 && SUMARRAY(ITEM, 900, 1000) > 0
 	CALL SOZAI_SHOP
 ;部活動（平日放課後のみ）
-ELSEIF RESULT == 120 && DAY:5 <= 4 && TIME == 1 && TARGET >= 0 && CFLAG:TARGET:25 > 0
+ELSEIF RESULT == 121 && DAY:5 <= 4 && TIME == 1 && TARGET >= 0 && CFLAG:TARGET:25 > 0
 	CALL CLUB_ACTIVITY
 	SIF RESULT
 		BEGIN TURNEND

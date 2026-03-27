@@ -4,54 +4,6 @@
 ;
 ;学期進行メニュー
 ;	@STAGE_CAPTURE
-;---------------------------------------------------------
-;ストーリー進行 - 場所カテゴリ選択メニュー
-;---------------------------------------------------------
-DRAWLINE
-CALL GET_SEMESTER_NAME
-
-LOCAL:0 = FLAG:24
-IF FLAG:5 == 0
-	LOCAL:0 *= 15
-ELSEIF FLAG:5 == 1
-	LOCAL:0 *= 10
-ELSEIF FLAG:5 == 2
-	LOCAL:0 *= 8
-ELSE
-	LOCAL:0 *= 5
-ENDIF
-LOCAL:1 = LOCAL:0 - DAY
-SIF LOCAL:1 < 0
-	LOCAL:1 = 0
-
-PRINTFORML 【どこへ行く？】  %STR:10%
-IF FLAG:27 == 0
-	PRINTFORML 前半（中間試験待ち）残り{LOCAL:1}日
-ELSE
-	PRINTFORML 後半（期末試験待ち）残り{LOCAL:1}日
-ENDIF
-PRINTL
-PRINTFORML [0] 教室へ行く（各クラスを訪問）
-PRINTFORML [1] 部室へ行く（各部活の部室を訪問）
-PRINTFORML [2] 委員会室へ行く（各委員会を訪問）
-PRINTFORML [9] 戻る
-PRINTL
-
-
-INPUT
-IF RESULT == 0
-	CALL LOCATION_SUBMENU_CLASS
-ELSEIF RESULT == 1
-	CALL LOCATION_SUBMENU_CLUB
-ELSEIF RESULT == 2
-	CALL LOCATION_SUBMENU_COMMITTEE
-ELSEIF RESULT == 9
-	RETURN 0
-ELSE
-	GOTO INPUT_LOOP
-ENDIF
-RETURN 0
-
 @GET_SEMESTER_NAME
 ;FLAG:24から学期名をSTR:10に設定（3学期制・9学期）
 IF FLAG:24 == 1
@@ -81,9 +33,6 @@ RETURN 1
 ;学期進行メインメニュー
 ;---------------------------------------------------------
 @STAGE_CAPTURE
-;---------------------------------------------------------
-;ストーリー進行 - 場所選択→キャラ出会いシステム
-;---------------------------------------------------------
 DRAWLINE
 CALL GET_SEMESTER_NAME
 
@@ -110,17 +59,26 @@ ELSE
 	PRINTFORML 試験フェーズ: 後半（期末試験待ち）　残り{LOCAL:1}日
 ENDIF
 PRINTL
-PRINTFORML [0] 1年生の教室　　[1] 2年生の教室　　[2] 3年生の教室
-PRINTFORML [3] 運動系部室　　[4] 表現系部室　　[5] 知識系部室
-PRINTFORML [6] 図書室　　　　[7] 保健室　　　　[8] 食堂
+PRINTFORML [0] 教室へ行く（各クラスを訪問）
+PRINTFORML [1] 部室へ行く（各部活の部室を訪問）
+PRINTFORML [2] 委員会室へ行く（各委員会を訪問）
 PRINTFORML [9] 戻る
 PRINTL
 
 $INPUT_LOOP
 INPUT
-IF RESULT >= 0 && RESULT <= 8
-	TFLAG:84 = RESULT
-	CALL LOCATION_ENCOUNTER
+IF RESULT == 0
+	CALL LOCATION_SUBMENU_CLASS
+	SIF RESULT
+		BEGIN TURNEND
+	RETURN 1
+ELSEIF RESULT == 1
+	CALL LOCATION_SUBMENU_CLUB
+	SIF RESULT
+		BEGIN TURNEND
+	RETURN 1
+ELSEIF RESULT == 2
+	CALL LOCATION_SUBMENU_COMMITTEE
 	SIF RESULT
 		BEGIN TURNEND
 	RETURN 1
@@ -130,6 +88,7 @@ ELSE
 	GOTO INPUT_LOOP
 ENDIF
 RETURN 0
+
 
 @SCHOOL_LIFE_EVENT
 DRAWLINE
@@ -262,7 +221,7 @@ PRINTL
 IF CFLAG:TARGET:2 >= 500
 	PRINTFORML %CALLNAME:TARGET%と過ごした日々が走馬灯のように蘇る。
 	PRINTFORML 最初はこんなに仲良くなるとは思わなかった。
-	IF CSTR:TARGET:25 != 
+	IF CSTR:TARGET:25 != ""
 		PRINTFORML 部活の%CSTR:TARGET:25%、一緒に笑った瞬間、ふたりきりの時間……。
 	ENDIF
 	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%にとって、かけがえのない存在になっていた。
@@ -270,7 +229,7 @@ IF CFLAG:TARGET:2 >= 500
 	PRINTFORMW 好感度 +3
 ELSEIF CFLAG:TARGET:2 >= 200
 	PRINTFORML 最近の%CALLNAME:TARGET%とのやりとりが頭に浮かぶ。
-	IF CSTR:TARGET:25 != 
+	IF CSTR:TARGET:25 != ""
 		PRINTFORML %CSTR:TARGET:25%での姿、授業中のふとした表情。
 	ENDIF
 	PRINTFORML 一緒にいると自然と笑顔になれる。そういう相手だった。
