@@ -1,4 +1,75 @@
 ;---------------------------------------------------------
+;自動発動イベントチェック
+;SHOW_SHOPの冒頭から毎ターン呼ばれる。
+;条件が揃っていれば強制イベントを発動し、RETURN 1で通常メニューをスキップ。
+;---------------------------------------------------------
+@CHECK_AUTO_EVENTS
+
+;--- 体育祭（秋 Day12-13、TIME:1=60） ---
+;授業時間(TIME==0)に発動
+IF TIME:1 == 60 && FLAG:50 != DAY:3 && TIME == 0
+	PRINTL
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　　　　今日は体育祭の日です！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTL
+	IF TARGET >= 0
+		CALL SPORTS_FESTIVAL
+	ELSE
+		PRINTFORMW パートナーがいないため体育祭を見学するだけになった。
+		FLAG:50 = DAY:3
+	ENDIF
+	BEGIN TURNEND
+	RETURN 1
+ENDIF
+
+;--- 文化祭（秋 Day21-22、TIME:1=61） ---
+;授業時間(TIME==0)に発動
+IF TIME:1 == 61 && FLAG:51 != DAY:3 && TIME == 0
+	PRINTL
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　　　　今日は文化祭の日です！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTL
+	IF TARGET >= 0
+		CALL CULTURE_FESTIVAL
+	ELSE
+		PRINTFORMW パートナーがいないため文化祭を見学するだけになった。
+		FLAG:51 = DAY:3
+	ENDIF
+	BEGIN TURNEND
+	RETURN 1
+ENDIF
+
+;--- 中間試験（FLAG:27==10になったとき） ---
+IF FLAG:27 == 10
+	PRINTL
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　　　　中間試験の日がやってきた！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTL
+	CALL TAKE_EXAM
+	SIF RESULT == 2
+		BEGIN TURNEND
+	RETURN 1
+ENDIF
+
+;--- 期末試験（FLAG:27>=20になったとき） ---
+IF FLAG:27 >= 20
+	PRINTL
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　　　　期末試験の日がやってきた！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTL
+	CALL TAKE_EXAM
+	SIF RESULT == 2
+		BEGIN TURNEND
+	RETURN 1
+ENDIF
+
+RETURN 0
+
+;---------------------------------------------------------
 ;学校行事イベント（体育祭・文化祭）
 ;
 ;部活で鍛えた技能を使ってクリアを目指すイベント。
