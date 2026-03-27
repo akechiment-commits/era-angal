@@ -10,15 +10,15 @@
 DRAWLINE
 PRINTFORML 【教室 - どのクラスへ？】
 PRINTL
-PRINTFORML [0] 1年A組
-PRINTFORML [1] 1年B組
-PRINTFORML [2] 1年C組
-PRINTFORML [3] 2年A組
-PRINTFORML [4] 2年B組
-PRINTFORML [5] 2年C組
-PRINTFORML [6] 3年A組
-PRINTFORML [7] 3年B組
-PRINTFORML [8] 3年C組
+PRINTFORML [0] 1年1組(A組)
+PRINTFORML [1] 1年2組(B組)
+PRINTFORML [2] 1年3組(C組)
+PRINTFORML [3] 2年1組(A組)
+PRINTFORML [4] 2年2組(B組)
+PRINTFORML [5] 2年3組(C組)
+PRINTFORML [6] 3年1組(A組)
+PRINTFORML [7] 3年2組(B組)
+PRINTFORML [8] 3年3組(C組)
 PRINTFORML [9] 戻る
 PRINTL
 $INPUT_LOOP_CLS
@@ -132,7 +132,7 @@ LOCAL:0 = 0
 
 IF TFLAG:86 == 0	;教室
 	IF TFLAG:84 == 0
-		PRINTFORML ── 1年A組 ──
+		PRINTFORML ── 1年1組(A組) ──
 		LOCAL:1 = 1
 		LOCAL:2 = 2
 		LOCAL:3 = 3
@@ -142,7 +142,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:7 = 7
 		LOCAL:0 = 7
 	ELSEIF TFLAG:84 == 1
-		PRINTFORML ── 1年B組 ──
+		PRINTFORML ── 1年2組(B組) ──
 		LOCAL:1 = 8
 		LOCAL:2 = 9
 		LOCAL:3 = 10
@@ -153,7 +153,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:8 = 15
 		LOCAL:0 = 8
 	ELSEIF TFLAG:84 == 2
-		PRINTFORML ── 1年C組 ──
+		PRINTFORML ── 1年3組(C組) ──
 		LOCAL:1 = 16
 		LOCAL:2 = 17
 		LOCAL:3 = 18
@@ -164,7 +164,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:8 = 23
 		LOCAL:0 = 8
 	ELSEIF TFLAG:84 == 3
-		PRINTFORML ── 2年A組 ──
+		PRINTFORML ── 2年1組(A組) ──
 		LOCAL:1 = 24
 		LOCAL:2 = 25
 		LOCAL:3 = 26
@@ -174,7 +174,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:7 = 30
 		LOCAL:0 = 7
 	ELSEIF TFLAG:84 == 4
-		PRINTFORML ── 2年B組 ──
+		PRINTFORML ── 2年2組(B組) ──
 		LOCAL:1 = 31
 		LOCAL:2 = 32
 		LOCAL:3 = 33
@@ -184,7 +184,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:7 = 37
 		LOCAL:0 = 7
 	ELSEIF TFLAG:84 == 5
-		PRINTFORML ── 2年C組 ──
+		PRINTFORML ── 2年3組(C組) ──
 		LOCAL:1 = 38
 		LOCAL:2 = 39
 		LOCAL:3 = 40
@@ -194,7 +194,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:7 = 44
 		LOCAL:0 = 7
 	ELSEIF TFLAG:84 == 6
-		PRINTFORML ── 3年A組 ──
+		PRINTFORML ── 3年1組(A組) ──
 		LOCAL:1 = 45
 		LOCAL:2 = 46
 		LOCAL:3 = 47
@@ -206,7 +206,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:9 = 53
 		LOCAL:0 = 9
 	ELSEIF TFLAG:84 == 7
-		PRINTFORML ── 3年B組 ──
+		PRINTFORML ── 3年2組(B組) ──
 		LOCAL:1 = 54
 		LOCAL:2 = 55
 		LOCAL:3 = 56
@@ -218,7 +218,7 @@ IF TFLAG:86 == 0	;教室
 		LOCAL:9 = 62
 		LOCAL:0 = 9
 	ELSEIF TFLAG:84 == 8
-		PRINTFORML ── 3年C組 ──
+		PRINTFORML ── 3年3組(C組) ──
 		LOCAL:1 = 63
 		LOCAL:2 = 64
 		LOCAL:3 = 65
@@ -432,8 +432,7 @@ IF LOCAL:0 == 0
 ENDIF
 
 ; ランダムに1人選ぶ（LOCAL:1..N に格納されたキャラ番号から）
-B = LOCAL:0
-A = LOCAL:(RAND:B + 1)
+A = LOCAL:(RAND:LOCAL:0 + 1)
 
 ; キャラが未ロードなら追加し、インデックスを取得
 LOCAL:98 = -1
@@ -508,12 +507,6 @@ RETURN 1
 A = TFLAG:85
 DRAWLINE
 
-; 再遭遇判定
-IF CFLAG:A:2 > 0
-	CALL ENCOUNTER_SCENE_REPEAT
-	RETURN RESULT
-ENDIF
-
 ;部活・所属を表示
 IF CSTR:A:25 != ""
 	PRINTFORML %CALLNAME:A%（%CSTR:A:25%）と出会った。
@@ -554,9 +547,6 @@ ELSEIF TFLAG:86 == 2
 	ENDIF
 ENDIF
 
-; キャラ別セリフ
-TRYCALLFORM KOJO_ENCOUNTER_FIRST_K{NO:A}
-PRINTL
 ;好感度UP
 CFLAG:A:2 += 3
 PRINTL
@@ -587,96 +577,6 @@ ELSEIF RESULT == 1
 	RETURN 1
 ELSE
 	GOTO INPUT_LOOP_ENC
-ENDIF
-
-RETURN 1
-
-;---------------------------------------------------------
-; 再遭遇イベント（好感度UP・ステータス変動）
-;---------------------------------------------------------
-@ENCOUNTER_SCENE_REPEAT
-A = TFLAG:85
-
-; 再遭遇あいさつ
-IF CSTR:A:25 != ""
-	PRINTFORML また%CALLNAME:A%（%CSTR:A:25%）と会った。
-ELSE
-	PRINTFORML また%CALLNAME:A%と会った。
-ENDIF
-PRINTL
-
-; カテゴリ別イベント
-IF TFLAG:86 == 0
-	;教室 → 一緒に勉強 → 知識技能UP
-	IF CFLAG:A:2 >= 50
-		PRINTFORML 「いつもここにいるね。一緒に勉強しよう」と%CALLNAME:A%が誘ってくれた。
-	ELSEIF CFLAG:A:2 >= 20
-		PRINTFORML %CALLNAME:A%が参考書を見せてくれた。なるほど、と思える部分があった。
-	ELSE
-		PRINTFORML %CALLNAME:A%と少し話した。自然と勉強の話になった。
-	ENDIF
-	PRINTL
-	ABL:95 += 1
-	PRINTFORML （知識技能 +1）
-ELSEIF TFLAG:86 == 1
-	;部室 → 一緒に練習 → 運動技能UP
-	IF CFLAG:A:2 >= 50
-		PRINTFORML 「また来てくれたんだ！一緒に練習しよう」と%CALLNAME:A%が笑顔で言った。
-	ELSEIF CFLAG:A:2 >= 20
-		PRINTFORML %CALLNAME:A%が練習のコツを教えてくれた。
-	ELSE
-		PRINTFORML %CALLNAME:A%と少し練習に付き合った。
-	ENDIF
-	PRINTL
-	ABL:93 += 1
-	PRINTFORML （運動技能 +1）
-ELSEIF TFLAG:86 == 2
-	;委員会室 → 一緒に作業 → 知識技能UP
-	IF CFLAG:A:2 >= 50
-		PRINTFORML 「頼りにしてるよ」と%CALLNAME:A%が微笑んだ。一緒に委員会の仕事を片付けた。
-	ELSEIF CFLAG:A:2 >= 20
-		PRINTFORML %CALLNAME:A%と委員会の作業を手伝い合った。
-	ELSE
-		PRINTFORML %CALLNAME:A%の仕事を少し手伝った。
-	ENDIF
-	PRINTL
-	ABL:95 += 1
-	PRINTFORML （知識技能 +1）
-ENDIF
-
-; キャラ別セリフ
-TRYCALLFORM KOJO_ENCOUNTER_REPEAT_K{NO:A}
-PRINTL
-; 好感度UP（再遭遇は初回より多め）
-CFLAG:A:2 += 5
-PRINTL
-PRINTFORML %CALLNAME:A%の好感度 +5（現在：{CFLAG:A:2}）
-PRINTL
-
-; パートナー選択
-IF TARGET == A
-	PRINTFORMW %CALLNAME:A%はすでに今のパートナーだ。
-	RETURN 1
-ENDIF
-
-IF TARGET < 0
-	PRINTFORML %CALLNAME:A%をパートナーにしますか？
-ELSE
-	PRINTFORML 今のパートナーは%CALLNAME:TARGET%。%CALLNAME:A%に変えますか？
-ENDIF
-PRINTFORML [0] はい　[1] 別れた
-
-$INPUT_LOOP_RENC
-INPUT
-IF RESULT == 0
-	TARGET = A
-	PRINTFORMW %CALLNAME:A%がパートナーになった。
-	RETURN 1
-ELSEIF RESULT == 1
-	PRINTFORMW そのまま別れた。
-	RETURN 1
-ELSE
-	GOTO INPUT_LOOP_RENC
 ENDIF
 
 RETURN 1

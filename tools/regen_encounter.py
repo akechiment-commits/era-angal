@@ -9,15 +9,15 @@ Also fixes: SIF BASE:0 > MAXBASE:0  BASE:0 = MAXBASE:0 syntax error.
 # ---- Correct data from actual CSV/Chara*.csv files ----------------------
 # Classes (character numbers from game CSV, cross-referenced with class data)
 CLASS_ROOMS = [
-    {"name": "1年A組", "chars": [1, 2, 3, 4, 5, 6, 7]},
-    {"name": "1年B組", "chars": [8, 9, 10, 11, 12, 13, 14, 15]},
-    {"name": "1年C組", "chars": [16, 17, 18, 19, 20, 21, 22, 23]},
-    {"name": "2年A組", "chars": [24, 25, 26, 27, 28, 29, 30]},
-    {"name": "2年B組", "chars": [31, 32, 33, 34, 35, 36, 37]},
-    {"name": "2年C組", "chars": [38, 39, 40, 41, 42, 43, 44]},
-    {"name": "3年A組", "chars": [45, 46, 47, 48, 49, 50, 51, 52, 53]},
-    {"name": "3年B組", "chars": [54, 55, 56, 57, 58, 59, 60, 61, 62]},
-    {"name": "3年C組", "chars": [63, 64, 65, 66, 67, 68, 69, 70, 71]},
+    {"name": "1年1組(A組)", "chars": [1, 2, 3, 4, 5, 6, 7]},
+    {"name": "1年2組(B組)", "chars": [8, 9, 10, 11, 12, 13, 14, 15]},
+    {"name": "1年3組(C組)", "chars": [16, 17, 18, 19, 20, 21, 22, 23]},
+    {"name": "2年1組(A組)", "chars": [24, 25, 26, 27, 28, 29, 30]},
+    {"name": "2年2組(B組)", "chars": [31, 32, 33, 34, 35, 36, 37]},
+    {"name": "2年3組(C組)", "chars": [38, 39, 40, 41, 42, 43, 44]},
+    {"name": "3年1組(A組)", "chars": [45, 46, 47, 48, 49, 50, 51, 52, 53]},
+    {"name": "3年2組(B組)", "chars": [54, 55, 56, 57, 58, 59, 60, 61, 62]},
+    {"name": "3年3組(C組)", "chars": [63, 64, 65, 66, 67, 68, 69, 70, 71]},
 ]
 
 # Clubs in submenu order (from CSTR,25 in each Chara CSV file)
@@ -104,13 +104,13 @@ def make_encounter():
     L.append("ENDIF")
     L.append("")
     L.append("; 誰もいなかった→ソロイベント")
-    L.append("SIF LOCAL:0 == 0")
+    L.append("IF LOCAL:0 == 0")
     L.append("\tCALL LOCATION_SOLO_EVENT")
     L.append("\tRETURN RESULT")
+    L.append("ENDIF")
     L.append("")
     L.append("; ランダムに1人選ぶ（LOCAL:1..N に格納されたキャラ番号から）")
-    L.append("B = LOCAL:0")
-    L.append("A = LOCAL:(RAND:B + 1)")
+    L.append("A = LOCAL:(RAND:LOCAL:0 + 1)")
     L.append("")
     L.append("; キャラが未ロードなら追加し、インデックスを取得")
     L.append("LOCAL:98 = -1")
