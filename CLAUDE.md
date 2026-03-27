@@ -5,7 +5,7 @@
 ## セッション開始時に必ずやること
 
 1. `TECHNICAL_PLAN.md` を読んで現在の進捗・設計を把握する
-2. 作業ブランチは `claude/analyze-eratohoj-structure-RGx1O` を使う
+2. 作業ブランチは `master` を使う（直接コミット・プッシュ）
 3. ファイルの読み書きはすべて **Shift-JIS (cp932)** エンコーディングで行う
 
 ## 重要な前提知識
