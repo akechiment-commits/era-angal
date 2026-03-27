@@ -340,3 +340,47 @@ SIF TARGET >= 0
 	PRINTFORML 　表現技能：{ABL:MASTER:94}/100　（%CALLNAME:TARGET%：{ABL:TARGET:94}/100）
 	PRINTFORML 　知識技能：{ABL:MASTER:95}/100　（%CALLNAME:TARGET%：{ABL:TARGET:95}/100）
 RETURN 1
+
+;---------------------------------------------------------
+;既存セーブ対応: CFLAG:25未設定キャラに部活タイプを設定
+;SHOP.ERBのSAVEDATA_CONVERTから毎回呼ぶ（設定済みなら即終了）
+;---------------------------------------------------------
+@INIT_CLUB_FLAGS
+;すでに一人でも設定済みなら終了
+A = 0
+REPEAT CHARANUM
+	SIF CFLAG:COUNT:25 > 0
+		A = 1
+		BREAK
+REND
+SIF A
+	RETURN 0
+
+;NO:COUNT -> 部活タイプを一括設定
+;(新規ゲームではCSVのフラグ初期値が使われるが、既存セーブ用のフォールバック)
+REPEAT CHARANUM
+	B = NO:COUNT
+	;表現部(type=2): 吹奏楽・軽音・合唱・演劇
+	IF B == 1 || B == 4 || B == 9 || B == 13 || B == 20 || B == 27 || B == 30 || B == 34 || B == 36 || B == 52 || B == 62 || B == 63 || B == 66
+		CFLAG:COUNT:25 = 2
+		SIF CSTR:COUNT:25 == ""
+			CSTR:COUNT:25 = 表現部
+	;知識部(type=3): 美術・天文・新聞・文芸・園芸・茶道・料理・生物・オカルト・パソコン・放送
+	ELSEIF B == 2 || B == 3 || B == 6 || B == 8 || B == 10 || B == 11 || B == 21 || B == 23 || B == 24 || B == 28 || B == 39 || B == 43 || B == 44 || B == 45 || B == 46 || B == 47 || B == 51 || B == 54 || B == 55 || B == 58 || B == 61 || B == 65 || B == 68 || B == 70
+		CFLAG:COUNT:25 = 3
+		SIF CSTR:COUNT:25 == ""
+			CSTR:COUNT:25 = 知識部
+	;運動部(type=1): ラクロス・剣道・バレー・テニス・水泳・柔道・陸上・バスケ・ソフト・空手・チア・弓道
+	ELSEIF B == 5 || B == 7 || B == 12 || B == 14 || B == 15 || B == 16 || B == 17 || B == 18 || B == 19 || B == 22 || B == 26 || B == 29 || B == 33 || B == 35 || B == 37 || B == 38 || B == 40 || B == 41 || B == 42 || B == 48 || B == 49 || B == 50 || B == 53 || B == 56 || B == 57 || B == 59 || B == 67 || B == 69 || B == 71
+		CFLAG:COUNT:25 = 1
+		SIF CSTR:COUNT:25 == ""
+			CSTR:COUNT:25 = 運動部
+	;帰宅部(type=0): 25,31,32,60,64
+	ELSE
+		CFLAG:COUNT:25 = 0
+		SIF CSTR:COUNT:25 == ""
+			CSTR:COUNT:25 = 帰宅部
+	ENDIF
+REND
+
+RETURN 1
