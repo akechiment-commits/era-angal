@@ -508,6 +508,12 @@ RETURN 1
 A = TFLAG:85
 DRAWLINE
 
+; 再遭遇判定
+IF CFLAG:A:2 > 0
+	CALL ENCOUNTER_SCENE_REPEAT
+	RETURN RESULT
+ENDIF
+
 ;部活・所属を表示
 IF CSTR:A:25 != ""
 	PRINTFORML %CALLNAME:A%（%CSTR:A:25%）と出会った。
@@ -578,6 +584,93 @@ ELSEIF RESULT == 1
 	RETURN 1
 ELSE
 	GOTO INPUT_LOOP_ENC
+ENDIF
+
+RETURN 1
+
+;---------------------------------------------------------
+; 再遭遇イベント（好感度UP・ステータス変動）
+;---------------------------------------------------------
+@ENCOUNTER_SCENE_REPEAT
+A = TFLAG:85
+
+; 再遭遇あいさつ
+IF CSTR:A:25 != ""
+	PRINTFORML また%CALLNAME:A%（%CSTR:A:25%）と会った。
+ELSE
+	PRINTFORML また%CALLNAME:A%と会った。
+ENDIF
+PRINTL
+
+; カテゴリ別イベント
+IF TFLAG:86 == 0
+	;教室 → 一緒に勉強 → 知識技能UP
+	IF CFLAG:A:2 >= 50
+		PRINTFORML 「いつもここにいるね。一緒に勉強しよう」と%CALLNAME:A%が誘ってくれた。
+	ELSEIF CFLAG:A:2 >= 20
+		PRINTFORML %CALLNAME:A%が参考書を見せてくれた。なるほど、と思える部分があった。
+	ELSE
+		PRINTFORML %CALLNAME:A%と少し話した。自然と勉強の話になった。
+	ENDIF
+	PRINTL
+	ABL:95 += 1
+	PRINTFORML （知識技能 +1）
+ELSEIF TFLAG:86 == 1
+	;部室 → 一緒に練習 → 運動技能UP
+	IF CFLAG:A:2 >= 50
+		PRINTFORML 「また来てくれたんだ！一緒に練習しよう」と%CALLNAME:A%が笑顔で言った。
+	ELSEIF CFLAG:A:2 >= 20
+		PRINTFORML %CALLNAME:A%が練習のコツを教えてくれた。
+	ELSE
+		PRINTFORML %CALLNAME:A%と少し練習に付き合った。
+	ENDIF
+	PRINTL
+	ABL:93 += 1
+	PRINTFORML （運動技能 +1）
+ELSEIF TFLAG:86 == 2
+	;委員会室 → 一緒に作業 → 知識技能UP
+	IF CFLAG:A:2 >= 50
+		PRINTFORML 「頼りにしてるよ」と%CALLNAME:A%が微笑んだ。一緒に委員会の仕事を片付けた。
+	ELSEIF CFLAG:A:2 >= 20
+		PRINTFORML %CALLNAME:A%と委員会の作業を手伝い合った。
+	ELSE
+		PRINTFORML %CALLNAME:A%の仕事を少し手伝った。
+	ENDIF
+	PRINTL
+	ABL:95 += 1
+	PRINTFORML （知識技能 +1）
+ENDIF
+
+; 好感度UP（再遭遇は初回より多め）
+CFLAG:A:2 += 5
+PRINTL
+PRINTFORML %CALLNAME:A%の好感度 +5（現在：{CFLAG:A:2}）
+PRINTL
+
+; パートナー選択
+IF TARGET == A
+	PRINTFORMW %CALLNAME:A%はすでに今のパートナーだ。
+	RETURN 1
+ENDIF
+
+IF TARGET < 0
+	PRINTFORML %CALLNAME:A%をパートナーにしますか？
+ELSE
+	PRINTFORML 今のパートナーは%CALLNAME:TARGET%。%CALLNAME:A%に変えますか？
+ENDIF
+PRINTFORML [0] はい　[1] 別れた
+
+$INPUT_LOOP_RENC
+INPUT
+IF RESULT == 0
+	TARGET = A
+	PRINTFORMW %CALLNAME:A%がパートナーになった。
+	RETURN 1
+ELSEIF RESULT == 1
+	PRINTFORMW そのまま別れた。
+	RETURN 1
+ELSE
+	GOTO INPUT_LOOP_RENC
 ENDIF
 
 RETURN 1
