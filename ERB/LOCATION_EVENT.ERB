@@ -1,0 +1,244 @@
+;---------------------------------------------------------
+;場所選択型パートナー出会いシステム
+;
+;ストーリー進行[101]から呼ばれる。
+;TFLAG:84 = 場所種別（0-8）
+;TFLAG:85 = 出会ったキャラのインデックス
+;
+;場所→キャラプール:
+;  0: 1年生教室, 1: 2年生教室, 2: 3年生教室
+;  3: 運動系部室(CFLAG:25=1), 4: 表現系部室(CFLAG:25=2), 5: 知識系部室(CFLAG:25=3)
+;  6: 図書室(図書委員会), 7: 保健室(保健委員会), 8: 食堂(全員)
+;---------------------------------------------------------
+
+;---------------------------------------------------------
+;場所別出会いイベント
+;---------------------------------------------------------
+@LOCATION_ENCOUNTER
+LOCAL:0 = 0
+
+IF TFLAG:84 == 0
+	PRINTFORML ━━━━ 1年生の教室 ━━━━
+	REPEAT CHARANUM
+		A = NO:COUNT
+		LOCAL:99 = 0
+		IF A == 2 || A == 4 || A == 12 || A == 20 || A == 24
+			LOCAL:99 = 1
+		ELSEIF A == 25 || A == 32 || A == 37 || A == 38 || A == 40
+			LOCAL:99 = 1
+		ELSEIF A == 46 || A == 50 || A == 51 || A == 53 || A == 57
+			LOCAL:99 = 1
+		ELSEIF A == 59 || A == 60 || A == 61 || A == 64 || A == 65
+			LOCAL:99 = 1
+		ELSEIF A == 66 || A == 67 || A == 68 || A == 71
+			LOCAL:99 = 1
+		ENDIF
+		IF LOCAL:99
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 1
+	PRINTFORML ━━━━ 2年生の教室 ━━━━
+	REPEAT CHARANUM
+		A = NO:COUNT
+		LOCAL:99 = 0
+		IF A == 1 || A == 3 || A == 8 || A == 11 || A == 16
+			LOCAL:99 = 1
+		ELSEIF A == 17 || A == 18 || A == 19 || A == 22 || A == 30
+			LOCAL:99 = 1
+		ELSEIF A == 33 || A == 34 || A == 39 || A == 41 || A == 42
+			LOCAL:99 = 1
+		ELSEIF A == 44 || A == 52 || A == 56 || A == 62 || A == 63
+			LOCAL:99 = 1
+		ENDIF
+		IF LOCAL:99
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 2
+	PRINTFORML ━━━━ 3年生の教室 ━━━━
+	REPEAT CHARANUM
+		A = NO:COUNT
+		LOCAL:99 = 0
+		IF A == 5 || A == 6 || A == 7 || A == 9 || A == 10
+			LOCAL:99 = 1
+		ELSEIF A == 13 || A == 14 || A == 15 || A == 21 || A == 23
+			LOCAL:99 = 1
+		ELSEIF A == 26 || A == 27 || A == 28 || A == 29 || A == 31
+			LOCAL:99 = 1
+		ELSEIF A == 35 || A == 36 || A == 43 || A == 45 || A == 47
+			LOCAL:99 = 1
+		ELSEIF A == 48 || A == 49 || A == 54 || A == 55 || A == 58
+			LOCAL:99 = 1
+		ELSEIF A == 69 || A == 70
+			LOCAL:99 = 1
+		ENDIF
+		IF LOCAL:99
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 3
+	PRINTFORML ━━━━ 運動系部室 ━━━━
+	REPEAT CHARANUM
+		IF CFLAG:COUNT:25 == 1
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 4
+	PRINTFORML ━━━━ 表現系部室 ━━━━
+	REPEAT CHARANUM
+		IF CFLAG:COUNT:25 == 2
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 5
+	PRINTFORML ━━━━ 知識系部室 ━━━━
+	REPEAT CHARANUM
+		IF CFLAG:COUNT:25 == 3
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 6
+	PRINTFORML ━━━━ 図書室 ━━━━
+	REPEAT CHARANUM
+		A = NO:COUNT
+		LOCAL:99 = 0
+		IF A == 28 || A == 55
+			LOCAL:99 = 1
+		ENDIF
+		IF LOCAL:99
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 7
+	PRINTFORML ━━━━ 保健室 ━━━━
+	REPEAT CHARANUM
+		A = NO:COUNT
+		LOCAL:99 = 0
+		IF A == 8 || A == 19 || A == 25 || A == 46
+			LOCAL:99 = 1
+		ENDIF
+		IF LOCAL:99
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+		ENDIF
+	REND
+ELSEIF IF TFLAG:84 == 8
+	PRINTFORML ━━━━ 食堂 ━━━━
+	REPEAT CHARANUM
+		SIF COUNT > 0
+			LOCAL:0 += 1
+			LOCAL:(LOCAL:0) = COUNT
+	REND
+ENDIF
+
+;候補なし
+IF LOCAL:0 == 0
+	PRINTFORMW 今は誰もいないようだった。
+	RETURN 0
+ENDIF
+
+;ランダムに1人選ぶ
+A = RAND:LOCAL:0
+TFLAG:85 = LOCAL:(A + 1)
+
+CALL ENCOUNTER_SCENE
+RETURN RESULT
+
+;---------------------------------------------------------
+;出会いイベント共通処理
+;TFLAG:85 = キャラインデックス
+;---------------------------------------------------------
+@ENCOUNTER_SCENE
+A = TFLAG:85
+DRAWLINE
+
+;部活・所属を取得
+IF CSTR:A:25 != ""
+	PRINTFORML %CALLNAME:A%（%CSTR:A:25%）と出会った。
+ELSE
+	PRINTFORML %CALLNAME:A%と出会った。
+ENDIF
+PRINTL
+
+;場所別フレーバーテキスト
+IF TFLAG:84 == 0 || TFLAG:84 == 1 || TFLAG:84 == 2
+	PRINTFORML 教室で偶然目が合った。
+	IF CFLAG:A:2 >= 100
+		PRINTFORML %CALLNAME:A%は笑顔で「また会ったね」と言った。
+	ELSEIF CFLAG:A:2 >= 30
+		PRINTFORML %CALLNAME:A%は少し驚いた様子で会釈した。
+	ELSE
+		PRINTFORML %CALLNAME:A%は軽く頷いて視線を本に戻した。
+	ENDIF
+ELSEIF TFLAG:84 == 3
+	PRINTFORML %CALLNAME:A%が部室で練習の準備をしていた。
+	IF CSTR:A:25 != ""
+		PRINTFORML 「%CSTR:A:25%に来るなんて珍しい」と%CALLNAME:A%が言った。
+	ENDIF
+ELSEIF TFLAG:84 == 4
+	PRINTFORML %CALLNAME:A%が部室で楽器（or道具）の手入れをしていた。
+	IF CFLAG:A:2 >= 50
+		PRINTFORML %CALLNAME:A%は顔を上げて「一緒に練習する？」と聞いてきた。
+	ELSE
+		PRINTFORML %CALLNAME:A%は少し驚いた顔をしてから微笑んだ。
+	ENDIF
+ELSEIF TFLAG:84 == 5
+	PRINTFORML %CALLNAME:A%が部室で本や資料に囲まれていた。
+	PRINTFORML 「あ、来てたんだ。静かでしょ、ここ」と%CALLNAME:A%が言った。
+ELSEIF TFLAG:84 == 6
+	PRINTFORML %CALLNAME:A%が図書室で本を整理していた。
+	PRINTFORML 「何か探してるの？良かったら一緒に探すよ」と%CALLNAME:A%が言った。
+ELSEIF TFLAG:84 == 7
+	PRINTFORML 保健室で%CALLNAME:A%が当番をしていた。
+	PRINTFORML 「具合悪い？それとも当番の視察？」と%CALLNAME:A%が笑いながら言った。
+ELSEIF TFLAG:84 == 8
+	IF CFLAG:A:2 >= 100
+		PRINTFORML 食堂で%CALLNAME:A%と席が隣になった。楽しい昼食になった。
+	ELSEIF CFLAG:A:2 >= 30
+		PRINTFORML %CALLNAME:A%がひとりで食事していた。少し話した。
+	ELSE
+		PRINTFORML 食堂の混雑の中で%CALLNAME:A%を見かけた。目が合って軽く会釈した。
+	ENDIF
+ENDIF
+
+;好感度UP
+CFLAG:A:2 += 3
+PRINTL
+PRINTFORML %CALLNAME:A%の好感度 +3（現在：{CFLAG:A:2}）
+PRINTL
+
+;パートナー選択
+IF TARGET == A
+	PRINTFORMW %CALLNAME:A%はもう今のパートナーだ。
+	RETURN 1
+ENDIF
+
+IF TARGET < 0
+	PRINTFORML %CALLNAME:A%をパートナーにしますか？
+ELSE
+	PRINTFORML 今のパートナーは%CALLNAME:TARGET%。%CALLNAME:A%に変えますか？
+ENDIF
+PRINTFORML [0] はい　[1] いいえ
+
+$INPUT_LOOP_ENC
+INPUT
+IF RESULT == 0
+	TARGET = A
+	PRINTFORMW %CALLNAME:A%がパートナーになった。
+	RETURN 1
+ELSEIF RESULT == 1
+	PRINTFORMW そのまま別れた。
+	RETURN 1
+ELSE
+	GOTO INPUT_LOOP_ENC
+ENDIF
+
+RETURN 1

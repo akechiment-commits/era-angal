@@ -59,13 +59,12 @@ RETURN 1
 ;---------------------------------------------------------
 @STAGE_CAPTURE
 ;---------------------------------------------------------
-;ストーリー進行 - 学期情報の確認と学校生活エピソード
-;勉強はパートナーとの会話や部活で行う
+;ストーリー進行 - 場所選択→キャラ出会いシステム
 ;---------------------------------------------------------
 DRAWLINE
 CALL GET_SEMESTER_NAME
 
-;残り日数を計算（SYSTEM_GET_LIMITDAYと同じロジック）
+;残り日数計算
 LOCAL:0 = FLAG:24
 IF FLAG:5 == 0
 	LOCAL:0 *= 15
@@ -80,51 +79,28 @@ LOCAL:1 = LOCAL:0 - DAY
 SIF LOCAL:1 < 0
 	LOCAL:1 = 0
 
-PRINTFORML 【ストーリー進行】
-PRINTFORML 現在学期 : %STR:10%
+PRINTFORML 【どこへ行く？】
+PRINTFORML 現在学期: %STR:10%
 IF FLAG:27 == 0
 	PRINTFORML 試験フェーズ: 前半（中間試験待ち）　残り{LOCAL:1}日
 ELSE
 	PRINTFORML 試験フェーズ: 後半（期末試験待ち）　残り{LOCAL:1}日
 ENDIF
 PRINTL
-
-;来たるイベントの予告
-IF DAY:2 == 2
-	IF FLAG:50 != DAY:3
-		IF DAY:1 < 12
-			PRINTFORML ★ 体育祭まであと{12 - DAY:1}日（秋 Day12-13）
-		ELSEIF DAY:1 <= 13
-			PRINTFORML ★ 今日は体育祭！（自動開始）
-		ENDIF
-	ENDIF
-	IF FLAG:51 != DAY:3
-		IF DAY:1 >= 14 && DAY:1 < 21
-			PRINTFORML ★ 文化祭まであと{21 - DAY:1}日（秋 Day21-22）
-		ELSEIF DAY:1 >= 21 && DAY:1 <= 22
-			PRINTFORML ★ 今日は文化祭！（自動開始）
-		ENDIF
-	ENDIF
-ENDIF
-PRINTL
-
-;選択肢
-PRINTFORML [0] 学校生活エピソードを見る
-IF TARGET >= 0
-	PRINTFORML [1] %CALLNAME:TARGET%との思い出を振り返る
-ENDIF
+PRINTFORML [0] 1年生の教室　　[1] 2年生の教室　　[2] 3年生の教室
+PRINTFORML [3] 運動系部室　　[4] 表現系部室　　[5] 知識系部室
+PRINTFORML [6] 図書室　　　　[7] 保健室　　　　[8] 食堂
 PRINTFORML [9] 戻る
+PRINTL
 
 $INPUT_LOOP
 INPUT
-IF RESULT == 0
-	CALL SCHOOL_LIFE_EVENT
+IF RESULT >= 0 && RESULT <= 8
+	TFLAG:84 = RESULT
+	CALL LOCATION_ENCOUNTER
 	SIF RESULT
 		BEGIN TURNEND
-ELSEIF RESULT == 1 && TARGET >= 0
-	CALL PARTNER_MEMORY
-	SIF RESULT
-		BEGIN TURNEND
+	RETURN 1
 ELSEIF RESULT == 9
 	RETURN 0
 ELSE
@@ -132,11 +108,6 @@ ELSE
 ENDIF
 RETURN 0
 
-
-;---------------------------------------------------------
-;学校生活エピソード（ランダム）
-;ストーリー進行[0]から呼ばれる。小さな日常エピソード。
-;---------------------------------------------------------
 @SCHOOL_LIFE_EVENT
 DRAWLINE
 A = RAND:8
