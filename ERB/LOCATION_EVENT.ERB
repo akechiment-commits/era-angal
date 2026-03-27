@@ -1,149 +1,715 @@
 ;---------------------------------------------------------
 ;場所選択型パートナー出会いシステム
 ;
-;ストーリー進行[101]から呼ばれる。
-;TFLAG:84 = 場所種別（0-8）
-;TFLAG:85 = 出会ったキャラのインデックス
-;
-;場所→キャラプール:
-;  0: 1年生教室, 1: 2年生教室, 2: 3年生教室
-;  3: 運動系部室(CFLAG:25=1), 4: 表現系部室(CFLAG:25=2), 5: 知識系部室(CFLAG:25=3)
-;  6: 図書室(図書委員会), 7: 保健室(保健委員会), 8: 食堂(全員)
+;TFLAG:86 = カテゴリ（0=教室, 1=部室, 2=委員会室, 3=その他）
+;TFLAG:84 = 部屋ID
+;TFLAG:85 = 出会いキャラインデックス
 ;---------------------------------------------------------
 
-;---------------------------------------------------------
-;場所別出会いイベント
-;---------------------------------------------------------
+@LOCATION_SUBMENU_CLASS
+DRAWLINE
+PRINTFORML 【教室 - どのクラスへ？】
+PRINTL
+PRINTFORML [0] 1年1組(A組)
+PRINTFORML [1] 1年2組(B組)
+PRINTFORML [2] 1年3組(C組)
+PRINTFORML [3] 2年1組(A組)
+PRINTFORML [4] 2年2組(B組)
+PRINTFORML [5] 2年3組(C組)
+PRINTFORML [6] 3年1組(A組)
+PRINTFORML [7] 3年2組(B組)
+PRINTFORML [8] 3年3組(C組)
+PRINTFORML [9] 戻る
+PRINTL
+$INPUT_LOOP_CLS
+INPUT
+IF RESULT >= 0 && RESULT <= 8
+	TFLAG:86 = 0
+	TFLAG:84 = RESULT
+	CALL LOCATION_ENCOUNTER
+	SIF RESULT
+		BEGIN TURNEND
+	RETURN 1
+ELSEIF RESULT == 9
+	RETURN 0
+ELSE
+	GOTO INPUT_LOOP_CLS
+ENDIF
+RETURN 0
+
+@LOCATION_SUBMENU_CLUB
+DRAWLINE
+PRINTFORML 【部室 - どの部へ？】
+PRINTL
+PRINTFORML ─ 運動系 ─
+PRINTFORML [ 0] ラクロス部
+PRINTFORML [ 1] 剣道部
+PRINTFORML [ 2] テニス部
+PRINTFORML [ 3] バスケットボール部
+PRINTFORML [ 4] バレー部
+PRINTFORML [ 5] 柔道部
+PRINTFORML [ 6] 空手部
+PRINTFORML [ 7] 弓道部
+PRINTFORML [ 8] ソフトボール部
+PRINTFORML [ 9] チアリーディング部
+PRINTFORML [10] 水泳部
+PRINTFORML [11] 陸上部
+PRINTL
+PRINTFORML ─ 文化系 ─
+PRINTFORML [12] 軽音部
+PRINTFORML [13] 演劇部
+PRINTFORML [14] 合唱部
+PRINTFORML [15] 吹奏楽部
+PRINTFORML [16] 美術部
+PRINTFORML [17] 茶道部
+PRINTFORML [18] 天文部
+PRINTFORML [19] 文芸部
+PRINTFORML [20] 新聞部
+PRINTFORML [21] 料理研究部
+PRINTFORML [22] パソコン部
+PRINTFORML [23] オカルト研究部
+PRINTFORML [24] 生物部
+PRINTFORML [25] 放送部
+PRINTFORML [26] 園芸部
+PRINTFORML [99] 戻る
+PRINTL
+$INPUT_LOOP_CLB
+INPUT
+IF RESULT >= 0 && RESULT <= 26
+	TFLAG:86 = 1
+	TFLAG:84 = RESULT
+	CALL LOCATION_ENCOUNTER
+	SIF RESULT
+		BEGIN TURNEND
+	RETURN 1
+ELSEIF RESULT == 99
+	RETURN 0
+ELSE
+	GOTO INPUT_LOOP_CLB
+ENDIF
+RETURN 0
+
+@LOCATION_SUBMENU_COMMITTEE
+DRAWLINE
+PRINTFORML 【委員会室 - どの委員会へ？】
+PRINTL
+PRINTFORML [0] 体育委員会
+PRINTFORML [1] 保健委員会
+PRINTFORML [2] 図書委員会
+PRINTFORML [3] 緑化委員会
+PRINTFORML [4] 美化委員会
+PRINTFORML [5] 選挙管理委員会
+PRINTFORML [6] 風紀委員会
+PRINTFORML [9] 戻る
+PRINTL
+$INPUT_LOOP_CMT
+INPUT
+IF RESULT >= 0 && RESULT <= 6
+	TFLAG:86 = 2
+	TFLAG:84 = RESULT
+	CALL LOCATION_ENCOUNTER
+	SIF RESULT
+		BEGIN TURNEND
+	RETURN 1
+ELSEIF RESULT == 9
+	RETURN 0
+ELSE
+	GOTO INPUT_LOOP_CMT
+ENDIF
+RETURN 0
+
 @LOCATION_ENCOUNTER
 LOCAL:0 = 0
 
-IF TFLAG:84 == 0
-	PRINTFORML ━━━━ 1年生の教室 ━━━━
-	REPEAT CHARANUM
-		A = NO:COUNT
-		LOCAL:99 = 0
-		IF A == 2 || A == 4 || A == 12 || A == 20 || A == 24
-			LOCAL:99 = 1
-		ELSEIF A == 25 || A == 32 || A == 37 || A == 38 || A == 40
-			LOCAL:99 = 1
-		ELSEIF A == 46 || A == 50 || A == 51 || A == 53 || A == 57
-			LOCAL:99 = 1
-		ELSEIF A == 59 || A == 60 || A == 61 || A == 64 || A == 65
-			LOCAL:99 = 1
-		ELSEIF A == 66 || A == 67 || A == 68 || A == 71
-			LOCAL:99 = 1
-		ENDIF
-		IF LOCAL:99
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 1
-	PRINTFORML ━━━━ 2年生の教室 ━━━━
-	REPEAT CHARANUM
-		A = NO:COUNT
-		LOCAL:99 = 0
-		IF A == 1 || A == 3 || A == 8 || A == 11 || A == 16
-			LOCAL:99 = 1
-		ELSEIF A == 17 || A == 18 || A == 19 || A == 22 || A == 30
-			LOCAL:99 = 1
-		ELSEIF A == 33 || A == 34 || A == 39 || A == 41 || A == 42
-			LOCAL:99 = 1
-		ELSEIF A == 44 || A == 52 || A == 56 || A == 62 || A == 63
-			LOCAL:99 = 1
-		ENDIF
-		IF LOCAL:99
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 2
-	PRINTFORML ━━━━ 3年生の教室 ━━━━
-	REPEAT CHARANUM
-		A = NO:COUNT
-		LOCAL:99 = 0
-		IF A == 5 || A == 6 || A == 7 || A == 9 || A == 10
-			LOCAL:99 = 1
-		ELSEIF A == 13 || A == 14 || A == 15 || A == 21 || A == 23
-			LOCAL:99 = 1
-		ELSEIF A == 26 || A == 27 || A == 28 || A == 29 || A == 31
-			LOCAL:99 = 1
-		ELSEIF A == 35 || A == 36 || A == 43 || A == 45 || A == 47
-			LOCAL:99 = 1
-		ELSEIF A == 48 || A == 49 || A == 54 || A == 55 || A == 58
-			LOCAL:99 = 1
-		ELSEIF A == 69 || A == 70
-			LOCAL:99 = 1
-		ENDIF
-		IF LOCAL:99
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 3
-	PRINTFORML ━━━━ 運動系部室 ━━━━
-	REPEAT CHARANUM
-		IF CFLAG:COUNT:25 == 1
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 4
-	PRINTFORML ━━━━ 表現系部室 ━━━━
-	REPEAT CHARANUM
-		IF CFLAG:COUNT:25 == 2
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 5
-	PRINTFORML ━━━━ 知識系部室 ━━━━
-	REPEAT CHARANUM
-		IF CFLAG:COUNT:25 == 3
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 6
-	PRINTFORML ━━━━ 図書室 ━━━━
-	REPEAT CHARANUM
-		A = NO:COUNT
-		LOCAL:99 = 0
-		IF A == 28 || A == 55
-			LOCAL:99 = 1
-		ENDIF
-		IF LOCAL:99
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 7
-	PRINTFORML ━━━━ 保健室 ━━━━
-	REPEAT CHARANUM
-		A = NO:COUNT
-		LOCAL:99 = 0
-		IF A == 8 || A == 19 || A == 25 || A == 46
-			LOCAL:99 = 1
-		ENDIF
-		IF LOCAL:99
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-		ENDIF
-	REND
-ELSEIF IF TFLAG:84 == 8
-	PRINTFORML ━━━━ 食堂 ━━━━
-	REPEAT CHARANUM
-		SIF COUNT > 0
-			LOCAL:0 += 1
-			LOCAL:(LOCAL:0) = COUNT
-	REND
+IF TFLAG:86 == 0
+	IF TFLAG:84 == 0
+		PRINTFORML ━━━━ 1年1組(A組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 2 || A == 12 || A == 24 || A == 32 || A == 40 || A == 60
+				LOCAL:99 = 1
+			ELSEIF A == 66
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 1
+		PRINTFORML ━━━━ 1年2組(B組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 4 || A == 37 || A == 38 || A == 46 || A == 53 || A == 57
+				LOCAL:99 = 1
+			ELSEIF A == 59 || A == 64 || A == 71
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 2
+		PRINTFORML ━━━━ 1年3組(C組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 20 || A == 25 || A == 50 || A == 51 || A == 61 || A == 65
+				LOCAL:99 = 1
+			ELSEIF A == 67 || A == 68
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 3
+		PRINTFORML ━━━━ 2年1組(A組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 3 || A == 8 || A == 16 || A == 17 || A == 33 || A == 34
+				LOCAL:99 = 1
+			ELSEIF A == 63
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 4
+		PRINTFORML ━━━━ 2年2組(B組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 19 || A == 22 || A == 39 || A == 41 || A == 42 || A == 62
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 5
+		PRINTFORML ━━━━ 2年3組(C組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 1 || A == 11 || A == 18 || A == 30 || A == 44 || A == 52
+				LOCAL:99 = 1
+			ELSEIF A == 56
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 6
+		PRINTFORML ━━━━ 3年1組(A組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 10 || A == 13 || A == 14 || A == 15 || A == 23 || A == 26
+				LOCAL:99 = 1
+			ELSEIF A == 29 || A == 48 || A == 58
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 7
+		PRINTFORML ━━━━ 3年2組(B組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 5 || A == 6 || A == 7 || A == 21 || A == 27 || A == 45
+				LOCAL:99 = 1
+			ELSEIF A == 49 || A == 69 || A == 70
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 8
+		PRINTFORML ━━━━ 3年3組(C組) ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 9 || A == 28 || A == 31 || A == 35 || A == 36 || A == 43
+				LOCAL:99 = 1
+			ELSEIF A == 47 || A == 54 || A == 55
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ENDIF
+
+ELSEIF TFLAG:86 == 1
+	IF TFLAG:84 == 0
+		PRINTFORML ━━━━ ラクロス部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 1 || A == 39 || A == 66
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 1
+		PRINTFORML ━━━━ 剣道部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 26 || A == 30 || A == 53
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 2
+		PRINTFORML ━━━━ テニス部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 25 || A == 50 || A == 58
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 3
+		PRINTFORML ━━━━ バスケットボール部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 23 || A == 40
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 4
+		PRINTFORML ━━━━ バレー部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 16 || A == 42 || A == 51
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 5
+		PRINTFORML ━━━━ 柔道部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 7 || A == 20
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 6
+		PRINTFORML ━━━━ 空手部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 71
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 7
+		PRINTFORML ━━━━ 弓道部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 54
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 8
+		PRINTFORML ━━━━ ソフトボール部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 18 || A == 64
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 9
+		PRINTFORML ━━━━ チアリーディング部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 31 || A == 34 || A == 59
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 10
+		PRINTFORML ━━━━ 水泳部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 43 || A == 45 || A == 67
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 11
+		PRINTFORML ━━━━ 陸上部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 15 || A == 27 || A == 44
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 12
+		PRINTFORML ━━━━ 軽音部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 36 || A == 37 || A == 61 || A == 70
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 13
+		PRINTFORML ━━━━ 演劇部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 9 || A == 48 || A == 62
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 14
+		PRINTFORML ━━━━ 合唱部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 41 || A == 57 || A == 63
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 15
+		PRINTFORML ━━━━ 吹奏楽部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 2 || A == 17 || A == 32
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 16
+		PRINTFORML ━━━━ 美術部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 3 || A == 11 || A == 65
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 17
+		PRINTFORML ━━━━ 茶道部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 6 || A == 10
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 18
+		PRINTFORML ━━━━ 天文部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 21 || A == 33 || A == 55
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 19
+		PRINTFORML ━━━━ 文芸部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 38 || A == 60 || A == 69
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 20
+		PRINTFORML ━━━━ 新聞部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 47 || A == 56
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 21
+		PRINTFORML ━━━━ 料理研究部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 24 || A == 29 || A == 68
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 22
+		PRINTFORML ━━━━ パソコン部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 12
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 23
+		PRINTFORML ━━━━ オカルト研究部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 13 || A == 14 || A == 35
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 24
+		PRINTFORML ━━━━ 生物部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 5
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 25
+		PRINTFORML ━━━━ 放送部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 4
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 26
+		PRINTFORML ━━━━ 園芸部 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 46 || A == 52
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ENDIF
+
+ELSEIF TFLAG:86 == 2
+	IF TFLAG:84 == 0
+		PRINTFORML ━━━━ 体育委員会 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 18 || A == 53
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 1
+		PRINTFORML ━━━━ 保健委員会 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 8 || A == 19 || A == 25 || A == 46
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 2
+		PRINTFORML ━━━━ 図書委員会 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 28 || A == 55
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 3
+		PRINTFORML ━━━━ 緑化委員会 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 9 || A == 52
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 4
+		PRINTFORML ━━━━ 美化委員会 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 6 || A == 17 || A == 54
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 5
+		PRINTFORML ━━━━ 選挙管理委員会 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 4 || A == 61
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ELSEIF TFLAG:84 == 6
+		PRINTFORML ━━━━ 風紀委員会 ━━━━
+		REPEAT CHARANUM
+			A = NO:COUNT
+			LOCAL:99 = 0
+			IF A == 40 || A == 49 || A == 68
+				LOCAL:99 = 1
+			ENDIF
+			IF LOCAL:99
+				LOCAL:0 += 1
+				LOCAL:(LOCAL:0) = COUNT
+			ENDIF
+		REND
+	ENDIF
+
 ENDIF
 
-;候補なし
-IF LOCAL:0 == 0
+SIF LOCAL:0 == 0
 	PRINTFORMW 今は誰もいないようだった。
 	RETURN 0
-ENDIF
 
 ;ランダムに1人選ぶ
 A = RAND:LOCAL:0
@@ -153,14 +719,16 @@ CALL ENCOUNTER_SCENE
 RETURN RESULT
 
 ;---------------------------------------------------------
-;出会いイベント共通処理
+;出会いシーン共通処理
 ;TFLAG:85 = キャラインデックス
+;TFLAG:86 = カテゴリ（0=教室,1=部室,2=委員会室）
+;TFLAG:84 = 部屋ID
 ;---------------------------------------------------------
 @ENCOUNTER_SCENE
 A = TFLAG:85
 DRAWLINE
 
-;部活・所属を取得
+;部活・所属を表示
 IF CSTR:A:25 != ""
 	PRINTFORML %CALLNAME:A%（%CSTR:A:25%）と出会った。
 ELSE
@@ -168,44 +736,35 @@ ELSE
 ENDIF
 PRINTL
 
-;場所別フレーバーテキスト
-IF TFLAG:84 == 0 || TFLAG:84 == 1 || TFLAG:84 == 2
-	PRINTFORML 教室で偶然目が合った。
+;カテゴリ別フレーバーテキスト
+IF TFLAG:86 == 0
+	;教室
 	IF CFLAG:A:2 >= 100
-		PRINTFORML %CALLNAME:A%は笑顔で「また会ったね」と言った。
+		PRINTFORML %CALLNAME:A%は笑顔で「また来たの？」と言った。
 	ELSEIF CFLAG:A:2 >= 30
 		PRINTFORML %CALLNAME:A%は少し驚いた様子で会釈した。
 	ELSE
-		PRINTFORML %CALLNAME:A%は軽く頷いて視線を本に戻した。
+		PRINTFORML %CALLNAME:A%は軽く頷いて視線を前に戻した。
 	ENDIF
-ELSEIF TFLAG:84 == 3
-	PRINTFORML %CALLNAME:A%が部室で練習の準備をしていた。
+ELSEIF TFLAG:86 == 1
+	;部室
 	IF CSTR:A:25 != ""
-		PRINTFORML 「%CSTR:A:25%に来るなんて珍しい」と%CALLNAME:A%が言った。
+		PRINTFORML %CSTR:A:25%の部室。%CALLNAME:A%が活動中だった。
 	ENDIF
-ELSEIF TFLAG:84 == 4
-	PRINTFORML %CALLNAME:A%が部室で楽器（or道具）の手入れをしていた。
 	IF CFLAG:A:2 >= 50
-		PRINTFORML %CALLNAME:A%は顔を上げて「一緒に練習する？」と聞いてきた。
+		PRINTFORML 「見学？ちょうど良かった、一緒にやってみる？」と%CALLNAME:A%が言った。
+	ELSEIF CFLAG:A:2 >= 20
+		PRINTFORML 「見学なら構わないけど」と%CALLNAME:A%が軽く言った。
 	ELSE
-		PRINTFORML %CALLNAME:A%は少し驚いた顔をしてから微笑んだ。
+		PRINTFORML %CALLNAME:A%は手を止めてこちらを見た。
 	ENDIF
-ELSEIF TFLAG:84 == 5
-	PRINTFORML %CALLNAME:A%が部室で本や資料に囲まれていた。
-	PRINTFORML 「あ、来てたんだ。静かでしょ、ここ」と%CALLNAME:A%が言った。
-ELSEIF TFLAG:84 == 6
-	PRINTFORML %CALLNAME:A%が図書室で本を整理していた。
-	PRINTFORML 「何か探してるの？良かったら一緒に探すよ」と%CALLNAME:A%が言った。
-ELSEIF TFLAG:84 == 7
-	PRINTFORML 保健室で%CALLNAME:A%が当番をしていた。
-	PRINTFORML 「具合悪い？それとも当番の視察？」と%CALLNAME:A%が笑いながら言った。
-ELSEIF TFLAG:84 == 8
-	IF CFLAG:A:2 >= 100
-		PRINTFORML 食堂で%CALLNAME:A%と席が隣になった。楽しい昼食になった。
-	ELSEIF CFLAG:A:2 >= 30
-		PRINTFORML %CALLNAME:A%がひとりで食事していた。少し話した。
+ELSEIF TFLAG:86 == 2
+	;委員会室
+	PRINTFORML 委員会室で%CALLNAME:A%が仕事中だった。
+	IF CFLAG:A:2 >= 50
+		PRINTFORML 「休憩中だからちょっと話せるよ」と%CALLNAME:A%が言った。
 	ELSE
-		PRINTFORML 食堂の混雑の中で%CALLNAME:A%を見かけた。目が合って軽く会釈した。
+		PRINTFORML %CALLNAME:A%は書類から顔を上げて軽く会釈した。
 	ENDIF
 ENDIF
 

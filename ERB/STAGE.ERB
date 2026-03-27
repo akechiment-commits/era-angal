@@ -4,30 +4,53 @@
 ;
 ;学期進行メニュー
 ;	@STAGE_CAPTURE
-;学習状況の表示
-;	@SHOW_STUDY_STATUS
-;授業・自習（旧：道中攻略）
-;	@STUDY_SESSION
-;試験を受ける（旧：ボス戦）
-;	@TAKE_EXAM
-;試験スコア計算
-;	@GET_EXAM_SCORE
-;試験結果の表示
-;	@SHOW_EXAM_RESULT
-;学期名取得
-;	@GET_SEMESTER_NAME
 ;---------------------------------------------------------
-;使用変数（旧戦闘システムと互換）
-;FLAG:24 → 現在の学期（1～6: 1年1学期～3年2学期）
-;FLAG:25 → （未使用、旧ボスNO）
-;FLAG:27 → 学習進度（0～9:授業中、10:中間試験可、11～19:中間後、20:期末試験可）
-;FLAG:5  → 難易度（0=EASY～3=LUNATIC）
-;TFLAG:46 → 授業回数カウンタ
-;ABL:88  → 学力
-;ABL:98  → 学力素質
-;EXP:95  → 学習経験
-;P       → 試験スコア計算用
+;ストーリー進行 - 場所カテゴリ選択メニュー
 ;---------------------------------------------------------
+DRAWLINE
+CALL GET_SEMESTER_NAME
+
+LOCAL:0 = FLAG:24
+IF FLAG:5 == 0
+	LOCAL:0 *= 15
+ELSEIF FLAG:5 == 1
+	LOCAL:0 *= 10
+ELSEIF FLAG:5 == 2
+	LOCAL:0 *= 8
+ELSE
+	LOCAL:0 *= 5
+ENDIF
+LOCAL:1 = LOCAL:0 - DAY
+SIF LOCAL:1 < 0
+	LOCAL:1 = 0
+
+PRINTFORML 【どこへ行く？】  %STR:10%
+IF FLAG:27 == 0
+	PRINTFORML 前半（中間試験待ち）残り{LOCAL:1}日
+ELSE
+	PRINTFORML 後半（期末試験待ち）残り{LOCAL:1}日
+ENDIF
+PRINTL
+PRINTFORML [0] 教室へ行く（各クラスを訪問）
+PRINTFORML [1] 部室へ行く（各部活の部室を訪問）
+PRINTFORML [2] 委員会室へ行く（各委員会を訪問）
+PRINTFORML [9] 戻る
+PRINTL
+
+
+INPUT
+IF RESULT == 0
+	CALL LOCATION_SUBMENU_CLASS
+ELSEIF RESULT == 1
+	CALL LOCATION_SUBMENU_CLUB
+ELSEIF RESULT == 2
+	CALL LOCATION_SUBMENU_COMMITTEE
+ELSEIF RESULT == 9
+	RETURN 0
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+RETURN 0
 
 @GET_SEMESTER_NAME
 ;FLAG:24から学期名をSTR:10に設定（3学期制・9学期）
