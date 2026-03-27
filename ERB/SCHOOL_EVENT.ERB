@@ -1,0 +1,202 @@
+;---------------------------------------------------------
+;学校行事イベント（体育祭・文化祭）
+;
+;部活で鍛えた技能を使ってクリアを目指すイベント。
+;年に1回（秋）開催。FLAG:50/FLAG:51で実施済み管理。
+;
+;FLAG:50 = 体育祭を実施した年（DAY:3と比較）
+;FLAG:51 = 文化祭を実施した年（DAY:3と比較）
+;FLAG:52 = 体育祭優勝経験フラグ（累計）
+;FLAG:53 = 文化祭大成功経験フラグ（累計）
+;
+;スコア計算:
+;  主人公: 技能 + 対応素質/2 + RAND:30
+;  パートナー: 技能 + 対応素質/2 + RAND:20
+;  該当部活ボーナス: +15
+;  合計スコア → ランク判定
+;
+;ランク（体育祭・文化祭共通）:
+;  200+: 優勝/大成功 → 好感度+15, 対応素質+3
+;  150+: 準優勝/成功 → 好感度+10, 対応素質+1
+;  100+: 3位/まあまあ → 好感度+7
+;   100未満: 参加賞/普通 → 好感度+3
+;---------------------------------------------------------
+
+;---------------------------------------------------------
+;体育祭
+;---------------------------------------------------------
+@SPORTS_FESTIVAL
+DRAWLINE
+PRINTFORML 【体育祭】
+PRINTL
+
+IF FLAG:50 == DAY:3
+	PRINTFORMW 今年の体育祭はすでに終わりました。来年また頑張ろう。
+	RETURN 0
+ENDIF
+
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%はチームを組んで体育祭に参加する！
+PRINTFORML 運動技能と運動素質が高いほど良い成績が出る。
+PRINTL
+
+;--- スコア計算 ---
+;主人公: 運動技能 + 運動素質/2 + ランダム(0-29)
+LOCAL:0 = ABL:MASTER:93 + ABL:MASTER:54 / 2 + RAND:30
+;パートナー: 運動技能 + 運動素質/2 + ランダム(0-19)
+LOCAL:1 = ABL:TARGET:93 + ABL:TARGET:54 / 2 + RAND:20
+;運動部パートナーボーナス
+IF CFLAG:TARGET:25 == 1
+	LOCAL:1 += 15
+	PRINTFORML ★%CALLNAME:TARGET%は運動部！チームに勢いをつけた！
+ENDIF
+LOCAL:2 = LOCAL:0 + LOCAL:1
+
+PRINTFORML ─────────────────────
+PRINTFORML あなたのスコア     : {LOCAL:0}点
+PRINTFORML %CALLNAME:TARGET%のスコア: {LOCAL:1}点
+PRINTFORML チーム合計スコア   : {LOCAL:2}点
+PRINTFORML ─────────────────────
+WAIT
+
+;--- ランク判定 ---
+DRAWLINE
+IF LOCAL:2 >= 200
+	PRINTFORML 　　　★★★ 優勝！！★★★
+	PRINTFORML グラウンドに歓声が響く。
+	PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は最高の笑顔でガッツポーズをした。
+	PRINTL
+	CFLAG:TARGET:2 += 15
+	ABL:MASTER:54 += 3
+	SIF ABL:MASTER:54 > 100
+		ABL:MASTER:54 = 100
+	FLAG:52 = FLAG:52 + 1
+	PRINTFORML 好感度 +15　運動素質 +3
+ELSEIF LOCAL:2 >= 150
+	PRINTFORML 　　　準優勝！
+	PRINTFORML 惜しくも2位。でも十分すごい結果だった。
+	PRINTFORML %CALLNAME:TARGET%は「来年こそ優勝しよう」と微笑んだ。
+	PRINTL
+	CFLAG:TARGET:2 += 10
+	ABL:MASTER:54 += 1
+	SIF ABL:MASTER:54 > 100
+		ABL:MASTER:54 = 100
+	PRINTFORML 好感度 +10　運動素質 +1
+ELSEIF LOCAL:2 >= 100
+	PRINTFORML 　　　3位入賞！
+	PRINTFORML 表彰台に乗ることができた。二人で記念写真を撮った。
+	PRINTL
+	CFLAG:TARGET:2 += 7
+	PRINTFORML 好感度 +7
+ELSE
+	PRINTFORML 　　　参加賞
+	PRINTFORML 今回は悔しい結果になった。
+	PRINTFORML でも%CALLNAME:TARGET%は「一緒に頑張れて楽しかった」と言ってくれた。
+	PRINTL
+	CFLAG:TARGET:2 += 3
+	PRINTFORML 好感度 +3
+ENDIF
+
+PRINTL
+;耐力消費（運動したので）
+BASE:MASTER:4 -= MAXBASE:MASTER:4 / 4
+SIF BASE:MASTER:4 < 0
+	BASE:MASTER:4 = 0
+PRINTFORML （耐力消費: 体育祭で全力を出した）
+WAIT
+
+FLAG:50 = DAY:3
+RETURN 1
+
+;---------------------------------------------------------
+;文化祭
+;---------------------------------------------------------
+@CULTURE_FESTIVAL
+DRAWLINE
+PRINTFORML 【文化祭】
+PRINTL
+
+IF FLAG:51 == DAY:3
+	PRINTFORMW 今年の文化祭はすでに終わりました。来年また頑張ろう。
+	RETURN 0
+ENDIF
+
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は一緒に文化祭の出し物を準備した！
+PRINTFORML 表現技能と表現素質が高いほど観客の反応がよくなる。
+PRINTL
+
+;--- スコア計算 ---
+;主人公: 表現技能 + 表現素質/2 + ランダム(0-29)
+LOCAL:0 = ABL:MASTER:94 + ABL:MASTER:55 / 2 + RAND:30
+;パートナー: 表現技能 + 表現素質/2 + ランダム(0-19)
+LOCAL:1 = ABL:TARGET:94 + ABL:TARGET:55 / 2 + RAND:20
+;表現部パートナーボーナス
+IF CFLAG:TARGET:25 == 2
+	LOCAL:1 += 15
+	PRINTFORML ★%CALLNAME:TARGET%は表現部！ステージに華を添えた！
+ENDIF
+LOCAL:2 = LOCAL:0 + LOCAL:1
+
+PRINTFORML ─────────────────────
+PRINTFORML あなたのスコア     : {LOCAL:0}点
+PRINTFORML %CALLNAME:TARGET%のスコア: {LOCAL:1}点
+PRINTFORML 観客満足度スコア   : {LOCAL:2}点
+PRINTFORML ─────────────────────
+WAIT
+
+;--- ランク判定 ---
+DRAWLINE
+IF LOCAL:2 >= 200
+	PRINTFORML 　　　★★★ 大成功！！★★★
+	PRINTFORML 会場は大盛り上がり！アンコールの声が止まらない。
+	PRINTFORML %CALLNAME:TARGET%は感激して目を輝かせた。
+	PRINTL
+	CFLAG:TARGET:2 += 15
+	ABL:MASTER:55 += 3
+	SIF ABL:MASTER:55 > 100
+		ABL:MASTER:55 = 100
+	FLAG:53 = FLAG:53 + 1
+	PRINTFORML 好感度 +15　表現素質 +3
+ELSEIF LOCAL:2 >= 150
+	PRINTFORML 　　　成功！
+	PRINTFORML お客さんに喜んでもらえた。%CALLNAME:TARGET%と顔を見合わせてほっとした。
+	PRINTL
+	CFLAG:TARGET:2 += 10
+	ABL:MASTER:55 += 1
+	SIF ABL:MASTER:55 > 100
+		ABL:MASTER:55 = 100
+	PRINTFORML 好感度 +10　表現素質 +1
+ELSEIF LOCAL:2 >= 100
+	PRINTFORML 　　　まあまあの出来
+	PRINTFORML 反応は悪くなかった。%CALLNAME:TARGET%も「次はもっとうまくやろう」と言った。
+	PRINTL
+	CFLAG:TARGET:2 += 7
+	PRINTFORML 好感度 +7
+ELSE
+	PRINTFORML 　　　普通の出来
+	PRINTFORML もう少し練習が必要だったかも。
+	PRINTFORML でも%CALLNAME:TARGET%は「一緒に作り上げた思い出は宝物」と笑った。
+	PRINTL
+	CFLAG:TARGET:2 += 3
+	PRINTFORML 好感度 +3
+ENDIF
+
+PRINTL
+;気力消費（ステージで消耗したので）
+BASE:MASTER:1 -= MAXBASE:MASTER:1 / 4
+SIF BASE:MASTER:1 < 0
+	BASE:MASTER:1 = 0
+PRINTFORML （気力消費: 文化祭で全力パフォーマンス）
+WAIT
+
+FLAG:51 = DAY:3
+RETURN 1
