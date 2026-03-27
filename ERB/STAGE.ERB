@@ -30,19 +30,25 @@
 ;---------------------------------------------------------
 
 @GET_SEMESTER_NAME
-;FLAG:24から学期名をSTR:10に設定
+;FLAG:24から学期名をSTR:10に設定（3学期制・9学期）
 IF FLAG:24 == 1
 	STR:10 = 1年1学期
 ELSEIF FLAG:24 == 2
 	STR:10 = 1年2学期
 ELSEIF FLAG:24 == 3
-	STR:10 = 2年1学期
+	STR:10 = 1年3学期
 ELSEIF FLAG:24 == 4
-	STR:10 = 2年2学期
+	STR:10 = 2年1学期
 ELSEIF FLAG:24 == 5
-	STR:10 = 3年1学期
+	STR:10 = 2年2学期
 ELSEIF FLAG:24 == 6
+	STR:10 = 2年3学期
+ELSEIF FLAG:24 == 7
+	STR:10 = 3年1学期
+ELSEIF FLAG:24 == 8
 	STR:10 = 3年2学期
+ELSEIF FLAG:24 == 9
+	STR:10 = 3年3学期
 ELSE
 	STR:10 = 卒業済み
 ENDIF
@@ -76,7 +82,11 @@ SIF LOCAL:1 < 0
 
 PRINTFORML 【ストーリー進行】
 PRINTFORML 現在学期 : %STR:10%
-PRINTFORML 試験まで : あと{LOCAL:1}日
+IF FLAG:27 == 0
+	PRINTFORML 試験フェーズ: 前半（中間試験待ち）　残り{LOCAL:1}日
+ELSE
+	PRINTFORML 試験フェーズ: 後半（期末試験待ち）　残り{LOCAL:1}日
+ENDIF
 PRINTL
 
 ;来たるイベントの予告
@@ -445,8 +455,8 @@ RETURN 1
 @TAKE_EXAM
 PRINTL 
 
-;試験名決定
-IF FLAG:27 == 10
+;試験名決定（TFLAG:83 0=中間 1=期末）
+IF TFLAG:83 == 0
 	STR:0 = 中間試験
 ELSE
 	STR:0 = 期末試験
@@ -546,22 +556,23 @@ IF P >= LOCAL:5
 	ENDIF
 	
 	;試験クリア処理
-	IF FLAG:27 == 10
-		;中間試験合格 → 期末試験フェーズへ
-		FLAG:27 = 11
-		PRINTFORMW 中間試験に合格しました。引き続き期末試験に備えましょう
+	IF TFLAG:83 == 0
+		;中間試験合格 → 後半（期末フェーズ）へ
+		FLAG:27 = 1
+		PRINTFORMW 中間試験に合格！後半戦もしっかり頑張ろう。
+		RETURN 1
 	ELSE
 		;期末試験合格 → 次の学期へ
 		FLAG:27 = 0
 		FLAG:24 += 1
-		IF FLAG:24 > 6
+		IF FLAG:24 > 9
 			;全学期クリア（卒業）
 			PRINTFORMW おめでとう！ 全ての試験に合格し、卒業を迎えました！
 			TRYCALL GAME_CONTINUE
 			RETURN 2
 		ELSE
 			CALL GET_SEMESTER_NAME
-			PRINTFORMW %STR:0%に合格！ %STR:10%に進級しました！
+			PRINTFORMW 期末試験に合格！%STR:10%に進みます！
 		ENDIF
 		RETURN 2
 	ENDIF
@@ -651,24 +662,36 @@ RETURN 1
 ;不合格 → バッドエンド処理
 ;---------------------------------------------------------
 @SEMESTER_EXAM_AUTO
+;TFLAG:83: 0=中間試験 1=期末試験
 PRINTL
 CALL GET_SEMESTER_NAME
-PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
-PRINTFORML 　%STR:10% 学期末試験の日が来ました！
-PRINTFORML 　これまでの勉強の成果を発揮しよう。
-PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+IF TFLAG:83 == 0
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　%STR:10% 中間試験の時期になりました！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+ELSE
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　%STR:10% 期末試験の時期になりました！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+ENDIF
 WAIT
 
 CALL TAKE_EXAM
 
 IF RESULT == 2
-	;合格 → 次の学期へ（TAKE_EXAM内でFLAG:24が進んでいる）
-	FLAG:27 = 0
+	;期末合格 → 次学期（FLAG:24はTAKE_EXAM内で進んでいる）
+	RETURN 1
+ELSEIF RESULT == 1
+	;中間合格 → 後半へ（FLAG:27=1はTAKE_EXAM内で設定済み）
 	RETURN 1
 ELSE
 	;不合格 → バッドエンド
 	PRINTFORML
-	PRINTFORML 試験に合格できなかった。
+	IF TFLAG:83 == 0
+		PRINTFORML 中間試験に合格できなかった。
+	ELSE
+		PRINTFORML 期末試験に合格できなかった。
+	ENDIF
 	PRINTFORMW %CALLNAME:MASTER%の学院生活はここで終わりを迎えた……
 	PRINTFORML
 	PRINTFORMW 　　　　　　　　―― Bad Ending（試験不合格）
@@ -681,7 +704,7 @@ ELSE
 	SIF RESULT != 0 && RESULT != 1
 		GOTO INPUT_LOOP_FAIL
 	IF RESULT == 0
-		PRINTFORMW それでは1日目、1学期に戻ります。
+		PRINTFORMW それでは1日目、1年1学期に戻ります。
 		REPEAT CHARANUM
 			SIF TALENT:COUNT:134 || MARK:COUNT:90
 				CFLAG:COUNT:110 -= DAY

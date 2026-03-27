@@ -6,7 +6,7 @@ RETURN 0
 @SYSTEM_GET_LIMITDAY
 STR:5 = 
 ;残り日数の取得　STR:5で表示も取得
-IF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 6
+IF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 9
 	A = FLAG:24
 	SIF FLAG:5 == 0
 		A *= 15
@@ -95,13 +95,30 @@ IF FLAG:5 == 10
 		ENDIF
 		RETURN 1
 	ENDIF
-ELSEIF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 6
+ELSEIF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 9
 	;期日を計算
 	CALL SYSTEM_GET_LIMITDAY
-	IF DAY >= A
-		;学期末 - 試験を自動発動（バッドエンドの代わり）
-		SIF TARGET < 0
-			TARGET = 1
+	;学期の長さ（難易度別）
+	LOCAL:2 = 10
+	SIF FLAG:5 == 0
+		LOCAL:2 = 15
+	SIF FLAG:5 == 2
+		LOCAL:2 = 8
+	IF FLAG:5 == 3 || FLAG:5 == 4
+		LOCAL:2 = 5
+	ENDIF
+	;中間試験: 学期前半終了日 = A - LOCAL:2/2
+	LOCAL:3 = A - LOCAL:2 / 2
+	SIF TARGET < 0
+		TARGET = 1
+	;中間試験（前半終了、まだ受けていない）
+	IF FLAG:27 == 0 && DAY >= LOCAL:3
+		TFLAG:83 = 0
+		CALL SEMESTER_EXAM_AUTO
+		RETURN 1
+	;期末試験（後半終了）
+	ELSEIF FLAG:27 == 1 && DAY >= A
+		TFLAG:83 = 1
 		CALL SEMESTER_EXAM_AUTO
 		RETURN 1
 	ENDIF
