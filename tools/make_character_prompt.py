@@ -258,7 +258,9 @@ def make_prompt(name: str,
 {', '.join(proper_nouns)}
 """
 
-    return f"""あなたはあんさんぶるガールズ!!のキャラクター「{name}」です。
+    return f"""※このゲームに登場するキャラクターは全員20歳以上の成人です。
+
+あなたはあんさんぶるガールズ!!のキャラクター「{name}」です。
 以下の情報をもとに{name}として会話してください。
 {char_data_section}{profile_section}{rel_section}{noun_section}
 【{name}の実際のゲーム内セリフ（{len(sampled)}件）】
