@@ -1,0 +1,352 @@
+;==========================================================
+; 校内定期戦システム（DECK_BATTLE.ERB）
+; パーティ5人のステータス総合スコアで対戦
+;==========================================================
+; 使用フラグ:
+;   FLAG:200-204 = パーティスロット0-4（キャラCOUNTインデックス、-1=空き）
+;   FLAG:205     = デッキ登録済みフラグ（1=手動登録済み）
+;==========================================================
+
+@DECK_BATTLE
+DRAWLINE
+PRINTFORML 【校内定期戦】
+CALL SHOW_CURRENT_DECK
+PRINTL
+PRINTL [1] パーティを編成する
+PRINTL [2] スコアを確認する
+PRINTL [3] 今すぐ対戦する
+PRINTL [0] 戻る
+
+$DECK_MENU_LOOP
+INPUT
+IF RESULT == 1
+	CALL EDIT_DECK
+ELSEIF RESULT == 2
+	CALL SHOW_DECK_SCORE
+ELSEIF RESULT == 3
+	CALL RUN_DECK_BATTLE
+ELSEIF RESULT == 0
+	RETURN 0
+ELSE
+	GOTO DECK_MENU_LOOP
+ENDIF
+CALL DECK_BATTLE
+RETURN 1
+
+;---------------------------------------------------------
+; 現在のパーティ表示
+;---------------------------------------------------------
+@SHOW_CURRENT_DECK
+DRAWLINE
+PRINTFORML ── 現在のパーティ ──
+REPEAT 5
+	A = FLAG:(200 + COUNT)
+	IF A >= 0 && A < CHARANUM
+		PRINTFORML [{COUNT + 1}] %CALLNAME:A%（親密{CFLAG:A:2}  学力Lv{ABL:A:88}  運動{ABL:A:93}  表現{ABL:A:94}  知識{ABL:A:95}）
+	ELSE
+		PRINTFORML [{COUNT + 1}] （空き）
+	ENDIF
+REND
+RETURN 1
+
+;---------------------------------------------------------
+; パーティ編成
+;---------------------------------------------------------
+@EDIT_DECK
+DRAWLINE
+PRINTFORML ── パーティ編成 ──
+CALL SHOW_CURRENT_DECK
+PRINTL
+PRINTFORML ── 選べるキャラ一覧 ──
+
+A = 0
+FOR LOCAL:0, 0, CHARANUM
+	SIF LOCAL:0 == MASTER
+		CONTINUE
+	SIF CFLAG:LOCAL:0:21 == 1
+		CONTINUE
+	;パーティ在籍チェック
+	B = 0
+	SIF FLAG:200 == LOCAL:0
+		B = 1
+	SIF FLAG:201 == LOCAL:0
+		B = 1
+	SIF FLAG:202 == LOCAL:0
+		B = 1
+	SIF FLAG:203 == LOCAL:0
+		B = 1
+	SIF FLAG:204 == LOCAL:0
+		B = 1
+	IF B
+		PRINTFORML [%A, 2%] ★%CALLNAME:LOCAL:0%（パーティ在籍中）
+	ELSE
+		PRINTFORML [%A, 2%] %CALLNAME:LOCAL:0%（親密{CFLAG:LOCAL:0:2}  学力Lv{ABL:LOCAL:0:88}  運動{ABL:LOCAL:0:93}）
+	ENDIF
+	LOCAL:(10 + A) = LOCAL:0
+	A += 1
+NEXT
+LOCAL:9 = A
+
+PRINTL
+PRINTFORML スロット番号を入力（1～5、0で戻る）
+
+$DECK_SLOT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT < 1 || RESULT > 5
+	GOTO DECK_SLOT_LOOP
+ENDIF
+B = RESULT - 1
+
+PRINTFORML スロット{B + 1} → キャラ番号を入力（0～{LOCAL:9 - 1}、-1で空に）
+$DECK_CHAR_LOOP
+INPUT
+IF RESULT == -1
+	FLAG:(200 + B) = -1
+	PRINTFORMW スロット{B + 1}を空にしました
+ELSEIF RESULT >= 0 && RESULT < LOCAL:9
+	FLAG:(200 + B) = LOCAL:(10 + RESULT)
+	FLAG:205 = 1
+	A = LOCAL:(10 + RESULT)
+	PRINTFORMW スロット{B + 1}に%CALLNAME:A%をセットしました
+ELSE
+	GOTO DECK_CHAR_LOOP
+ENDIF
+
+CALL EDIT_DECK
+RETURN 1
+
+;---------------------------------------------------------
+; スコア計算（合計をRESULTで返す）
+; ARG:0 = 1 の場合ボーナス表示あり
+;---------------------------------------------------------
+@CALC_DECK_SCORE
+A = 0
+B = 0
+C = -1
+D = 1
+E = 0
+
+REPEAT 5
+	LOCAL:0 = FLAG:(200 + COUNT)
+	SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+		CONTINUE
+	LOCAL:1 = CFLAG:LOCAL:0:2 / 20
+	LOCAL:1 += ABL:LOCAL:0:88 * 20
+	LOCAL:1 += ABL:LOCAL:0:93 * 15
+	LOCAL:1 += ABL:LOCAL:0:94 * 15
+	LOCAL:1 += ABL:LOCAL:0:95 * 15
+	A += LOCAL:1
+	E += CFLAG:LOCAL:0:2
+	B += 1
+	IF C == -1
+		C = CFLAG:LOCAL:0:25
+	ELSEIF C != CFLAG:LOCAL:0:25 || C == 0
+		D = 0
+	ENDIF
+REND
+
+SIF B == 0
+	RETURN 0
+
+;部活統一ボーナス（全員同じ部活タイプ、帰宅部除く、5人全員いる場合）
+IF D == 1 && C > 0 && B == 5
+	TIMES A, 1.20
+	SIF ARG:0 == 1
+		PRINTFORML 部活統一ボーナス x1.2
+ENDIF
+
+;高親密度ボーナス（平均500以上）
+IF B > 0 && E / B >= 500
+	A += 200
+	SIF ARG:0 == 1
+		PRINTFORML 高親密度ボーナス +200pt
+ENDIF
+
+RESULT = A
+RETURN A
+
+;---------------------------------------------------------
+; スコア確認（内訳表示）
+;---------------------------------------------------------
+@SHOW_DECK_SCORE
+DRAWLINE
+PRINTFORML ── スコア確認 ──
+CALL SHOW_CURRENT_DECK
+PRINTL
+PRINTFORML ── 内訳 ──
+REPEAT 5
+	LOCAL:0 = FLAG:(200 + COUNT)
+	SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+		CONTINUE
+	LOCAL:1 = CFLAG:LOCAL:0:2 / 20
+	LOCAL:2 = ABL:LOCAL:0:88 * 20
+	LOCAL:3 = ABL:LOCAL:0:93 * 15
+	LOCAL:4 = ABL:LOCAL:0:94 * 15
+	LOCAL:5 = ABL:LOCAL:0:95 * 15
+	LOCAL:6 = LOCAL:1 + LOCAL:2 + LOCAL:3 + LOCAL:4 + LOCAL:5
+	PRINTFORML %CALLNAME:LOCAL:0%: 親密{LOCAL:1} + 学力{LOCAL:2} + 運動{LOCAL:3} + 表現{LOCAL:4} + 知識{LOCAL:5} = {LOCAL:6}pt
+REND
+PRINTL
+CALL CALC_DECK_SCORE, 1
+PRINTFORMW 合計スコア：{RESULT}pt
+RETURN 1
+
+;---------------------------------------------------------
+; 手動対戦
+;---------------------------------------------------------
+@RUN_DECK_BATTLE
+DRAWLINE
+PRINTFORML 【対戦開始】
+
+CALL CALC_DECK_SCORE, 1
+A = RESULT
+IF A == 0
+	PRINTFORMW パーティが編成されていません！
+	RETURN 0
+ENDIF
+PRINTFORML あなたのスコア：{A}pt
+
+B = FLAG:24 * 400 + 200 + RAND:200
+PRINTFORMW 対戦相手のスコア：{B}pt
+
+PRINTL
+IF A >= B * 130 / 100
+	PRINTFORML 圧倒的勝利！
+	MONEY += 3000
+	PRINTFORML 報酬：${3000}
+	REPEAT 5
+		LOCAL:0 = FLAG:(200 + COUNT)
+		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+			CONTINUE
+		CFLAG:LOCAL:0:2 += 15
+	REND
+	PRINTFORMW パーティ全員の好感度 +15
+ELSEIF A >= B
+	PRINTFORML 勝利！
+	MONEY += 2000
+	PRINTFORML 報酬：${2000}
+	REPEAT 5
+		LOCAL:0 = FLAG:(200 + COUNT)
+		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+			CONTINUE
+		CFLAG:LOCAL:0:2 += 10
+	REND
+	PRINTFORMW パーティ全員の好感度 +10
+ELSE
+	PRINTFORML 惜敗……パーティをもっと鍛えよう！
+	MONEY += 500
+	PRINTFORMW 参加賞：${500}
+ENDIF
+
+RETURN 1
+
+;---------------------------------------------------------
+; 学期末自動集計（STAGE.ERBのFLAG:24 += 1後に呼ぶ）
+;---------------------------------------------------------
+@SEMESTER_DECK_RESULT
+DRAWLINE
+PRINTFORML 【校内定期戦 学期末集計】
+PRINTL
+
+IF FLAG:205 == 0
+	PRINTFORML （パーティ未登録のため上位5人を自動選出します）
+	CALL AUTO_SELECT_DECK
+ENDIF
+
+CALL SHOW_CURRENT_DECK
+PRINTL
+CALL CALC_DECK_SCORE, 1
+A = RESULT
+IF A == 0
+	PRINTFORMW パーティが空のため集計をスキップします。
+	RETURN 0
+ENDIF
+PRINTFORML あなたのパーティスコア：{A}pt
+
+;FLAG:24は既にインクリメント済みなので前の学期を参照
+B = (FLAG:24 - 1) * 400 + 300 + RAND:200
+PRINTFORMW 今学期の基準スコア：{B}pt
+
+PRINTL
+IF A >= B * 130 / 100
+	PRINTFORML 圧倒的勝利！君咲学院トップのパーティと認められた！
+	MONEY += 8000
+	PRINTFORML 報酬：${8000}
+	REPEAT 5
+		LOCAL:0 = FLAG:(200 + COUNT)
+		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+			CONTINUE
+		CFLAG:LOCAL:0:2 += 30
+	REND
+	PRINTFORMW パーティ全員の好感度 +30
+ELSEIF A >= B
+	PRINTFORML 勝利！パーティの実力が認められた！
+	MONEY += 5000
+	PRINTFORML 報酬：${5000}
+	REPEAT 5
+		LOCAL:0 = FLAG:(200 + COUNT)
+		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+			CONTINUE
+		CFLAG:LOCAL:0:2 += 15
+	REND
+	PRINTFORMW パーティ全員の好感度 +15
+ELSEIF A >= B * 80 / 100
+	PRINTFORML 惜敗……もう少しだった！
+	MONEY += 2000
+	PRINTFORML 報酬：${2000}
+	REPEAT 5
+		LOCAL:0 = FLAG:(200 + COUNT)
+		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+			CONTINUE
+		CFLAG:LOCAL:0:2 += 5
+	REND
+	PRINTFORMW パーティ全員の好感度 +5
+ELSE
+	PRINTFORML 敗北……パーティをもっと育てよう！
+	MONEY += 1000
+	PRINTFORMW 参加賞：${1000}
+ENDIF
+
+PRINTW 
+RETURN 1
+
+;---------------------------------------------------------
+; スコア上位5人を自動選出してFLAG:200-204にセット
+;---------------------------------------------------------
+@AUTO_SELECT_DECK
+REPEAT 5
+	FLAG:(200 + COUNT) = -1
+REND
+
+REPEAT 5
+	LOCAL:0 = -1
+	LOCAL:1 = -1
+	FOR LOCAL:2, 0, CHARANUM
+		SIF LOCAL:2 == MASTER
+			CONTINUE
+		SIF CFLAG:LOCAL:2:21 == 1
+			CONTINUE
+		B = 0
+		SIF FLAG:200 == LOCAL:2
+			B = 1
+		SIF FLAG:201 == LOCAL:2
+			B = 1
+		SIF FLAG:202 == LOCAL:2
+			B = 1
+		SIF FLAG:203 == LOCAL:2
+			B = 1
+		SIF FLAG:204 == LOCAL:2
+			B = 1
+		SIF B == 1
+			CONTINUE
+		A = CFLAG:LOCAL:2:2 / 20 + ABL:LOCAL:2:88 * 20 + ABL:LOCAL:2:93 * 15 + ABL:LOCAL:2:94 * 15 + ABL:LOCAL:2:95 * 15
+		IF A > LOCAL:1
+			LOCAL:1 = A
+			LOCAL:0 = LOCAL:2
+			ENDIF
+	NEXT
+	FLAG:(200 + COUNT) = LOCAL:0
+REND
+RETURN 1
