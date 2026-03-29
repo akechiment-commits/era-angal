@@ -4,10 +4,18 @@
 ;==========================================================
 ; 使用フラグ:
 ;   FLAG:200-204 = パーティスロット0-4（キャラCOUNTインデックス、-1=空き）
-;   FLAG:205     = デッキ登録済みフラグ（1=手動登録済み）
+;   FLAG:205     = デッキ登録済みフラグ
+;   FLAG:206     = スロット初期化済みフラグ
 ;==========================================================
 
 @DECK_BATTLE
+;初回のみFLAG:200-204を-1に初期化（デフォ値0はMASTERと被るため）
+IF FLAG:206 == 0
+	REPEAT 5
+		FLAG:(200 + COUNT) = -1
+	REND
+	FLAG:206 = 1
+ENDIF
 DRAWLINE
 PRINTFORML 【校内定期戦】
 CALL SHOW_CURRENT_DECK
@@ -35,14 +43,15 @@ RETURN 1
 
 ;---------------------------------------------------------
 ; 現在のパーティ表示
+; スロットZのキャラをAに入れてからCALLNAME:Aで参照
 ;---------------------------------------------------------
 @SHOW_CURRENT_DECK
 DRAWLINE
 PRINTFORML ── 現在のパーティ ──
 REPEAT 5
-	A = FLAG:(200 + COUNT)
-	IF A >= 0 && A < CHARANUM
-		PRINTFORML [{COUNT + 1}] %CALLNAME:A%（親密{CFLAG:A:2}  学力Lv{ABL:A:88}  運動{ABL:A:93}  表現{ABL:A:94}  知識{ABL:A:95}）
+	Z = FLAG:(200 + COUNT)
+	IF Z >= 0 && Z < CHARANUM && Z != MASTER
+		PRINTFORML [{COUNT + 1}] %CALLNAME:Z%（親密{CFLAG:Z:2}  学力Lv{ABL:Z:88}  運動{ABL:Z:93}  表現{ABL:Z:94}  知識{ABL:Z:95}）
 	ELSE
 		PRINTFORML [{COUNT + 1}] （空き）
 	ENDIF
@@ -51,6 +60,7 @@ RETURN 1
 
 ;---------------------------------------------------------
 ; パーティ編成
+; FOR LOCAL, 0, CHARANUM → CFLAG:LOCAL:X（2引数で正常）
 ;---------------------------------------------------------
 @EDIT_DECK
 DRAWLINE
@@ -60,32 +70,37 @@ PRINTL
 PRINTFORML ── 選べるキャラ一覧 ──
 
 A = 0
-FOR LOCAL:0, 0, CHARANUM
-	SIF LOCAL:0 == MASTER
+FOR LOCAL, 0, CHARANUM
+	SIF LOCAL == MASTER
 		CONTINUE
-	SIF CFLAG:LOCAL:0:21 == 1
+	SIF CFLAG:LOCAL:21 == 1
 		CONTINUE
 	;パーティ在籍チェック
 	B = 0
-	SIF FLAG:200 == LOCAL:0
+	SIF FLAG:200 == LOCAL
 		B = 1
-	SIF FLAG:201 == LOCAL:0
+	SIF FLAG:201 == LOCAL
 		B = 1
-	SIF FLAG:202 == LOCAL:0
+	SIF FLAG:202 == LOCAL
 		B = 1
-	SIF FLAG:203 == LOCAL:0
+	SIF FLAG:203 == LOCAL
 		B = 1
-	SIF FLAG:204 == LOCAL:0
+	SIF FLAG:204 == LOCAL
 		B = 1
 	IF B
-		PRINTFORML [%A, 2%] ★%CALLNAME:LOCAL:0%（パーティ在籍中）
+		PRINTFORML [%A, 2%] ★%CALLNAME:LOCAL%（パーティ在籍中）
 	ELSE
-		PRINTFORML [%A, 2%] %CALLNAME:LOCAL:0%（親密{CFLAG:LOCAL:0:2}  学力Lv{ABL:LOCAL:0:88}  運動{ABL:LOCAL:0:93}）
+		PRINTFORML [%A, 2%] %CALLNAME:LOCAL%（親密{CFLAG:LOCAL:2}  学力Lv{ABL:LOCAL:88}  運動{ABL:LOCAL:93}）
 	ENDIF
-	LOCAL:(10 + A) = LOCAL:0
+	LOCAL:(10 + A) = LOCAL
 	A += 1
 NEXT
 LOCAL:9 = A
+
+IF LOCAL:9 == 0
+	PRINTFORMW 選べるキャラがいません。先にキャラを仲間にしてください。
+	RETURN 0
+ENDIF
 
 PRINTL
 PRINTFORML スロット番号を入力（1～5、0で戻る）
@@ -108,8 +123,8 @@ IF RESULT == -1
 ELSEIF RESULT >= 0 && RESULT < LOCAL:9
 	FLAG:(200 + B) = LOCAL:(10 + RESULT)
 	FLAG:205 = 1
-	A = LOCAL:(10 + RESULT)
-	PRINTFORMW スロット{B + 1}に%CALLNAME:A%をセットしました
+	Z = LOCAL:(10 + RESULT)
+	PRINTFORMW スロット{B + 1}に%CALLNAME:Z%をセットしました
 ELSE
 	GOTO DECK_CHAR_LOOP
 ENDIF
@@ -119,30 +134,31 @@ RETURN 1
 
 ;---------------------------------------------------------
 ; スコア計算（合計をRESULTで返す）
-; ARG:0 = 1 の場合ボーナス表示あり
+; Zにcharインデックスを入れてからCFLAG:Z:X（2引数）で参照
 ;---------------------------------------------------------
 @CALC_DECK_SCORE
-A = 0
-B = 0
-C = -1
-D = 1
-E = 0
+A = 0	;合計スコア
+B = 0	;有効人数
+C = -1	;部活タイプ統一チェック
+D = 1	;部活統一フラグ
+E = 0	;親密度合計
 
 REPEAT 5
-	LOCAL:0 = FLAG:(200 + COUNT)
-	SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+	Z = FLAG:(200 + COUNT)
+	SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 		CONTINUE
-	LOCAL:1 = CFLAG:LOCAL:0:2 / 20
-	LOCAL:1 += ABL:LOCAL:0:88 * 20
-	LOCAL:1 += ABL:LOCAL:0:93 * 15
-	LOCAL:1 += ABL:LOCAL:0:94 * 15
-	LOCAL:1 += ABL:LOCAL:0:95 * 15
+	LOCAL:1 = CFLAG:Z:2 / 20
+	LOCAL:1 += ABL:Z:88 * 20
+	LOCAL:1 += ABL:Z:93 * 15
+	LOCAL:1 += ABL:Z:94 * 15
+	LOCAL:1 += ABL:Z:95 * 15
 	A += LOCAL:1
-	E += CFLAG:LOCAL:0:2
+	E += CFLAG:Z:2
 	B += 1
+	;部活タイプ統一チェック
 	IF C == -1
-		C = CFLAG:LOCAL:0:25
-	ELSEIF C != CFLAG:LOCAL:0:25 || C == 0
+		C = CFLAG:Z:25
+	ELSEIF C != CFLAG:Z:25 || C == 0
 		D = 0
 	ENDIF
 REND
@@ -150,18 +166,14 @@ REND
 SIF B == 0
 	RETURN 0
 
-;部活統一ボーナス（全員同じ部活タイプ、帰宅部除く、5人全員いる場合）
+;部活統一ボーナス（全員同じ部活タイプ、帰宅部除く、5人全員）
 IF D == 1 && C > 0 && B == 5
 	TIMES A, 1.20
-	SIF ARG:0 == 1
-		PRINTFORML 部活統一ボーナス x1.2
 ENDIF
 
-;高親密度ボーナス（平均500以上）
+;高親密度ボーナス（全員平均500以上）
 IF B > 0 && E / B >= 500
 	A += 200
-	SIF ARG:0 == 1
-		PRINTFORML 高親密度ボーナス +200pt
 ENDIF
 
 RESULT = A
@@ -177,19 +189,40 @@ CALL SHOW_CURRENT_DECK
 PRINTL
 PRINTFORML ── 内訳 ──
 REPEAT 5
-	LOCAL:0 = FLAG:(200 + COUNT)
-	SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+	Z = FLAG:(200 + COUNT)
+	SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 		CONTINUE
-	LOCAL:1 = CFLAG:LOCAL:0:2 / 20
-	LOCAL:2 = ABL:LOCAL:0:88 * 20
-	LOCAL:3 = ABL:LOCAL:0:93 * 15
-	LOCAL:4 = ABL:LOCAL:0:94 * 15
-	LOCAL:5 = ABL:LOCAL:0:95 * 15
+	LOCAL:1 = CFLAG:Z:2 / 20
+	LOCAL:2 = ABL:Z:88 * 20
+	LOCAL:3 = ABL:Z:93 * 15
+	LOCAL:4 = ABL:Z:94 * 15
+	LOCAL:5 = ABL:Z:95 * 15
 	LOCAL:6 = LOCAL:1 + LOCAL:2 + LOCAL:3 + LOCAL:4 + LOCAL:5
-	PRINTFORML %CALLNAME:LOCAL:0%: 親密{LOCAL:1} + 学力{LOCAL:2} + 運動{LOCAL:3} + 表現{LOCAL:4} + 知識{LOCAL:5} = {LOCAL:6}pt
+	PRINTFORML %CALLNAME:Z%: 親密{LOCAL:1} + 学力{LOCAL:2} + 運動{LOCAL:3} + 表現{LOCAL:4} + 知識{LOCAL:5} = {LOCAL:6}pt
 REND
 PRINTL
-CALL CALC_DECK_SCORE, 1
+CALL CALC_DECK_SCORE
+;部活・親密度ボーナスを個別表示
+B = 0
+C = -1
+D = 1
+E = 0
+REPEAT 5
+	Z = FLAG:(200 + COUNT)
+	SIF Z < 0 || Z >= CHARANUM || Z == MASTER
+		CONTINUE
+	E += CFLAG:Z:2
+	B += 1
+	IF C == -1
+		C = CFLAG:Z:25
+	ELSEIF C != CFLAG:Z:25 || C == 0
+		D = 0
+	ENDIF
+REND
+SIF D == 1 && C > 0 && B == 5
+	PRINTFORML 部活統一ボーナス x1.2 適用中
+SIF B > 0 && E / B >= 500
+	PRINTFORML 高親密度ボーナス +200pt 適用中
 PRINTFORMW 合計スコア：{RESULT}pt
 RETURN 1
 
@@ -200,7 +233,7 @@ RETURN 1
 DRAWLINE
 PRINTFORML 【対戦開始】
 
-CALL CALC_DECK_SCORE, 1
+CALL CALC_DECK_SCORE
 A = RESULT
 IF A == 0
 	PRINTFORMW パーティが編成されていません！
@@ -217,10 +250,10 @@ IF A >= B * 130 / 100
 	MONEY += 3000
 	PRINTFORML 報酬：${3000}
 	REPEAT 5
-		LOCAL:0 = FLAG:(200 + COUNT)
-		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 			CONTINUE
-		CFLAG:LOCAL:0:2 += 15
+		CFLAG:Z:2 += 15
 	REND
 	PRINTFORMW パーティ全員の好感度 +15
 ELSEIF A >= B
@@ -228,10 +261,10 @@ ELSEIF A >= B
 	MONEY += 2000
 	PRINTFORML 報酬：${2000}
 	REPEAT 5
-		LOCAL:0 = FLAG:(200 + COUNT)
-		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 			CONTINUE
-		CFLAG:LOCAL:0:2 += 10
+		CFLAG:Z:2 += 10
 	REND
 	PRINTFORMW パーティ全員の好感度 +10
 ELSE
@@ -246,6 +279,14 @@ RETURN 1
 ; 学期末自動集計（STAGE.ERBのFLAG:24 += 1後に呼ぶ）
 ;---------------------------------------------------------
 @SEMESTER_DECK_RESULT
+;FLAG:200-204未初期化なら初期化してから自動選出
+IF FLAG:206 == 0
+	REPEAT 5
+		FLAG:(200 + COUNT) = -1
+	REND
+	FLAG:206 = 1
+ENDIF
+
 DRAWLINE
 PRINTFORML 【校内定期戦 学期末集計】
 PRINTL
@@ -257,7 +298,7 @@ ENDIF
 
 CALL SHOW_CURRENT_DECK
 PRINTL
-CALL CALC_DECK_SCORE, 1
+CALL CALC_DECK_SCORE
 A = RESULT
 IF A == 0
 	PRINTFORMW パーティが空のため集計をスキップします。
@@ -265,7 +306,7 @@ IF A == 0
 ENDIF
 PRINTFORML あなたのパーティスコア：{A}pt
 
-;FLAG:24は既にインクリメント済みなので前の学期を参照
+;FLAG:24は既にインクリメント済みなので前学期ベース
 B = (FLAG:24 - 1) * 400 + 300 + RAND:200
 PRINTFORMW 今学期の基準スコア：{B}pt
 
@@ -275,10 +316,10 @@ IF A >= B * 130 / 100
 	MONEY += 8000
 	PRINTFORML 報酬：${8000}
 	REPEAT 5
-		LOCAL:0 = FLAG:(200 + COUNT)
-		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 			CONTINUE
-		CFLAG:LOCAL:0:2 += 30
+		CFLAG:Z:2 += 30
 	REND
 	PRINTFORMW パーティ全員の好感度 +30
 ELSEIF A >= B
@@ -286,10 +327,10 @@ ELSEIF A >= B
 	MONEY += 5000
 	PRINTFORML 報酬：${5000}
 	REPEAT 5
-		LOCAL:0 = FLAG:(200 + COUNT)
-		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 			CONTINUE
-		CFLAG:LOCAL:0:2 += 15
+		CFLAG:Z:2 += 15
 	REND
 	PRINTFORMW パーティ全員の好感度 +15
 ELSEIF A >= B * 80 / 100
@@ -297,10 +338,10 @@ ELSEIF A >= B * 80 / 100
 	MONEY += 2000
 	PRINTFORML 報酬：${2000}
 	REPEAT 5
-		LOCAL:0 = FLAG:(200 + COUNT)
-		SIF LOCAL:0 < 0 || LOCAL:0 >= CHARANUM
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 			CONTINUE
-		CFLAG:LOCAL:0:2 += 5
+		CFLAG:Z:2 += 5
 	REND
 	PRINTFORMW パーティ全員の好感度 +5
 ELSE
@@ -313,7 +354,9 @@ PRINTW
 RETURN 1
 
 ;---------------------------------------------------------
-; スコア上位5人を自動選出してFLAG:200-204にセット
+; スコア上位5人を自動選出
+; REPEAT 5（COUNT=スロット）× FOR LOCAL（キャラループ）
+; CFLAG:LOCAL:X で2引数、正常
 ;---------------------------------------------------------
 @AUTO_SELECT_DECK
 REPEAT 5
@@ -321,32 +364,33 @@ REPEAT 5
 REND
 
 REPEAT 5
-	LOCAL:0 = -1
-	LOCAL:1 = -1
-	FOR LOCAL:2, 0, CHARANUM
-		SIF LOCAL:2 == MASTER
+	A = -1	;ベストキャラインデックス
+	B = -1	;ベストスコア
+	FOR LOCAL, 0, CHARANUM
+		SIF LOCAL == MASTER
 			CONTINUE
-		SIF CFLAG:LOCAL:2:21 == 1
+		SIF CFLAG:LOCAL:21 == 1
 			CONTINUE
-		B = 0
-		SIF FLAG:200 == LOCAL:2
-			B = 1
-		SIF FLAG:201 == LOCAL:2
-			B = 1
-		SIF FLAG:202 == LOCAL:2
-			B = 1
-		SIF FLAG:203 == LOCAL:2
-			B = 1
-		SIF FLAG:204 == LOCAL:2
-			B = 1
-		SIF B == 1
+		;既に選出済みかチェック
+		C = 0
+		SIF FLAG:200 == LOCAL
+			C = 1
+		SIF FLAG:201 == LOCAL
+			C = 1
+		SIF FLAG:202 == LOCAL
+			C = 1
+		SIF FLAG:203 == LOCAL
+			C = 1
+		SIF FLAG:204 == LOCAL
+			C = 1
+		SIF C == 1
 			CONTINUE
-		A = CFLAG:LOCAL:2:2 / 20 + ABL:LOCAL:2:88 * 20 + ABL:LOCAL:2:93 * 15 + ABL:LOCAL:2:94 * 15 + ABL:LOCAL:2:95 * 15
-		IF A > LOCAL:1
-			LOCAL:1 = A
-			LOCAL:0 = LOCAL:2
+		D = CFLAG:LOCAL:2 / 20 + ABL:LOCAL:88 * 20 + ABL:LOCAL:93 * 15 + ABL:LOCAL:94 * 15 + ABL:LOCAL:95 * 15
+		IF D > B
+			B = D
+			A = LOCAL
 			ENDIF
 	NEXT
-	FLAG:(200 + COUNT) = LOCAL:0
+	FLAG:(200 + COUNT) = A
 REND
 RETURN 1
