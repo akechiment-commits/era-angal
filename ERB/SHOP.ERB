@@ -35,7 +35,8 @@ DRAWLINE
 CALL SYSTEM_GET_LIMITDAY
 ;年月日、曜日、天気等取得
 CALL YOUBI
-PRINTFORML {DAY:3}年 %STR:2%月 {DAY:1}日 (%STR:1%) 天気:%STR:3% {DAY+1}日目(%STR:4%)  {FLAG:24}学期目  %STR:5%
+CALL GET_SEMESTER_NAME
+PRINTFORML {DAY:3}年 %STR:2%月 {DAY:1}日 (%STR:1%) 天気:%STR:3% {DAY+1}日目(%STR:4%)  %STR:10%  %STR:5%
 IF TARGET >= 0
 	PRINTFORM %NAME:TARGET%と一緒です
 ELSE
@@ -237,11 +238,19 @@ REPEAT 30
 			PRINTLC [100] - パートナーと過ごす
 		ENDIF
 	ELSEIF COUNT == 1
-		PRINTLC [101] - ストーリー進行    
+		IF DAY:5 <= 4
+			IF TIME == 0
+				PRINTLC [101] - 校内を巡る（授業時間） 
+			ELSE
+				PRINTLC [101] - 放課後を楽しむ       
+			ENDIF
+		ELSE
+			PRINTLC [101] - お出かけする          
+		ENDIF
 	ELSEIF COUNT == 2 && TARGET >= 0
 		PRINTLC [102] - お金を稼ぐ        
-	ELSEIF COUNT == 3 && TARGET >= 0 && MONEY > 0
-		PRINTLC [103] - 自主練習          
+	ELSEIF COUNT == 3 && TARGET >= 0
+		PRINTLC [103] - 一緒に勉強する    
 	ELSEIF COUNT == 4 && (CHARANUM - T) > 0
 		PRINTLC [104] - 能力表示          
 	ELSEIF COUNT == 5 && (CHARANUM - T) > 1
@@ -287,7 +296,13 @@ REPEAT 30
 	ELSEIF COUNT == 24
 		PRINTLC [191] - スキル習得
 	ELSEIF COUNT == 25 && DAY:5 <= 4 && TIME == 1 && TARGET >= 0
-		PRINTLC [120] - 部活動              
+		IF CFLAG:TARGET:25 > 0
+			PRINTLC [120] - 放課後の活動★       
+		ELSE
+			PRINTLC [120] - 放課後の活動         
+		ENDIF
+	ELSEIF COUNT == 26
+		PRINTLC [122] - 学校生活イベント    
 	ELSE
 		CONTINUE
 	ENDIF
@@ -339,10 +354,8 @@ ELSEIF RESULT == 115
 	BEGIN SHOP
 	RETURN 1
 
-;攻略開始
+;学校を巡る
 ELSEIF RESULT == 101
-	TFLAG:600 = 34
-	CALL KOJO_JUN
 	CALL STAGE_CAPTURE
 	BEGIN TURNEND
 	RETURN 1
@@ -352,93 +365,12 @@ ELSEIF RESULT == 102 && TARGET >= 0
 	SIF RESULT
 		BEGIN TURNEND
 	RETURN 1
-;自主練習
-ELSEIF RESULT == 103 && TARGET >= 0 && MONEY > 0
-	TFLAG:88 = 1
+;一緒に勉強する
+ELSEIF RESULT == 103 && TARGET >= 0
+	TFLAG:88 = 3
 	CALL CHAR_PARTNER_DIALOG
-	IF ABL:TARGET:88 >= 9999
-		PRINTFORMW これ以上レベルは上がりません
-	ELSE
-		T = TARGET
-		CALL GET_BATTLE_PRICE
-		IF MONEY < P
-			PRINTFORMW 次のレベルになるには${P}が必要です。お金が足りません。
-		ELSE
-			LOCAL = ABL:TARGET:88
-			PRINTFORML 次のレベルになるには${P}が必要です。レベルを上げますか？（現在のLv：{(ABL:TARGET:88)}）
-			PRINTL [0] はい
-			PRINTL [1] いいえ
-			IF P == 10
-				CALL BATTLE_PRICE_I
-				PRINTFORML [2] $10(最低価格)で上がる分だけレベルを上げる（Lv：{(ABL:TARGET:88)+K}までLvUP　使用金額:${M}）
-			ENDIF
-			T = TARGET
-			CALL GET_BATTLE_PRICE
-			CALL BATTLE_PRICE_G
-			PRINTFORML [3] お金が無くなるまでレベルを上げる（Lv：{(ABL:TARGET:88)+K}までLvUP　使用金額:${M}）
-			PRINTFORML [4] 選択してレベルを上げる
-			
-			T = TARGET
-			CALL GET_BATTLE_PRICE
-			
-			$INPUT_LOOP_BP
-			INPUT
-	
-			IF RESULT == 2 && P > 10
-				PRINTFORML 正しい値を入力してください
-				GOTO INPUT_LOOP_BP
-			ENDIF
-	
-			IF RESULT == 0
-				MONEY -= P
-				TFLAG:600 = 20
-				CALL KOJO_JUN
-				ABL:TARGET:88 += 1
-				PRINTFORMW ＜%NAME:TARGET%の戦闘技能レベルが1つ上がった　今のLv：{ABL:TARGET:88}＞
-			ELSEIF RESULT == 1
-				RETURN 1
-			ELSEIF RESULT == 2
-				CALL BATTLE_PRICE_I
-				ABL:T:88 += K
-				MONEY -= M
-				TFLAG:600 = 20
-				CALL KOJO_JUN
-				PRINTFORML ＜%NAME:TARGET%の戦闘技能レベルが{K}上がった　今のLv：{ABL:TARGET:88}＞
-				PRINTFORMW ＜使用金額:${M}＞
-			ELSEIF RESULT == 3
-				CALL BATTLE_PRICE_G
-				ABL:T:88 += K
-				MONEY -= M
-				TFLAG:600 = 20
-				CALL KOJO_JUN
-				PRINTFORML ＜%NAME:TARGET%の戦闘技能レベルが{K}上がった　今のLv：{ABL:TARGET:88}＞
-				PRINTFORMW ＜使用金額:${M}＞
-			ELSEIF RESULT == 4
-				PRINTFORML 何レベル上げますか(1-{K}、-1でレベルを上げずに戻る)
-				$INPUT_LOOP_BP2
-				INPUT
-				IF RESULT == -1
-					PRINTFORMW レベルを上げずに戻ります
-					RETURN 1
-				ELSEIF RESULT > K || RESULT < 1
-					PRINTFORML 正しい値を入力してください
-					GOTO INPUT_LOOP_BP2
-				ELSE
-					CALL BATTLE_PRICE_4, RESULT
-					ABL:T:88 += K
-					MONEY -= M
-					TFLAG:600 = 20
-					CALL KOJO_JUN
-					PRINTFORML ＜%NAME:TARGET%の戦闘技能レベルが{K}上がった　今のLv：{ABL:TARGET:88}＞
-					PRINTFORMW ＜使用金額:${M}＞
-				ENDIF
-			ELSE
-				PRINTFORML 正しい値を入力してください
-				GOTO INPUT_LOOP_BP
-			ENDIF
-			RETURN 1
-		ENDIF
-	ENDIF
+	CALL STUDY_SESSION
+	BEGIN TURNEND
 	RETURN 1
 ;能力表示
 ELSEIF RESULT == 104 && (CHARANUM - T) > 0
@@ -550,7 +482,7 @@ ELSEIF RESULT == 170 && FLAG:62 & 1 && FLAG:97
 ELSEIF RESULT == 180 && SUMARRAY(ITEM, 900, 1000) > 0
 	CALL SOZAI_SHOP
 ;部活動（平日放課後のみ）
-ELSEIF RESULT == 120 && DAY:5 <= 4 && TIME == 1 && TARGET >= 0 && CFLAG:TARGET:25 > 0
+ELSEIF RESULT == 120 && DAY:5 <= 4 && TIME == 1 && TARGET >= 0
 	CALL CLUB_ACTIVITY
 	SIF RESULT
 		BEGIN TURNEND
@@ -563,6 +495,11 @@ ELSEIF RESULT == 191
 	TFLAG:88 = 3
 	CALL CHAR_PARTNER_DIALOG
 	CALL TROPHY_FEAT_GET
+;学校生活イベント
+ELSEIF RESULT == 122
+	CALL SCHOOL_LIFE_EVENT
+	BEGIN TURNEND
+	RETURN 1
 ELSEIF RESULT == 200
 	SAVEGAME
 ELSEIF RESULT == 300
