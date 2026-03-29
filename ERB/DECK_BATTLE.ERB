@@ -67,7 +67,7 @@ DRAWLINE
 PRINTFORML ── パーティ編成 ──
 CALL SHOW_CURRENT_DECK
 PRINTL
-PRINTFORML ── 選べるキャラ一覧 ──
+PRINTFORML ── キャラクター一覧（番号を入力で追加/外す、0で戻る） ──
 
 A = 0
 FOR LOCAL, 0, CHARANUM
@@ -75,7 +75,6 @@ FOR LOCAL, 0, CHARANUM
 		CONTINUE
 	SIF CFLAG:LOCAL:21 == 1
 		CONTINUE
-	;パーティ在籍チェック
 	B = 0
 	SIF FLAG:200 == LOCAL
 		B = 1
@@ -90,7 +89,7 @@ FOR LOCAL, 0, CHARANUM
 	IF B
 		PRINTFORML [{A, 2}] ★%CALLNAME:LOCAL%（パーティ在籍中）
 	ELSE
-		PRINTFORML [{A, 2}] %CALLNAME:LOCAL%（親密{CFLAG:LOCAL:2}  学力Lv{ABL:LOCAL:88}  運動{ABL:LOCAL:93}）
+		PRINTFORML [{A, 2}]  %CALLNAME:LOCAL%（親密{CFLAG:LOCAL:2}  学力Lv{ABL:LOCAL:88}  運動{ABL:LOCAL:93}）
 	ENDIF
 	LOCAL:(10 + A) = LOCAL
 	A += 1
@@ -98,44 +97,57 @@ NEXT
 LOCAL:9 = A
 
 IF LOCAL:9 == 0
-	PRINTFORMW 選べるキャラがいません。先にキャラを仲間にしてください。
+	PRINTFORMW 選べるキャラがいません。
 	RETURN 0
 ENDIF
 
 PRINTL
-PRINTFORML スロット番号を入力（1～5、0で戻る）
-
-$DECK_SLOT_LOOP
+$DECK_EDIT_LOOP
 INPUT
 IF RESULT == 0
 	RETURN 0
-ELSEIF RESULT < 1 || RESULT > 5
-	GOTO DECK_SLOT_LOOP
+ELSEIF RESULT < 0 || RESULT >= LOCAL:9
+	GOTO DECK_EDIT_LOOP
 ENDIF
-B = RESULT - 1
 
-PRINTFORML スロット{B + 1} → キャラ番号を入力（0～{LOCAL:9 - 1}、-1で空に）
-$DECK_CHAR_LOOP
-INPUT
-IF RESULT == -1
+Z = LOCAL:(10 + RESULT)
+
+;パーティ在籍確認
+B = -1
+SIF FLAG:200 == Z
+	B = 0
+SIF FLAG:201 == Z
+	B = 1
+SIF FLAG:202 == Z
+	B = 2
+SIF FLAG:203 == Z
+	B = 3
+SIF FLAG:204 == Z
+	B = 4
+
+IF B >= 0
+	;すでに在籍 → 外す
 	FLAG:(200 + B) = -1
-	PRINTFORMW スロット{B + 1}を空にしました
-ELSEIF RESULT >= 0 && RESULT < LOCAL:9
-	FLAG:(200 + B) = LOCAL:(10 + RESULT)
-	FLAG:205 = 1
-	Z = LOCAL:(10 + RESULT)
-	PRINTFORMW スロット{B + 1}に%CALLNAME:Z%をセットしました
+	PRINTFORML %CALLNAME:Z%をパーティから外しました
 ELSE
-	GOTO DECK_CHAR_LOOP
+	;空きスロットに追加
+	C = -1
+	REPEAT 5
+		SIF FLAG:(200 + COUNT) == -1 && C == -1
+			C = COUNT
+	REND
+	IF C >= 0
+		FLAG:(200 + C) = Z
+		FLAG:205 = 1
+		PRINTFORML %CALLNAME:Z%をパーティに追加しました
+	ELSE
+		PRINTFORML パーティが満員です。★のキャラを選んで外してください。
+	ENDIF
 ENDIF
 
 CALL EDIT_DECK
 RETURN 1
 
-;---------------------------------------------------------
-; スコア計算（合計をRESULTで返す）
-; Zにcharインデックスを入れてからCFLAG:Z:X（2引数）で参照
-;---------------------------------------------------------
 @CALC_DECK_SCORE
 A = 0	;合計スコア
 B = 0	;有効人数
@@ -233,12 +245,23 @@ RETURN 1
 DRAWLINE
 PRINTFORML 【対戦開始】
 
-CALL CALC_DECK_SCORE
-A = RESULT
-IF A == 0
-	PRINTFORMW パーティが編成されていません！
+;パーティに1人でも居るか確認
+B = 0
+REPEAT 5
+	Z = FLAG:(200 + COUNT)
+	SIF Z >= 0 && Z < CHARANUM && Z != MASTER
+		B += 1
+REND
+IF B == 0
+	PRINTFORMW パーティが編成されていません！まず[1]でパーティを編成してください。
 	RETURN 0
 ENDIF
+
+CALL CALC_DECK_SCORE
+A = RESULT
+;スコア最低保証（全員ステータス0でも1人1pt）
+SIF A == 0
+	A = B
 PRINTFORML あなたのスコア：{A}pt
 
 B = FLAG:24 * 400 + 200 + RAND:200
@@ -298,12 +321,22 @@ ENDIF
 
 CALL SHOW_CURRENT_DECK
 PRINTL
-CALL CALC_DECK_SCORE
-A = RESULT
-IF A == 0
+;パーティ人数確認
+B = 0
+REPEAT 5
+	Z = FLAG:(200 + COUNT)
+	SIF Z >= 0 && Z < CHARANUM && Z != MASTER
+		B += 1
+REND
+IF B == 0
 	PRINTFORMW パーティが空のため集計をスキップします。
 	RETURN 0
 ENDIF
+
+CALL CALC_DECK_SCORE
+A = RESULT
+SIF A == 0
+	A = B
 PRINTFORML あなたのパーティスコア：{A}pt
 
 ;FLAG:24は既にインクリメント済みなので前学期ベース
