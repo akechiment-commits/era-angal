@@ -26,49 +26,12 @@ Chara1.csv〜Chara71.csvを生成する
 """
 
 import os
-import csv as csv_module
-
-# ────────────────────────────────────────────────────────
-# character_data.csv から実データを読み込む
-# ────────────────────────────────────────────────────────
-def _load_char_data():
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "character_data.csv")
-    result = {}
-    with open(path, encoding="utf-8-sig") as f:
-        for row in csv_module.DictReader(f):
-            result[row["name"]] = row
-    return result
-
-CHAR_DATA_CSV = _load_char_data()
-
-def _birthday_to_era(birthday_str):
-    """'MM/DD' → (day:int, season:int)  season: 0=春 1=夏 2=秋 3=冬"""
-    if not birthday_str:
-        return 0, 0
-    month, day = int(birthday_str.split("/")[0]), int(birthday_str.split("/")[1])
-    if month in (3, 4, 5):   season = 0
-    elif month in (6, 7, 8): season = 1
-    elif month in (9,10,11): season = 2
-    else:                     season = 3   # 12,1,2
-    return day, season
-
-def _body_talents(height, bust):
-    """身長・バストから自動付与すべき素質セットを返す"""
-    t = set()
-    if height <= 145:
-        t.add(100)   # 小柄体型
-    if bust <= 70:
-        t.add(109)   # 貧乳
-    elif bust >= 87:
-        t.add(110)   # 巨乳
-    return t
 
 # ────────────────────────────────────────────────────────
 # キャラクター定義
 #   hp        : 基礎体力（運動部上位2500、運動部2000〜2200、普通1400〜1800、虚弱〜1000）
 #   sp        : 基礎気力
 #   talents   : 素質リスト（0=処女はほぼ全員に付ける）
-#               ※ 小柄(100)/貧乳(109)/巨乳(110) は測定値から自動設定されるため不要
 #   initiative: フラグ12 主導権基準値
 #   cooking   : 料理素質レベル(0〜3)
 #   singing   : 歌唱素質レベル(0〜3)
@@ -77,365 +40,365 @@ CHARA_DATA = [
     # ───── 1年A組 ─────
     dict(no=1,  name="三善かなえ",   nick="かなえ",
          hp=1500, sp=1200,
-         talents=[0,11,15,18,20,30,35,102,151],          # C敏感：ツンデレ・恥じらい強め
+         talents=[0,11,15,18,20,30,35,151],
          initiative=10, singing=2),
 
     dict(no=2,  name="北川ゆき",     nick="ゆき",
          hp=1200, sp=1000,
-         talents=[0,10,14,35,30,26,102,108,151],          # C敏感+B敏感：臆病・大人しい全体的に敏感
+         talents=[0,10,14,35,30,151],
          initiative=-20),
 
     dict(no=3,  name="小野ちよ",     nick="ちよ",
          hp=1500, sp=1200,
-         talents=[0,13,14,25,35,30,42,104,108,151],       # V敏感+B敏感：濡れやすい・大人しい
+         talents=[0,13,14,25,35,30,42,151],
          initiative=-15, cooking=2),
 
     dict(no=4,  name="早川きこ",     nick="きこ",
          hp=1500, sp=1200,
-         talents=[0,13,25,35,30,108,151],                 # B敏感：素直・楽観的
+         talents=[0,13,25,35,30,151],
          initiative=-15, singing=1),
 
     dict(no=5,  name="桃智あすか",   nick="あすか",
          hp=2000, sp=1500,
-         talents=[0,23,25,13,30,35,105,151],              # A鈍感：活発・運動系
+         talents=[0,23,25,13,30,35,151],
          initiative=5),
 
     dict(no=6,  name="藍乃あいか",   nick="あいか",
          hp=1200, sp=1000,
-         talents=[0,10,35,26,30,102,108,151],             # C敏感+B敏感：臆病・悲観的
+         talents=[0,10,35,26,30,151],
          initiative=-20),
 
     dict(no=7,  name="高原ちあき",   nick="ちあき",
          hp=1800, sp=1500,
-         talents=[0,13,25,63,30,35,104,151],              # V敏感：素直・献身的
+         talents=[0,13,25,63,30,35,151],
          initiative=0),
 
     # ───── 1年B組 ─────
     dict(no=8,  name="丸子みさき",   nick="みさき",
          hp=1500, sp=1500,
-         talents=[0,28,25,30,35,105,151],                 # A鈍感：元気・活動的
+         talents=[0,28,25,30,35,151],
          initiative=5),
 
     dict(no=9,  name="月永るか",     nick="るか",
          hp=1200, sp=1000,
-         talents=[0,14,10,35,30,26,102,108,151],          # C敏感+B敏感：臆病・大人しい
+         talents=[0,14,10,35,30,26,151],
          initiative=-20),
 
     dict(no=10, name="木之下ゆゆ",   nick="ゆゆ",
          hp=1300, sp=1100,
-         talents=[0,13,25,17,35,30,109,108,151],          # B敏感：貧乳でも敏感
+         talents=[0,13,25,17,35,30,109,151],
          initiative=-25),
 
     dict(no=11, name="氷野くるみ",   nick="くるみ",
          hp=1500, sp=1300,
-         talents=[0,23,25,35,30,102,151],                 # C敏感：好奇心旺盛・恥じらい
+         talents=[0,23,25,35,30,151],
          initiative=-5),
 
     dict(no=12, name="神樹いちか",   nick="いちか",
          hp=1800, sp=1400,
-         talents=[0,23,25,30,35,151],                     # 特になし：平均的
+         talents=[0,23,25,30,35,151],
          initiative=0),
 
     dict(no=13, name="羽森つばさ",   nick="つばさ",
          hp=1800, sp=1600,
-         talents=[0,25,17,28,31,113,223,108,151],         # B敏感：アイドル・魅力的
+         talents=[0,25,17,28,30,31,113,223,151],
          initiative=5, singing=3),
 
     dict(no=14, name="花音ことり",   nick="ことり",
          hp=1700, sp=1400,
-         talents=[0,16,12,30,35,113,223,102,151],         # C敏感：生意気だが可憐
+         talents=[0,16,12,30,35,113,223,151],
          initiative=10, singing=3),
 
     dict(no=15, name="長町やえ",     nick="やえ",
          hp=2000, sp=1800,
-         talents=[0,13,25,100,30,35,111,104,151],         # V敏感：素直・小柄
+         talents=[0,13,25,100,30,35,111,151],
          initiative=-5),
 
     # ───── 1年C組 ─────
     dict(no=16, name="大虎いさみ",   nick="いさみ",
          hp=2500, sp=1500,
-         talents=[0,25,12,20,110,30,35,41,108,151],       # B敏感：巨乳
+         talents=[0,25,12,20,110,30,35,41,151],
          initiative=20),
 
     dict(no=17, name="小鳩あずさ",   nick="あずさ",
          hp=1000, sp=1200,
-         talents=[0,13,25,35,30,42,221,102,104,151],      # C敏感+V敏感：濡れやすい・大人しい
+         talents=[0,13,25,35,30,42,221,151],
          initiative=-20),
 
     dict(no=18, name="熊沢ひめの",   nick="ひめの",
          hp=2200, sp=1300,
-         talents=[0,25,13,100,30,35,220,105,151],         # A鈍感：怪力・体が丈夫
+         talents=[0,25,13,100,30,35,220,151],
          initiative=5),
 
     dict(no=19, name="猫塚みけ",     nick="みけ",
          hp=1800, sp=1400,
-         talents=[0,23,25,35,30,42,104,151],              # V敏感：濡れやすい・好奇心
+         talents=[0,23,25,35,30,42,151],
          initiative=-5),
 
     dict(no=20, name="藤猪しずく",   nick="しずく",
          hp=1400, sp=1100,
-         talents=[0,14,24,35,30,102,108,151],             # C敏感+B敏感：大人しい・保守的
+         talents=[0,14,24,35,30,151],
          initiative=-15),
 
     dict(no=21, name="雉子すみれ",   nick="すみれ",
          hp=1400, sp=1200,
-         talents=[0,15,20,24,27,30,35,107,151],           # B鈍感+一線越えない：プライド高・自制心・禁欲的
+         talents=[0,15,20,24,30,35,151],
          initiative=10),
 
     dict(no=22, name="鯱いかり",     nick="いかり",
          hp=2200, sp=1600,
-         talents=[0,11,23,28,31,70,41,107,151],            # B鈍感：気丈・痛みに強い
+         talents=[0,11,23,28,30,31,70,41,151],
          initiative=20),
 
     dict(no=23, name="鶯木こはる",   nick="こはる",
          hp=2000, sp=1700,
-         talents=[0,23,13,30,35,104,151],                 # V敏感：素直・好奇心
+         talents=[0,23,13,30,35,151],
          initiative=0, cooking=2),
 
     # ───── 2年A組 ─────
     dict(no=24, name="三波なつみ",   nick="なつみ",
          hp=1700, sp=1600,
-         talents=[0,13,25,63,30,35,108,151],              # B敏感：素直・献身的
+         talents=[0,13,25,63,30,35,151],
          initiative=-5, cooking=3),
 
     dict(no=25, name="八朔つゆり",   nick="つゆり",
          hp=800,  sp=900,
-         talents=[0,14,26,35,30,40,42,112,102,104,151],   # C敏感+V敏感：痛みに弱い・濡れやすい
+         talents=[0,14,26,35,30,40,42,112,151],
          initiative=-25),
 
     dict(no=26, name="堀田さあや",   nick="さあや",
          hp=2000, sp=1500,
-         talents=[0,12,20,13,35,30,105,151],              # A鈍感：気丈・自制心
+         talents=[0,12,20,13,35,30,151],
          initiative=10),
 
     dict(no=27, name="夏野ゆり",     nick="ゆり",
          hp=1700, sp=1400,
-         talents=[0,15,20,82,12,27,30,101,151],           # C鈍感+一線越えない：男嫌い・極度に禁欲的
+         talents=[0,15,20,82,12,30,151],
          initiative=20, singing=2),
 
     dict(no=28, name="星海こよい",   nick="こよい",
          hp=1200, sp=1000,
-         talents=[0,14,10,35,30,26,102,108,151],          # C敏感+B敏感：臆病・大人しい
+         talents=[0,14,10,35,30,26,151],
          initiative=-25),
 
     dict(no=29, name="春風なな",     nick="なな",
          hp=2000, sp=1700,
-         talents=[0,25,28,31,70,102,104,151],              # C敏感+V敏感：快感に素直
+         talents=[0,25,28,30,31,70,151],
          initiative=5),
 
     dict(no=30, name="長居ゆう",     nick="ゆう",
          hp=1600, sp=1400,
-         talents=[0,21,87,25,30,107,151],                 # B鈍感：無関心・小悪魔
+         talents=[0,21,87,25,30,151],
          initiative=15, singing=2),
 
     # ───── 2年B組 ─────
     dict(no=31, name="夢路まりあ",   nick="まりあ",
          hp=1200, sp=1200,
-         talents=[0,13,25,63,35,30,42,221,102,104,151],   # C敏感+V敏感：濡れやすい・献身的
+         talents=[0,13,25,63,35,30,42,221,151],
          initiative=-20),
 
     dict(no=32, name="安条まい",     nick="まい",
          hp=1600, sp=1500,
-         talents=[0,28,25,30,108,151],                    # B敏感：目立ちたがり
+         talents=[0,28,25,30,151],
          initiative=10),
 
     dict(no=33, name="柊るな",       nick="るな",
          hp=2000, sp=1600,
-         talents=[0,16,23,87,31,106,151],                  # A敏感：貞操無頓着・経験あり気
+         talents=[0,16,23,87,30,31,151],
          initiative=20),
 
     dict(no=34, name="桐島かいり",   nick="かいり",
          hp=1400, sp=1200,
-         talents=[0,15,18,35,30,102,151],                 # C敏感：ツンデレ
+         talents=[0,15,18,35,30,151],
          initiative=5, singing=2),
 
     dict(no=35, name="梅園かな",     nick="かな",
          hp=1900, sp=1400,
-         talents=[0,15,12,11,30,35,107,151],              # B鈍感：気丈・プライド高
+         talents=[0,15,12,11,30,35,151],
          initiative=15),
 
     dict(no=36, name="遠見ちか",     nick="ちか",
          hp=1600, sp=1300,
-         talents=[0,16,11,35,30,101,151],                 # C鈍感：生意気・反抗的
+         talents=[0,16,11,35,30,151],
          initiative=5),
 
     dict(no=37, name="龍泉寺レンレン", nick="レンレン",
          hp=2300, sp=1700,
-         talents=[0,11,23,12,30,70,41,104,151],           # V敏感：快感に素直
+         talents=[0,11,23,12,30,70,41,151],
          initiative=25),
 
     # ───── 2年C組 ─────
     dict(no=38, name="クー・カロア", nick="カロア",
          hp=2200, sp=1800,
-         talents=[0,13,25,23,31,70,111,102,104,151],       # C敏感+V敏感：快感に素直
+         talents=[0,13,25,23,30,31,70,111,151],
          initiative=5),
 
     dict(no=39, name="冴木もも",     nick="もも",
          hp=1300, sp=1200,
-         talents=[0,21,22,30,35,100,101,107,151],         # C鈍感+B鈍感：無関心・感情乏しい
+         talents=[0,21,22,30,35,100,151],
          initiative=-5),
 
     dict(no=40, name="夜霧はやて",   nick="はやて",
          hp=2300, sp=1800,
-         talents=[0,12,25,63,30,35,41,105,151],           # A鈍感：気丈・痛みに強い
+         talents=[0,12,25,63,30,35,41,151],
          initiative=20),
 
     dict(no=41, name="悠木ともこ",   nick="ともこ",
          hp=2000, sp=1500,
-         talents=[0,12,20,30,35,107,151],                 # B鈍感：気丈・自制心
+         talents=[0,12,20,30,35,151],
          initiative=15),
 
     dict(no=42, name="榊むつみ",     nick="むつみ",
          hp=2100, sp=1600,
-         talents=[0,16,23,31,106,151],                     # A敏感：貞操無頓着・積極的
+         talents=[0,16,23,30,31,151],
          initiative=15),
 
     dict(no=43, name="砂賀みどり",   nick="みどり",
          hp=1500, sp=1300,
-         talents=[0,14,25,35,30,102,151],                 # C敏感：大人しい・恥じらい
+         talents=[0,14,25,35,30,151],
          initiative=-10),
 
     dict(no=44, name="笹芽ひよの",   nick="ひよの",
          hp=1500, sp=1300,
-         talents=[0,10,35,23,30,108,151],                 # B敏感：臆病・好奇心
+         talents=[0,10,35,23,30,151],
          initiative=-15),
 
     # ───── 3年A組 ─────
     dict(no=45, name="円城寺れいか", nick="れいか",
          hp=1800, sp=1600,
-         talents=[0,15,113,20,30,35,110,108,151],         # B敏感：巨乳
+         talents=[0,15,113,20,30,35,110,151],
          initiative=20, singing=1),
 
     dict(no=46, name="双葉みづき",   nick="みづき",
          hp=1200, sp=1400,
-         talents=[0,21,22,30,100,222,101,151],            # C鈍感：無関心・感情乏しい
+         talents=[0,21,22,30,100,222,151],
          initiative=0),
 
     dict(no=47, name="双葉みなづき", nick="みなづき",
          hp=1200, sp=1300,
-         talents=[0,14,24,30,35,100,222,102,151],         # C敏感：大人しい・繊細な霊感持ち
+         talents=[0,14,24,30,35,100,222,151],
          initiative=-10),
 
-    dict(no=48, name="四方みつる",   nick="みつる",         # 恋慕(85)削除：攻略後に付与
+    dict(no=48, name="四方みつる",   nick="みつる",
          hp=2200, sp=1700,
-         talents=[0,13,113,30,35,102,108,151],            # C敏感+B敏感：素直・魅力的
+         talents=[0,13,113,85,30,35,151],
          initiative=15),
 
     dict(no=49, name="小松ぼたん",   nick="ぼたん",
          hp=1900, sp=1500,
-         talents=[0,13,25,30,35,104,151],                 # V敏感：素直・楽観的
+         talents=[0,13,25,30,35,151],
          initiative=0),
 
     dict(no=50, name="山條ぎん",     nick="ぎん",
          hp=2400, sp=1800,
-         talents=[0,12,23,30,40,80,106,151],              # A敏感+倒錯的：SM系に反応
-         initiative=-10, masochistic=3),
+         talents=[0,12,79,23,30,37,40,151],
+         initiative=-10),
 
     dict(no=51, name="御影かすみ",   nick="かすみ",
          hp=1600, sp=1300,
-         talents=[0,21,22,30,107,151],                    # B鈍感：無関心・感情乏しい
+         talents=[0,21,22,30,151],
          initiative=-5, cooking=3),
 
     dict(no=52, name="湖南やこ",     nick="やこ",
          hp=1800, sp=1600,
-         talents=[0,12,11,16,30,105,151],                 # A鈍感：自分は感じない
-         initiative=25, sadistic=3),
+         talents=[0,12,11,16,30,83,151],
+         initiative=25),
 
     dict(no=53, name="花丘まり",     nick="まり",
          hp=2000, sp=1500,
-         talents=[0,25,21,30,35,108,151],                 # B敏感：明るい・楽観的
+         talents=[0,25,21,30,35,151],
          initiative=5),
 
     # ───── 3年B組 ─────
     dict(no=54, name="久坂あやめ",   nick="あやめ",
          hp=1700, sp=1400,
-         talents=[0,12,23,30,35,104,151],                 # V敏感：好奇心・気丈
+         talents=[0,12,23,30,35,151],
          initiative=15),
 
     dict(no=55, name="伊藤さくら",   nick="さくら",
          hp=1500, sp=1300,
-         talents=[0,15,20,113,30,35,102,151],             # C敏感：魅力的・プライド高
+         talents=[0,15,20,113,30,35,151],
          initiative=10),
 
     dict(no=56, name="八壁ひかる",   nick="ひかる",
          hp=2400, sp=1700,
-         talents=[0,12,25,100,30,35,41,105,151],          # A鈍感：気丈・小柄・痛みに強い
+         talents=[0,12,25,100,30,35,41,151],
          initiative=20),
 
     dict(no=57, name="岩戸サン",     nick="サン",
          hp=2300, sp=1600,
-         talents=[0,12,20,21,30,35,107,151],              # B鈍感：無関心・自制心
+         talents=[0,12,20,21,30,35,151],
          initiative=20),
 
     dict(no=58, name="天宮るり",     nick="るり",
          hp=1300, sp=1500,
-         talents=[0,22,24,30,35,108,151],                 # B敏感：保守的・感情乏しいが胸は敏感
+         talents=[0,22,24,30,35,108,151],
          initiative=0),
 
     dict(no=59, name="水嶌うしお",   nick="うしお",
          hp=2000, sp=1300,
-         talents=[0,14,10,35,30,42,102,104,151],          # C敏感追加：臆病・濡れやすい
+         talents=[0,14,10,35,30,42,104,151],
          initiative=-15),
 
     dict(no=60, name="瀬川かえで",   nick="かえで",
          hp=1700, sp=1600,
-         talents=[0,15,87,30,36,52,80,105,151],           # A鈍感+倒錯的：SM系で攻める側
-         initiative=30, sadistic=5),
+         talents=[0,15,83,87,30,36,52,151],
+         initiative=30),
 
     dict(no=61, name="鶴海ひまり",   nick="ひまり",
          hp=1400, sp=1600,
-         talents=[0,13,25,23,35,30,108,151],              # B敏感：素直・楽観的
-         initiative=-5, masochistic=2),
+         talents=[0,13,25,23,35,30,151],
+         initiative=-5),
 
     dict(no=62, name="黒森すず",     nick="すず",
          hp=1600, sp=1500,
-         talents=[0,16,15,30,35,101,151],                 # C鈍感：生意気・プライド高
+         talents=[0,16,15,30,35,151],
          initiative=10),
 
     # ───── 3年C組 ─────
-    dict(no=63, name="八雲ちづる",   nick="ちづる",         # 恋慕(85)削除：攻略後に付与
+    dict(no=63, name="八雲ちづる",   nick="ちづる",
          hp=1500, sp=1500,
-         talents=[0,28,23,35,30,42,102,104,151],          # C敏感+V敏感：濡れやすい・目立ちたがり
+         talents=[0,28,23,85,35,30,42,151],
          initiative=0),
 
     dict(no=64, name="峰山しおん",   nick="しおん",
          hp=1300, sp=1200,
-         talents=[0,14,21,24,30,35,101,151],              # C鈍感：無関心・保守的
-         initiative=-15, sadistic=2),
+         talents=[0,14,21,24,30,35,151],
+         initiative=-15),
 
     dict(no=65, name="時国そら",     nick="そら",
          hp=1200, sp=1500,
-         talents=[0,22,21,30,35,222,107,151],             # B鈍感：感情乏しい・無関心
+         talents=[0,22,21,30,35,222,151],
          initiative=-5),
 
     dict(no=66, name="曽根セイラ",   nick="セイラ",
          hp=900,  sp=1100,
-         talents=[0,10,26,35,30,40,42,112,102,104,151],   # C敏感+V敏感：臆病・濡れやすい・痛みに弱い
+         talents=[0,10,26,35,30,40,42,112,151],
          initiative=-25, singing=2),
 
-    dict(no=67, name="日滝ましろ",   nick="ましろ",         # 淫乳(78)削除
+    dict(no=67, name="日滝ましろ",   nick="ましろ",
          hp=2100, sp=1800,
-         talents=[0,25,28,31,110,70,106,108,151],         # A敏感+B敏感：巨乳・快感に素直・経験あり
+         talents=[0,25,28,31,110,70,78,151],
          initiative=5),
 
     dict(no=68, name="深鳥ふみ",     nick="ふみ",
          hp=1700, sp=1500,
-         talents=[0,12,23,30,35,104,151],                 # V敏感：好奇心・気丈
+         talents=[0,12,23,30,35,151],
          initiative=15),
 
     dict(no=69, name="神樹はじめ",   nick="はじめ",
          hp=1600, sp=1700,
-         talents=[0,13,22,113,30,35,108,151],             # B敏感：素直・魅力的
+         talents=[0,13,22,113,30,35,151],
          initiative=-5),
 
     dict(no=70, name="神無月ほとり", nick="ほとり",
          hp=1200, sp=1000,
-         talents=[0,21,17,25,30,35,101,151],              # C鈍感：無関心・プライド低
+         talents=[0,21,17,25,30,35,151],
          initiative=-20),
 
     dict(no=71, name="棗ひびき",     nick="ひびき",
          hp=2200, sp=1500,
-         talents=[0,25,21,30,35,108,151],                 # B敏感：楽観的
+         talents=[0,25,21,30,35,151],
          initiative=5),
 ]
 
@@ -446,47 +409,10 @@ def generate_chara_csv(chara, output_dir):
     nick     = chara["nick"]
     hp       = chara["hp"]
     sp       = chara["sp"]
-    init_val    = chara.get("initiative", -10)
-    cooking     = chara.get("cooking", 0)
-    singing     = chara.get("singing", 0)
-    masochistic = chara.get("masochistic", 0)   # ABL:8 マゾっ気
-    sadistic    = chara.get("sadistic", 0)       # ABL:15 サドっ気
-
-    # ── character_data.csv から実データ取得 ──
-    profile = CHAR_DATA_CSV.get(name, {})
-    height  = int(profile.get("height", 155))
-    weight  = int(profile.get("weight", 47))
-    sizes   = profile.get("three_sizes", "")         # "B/W/H"
-    blood   = profile.get("blood_type", "")
-    birthday_str = profile.get("birthday", "")
-    club    = profile.get("club", "")
-    klass   = profile.get("class", "")
-
-    bust = int(sizes.split("/")[0]) if sizes else 80
-
-    # 身長・バストから自動付与する素質
-    auto_body = _body_talents(height, bust)
-
-    # 手動設定の素質リストから body 系を除去して auto に統合
-    BODY_TALENTS = {100, 109, 110}
-    base_talents = [t for t in chara["talents"] if t not in BODY_TALENTS]
-    final_talents = sorted(set(base_talents) | auto_body)
-
-    # 誕生日 → era エンジン用
-    bday, bseason = _birthday_to_era(birthday_str)
-
-    # スリーサイズ表示文字列
-    if sizes:
-        b, w, h = sizes.split("/")
-        sizes_str = f"B{b}/W{w}/H{h}"
-    else:
-        sizes_str = ""
-
-    # CSTR プロフィール文字列
-    month_day = ""
-    if birthday_str:
-        m, d = birthday_str.split("/")
-        month_day = f"{int(m)}月{int(d)}日"
+    talents  = chara["talents"]
+    init_val = chara.get("initiative", -10)
+    cooking  = chara.get("cooking", 0)
+    singing  = chara.get("singing", 0)
 
     lines = [
         f"番号,{no}",
@@ -496,7 +422,7 @@ def generate_chara_csv(chara, output_dir):
         f"基礎,1,{sp}",
     ]
 
-    for t in final_talents:
+    for t in talents:
         lines.append(f"素質,{t}")
 
     if cooking > 0:
@@ -505,23 +431,12 @@ def generate_chara_csv(chara, output_dir):
     if singing > 0:
         lines.append(f"能力,52,{singing}")
         lines.append(f"能力,92,{singing}")
-    if masochistic > 0:
-        lines.append(f"能力,8,{masochistic}")
-    if sadistic > 0:
-        lines.append(f"能力,15,{sadistic}")
 
     lines.append(f"フラグ,12,{init_val}")
-
-    # 誕生日
-    if bday:
-        lines.append(f"TIME,2,{bday}")
-        lines.append(f"TIME,3,{bseason}")
-
-    # CSTR:21〜24 プロフィール情報（あんガル用に再定義）
-    lines.append(f"CSTR,21,{month_day}")           # 誕生日
-    lines.append(f"CSTR,22,{height}cm/{weight}kg") # 身長/体重
-    lines.append(f"CSTR,23,{sizes_str}")            # スリーサイズ
-    lines.append(f"CSTR,24,{blood}")               # 血液型
+    lines.append("CSTR,21,")
+    lines.append("CSTR,22,")
+    lines.append("CSTR,23,")
+    lines.append("CSTR,24,")
 
     filepath = os.path.join(output_dir, f"Chara{no}.csv")
     with open(filepath, "w", encoding="cp932") as f:

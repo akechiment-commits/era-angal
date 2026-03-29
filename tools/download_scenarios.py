@@ -65,7 +65,7 @@ def format_text(story_id: int, talks: list[dict]) -> str:
 
 def main():
     start = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-    end = int(sys.argv[2]) if len(sys.argv) > 2 else 9999
+    end = int(sys.argv[2]) if len(sys.argv) > 2 else 3000
 
     print(f"ID {start}〜{end} をダウンロードします")
     found = 0
