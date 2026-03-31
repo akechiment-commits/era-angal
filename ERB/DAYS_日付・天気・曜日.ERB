@@ -4,12 +4,13 @@
 ;{DAY:3}年 %STR:2%月 {DAY:1}日 (%STR:1%曜日) 天気:%STR:3% 
 
 ;DAY:0(単にDAYだとこれ)は何日目かです（DAY = 0で1日目）
-;DAY:1は日にちです(1～31)
+;DAY:1は月内の日にちです(1～10) ← 1ゲーム日=3実日、10日/月、120日/年
 ;DAY:2は季節です　0が春　　1が夏　　2が秋　　3が冬
-;DAY:3は年です　ゲーム開始時の年+DAY/124(124日で1年)
+;DAY:3は年です　ゲーム開始時の年+DAY/120(120日で1年)
 ;DAY:4はゲーム開始時の年です
 ;DAY:5は曜日です　0が月曜　1が火曜　2が水曜　3が木曜　4が金曜　5がサタデー　6が日曜
-;DAY:6は季節のずれ　NEWGAME時に入力された分だけ季節をずらす事で、開始時の季節を操作
+;DAY:6は予備変数（旧:季節ずれ、現在未使用）
+;DAY:8は現在の実月（4～12月、1～3月）
 ;-----------------------------------------------------------------
 
 @EVENTSHOP
@@ -18,12 +19,14 @@ IF DAY == 0
 	DAY:1 = 1
 	DAY:4 = 2015
 ENDIF
-;DAY:1 日にち(1～31)、DAY:2 季節(0～3)、DAY:3 年、DAY:5 曜日(0～6)
+;DAY:1 月内日にち(1～10)、DAY:2 季節(0～3)、DAY:3 年、DAY:5 曜日(0～6)、DAY:8 月(4～12,1～3)
+LOCAL:9 = DAY / 10 % 12
 SIF DAY != 0
-	DAY:1 = DAY%31 + 1
-DAY:2 = (DAY/31 + DAY:6)%4
-DAY:3 = DAY/124 + DAY:4
-DAY:5 = DAY%7
+	DAY:1 = DAY % 10 + 1
+DAY:2 = LOCAL:9 / 3
+DAY:8 = (LOCAL:9 + 3) % 12 + 1
+DAY:3 = DAY / 120 + DAY:4
+DAY:5 = DAY % 7
 SIF NO:MASTER == 0 && TIME:2 == 0
 	CALL BIRTHDAY
 CALL FESTIVAL
@@ -32,12 +35,14 @@ CALL WEATHER
 @YOUBI
 SIF DAY == 0
 	DAY:1 = 1
-;DAY:1 日にち(1～31)、DAY:2 季節(0～3)、DAY:3 年、DAY:5 曜日(0～6)
+;DAY:1 月内日にち(1～10)、DAY:2 季節(0～3)、DAY:3 年、DAY:5 曜日(0～6)、DAY:8 月(4～12,1～3)
+LOCAL:9 = DAY / 10 % 12
 SIF DAY != 0
-	DAY:1 = DAY%31 + 1
-DAY:2 = (DAY/31 + DAY:6)%4
-DAY:3 = DAY/124 + DAY:4
-DAY:5 = DAY%7
+	DAY:1 = DAY % 10 + 1
+DAY:2 = LOCAL:9 / 3
+DAY:8 = (LOCAL:9 + 3) % 12 + 1
+DAY:3 = DAY / 120 + DAY:4
+DAY:5 = DAY % 7
 SIF NO:MASTER == 0 && TIME:2 == 0
 	CALL BIRTHDAY
 CALL FESTIVAL
@@ -59,15 +64,8 @@ ELSEIF DAY:5 == 6
 	STR:1 = 日
 ENDIF
 
-IF DAY:2 == 0
-	STR:2 = 春の
-ELSEIF DAY:2 == 1
-	STR:2 = 夏の
-ELSEIF DAY:2 == 2
-	STR:2 = 秋の
-ELSEIF DAY:2 == 3
-	STR:2 = 冬の
-ENDIF
+; 月番号を文字列にセット（表示例: "4月"）
+STR:2 = {DAY:8}
 
 IF TIME:5 == 0
 	STR:3 = 晴れ

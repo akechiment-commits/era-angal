@@ -5,27 +5,18 @@
 ;学期進行メニュー
 ;	@STAGE_CAPTURE
 @GET_SEMESTER_NAME
-;FLAG:24から学期名をSTR:10に設定（3学期制・9学期）
-IF FLAG:24 == 1
-	STR:10 = 1年1学期
-ELSEIF FLAG:24 == 2
-	STR:10 = 1年2学期
-ELSEIF FLAG:24 == 3
-	STR:10 = 1年3学期
-ELSEIF FLAG:24 == 4
-	STR:10 = 2年1学期
-ELSEIF FLAG:24 == 5
-	STR:10 = 2年2学期
-ELSEIF FLAG:24 == 6
-	STR:10 = 2年3学期
-ELSEIF FLAG:24 == 7
-	STR:10 = 3年1学期
-ELSEIF FLAG:24 == 8
-	STR:10 = 3年2学期
-ELSEIF FLAG:24 == 9
-	STR:10 = 3年3学期
-ELSE
+;FLAG:24=学年(1=1年生,2=2年生,3=3年生,4+=卒業)、月で学期名をSTR:10に設定
+LOCAL:9 = DAY / 10 % 12
+IF FLAG:24 >= 4
 	STR:10 = 卒業済み
+ELSEIF LOCAL:9 <= 3
+	STR:10 = {FLAG:24}年 1学期（4～7月）
+ELSEIF LOCAL:9 == 4
+	STR:10 = {FLAG:24}年 夏休み（8月）
+ELSEIF LOCAL:9 <= 8
+	STR:10 = {FLAG:24}年 2学期（9～12月）
+ELSE
+	STR:10 = {FLAG:24}年 3学期（1～3月）
 ENDIF
 RETURN 1
 
@@ -36,19 +27,12 @@ RETURN 1
 DRAWLINE
 CALL GET_SEMESTER_NAME
 
-;残り日数計算
-LOCAL:0 = FLAG:24 * 10
-LOCAL:1 = LOCAL:0 - DAY
-SIF LOCAL:1 < 0
-	LOCAL:1 = 0
+;今月残り日数
+LOCAL:0 = 10 - DAY % 10 - 1
 
 PRINTFORML 【どこへ行く？】
-PRINTFORML 現在学期: %STR:10%
-IF FLAG:27 == 0
-	PRINTFORML 試験フェーズ: 前半（中間試験待ち）　残り{LOCAL:1}日
-ELSE
-	PRINTFORML 試験フェーズ: 後半（期末試験待ち）　残り{LOCAL:1}日
-ENDIF
+PRINTFORML 現在: %STR:10%　{DAY:8}月 {DAY:1}日（今月残り{LOCAL:0}日）
+PRINTFORML 今月イベントPT:{FLAG:32}　耐力:{BASE:MASTER:4}/{MAXBASE:MASTER:4}
 PRINTL
 PRINTFORML [0] 教室へ行く（各クラスを訪問）
 PRINTFORML [1] 部室へ行く（各部活の部室を訪問）
@@ -88,8 +72,9 @@ ENDIF
 DRAWLINE
 PRINTFORML 【学校生活イベント】
 
-;--- 学期ごとのイベントメニュー ---
-IF FLAG:24 == 1
+;--- 月別イベントメニュー（DAY:8=実際の月番号）---
+LOCAL:8 = (DAY / 10 % 12 + 3) % 12 + 1
+IF LOCAL:8 == 4
 	; 4月・入学
 	PRINTL [1] 桜の下で花見をする
 	PRINTL [2] 体験入部に付き合う
@@ -121,7 +106,7 @@ IF FLAG:24 == 1
 		RETURN 0
 	ENDIF
 
-ELSEIF FLAG:24 == 2
+ELSEIF LOCAL:8 == 5
 	; 5月・体育祭
 	PRINTL [1] 体育祭の練習を一緒にする
 	PRINTL [2] 応援グッズを手作りする
@@ -144,7 +129,7 @@ ELSEIF FLAG:24 == 2
 		RETURN 0
 	ENDIF
 
-ELSEIF FLAG:24 == 3
+ELSEIF LOCAL:8 == 6 || LOCAL:8 == 7
 	; 6～7月・梅雨・七夕
 	PRINTL [1] 七夕に短冊を一緒に書く
 	PRINTL [2] 梅雨の放課後、相合傘で帰る
@@ -166,7 +151,7 @@ ELSEIF FLAG:24 == 3
 		RETURN 0
 	ENDIF
 
-ELSEIF FLAG:24 == 4
+ELSEIF LOCAL:8 == 8
 	; 8月・夏
 	PRINTL [1] 夏祭りに一緒に行く
 	PRINTL [2] 花火を並んで見る
@@ -196,7 +181,7 @@ ELSEIF FLAG:24 == 4
 		RETURN 0
 	ENDIF
 
-ELSEIF FLAG:24 == 5
+ELSEIF LOCAL:8 == 9
 	; 9月・文化祭
 	PRINTL [1] 文化祭の出し物の準備を手伝う
 	PRINTL [2] 文化祭当日、一緒に回る
@@ -226,7 +211,7 @@ ELSEIF FLAG:24 == 5
 		RETURN 0
 	ENDIF
 
-ELSEIF FLAG:24 == 6
+ELSEIF LOCAL:8 == 10
 	; 10月・ハロウィン
 	PRINTL [1] ハロウィンの仮装を一緒に考える
 	PRINTL [2] 秋の校庭で紅葉を眺める
@@ -248,7 +233,7 @@ ELSEIF FLAG:24 == 6
 		RETURN 0
 	ENDIF
 
-ELSEIF FLAG:24 == 7
+ELSEIF LOCAL:8 == 11
 	; 11月・晩秋
 	PRINTL [1] 文化部の発表会を見に行く
 	PRINTL [2] 帰り道で話しながら帰る
@@ -271,7 +256,7 @@ ELSEIF FLAG:24 == 7
 		RETURN 0
 	ENDIF
 
-ELSEIF FLAG:24 == 8
+ELSEIF LOCAL:8 == 12
 	; 12月・クリスマス
 	PRINTL [1] 終業式の後、一緒に帰る
 	PRINTL [2] クリスマスを一緒に過ごす
@@ -294,7 +279,7 @@ ELSEIF FLAG:24 == 8
 	ENDIF
 
 ELSE
-	; FLAG:24 == 9（1～3月・バレンタイン・卒業前）
+	; 1～3月（バレンタイン・冬・卒業前）
 	PRINTL [1] バレンタインのチョコを渡す
 	PRINTL [2] ホワイトデーのお返しをする
 	PRINTL [3] 卒業前夜、最後に話す
@@ -544,8 +529,8 @@ CALL CALC_ACADEMIC_LEVEL, MASTER
 CALL GET_EXAM_SCORE
 
 ;難易度による合格ラインの調整
-;合格ライン（学期が進むほど難化）
-LOCAL:5 = 35 + FLAG:24 * 5
+;合格ライン（学年が進むほど難化: 1年=45, 2年=55, 3年=65）
+LOCAL:5 = 35 + FLAG:24 * 10
 
 ;ランダム変動（±10点）
 A = RAND:21 - 10
@@ -600,8 +585,15 @@ IF P >= LOCAL:5
 		SOURCE:5 = 50
 	ENDIF
 	
-	;学習経験ボーナス
-	B = 3 + FLAG:24
+	;学習経験ボーナス（学期で微増）
+	LOCAL:9 = DAY / 10 % 12
+	IF LOCAL:9 <= 3
+		B = 3
+	ELSEIF LOCAL:9 <= 8
+		B = 4
+	ELSE
+		B = 5
+	ENDIF
 	PRINTFORML %EXPNAME:95%+{B}
 	EXP:MASTER:95 += B
 	SIF TARGET >= 0
@@ -612,26 +604,18 @@ IF P >= LOCAL:5
 		TFLAG:30 += 5
 	ENDIF
 	
-	;試験クリア処理
+	;試験クリア処理（FLAG:27=ビットマスク bit0=中間1,bit1=期末1,bit2=中間2,bit3=期末2,bit4=試験3）
 	IF TFLAG:83 == 0
-		;中間試験合格 → 後半（期末フェーズ）へ
-		FLAG:27 = 1
+		;中間試験合格
+		FLAG:27 |= TFLAG:84
 		PRINTFORMW 中間試験に合格！後半戦もしっかり頑張ろう。
 		RETURN 1
 	ELSE
-		;期末試験合格 → 次の学期へ
-		FLAG:27 = 0
-		FLAG:24 += 1
+		;期末試験合格
+		FLAG:27 |= TFLAG:84
 		CALL SEMESTER_DECK_RESULT
-		IF FLAG:24 > 9
-			;全学期クリア（卒業）
-			PRINTFORMW おめでとう！ 全ての試験に合格し、卒業を迎えました！
-			TRYCALL GAME_CONTINUE
-			RETURN 2
-		ELSE
-			CALL GET_SEMESTER_NAME
-			PRINTFORMW 期末試験に合格！%STR:10%に進みます！
-		ENDIF
+		CALL GET_SEMESTER_NAME
+		PRINTFORMW 期末試験に合格！次のステージへ！
 		RETURN 2
 	ENDIF
 ELSE
@@ -751,7 +735,7 @@ ELSE
 	SIF RESULT != 0 && RESULT != 1
 		GOTO INPUT_LOOP_FAIL
 	IF RESULT == 0
-		PRINTFORMW それでは1日目、1年1学期に戻ります。
+		PRINTFORMW それでは1日目、1年生の4月に戻ります。
 		REPEAT CHARANUM
 			SIF TALENT:COUNT:134 || MARK:COUNT:90
 				CFLAG:COUNT:110 -= DAY
@@ -762,6 +746,8 @@ ELSE
 		FLAG:25 = 0
 		FLAG:26 += 1
 		FLAG:27 = 0
+		FLAG:31 = 0
+		FLAG:32 = 0
 		TARGET = -1
 		ASSI = -1
 		CALL START_PARTNER_SELECT
