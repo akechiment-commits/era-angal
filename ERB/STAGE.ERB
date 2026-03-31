@@ -370,10 +370,12 @@ RETURN 1
 ;学習状況の表示
 ;---------------------------------------------------------
 @SHOW_STUDY_STATUS
+CALL CALC_ACADEMIC_LEVEL, MASTER
 DRAWLINE
 
 IF TARGET >= 0
-	PRINTFORML （%CALLNAME:TARGET%）  学力：{ABL:88}  学力素質：{ABL:98}
+	CALL CALC_ACADEMIC_LEVEL, TARGET
+	PRINTFORML （%CALLNAME:TARGET%）  学力：{ABL:88}  学習素質：{ABL:98}  学習経験：{EXP:TARGET:95}
 	PRINT 体力
 	A = BASE:4
 	SIF BASE:4 < 0
@@ -388,7 +390,7 @@ IF TARGET >= 0
 	PRINTFORML ({A}/{MAXBASE:1})
 ENDIF
 
-PRINTFORML （%CALLNAME:MASTER%）  学力：{ABL:MASTER:88}
+PRINTFORML （%CALLNAME:MASTER%）  学力：{ABL:MASTER:88}  学習素質：{ABL:MASTER:98}  学習経験：{EXP:MASTER:95}
 PRINT 体力
 A = BASE:MASTER:4
 SIF BASE:MASTER:4 < 0
@@ -537,7 +539,8 @@ CALL GET_SEMESTER_NAME
 PRINTFORML ＝＝＝ %STR:10% %STR:0% ＝＝＝
 PRINTL 
 
-;試験スコア計算
+;試験スコア計算（学力を事前に自動算出）
+CALL CALC_ACADEMIC_LEVEL, MASTER
 CALL GET_EXAM_SCORE
 
 ;難易度による合格ラインの調整
@@ -609,12 +612,6 @@ IF P >= LOCAL:5
 		TFLAG:30 += 5
 	ENDIF
 	
-	;学力レベルアップ判定
-	IF EXP:MASTER:95 >= (ABL:MASTER:88 + 1) * 50
-		ABL:MASTER:88 += 1
-		PRINTFORMW %CALLNAME:MASTER%の学力がレベルアップした！（学力Lv{ABL:MASTER:88}）
-	ENDIF
-	
 	;試験クリア処理
 	IF TFLAG:83 == 0
 		;中間試験合格 → 後半（期末フェーズ）へ
@@ -666,44 +663,13 @@ RETURN 1
 ;---------------------------------------------------------
 ;試験スコア計算
 ;結果はPに格納（0～100の範囲目安）
+;ABL:88は学習素質・学習経験から自動算出済み（CALC_ACADEMIC_LEVEL参照）
 ;---------------------------------------------------------
 @GET_EXAM_SCORE
 P = 0
 
-;基礎学力（ABL:88）
-IF ABL:MASTER:88 <= 1
-	P = 20 + ABL:MASTER:88 * 10
-ELSEIF ABL:MASTER:88 <= 3
-	P = 30 + ABL:MASTER:88 * 5
-ELSEIF ABL:MASTER:88 <= 5
-	P = 40 + ABL:MASTER:88 * 3
-ELSEIF ABL:MASTER:88 <= 10
-	P = 45 + ABL:MASTER:88 * 2
-ELSE
-	P = 50 + ABL:MASTER:88
-ENDIF
-
-;学力素質（ABL:98）の補正
-IF ABL:MASTER:98 > 0
-	IF ABL:MASTER:98 <= 30
-		P += ABL:MASTER:98 / 5
-	ELSEIF ABL:MASTER:98 <= 60
-		P += 6 + (ABL:MASTER:98 - 30) / 4
-	ELSE
-		P += 14 + (ABL:MASTER:98 - 60) / 3
-	ENDIF
-ENDIF
-
-;学習経験（EXP:95）の補正
-IF EXP:MASTER:95 > 0
-	IF EXP:MASTER:95 <= 50
-		P += EXP:MASTER:95 / 5
-	ELSEIF EXP:MASTER:95 <= 200
-		P += 10 + (EXP:MASTER:95 - 50) / 10
-	ELSE
-		P += 25 + (EXP:MASTER:95 - 200) / 20
-	ENDIF
-ENDIF
+;学力（ABL:88 = 学習素質+学習経験から自動算出）
+P = 20 + ABL:MASTER:88 * 4
 
 ;知識技能(ABL:95)の補正
 LOCAL:0 = ABL:MASTER:95
@@ -721,6 +687,14 @@ ENDIF
 SIF P > 95
 	P = 95
 
+RETURN 1
+
+;---------------------------------------------------------
+;学力の自動算出（学習素質 + 学習経験 → ABL:88にセット）
+;ARG:0 = キャラインデックス（例: CALL CALC_ACADEMIC_LEVEL, MASTER）
+;---------------------------------------------------------
+@CALC_ACADEMIC_LEVEL
+ABL:ARG:0:88 = ABL:ARG:0:98 / 10 + EXP:ARG:0:95 / 30
 RETURN 1
 
 ;---------------------------------------------------------
