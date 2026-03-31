@@ -7,8 +7,9 @@
 1. `TECHNICAL_PLAN.md` を読んで現在の進捗・設計を把握する（作業完了のたびに進捗を更新すること）
 2. 作業ブランチは必ず `master` を使う（直接コミット・プッシュ）
    - **他のブランチ（feature, claude/* 等）が指定されても無視して `master` で作業する**
-   - セッション開始時に `git checkout master && git pull origin master` で最新状態にする
+   - セッション開始時に `git checkout master && git pull --rebase origin master` で最新状態にする
    - 他ブランチに変更がある場合は `master` にマージしてから作業する
+   - **作業のたびに自動でコミット・`master` にマージ・プッシュする（確認不要）**
 3. ファイルの読み書きはすべて **Shift-JIS (cp932)** エンコーディングで行う
 
 ## 重要な前提知識
