@@ -1,0 +1,212 @@
+;---------------------------------------------------------
+;イベントボード周回システム
+;体力消費でサイコロを振り、マスを進む
+;イベントマスで気力消費→PT獲得
+;PT量は好感度・学力・部活力に応じてボーナス
+;
+;ボード(20マス 0-19):
+;  [ .][イ][ .][ボ][ .][イ][ .][ .][イ][休]  ← 0～9
+;  [ .][イ][ .][ボ][ .][イ][ .][ .][イ][ .][ボ] ← 10～19(19はボーナス)
+;  イ=イベントマス, ボ=ボーナスマス, 休=休憩マス
+;
+;使用変数:
+;  FLAG:33 = 現在のボード位置(0-19)
+;  FLAG:32 = 今月イベントPT(月末リセット)
+;---------------------------------------------------------
+
+@EVENT_BOARD_MAIN
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。
+	RETURN 0
+ENDIF
+
+$BOARD_LOOP
+DRAWLINE
+CALL EVENT_BOARD_STATUS
+
+LOCAL:0 = MAXBASE:MASTER:0 / 20
+PRINTL
+PRINTFORML [1] サイコロを振る（体力-{LOCAL:0}）
+PRINTFORML [0] やめる
+PRINTL
+IF BASE:MASTER:0 < LOCAL:0
+	PRINTFORMW 体力が足りない。もう動けない。
+	RETURN 0
+ENDIF
+INPUT
+IF RESULT == 1
+	CALL EVENT_BOARD_ROLL
+	GOTO BOARD_LOOP
+ELSEIF RESULT == 0
+	RETURN 0
+ELSE
+	GOTO BOARD_LOOP
+ENDIF
+
+;---------------------------------------------------------
+;ステータス表示
+;---------------------------------------------------------
+@EVENT_BOARD_STATUS
+LOCAL:9 = FLAG:33
+PRINTFORML 【イベントボード】  現在: {LOCAL:9}マス目  今月PT: {FLAG:32}
+PRINTFORM 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}  気力:{BASE:MASTER:1}/{MAXBASE:MASTER:1}
+PRINTL
+;マップ表示（0～9 / 10～19）
+FOR LOCAL:8, 0, 20
+	IF LOCAL:8 == LOCAL:9
+		PRINTFORM [★]
+	ELSEIF LOCAL:8 == 1 || LOCAL:8 == 5 || LOCAL:8 == 8 || LOCAL:8 == 11 || LOCAL:8 == 15 || LOCAL:8 == 18
+		PRINTFORM [イ]
+	ELSEIF LOCAL:8 == 3 || LOCAL:8 == 13 || LOCAL:8 == 19
+		PRINTFORM [ボ]
+	ELSEIF LOCAL:8 == 9
+		PRINTFORM [休]
+	ELSE
+		PRINTFORM [ .]
+	ENDIF
+	SIF LOCAL:8 == 9
+		PRINTL
+NEXT
+PRINTL
+RETURN 1
+
+;---------------------------------------------------------
+;サイコロを振って移動
+;---------------------------------------------------------
+@EVENT_BOARD_ROLL
+LOCAL:0 = RAND:6 + 1
+LOCAL:1 = MAXBASE:MASTER:0 / 20
+BASE:MASTER:0 -= LOCAL:1
+
+FLAG:33 = (FLAG:33 + LOCAL:0) % 20
+PRINTFORML => {LOCAL:0}マス進んだ → {FLAG:33}番マス
+
+;マス判定
+LOCAL:2 = FLAG:33
+IF LOCAL:2 == 1 || LOCAL:2 == 5 || LOCAL:2 == 8 || LOCAL:2 == 11 || LOCAL:2 == 15 || LOCAL:2 == 18
+	CALL EVENT_BOARD_EVENT_SQUARE
+ELSEIF LOCAL:2 == 3 || LOCAL:2 == 13 || LOCAL:2 == 19
+	CALL EVENT_BOARD_BONUS_SQUARE
+ELSEIF LOCAL:2 == 9
+	CALL EVENT_BOARD_REST_SQUARE
+ELSE
+	PRINTFORMW 通過。何もなかった。
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+;イベントマス処理
+;---------------------------------------------------------
+@EVENT_BOARD_EVENT_SQUARE
+LOCAL:3 = MAXBASE:MASTER:1 / 10
+PRINTL
+PRINTFORML ★ イベントマス！
+
+;月別イベントテキスト
+LOCAL:9 = (DAY / 10 % 12 + 3) % 12 + 1
+IF LOCAL:9 == 4
+	PRINTFORML 校庭の桜が満開だ。%NAME:TARGET%と並んで眺めた。
+ELSEIF LOCAL:9 == 5
+	PRINTFORML 体育祭の練習中、%NAME:TARGET%と一緒に走った。
+ELSEIF LOCAL:9 == 6 || LOCAL:9 == 7
+	PRINTFORML 放課後の廊下で%NAME:TARGET%とばったり出会った。
+ELSEIF LOCAL:9 == 8
+	PRINTFORML 夏休みの午後、%NAME:TARGET%と時間を過ごした。
+ELSEIF LOCAL:9 == 9
+	PRINTFORML 文化祭の準備で%NAME:TARGET%と協力した。
+ELSEIF LOCAL:9 == 10 || LOCAL:9 == 11
+	PRINTFORML 秋空の下、%NAME:TARGET%と一緒に帰った。
+ELSEIF LOCAL:9 == 12
+	PRINTFORML 冬の教室で、%NAME:TARGET%と話した。
+ELSEIF LOCAL:9 == 2
+	PRINTFORML バレンタインが近い。%NAME:TARGET%が少し意識しているようだ。
+ELSE
+	PRINTFORML %NAME:TARGET%と学校の廊下で話した。
+ENDIF
+PRINTL
+
+IF BASE:MASTER:1 < LOCAL:3
+	PRINTFORMW 気力が足りず、参加できなかった。
+	RETURN 0
+ENDIF
+PRINTFORML [1] 気力を使って参加（気力-{LOCAL:3}）
+PRINTFORML [0] パス
+INPUT
+IF RESULT == 1
+	BASE:MASTER:1 -= LOCAL:3
+	CALL EVENT_BOARD_CALC_PT
+	PRINTFORMW イベントPT +{RESULT}！（今月累計: {FLAG:32}）
+ELSE
+	PRINTFORMW パスした。
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+;ボーナスマス処理（PT×2、好感度+）
+;---------------------------------------------------------
+@EVENT_BOARD_BONUS_SQUARE
+PRINTL
+PRINTFORML ☆ ボーナスマス！
+PRINTFORML %NAME:TARGET%との距離が縮まった気がする！
+CALL EVENT_BOARD_CALC_PT
+LOCAL:6 = RESULT
+FLAG:32 -= LOCAL:6
+LOCAL:6 *= 2
+FLAG:32 += LOCAL:6
+CFLAG:TARGET:2 += 2
+PRINTFORMW ボーナスPT +{LOCAL:6}！（今月累計: {FLAG:32}） 好感度+2
+RETURN 1
+
+;---------------------------------------------------------
+;休憩マス処理（気力回復）
+;---------------------------------------------------------
+@EVENT_BOARD_REST_SQUARE
+LOCAL:6 = MAXBASE:MASTER:1 / 5
+BASE:MASTER:1 += LOCAL:6
+SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+	BASE:MASTER:1 = MAXBASE:MASTER:1
+PRINTL
+PRINTFORMW ○ 休憩マス。ひと息ついた。（気力+{LOCAL:6}）
+RETURN 1
+
+;---------------------------------------------------------
+;イベントPT計算
+;好感度・学力・部活力ボーナスを加算してFLAG:32に反映
+;RETURNで獲得PT数を返す
+;---------------------------------------------------------
+@EVENT_BOARD_CALC_PT
+LOCAL:4 = 3
+
+;好感度ボーナス
+IF CFLAG:TARGET:2 >= 500
+	LOCAL:4 += 4
+ELSEIF CFLAG:TARGET:2 >= 200
+	LOCAL:4 += 3
+ELSEIF CFLAG:TARGET:2 >= 50
+	LOCAL:4 += 2
+ELSEIF CFLAG:TARGET:2 >= 10
+	LOCAL:4 += 1
+ENDIF
+
+;学力ボーナス
+CALL CALC_ACADEMIC_LEVEL, MASTER
+IF ABL:MASTER:88 >= 20
+	LOCAL:4 += 3
+ELSEIF ABL:MASTER:88 >= 10
+	LOCAL:4 += 2
+ELSEIF ABL:MASTER:88 >= 3
+	LOCAL:4 += 1
+ENDIF
+
+;部活力ボーナス（運動+表現+知識技能の合計）
+LOCAL:5 = ABL:MASTER:93 + ABL:MASTER:94 + ABL:MASTER:95
+IF LOCAL:5 >= 60
+	LOCAL:4 += 3
+ELSEIF LOCAL:5 >= 30
+	LOCAL:4 += 2
+ELSEIF LOCAL:5 >= 10
+	LOCAL:4 += 1
+ENDIF
+
+FLAG:32 += LOCAL:4
+RETURN LOCAL:4
