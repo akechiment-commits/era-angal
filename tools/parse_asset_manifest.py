@@ -55,18 +55,16 @@ def parse_manifest(data: bytes) -> list[str]:
     except Exception as e:
         print(f"  UnityPy: {e}")
 
-    # バイナリからNUL区切り文字列を全部抽出してパスを探す
-    # Unityマニフェストはバイナリ中にパス文字列をそのまま格納している
-    strings = re.findall(rb'[a-zA-Z0-9_./:+\-]{8,}', data)
+    # バイナリからASCII文字列を全部抽出してアセットパスを探す
+    strings = re.findall(rb'[\x20-\x7e]{10,}', data)
     for s in strings:
         try:
-            t = s.decode("ascii")
-            # image/ audio/ spine/ で始まりunity3dを含むものがアセットバンドルパス
-            if re.match(r'^(image|audio|spine|font|shader|effect)/', t) and 'unity3d' in t:
-                paths.append(t)
-            # character/talk のような短いパスも拾う
-            elif re.match(r'^(image|audio)/', t) and len(t) > 15:
-                paths.append(t)
+            t = s.decode("ascii").strip()
+            # image/ audio/ spine/ effect/ font/ shader/ で始まるパス
+            if re.match(r'^(image|audio|spine|effect|font|shader|ui)/', t):
+                # パス文字として妥当な文字だけで構成されているか確認
+                if re.match(r'^[\w./:+\-]+$', t):
+                    paths.append(t)
         except Exception:
             continue
 
