@@ -37,36 +37,38 @@ def parse_manifest(data: bytes) -> list[str]:
     """マニフェストバイナリからアセットバンドルパス一覧を返す"""
     paths = []
 
-    # まずUnityPyで試す
     try:
         env = UnityPy.load(data)
         for obj in env.objects:
             try:
-                d = obj.read()
-                if hasattr(d, "m_AssetBundleInfos"):
-                    for name in d.m_AssetBundleInfos.keys():
-                        paths.append(name)
-                    break
-                raw = str(d)
-                found = re.findall(r'asset_bundles/android/[^\s\'"]+', raw)
+                # type treeから辞書として読む
+                tree = obj.read_typetree()
+                raw = json.dumps(tree, ensure_ascii=False)
+                # image/audio等で始まるパスを抽出
+                found = re.findall(r'(?:image|audio|spine|effect|ui)/[\w./+\-]+', raw)
                 paths.extend(found)
             except Exception:
-                continue
+                # フォールバック: str変換
+                try:
+                    d = obj.read()
+                    raw = str(d)
+                    found = re.findall(r'(?:image|audio|spine)/[\w./+\-]+', raw)
+                    paths.extend(found)
+                except Exception:
+                    pass
     except Exception as e:
         print(f"  UnityPy: {e}")
 
-    # バイナリからASCII文字列を全部抽出してアセットパスを探す
-    strings = re.findall(rb'[\x20-\x7e]{10,}', data)
-    for s in strings:
-        try:
-            t = s.decode("ascii").strip()
-            # image/ audio/ spine/ effect/ font/ shader/ で始まるパス
-            if re.match(r'^(image|audio|spine|effect|font|shader|ui)/', t):
-                # パス文字として妥当な文字だけで構成されているか確認
-                if re.match(r'^[\w./:+\-]+$', t):
-                    paths.append(t)
-        except Exception:
-            continue
+    # UnityPyで不十分な場合はバイナリから長い文字列を抽出
+    if len(paths) < 100:
+        print("  UnityPy結果が少ないためバイナリ直接抽出...")
+        # Unityは文字列を4バイト長+文字列の形式で格納する
+        # 長さ8以上のASCII文字列を全部取る
+        for m in re.finditer(rb'(image|audio|spine|effect|ui)/([\x21-\x7e/._+\-]+)', data):
+            try:
+                paths.append(m.group(0).decode("ascii"))
+            except Exception:
+                pass
 
     return sorted(set(paths))
 
