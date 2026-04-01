@@ -34,32 +34,41 @@ def fetch_manifest() -> bytes:
 
 
 def parse_manifest(data: bytes) -> list[str]:
-    """UnityPyでマニフェストを解析してアセットバンドルパス一覧を返す"""
+    """マニフェストバイナリからアセットバンドルパス一覧を返す"""
     paths = []
+
+    # まずUnityPyで試す
     try:
         env = UnityPy.load(data)
         for obj in env.objects:
             try:
                 d = obj.read()
-                # AssetBundleManifest型
                 if hasattr(d, "m_AssetBundleInfos"):
-                    for name, info in d.m_AssetBundleInfos.items():
+                    for name in d.m_AssetBundleInfos.keys():
                         paths.append(name)
                     break
-                # 文字列として探す
                 raw = str(d)
                 found = re.findall(r'asset_bundles/android/[^\s\'"]+', raw)
                 paths.extend(found)
             except Exception:
                 continue
     except Exception as e:
-        print(f"UnityPy解析エラー: {e}")
+        print(f"  UnityPy: {e}")
 
-    # UnityPyで取れなかった場合はバイナリから直接抽出
-    if not paths:
-        print("  バイナリから直接パスを抽出...")
-        text = data.decode("utf-8", errors="replace")
-        paths = re.findall(r'(?:image|audio|spine)/[^\x00\s\'"<>]+\.unity3d[^\x00\s\'"<>]*', text)
+    # バイナリからNUL区切り文字列を全部抽出してパスを探す
+    # Unityマニフェストはバイナリ中にパス文字列をそのまま格納している
+    strings = re.findall(rb'[a-zA-Z0-9_./:+\-]{8,}', data)
+    for s in strings:
+        try:
+            t = s.decode("ascii")
+            # image/ audio/ spine/ で始まりunity3dを含むものがアセットバンドルパス
+            if re.match(r'^(image|audio|spine|font|shader|effect)/', t) and 'unity3d' in t:
+                paths.append(t)
+            # character/talk のような短いパスも拾う
+            elif re.match(r'^(image|audio)/', t) and len(t) > 15:
+                paths.append(t)
+        except Exception:
+            continue
 
     return sorted(set(paths))
 
