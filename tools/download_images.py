@@ -41,11 +41,11 @@ def extract_png(data: bytes) -> bytes | None:
 
 def url_to_outpath(url: str) -> Path:
     """URLからローカル保存パスを生成"""
-    # http://assets.kimisaki.hekk.org/asset_bundles/android/image/character/talk/33/default/1.png.unity3d_hash.hd
-    # → images/character/talk/33/default/1.png
+    # http://...android/image/character/talk/1/apron-winter/1.png_bdc5735e3bf2659ded7725b8ada1a4f6.unity3d
+    # → images/character/talk/1/apron-winter/1.png
     part = url.split("/asset_bundles/android/image/")[-1]
-    # .unity3d_hash.hd を除去
-    part = part.split(".unity3d_")[0]  # 1.png
+    # _hash.unity3d を除去
+    part = re.sub(r'_[0-9a-f]{32}\.unity3d$', '', part)
     return OUT_DIR / part
 
 
@@ -58,11 +58,12 @@ def main():
 
     urls = Path(args.list).read_text(encoding="utf-8").splitlines()
 
-    # character/talk の hd のみ
-    urls = [u for u in urls if "character/talk" in u and u.endswith(".hd")]
+    # character/talk のみ（.unity3d で終わるもの）
+    urls = [u for u in urls if "character/talk" in u and u.endswith(".unity3d")]
 
     if args.default_only:
-        urls = [u for u in urls if "/default/" in u]
+        # expressionなし（衣装フォルダ直下の番号ファイルのみ）
+        urls = [u for u in urls if "_expression/" not in u]
 
     print(f"対象: {len(urls)}件")
 
