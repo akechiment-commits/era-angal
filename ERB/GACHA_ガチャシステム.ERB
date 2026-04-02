@@ -9,7 +9,7 @@
 ;   FLAG:116 = プラチナガチャチケット
 ;
 ; カード所持(GLOBAL):
-;   GLOBAL:(3000+card_id) = 所持枚数（0=未所持）
+;   GLOBAL:(3000+card_id) = 所持枚数
 ;
 ; キャラ補正(CFLAG):
 ;   CFLAG:N:303 = 表現力ボーナス累計
@@ -18,33 +18,30 @@
 ;   CFLAG:N:306 = 好感度ボーナス累計
 ;   CFLAG:N:307 = 所持カード枚数
 ;
-; ガチャ排出率 (RAND:1000):
-;   ブロンズ: N45% R30% HR14% SR8% UR2.5% MR0.5%
-;   シルバー: N5%  R20% HR20% SR35% UR18% MR2%
-;   ゴールド: N0%  R3%  HR7%  SR35% UR45% MR10%
-;   プラチナ: N0%  R0%  HR0%  SR15% UR60% MR25%
-;   ダイヤ:   N0%  R2%  HR5%  SR28% UR40% MR25%
+; 排出率 (RAND:10000):
+;   ブロンズ: N50% R30% HR12% SR6% UR1.99% MR0.01%
+;   シルバー: N10% R25% HR25% SR30% UR9.95% MR0.05%
+;   ゴールド: R2%  HR7%  SR40% UR50.5% MR0.5%
+;   プラチナ: SR15% UR82% MR3%
+;   ダイヤ:   R1%  HR3%  SR25% UR66%  MR5%
 ;==================================================
 
-;--------------------------------------------------
-; ガチャメインメニュー
-;--------------------------------------------------
 @GACHA_MAIN
 $LOOP
 DRAWLINE
 PRINTL 【ガチャ】
 PRINTL
 PRINTFORML キミサキダイヤ：{FLAG:112}個
-PRINTFORML ブロンズチケット：{FLAG:113}枚
-PRINTFORML シルバーチケット：{FLAG:114}枚
-PRINTFORML ゴールドチケット：{FLAG:115}枚
-PRINTFORML プラチナチケット：{FLAG:116}枚
+PRINTFORML ブロンズチケット：{FLAG:113}枚  （MR 0.01%）
+PRINTFORML シルバーチケット：{FLAG:114}枚  （MR 0.05%）
+PRINTFORML ゴールドチケット：{FLAG:115}枚  （MR 0.5%）
+PRINTFORML プラチナチケット：{FLAG:116}枚  （MR 3%）
 PRINTL
-PRINTFORML [1] ブロンズガチャ（チケット1枚） N/R/HR/SR/UR/MR
-PRINTFORML [2] シルバーガチャ（チケット1枚） R/HR/SR/UR/MR
-PRINTFORML [3] ゴールドガチャ（チケット1枚） SR/UR/MR
-PRINTFORML [4] プラチナガチャ（チケット1枚） SR/UR/MR
-PRINTFORML [5] ダイヤガチャ（ダイヤ5個）     R～MR
+PRINTFORML [1] ブロンズガチャ（チケット1枚）
+PRINTFORML [2] シルバーガチャ（チケット1枚）
+PRINTFORML [3] ゴールドガチャ（チケット1枚）
+PRINTFORML [4] プラチナガチャ（チケット1枚）
+PRINTFORML [5] ダイヤガチャ（ダイヤ5個）   （MR 5%）
 PRINTL
 PRINTFORML [0] 戻る
 INPUT
@@ -91,72 +88,74 @@ GOTO LOOP
 
 ;--------------------------------------------------
 ; ガチャ1回実行 ARG:0=ガチャ種別(1-5)
-; アルゴリズム:
-;   1. レア度決定
-;   2. そのレア度を持つキャラを等確率で選択
-;   3. そのキャラのそのレア度のカードを選択
+; 手順: レア度決定 → キャラ等確率選択 → カード選択
 ;--------------------------------------------------
 @GACHA_PULL
-LOCAL:9 = RAND:1000  ;0-999
-LOCAL:8 = 0          ;決定レア度(1=N 2=R 3=HR 4=SR 5=UR 6=MR)
+LOCAL:9 = RAND:10000  ;0～9999
+LOCAL:8 = 0           ;レア度(1=N 2=R 3=HR 4=SR 5=UR 6=MR)
 
 SELECTCASE ARG:0
-CASE 1  ;ブロンズ: N45% R30% HR14% SR8% UR2.5% MR0.5%
-	IF LOCAL:9 < 450
+CASE 1
+	;ブロンズ: N50% R30% HR12% SR6% UR1.99% MR0.01%
+	IF LOCAL:9 < 5000
 		LOCAL:8 = 1
-	ELSEIF LOCAL:9 < 750
+	ELSEIF LOCAL:9 < 8000
 		LOCAL:8 = 2
-	ELSEIF LOCAL:9 < 890
+	ELSEIF LOCAL:9 < 9200
 		LOCAL:8 = 3
-	ELSEIF LOCAL:9 < 970
+	ELSEIF LOCAL:9 < 9800
 		LOCAL:8 = 4
-	ELSEIF LOCAL:9 < 995
+	ELSEIF LOCAL:9 < 9999
 		LOCAL:8 = 5
 	ELSE
 		LOCAL:8 = 6
 	ENDIF
-CASE 2  ;シルバー: N5% R20% HR20% SR35% UR18% MR2%
-	IF LOCAL:9 < 50
+CASE 2
+	;シルバー: N10% R25% HR25% SR30% UR9.95% MR0.05%
+	IF LOCAL:9 < 1000
 		LOCAL:8 = 1
-	ELSEIF LOCAL:9 < 250
+	ELSEIF LOCAL:9 < 3500
 		LOCAL:8 = 2
-	ELSEIF LOCAL:9 < 450
+	ELSEIF LOCAL:9 < 6000
 		LOCAL:8 = 3
-	ELSEIF LOCAL:9 < 800
+	ELSEIF LOCAL:9 < 9000
 		LOCAL:8 = 4
-	ELSEIF LOCAL:9 < 980
+	ELSEIF LOCAL:9 < 9995
 		LOCAL:8 = 5
 	ELSE
 		LOCAL:8 = 6
 	ENDIF
-CASE 3  ;ゴールド: R3% HR7% SR35% UR45% MR10%
-	IF LOCAL:9 < 30
+CASE 3
+	;ゴールド: R2% HR7% SR40% UR50.5% MR0.5%
+	IF LOCAL:9 < 200
 		LOCAL:8 = 2
-	ELSEIF LOCAL:9 < 100
-		LOCAL:8 = 3
-	ELSEIF LOCAL:9 < 450
-		LOCAL:8 = 4
 	ELSEIF LOCAL:9 < 900
-		LOCAL:8 = 5
-	ELSE
-		LOCAL:8 = 6
-	ENDIF
-CASE 4  ;プラチナ: SR15% UR60% MR25%
-	IF LOCAL:9 < 150
-		LOCAL:8 = 4
-	ELSEIF LOCAL:9 < 750
-		LOCAL:8 = 5
-	ELSE
-		LOCAL:8 = 6
-	ENDIF
-CASEELSE  ;ダイヤ: R2% HR5% SR28% UR40% MR25%
-	IF LOCAL:9 < 20
-		LOCAL:8 = 2
-	ELSEIF LOCAL:9 < 70
 		LOCAL:8 = 3
-	ELSEIF LOCAL:9 < 350
+	ELSEIF LOCAL:9 < 4900
 		LOCAL:8 = 4
-	ELSEIF LOCAL:9 < 750
+	ELSEIF LOCAL:9 < 9950
+		LOCAL:8 = 5
+	ELSE
+		LOCAL:8 = 6
+	ENDIF
+CASE 4
+	;プラチナ: SR15% UR82% MR3%
+	IF LOCAL:9 < 1500
+		LOCAL:8 = 4
+	ELSEIF LOCAL:9 < 9700
+		LOCAL:8 = 5
+	ELSE
+		LOCAL:8 = 6
+	ENDIF
+CASEELSE
+	;ダイヤ: R1% HR3% SR25% UR66% MR5%
+	IF LOCAL:9 < 100
+		LOCAL:8 = 2
+	ELSEIF LOCAL:9 < 400
+		LOCAL:8 = 3
+	ELSEIF LOCAL:9 < 2900
+		LOCAL:8 = 4
+	ELSEIF LOCAL:9 < 9500
 		LOCAL:8 = 5
 	ELSE
 		LOCAL:8 = 6
@@ -167,7 +166,6 @@ ENDSELECT
 $RETRY_RARITY
 CALL CARD_GET_CHARS_FOR_RARITY, LOCAL:8
 IF LOCAL:9 == 0
-	;そのレア度のカードがない → 1段下げて再試行
 	LOCAL:8 -= 1
 	IF LOCAL:8 >= 1
 		GOTO RETRY_RARITY
@@ -179,35 +177,39 @@ ENDIF
 
 ;キャラを等確率で選択
 LOCAL:6 = RAND:LOCAL:9
-LOCAL:5 = LOCAL:LOCAL:6  ;選ばれたキャラNo
+LOCAL:5 = LOCAL:LOCAL:6
 
 ;そのキャラのそのレア度のカードを取得
 CALL CARD_GET_CHARPOOL, LOCAL:5, LOCAL:8
 IF LOCAL:9 == 0
-	PRINTFORMW カードが見つかりません。
-	RETURN 0
+	;このキャラにそのレア度がない（MRなど）→レア度下げて再選
+	LOCAL:8 -= 1
+	IF LOCAL:8 >= 1
+		GOTO RETRY_RARITY
+	ELSE
+		PRINTFORMW カードが見つかりません。
+		RETURN 0
+	ENDIF
 ENDIF
 
-;カードを等確率で選択
 LOCAL:4 = RAND:LOCAL:9
-LOCAL:7 = LOCAL:LOCAL:4  ;カードID
+LOCAL:7 = LOCAL:LOCAL:4
 
 CALL GACHA_ACQUIRE_CARD, LOCAL:7
 RETURN LOCAL:7
 
 ;--------------------------------------------------
 ; カード取得処理 ARG:0=カードID
-; 重複時もボーナス加算（減衰あり）
+; 重複: 1枚目100%/2枚目50%/3枚目以降20%のボーナス
 ;--------------------------------------------------
 @GACHA_ACQUIRE_CARD
-LOCAL:10 = ARG:0  ;カードIDを保存
+LOCAL:10 = ARG:0
 CALL CARD_GET_DATA, LOCAL:10
 LOCAL:0 = RESULT:0  ;キャラNo
 LOCAL:1 = RESULT:1  ;レア度
 LOCAL:2 = RESULT:2  ;ボーナスタイプ
 LOCAL:3 = RESULT:3  ;基本ボーナス値
 
-;レア度演出
 DRAWLINE
 IF LOCAL:1 == 6
 	PRINTL ★★★★★★ MR ！！！！！！
@@ -223,26 +225,23 @@ ELSE
 	PRINTL ★ N
 ENDIF
 
-;カード名表示
 PRINTFORML 【%CSVNAME:LOCAL:10%】
 IF LOCAL:0 > 0
 	TARGET = LOCAL:0
 	PRINTFORML キャラ: %CALLNAME:TARGET%
 ENDIF
 
-;所持枚数確認
 LOCAL:5 = 3000 + LOCAL:10
 LOCAL:6 = GLOBAL:LOCAL:5
 
-;重複ボーナス計算（1枚目=全額, 2枚目=50%, 3枚目以降=20%, 最低1）
 LOCAL:4 = LOCAL:3
 IF LOCAL:6 == 0
-	PRINTL ★ NEW！（初回ボーナス）
+	PRINTL ★ NEW！（初回ボーナス全額）
 ELSEIF LOCAL:6 == 1
 	LOCAL:4 = LOCAL:3 / 2
 	SIF LOCAL:4 < 1
 		LOCAL:4 = 1
-	PRINTFORML （重複 {LOCAL:6+1}枚目 → ボーナス半減）
+	PRINTFORML （重複 {LOCAL:6+1}枚目 → ボーナス50%）
 ELSE
 	LOCAL:4 = LOCAL:3 / 5
 	SIF LOCAL:4 < 1
@@ -252,7 +251,6 @@ ENDIF
 
 GLOBAL:LOCAL:5 += 1
 
-;キャラボーナス適用
 IF LOCAL:0 > 0
 	TARGET = LOCAL:0
 	SELECTCASE LOCAL:2
@@ -276,7 +274,6 @@ RETURN 1
 
 ;--------------------------------------------------
 ; カード補正値取得 ARG:0=キャラNo ARG:1=補正タイプ
-; RESULT = 補正値
 ;--------------------------------------------------
 @CARD_GET_BONUS
 TARGET = ARG:0
