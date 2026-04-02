@@ -96,17 +96,25 @@ def strip_tags(s: str) -> str:
 
 
 def get_char_name_from_page(html: str) -> str:
-    """ページタイトルからキャラ名を取得"""
-    # <title>キャラ名 - kmskwiki</title>
-    m = re.search(r'<title[^>]*>\s*([^<\-|]+)', html, re.IGNORECASE)
+    """ページタイトルからキャラ名を取得（読み・サイト名を除去）"""
+    # <title>三波なつみ（みなみなつみ）[あんガル DB補完Wiki] など
+    m = re.search(r'<title[^>]*>\s*([^<]+)', html, re.IGNORECASE)
     if m:
         name = m.group(1).strip()
+        # 括弧・【】以降を除去: 「三波なつみ（みなみ...）」→「三波なつみ」
+        name = re.sub(r'[（(【\[].*', '', name).strip()
+        # サイト名区切り以降を除去
+        for sep in [' - ', ' | ', '　']:
+            if sep in name:
+                name = name.split(sep)[0].strip()
         if name:
             return name
     # h1
     m = re.search(r'<h1[^>]*>\s*([^<]+)\s*</h1>', html, re.IGNORECASE)
     if m:
-        return strip_tags(m.group(1))
+        name = strip_tags(m.group(1))
+        name = re.sub(r'[（(【\[].*', '', name).strip()
+        return name
     return ""
 
 
