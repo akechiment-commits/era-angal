@@ -40,7 +40,6 @@ def load_cards() -> list[dict]:
 
 def build_char_id_map(cards: list[dict]) -> dict[str, int]:
     """キャラ名 → ERA番号 マップを生成"""
-    # character_data.csv から順番を取得
     char_data = Path("character_data.csv")
     name_to_id = {}
     if char_data.exists():
@@ -51,10 +50,38 @@ def build_char_id_map(cards: list[dict]) -> dict[str, int]:
                 if name:
                     name_to_id[name] = i
     else:
-        # フォールバック: カードに登場順に番号付け
         names = list(dict.fromkeys(c["char_name"] for c in cards))
         name_to_id = {n: i for i, n in enumerate(names, 1)}
     return name_to_id
+
+
+def build_bonus_type_map() -> dict[str, int]:
+    """キャラ名 → ボーナスタイプ（部活から推定）"""
+    char_data = Path("character_data.csv")
+    SPORTS = {"ラクロス","バレー","バスケ","サッカー","テニス","陸上","体操","水泳","剣道","柔道","ソフトボール","卓球","アーチェリー","弓道","バドミントン"}
+    ARTS   = {"吹奏楽","演劇","合唱","軽音","美術","写真","放送","ダンス","文芸"}
+    STUDY  = {"科学","数学","化学","天文","囲碁","将棋","料理研究","茶道","書道","生物"}
+    name_to_bonus = {}
+    if char_data.exists():
+        with open(char_data, encoding="utf-8-sig") as f:
+            for row in csv.DictReader(f):
+                name = row.get("name","").strip()
+                club = row.get("club","")
+                btype = 3  # デフォルト：好感度
+                for s in SPORTS:
+                    if s in club:
+                        btype = 1; break
+                else:
+                    for a in ARTS:
+                        if a in club:
+                            btype = 0; break
+                    else:
+                        for st in STUDY:
+                            if st in club:
+                                btype = 2; break
+                if name:
+                    name_to_bonus[name] = btype
+    return name_to_bonus
 
 
 def write_era_csv(cards: list[dict]):
@@ -72,7 +99,9 @@ def write_era_csv(cards: list[dict]):
     print(f"出力: {OUT_CSV} ({len(lines)}件)")
 
 
-def write_era_erb(cards: list[dict], char_map: dict[str, int]):
+def write_era_erb(cards: list[dict], char_map: dict[str, int], bonus_map: dict[str, int] = None):
+    if bonus_map is None:
+        bonus_map = {}
     """ERB/CARD_DATA_カードデータ定義.ERB: カードデータ取得関数"""
     lines = [
         ";==================================================",
@@ -102,7 +131,7 @@ def write_era_erb(cards: list[dict], char_map: dict[str, int]):
         cid      = int(c["id"])
         char_id  = char_map.get(c["char_name"], 0)
         rarity   = int(c["rarity"])
-        btype    = int(c["bonus_type"])
+        btype    = int(c["bonus_type"]) if "bonus_type" in c and c["bonus_type"] != "" else bonus_map.get(c["char_name"], hash(c["char_name"]) % 4)
         bval     = RARITY_BONUS.get(rarity, 2)
         lines.append(f"CASE {cid}")
         lines.append(f"\tRESULT:0 = {char_id}")
@@ -155,11 +184,12 @@ def main():
     if not cards:
         return
 
-    char_map = build_char_id_map(cards)
+    char_map  = build_char_id_map(cards)
+    bonus_map = build_bonus_type_map()
     print(f"カード数: {len(cards)}, キャラ数: {len(set(c['char_name'] for c in cards))}")
 
     write_era_csv(cards)
-    write_era_erb(cards, char_map)
+    write_era_erb(cards, char_map, bonus_map)
     print("\n完了。generate後にgit add/commit/pushしてください。")
 
 
