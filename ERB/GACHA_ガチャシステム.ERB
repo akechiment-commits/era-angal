@@ -1,0 +1,246 @@
+;==================================================
+; GACHA_ガチャシステム.ERB
+;
+; 通貨(FLAG):
+;   FLAG:112 = キミサキダイヤ
+;   FLAG:113 = ブロンズガチャチケット
+;   FLAG:114 = シルバーガチャチケット
+;   FLAG:115 = ゴールドガチャチケット
+;   FLAG:116 = プラチナガチャチケット
+;
+; カード所持(GLOBAL):
+;   GLOBAL:3000 + card_id = 所持数（0=未所持）
+;
+; キャラ補正(CFLAG):
+;   CFLAG:N:303 = 表現力ボーナス累計
+;   CFLAG:N:304 = 運動力ボーナス累計
+;   CFLAG:N:305 = 学力ボーナス累計
+;   CFLAG:N:306 = 好感度ボーナス累計
+;   CFLAG:N:307 = 所持カード枚数
+;==================================================
+
+;--------------------------------------------------
+; ガチャメインメニュー
+;--------------------------------------------------
+@GACHA_MAIN
+DRAWLINE
+PRINTL 【ガチャ】
+PRINTL
+PRINTFORML キミサキダイヤ：{FLAG:112}個
+PRINTFORML ブロンズチケット：{FLAG:113}枚
+PRINTFORML シルバーチケット：{FLAG:114}枚
+PRINTFORML ゴールドチケット：{FLAG:115}枚
+PRINTFORML プラチナチケット：{FLAG:116}枚
+PRINTL
+PRINTFORML [1] ブロンズガチャ（チケット1枚）N/R/SR
+PRINTFORML [2] シルバーガチャ（チケット1枚）R/SR/SSR
+PRINTFORML [3] ゴールドガチャ（チケット1枚）SR/SSR/UR
+PRINTFORML [4] プラチナガチャ（チケット1枚）SSR/UR
+PRINTFORML [5] ダイヤガチャ（ダイヤ5個）SR/SSR/UR
+PRINTL
+PRINTFORML [0] 戻る
+INPUT
+SELECTCASE RESULT
+CASE 1
+	IF FLAG:113 < 1
+		PRINTFORMW ブロンズチケットがありません。
+	ELSE
+		FLAG:113 -= 1
+		CALL GACHA_PULL, 1
+	ENDIF
+CASE 2
+	IF FLAG:114 < 1
+		PRINTFORMW シルバーチケットがありません。
+	ELSE
+		FLAG:114 -= 1
+		CALL GACHA_PULL, 2
+	ENDIF
+CASE 3
+	IF FLAG:115 < 1
+		PRINTFORMW ゴールドチケットがありません。
+	ELSE
+		FLAG:115 -= 1
+		CALL GACHA_PULL, 3
+	ENDIF
+CASE 4
+	IF FLAG:116 < 1
+		PRINTFORMW プラチナチケットがありません。
+	ELSE
+		FLAG:116 -= 1
+		CALL GACHA_PULL, 4
+	ENDIF
+CASE 5
+	IF FLAG:112 < 5
+		PRINTFORMW キミサキダイヤが5個必要です（現在{FLAG:112}個）。
+	ELSE
+		FLAG:112 -= 5
+		CALL GACHA_PULL, 5
+	ENDIF
+CASE ELSE
+	RETURN 0
+ENDSELECT
+GOTO GACHA_MAIN
+
+;--------------------------------------------------
+; ガチャ1回実行 ARG:0=ガチャ種別(1-5)
+; RESULT = 引いたカードID
+;--------------------------------------------------
+@GACHA_PULL
+;レア度決定
+LOCAL:9 = RAND:100
+LOCAL:8 = 0  ;レア度(1=N 2=R 3=SR 4=SSR 5=UR)
+
+SELECTCASE ARG:0
+CASE 1  ;ブロンズ: N60% R35% SR5%
+	IF LOCAL:9 < 60
+		LOCAL:8 = 1
+	ELSEIF LOCAL:9 < 95
+		LOCAL:8 = 2
+	ELSE
+		LOCAL:8 = 3
+	ENDIF
+CASE 2  ;シルバー: R50% SR40% SSR10%
+	IF LOCAL:9 < 50
+		LOCAL:8 = 2
+	ELSEIF LOCAL:9 < 90
+		LOCAL:8 = 3
+	ELSE
+		LOCAL:8 = 4
+	ENDIF
+CASE 3  ;ゴールド: SR40% SSR45% UR15%
+	IF LOCAL:9 < 40
+		LOCAL:8 = 3
+	ELSEIF LOCAL:9 < 85
+		LOCAL:8 = 4
+	ELSE
+		LOCAL:8 = 5
+	ENDIF
+CASE 4  ;プラチナ: SSR55% UR45%
+	IF LOCAL:9 < 55
+		LOCAL:8 = 4
+	ELSE
+		LOCAL:8 = 5
+	ENDIF
+CASE ELSE  ;ダイヤ: R30% SR45% SSR22% UR3%
+	IF LOCAL:9 < 30
+		LOCAL:8 = 2
+	ELSEIF LOCAL:9 < 75
+		LOCAL:8 = 3
+	ELSEIF LOCAL:9 < 97
+		LOCAL:8 = 4
+	ELSE
+		LOCAL:8 = 5
+	ENDIF
+ENDSELECT
+
+;カードプールからランダム選択（TARGET設定済みを優先）
+LOCAL:7 = -1
+IF TARGET >= 0
+	;パートナー優先
+	CALL CARD_GET_CHARPOOL, TARGET, LOCAL:8
+	IF LOCAL:9 > 0
+		LOCAL:7 = LOCAL:RAND:LOCAL:9
+	ENDIF
+ENDIF
+
+;パートナーにカードがない場合は全キャラから選択
+IF LOCAL:7 < 0
+	CALL CARD_GET_CHARPOOL, 0, LOCAL:8
+	IF LOCAL:9 > 0
+		LOCAL:7 = LOCAL:RAND:LOCAL:9
+	ENDIF
+ENDIF
+
+;それでもなければレア度を下げて再試行
+IF LOCAL:7 < 0 || LOCAL:7 == 0
+	SIF LOCAL:8 > 1
+		LOCAL:8 -= 1
+	CALL CARD_GET_CHARPOOL, 0, LOCAL:8
+	SIF LOCAL:9 > 0
+		LOCAL:7 = LOCAL:RAND:LOCAL:9
+ENDIF
+
+IF LOCAL:7 <= 0
+	PRINTFORMW カードデータがまだ登録されていません。
+	RETURN 0
+ENDIF
+
+;カード取得処理
+CALL GACHA_ACQUIRE_CARD, LOCAL:7
+RETURN LOCAL:7
+
+;--------------------------------------------------
+; カード取得 ARG:0=カードID
+;--------------------------------------------------
+@GACHA_ACQUIRE_CARD
+CALL CARD_GET_DATA, ARG:0
+LOCAL:0 = RESULT:0  ;キャラNo
+LOCAL:1 = RESULT:1  ;レア度
+LOCAL:2 = RESULT:2  ;ボーナスタイプ
+LOCAL:3 = RESULT:3  ;ボーナス値
+
+;レア度演出
+DRAWLINE
+IF LOCAL:1 == 5
+	PRINTL ★★★★★ UR ！！！！！
+ELSEIF LOCAL:1 == 4
+	PRINTL ★★★★ SSR ！！！
+ELSEIF LOCAL:1 == 3
+	PRINTL ★★★ SR ！
+ELSEIF LOCAL:1 == 2
+	PRINTL ★★ R
+ELSE
+	PRINTL ★ N
+ENDIF
+
+;カード名表示（CSVNAME使用）
+PRINTFORML 【%CSVNAME:ARG:0%】
+IF LOCAL:0 > 0
+	PRINTFORML キャラ: %CSVNAME:LOCAL:0%
+ENDIF
+
+;初回取得/重複チェック
+LOCAL:6 = GLOBAL:3000 + ARG:0
+IF LOCAL:6 == 0
+	PRINTL ★ NEW！
+ELSE
+	PRINTL （重複）
+ENDIF
+GLOBAL:3000 + ARG:0 += 1
+
+;キャラボーナス適用（初回取得時のみ）
+IF LOCAL:6 == 0 && LOCAL:0 > 0
+	SELECTCASE LOCAL:2
+	CASE 0
+		CFLAG:LOCAL:0:303 += LOCAL:3
+		PRINTFORML %CSVNAME:LOCAL:0%の表現力 +{LOCAL:3}！
+	CASE 1
+		CFLAG:LOCAL:0:304 += LOCAL:3
+		PRINTFORML %CSVNAME:LOCAL:0%の運動力 +{LOCAL:3}！
+	CASE 2
+		CFLAG:LOCAL:0:305 += LOCAL:3
+		PRINTFORML %CSVNAME:LOCAL:0%の学力 +{LOCAL:3}！
+	CASE ELSE
+		CFLAG:LOCAL:0:306 += LOCAL:3
+		PRINTFORML %CSVNAME:LOCAL:0%の好感度 +{LOCAL:3}！
+	ENDSELECT
+	CFLAG:LOCAL:0:307 += 1
+ENDIF
+WAIT
+RETURN 1
+
+;--------------------------------------------------
+; カード補正値取得 ARG:0=キャラNo ARG:1=補正タイプ
+; RESULT = 補正値
+;--------------------------------------------------
+@CARD_GET_BONUS
+SELECTCASE ARG:1
+CASE 0
+	RETURN CFLAG:ARG:0:303
+CASE 1
+	RETURN CFLAG:ARG:0:304
+CASE 2
+	RETURN CFLAG:ARG:0:305
+CASE ELSE
+	RETURN CFLAG:ARG:0:306
+ENDSELECT

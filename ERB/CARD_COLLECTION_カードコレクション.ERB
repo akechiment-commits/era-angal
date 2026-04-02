@@ -1,0 +1,57 @@
+;==================================================
+; CARD_COLLECTION_カードコレクション.ERB
+; カード所持一覧・キャラ別補正確認
+;==================================================
+
+@CARD_COLLECTION_MAIN
+DRAWLINE
+PRINTL 【カードコレクション】
+PRINTL
+PRINTFORML [1] キャラ別カード補正を見る
+PRINTFORML [2] 全所持カードを見る（実装後）
+PRINTFORML [0] 戻る
+INPUT
+IF RESULT == 1
+	CALL CARD_COLLECTION_CHAR_BONUS
+ELSEIF RESULT == 0
+	RETURN 0
+ENDIF
+GOTO CARD_COLLECTION_MAIN
+
+;--------------------------------------------------
+; キャラ別カード補正表示
+;--------------------------------------------------
+@CARD_COLLECTION_CHAR_BONUS
+DRAWLINE
+PRINTL 【キャラ別カード補正】
+PRINTL
+PRINTFORML キャラ名              カード  表現力  運動力  学力  好感度
+DRAWLINE
+FOR LOCAL:0, 1, 72
+	IF CFLAG:LOCAL:0:307 > 0
+		PRINTFORM %CSVNAME:LOCAL:0%
+		LOCAL:9 = STRLEN:%CSVNAME:LOCAL:0%
+		;名前幅合わせ
+		FOR LOCAL:8, LOCAL:9, 12
+			PRINTFORM 　
+		NEXT
+		PRINTFORML {CFLAG:LOCAL:0:307}枚  +{CFLAG:LOCAL:0:303}  +{CFLAG:LOCAL:0:304}  +{CFLAG:LOCAL:0:305}  +{CFLAG:LOCAL:0:306}
+	ENDIF
+NEXT
+PRINTL
+PRINTFORML 合計カード数:
+LOCAL:9 = 0
+FOR LOCAL:0, 1, 72
+	LOCAL:9 += CFLAG:LOCAL:0:307
+NEXT
+PRINTFORML {LOCAL:9}枚
+WAIT
+RETURN 1
+
+;--------------------------------------------------
+; イベントボード発揮値にカード補正を加算
+; ARG:0=キャラNo ARG:1=補正タイプ(0-3) -> RESULT
+;--------------------------------------------------
+@CARD_BONUS_FOR_HAKKIICHI
+CALL CARD_GET_BONUS, ARG:0, ARG:1
+RETURN RESULT
