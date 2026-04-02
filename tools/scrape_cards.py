@@ -1,25 +1,18 @@
 #!/usr/bin/env python3
 """
-hatotank.net/ensemble_girls/egcardlist.php からカードデータを取得して card_data.csv に保存する
+https://hatotank.net/kmskwiki/chara/N キャラ個別ページからカードデータを取得
 
-ページ構造（debug_cardlist.html から確認済み）:
-  No.X キャラ名 (セクションヘッダー)
-  基本：キャラ名 / 学年 (クラス)
-  レア：N/R/SR/SSR/UR
-  タグ：部活名
-  属性：
-  必殺技：カード名（スキル名）
-  マイページセリフ：...
+ページ構造（chara/1 から確認済み）:
+  テーブル行: [画像] | ID | ☆N(SR) | [タイトル]キャラ名
 
 使い方:
   cd tools
-  python scrape_cards.py              # 全ページ取得（1〜68ページ）
-  python scrape_cards.py --local      # debug_cardlist.html を使ってページ1だけパース（テスト用）
-  python scrape_cards.py --pages 3    # 先頭3ページだけ取得（テスト用）
-  python scrape_cards.py --inspect 2  # ページ2のHTMLを debug_page2.html に保存して終了
+  python scrape_cards.py              # chara/1 〜 chara/200 を取得
+  python scrape_cards.py --max 10     # chara/1 〜 chara/10 だけ（テスト）
+  python scrape_cards.py --inspect 1  # chara/1 のHTMLを debug_chara1.html に保存
 
 出力: tools/card_data.csv
-  id, char_name, rarity, rarity_name, card_name, bonus_type
+  id, char_name, card_id, rarity, rarity_name, card_title, card_name, bonus_type
 """
 
 import argparse
@@ -30,7 +23,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-BASE_URL = "https://hatotank.net/ensemble_girls/egcardlist.php"
+BASE = "https://hatotank.net/kmskwiki/chara"
 OUT_CSV = Path("card_data.csv")
 
 HEADERS = {
@@ -38,24 +31,44 @@ HEADERS = {
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-    "Referer": "https://hatotank.net/ensemble_girls/",
+    "Referer": "https://hatotank.net/kmskwiki/",
 }
 
-RARITY_MAP = {"UR": 5, "SSR": 4, "SR": 3, "R": 2, "N": 1}
-
-# タグ（部活）→ ボーナスタイプ推定
-TAG_BONUS_MAP = {
-    "音楽": 0, "演劇": 0, "文化": 0, "芸術": 0, "合唱": 0, "軽音": 0,
-    "バレー": 1, "バスケ": 1, "サッカー": 1, "テニス": 1, "陸上": 1,
-    "ラクロス": 1, "体操": 1, "水泳": 1, "剣道": 1, "柔道": 1,
-    "科学": 2, "数学": 2, "文学": 2, "料理": 2, "茶道": 2, "書道": 2,
+# ☆N(TYPE) の TYPE → 数値・名称マッピング
+# HR=Hyper Rare, MR=Mega Rare, LR=Legend Rare 等の独自表記も対応
+RARITY_ABBR = {
+    "N": (1, "N"), "R": (2, "R"), "HR": (2, "R"),
+    "SR": (3, "SR"), "SSR": (4, "SSR"),
+    "UR": (5, "UR"), "MR": (5, "UR"), "LR": (5, "UR"),
 }
+# ☆数 → レア度フォールバック（括弧内TYPE不明のとき）
+STAR_RARITY = {1: (1,"N"), 2: (1,"N"), 3: (2,"R"), 4: (3,"SR"),
+               5: (4,"SSR"), 6: (5,"UR"), 7: (5,"UR")}
 
 
-def fetch_html(url: str, save_as: str = None) -> str:
+def parse_rarity(text: str):
+    """
+    '☆4(SR)' や '☆5(UR)' などからレア度数値と略称を返す
+    """
+    text = text.strip()
+    # 括弧内の略称を優先
+    m = re.search(r'\(([A-Za-z]+)\)', text)
+    if m:
+        abbr = m.group(1).upper()
+        if abbr in RARITY_ABBR:
+            return RARITY_ABBR[abbr]
+    # ☆数からフォールバック
+    m = re.search(r'[★☆](\d)', text)
+    if m:
+        stars = int(m.group(1))
+        return STAR_RARITY.get(stars, (1, "N"))
+    return (1, "N")
+
+
+def fetch(url: str, save_as: str = None) -> str | None:
     req = urllib.request.Request(url, headers=HEADERS)
     try:
-        resp = urllib.request.urlopen(req, timeout=20)
+        resp = urllib.request.urlopen(req, timeout=15)
         raw = resp.read()
         for enc in ("utf-8", "shift_jis", "cp932", "euc-jp"):
             try:
@@ -69,6 +82,8 @@ def fetch_html(url: str, save_as: str = None) -> str:
             Path(save_as).write_text(html, encoding="utf-8")
         return html
     except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
         print(f"  HTTP {e.code}: {url}")
         return ""
     except Exception as e:
@@ -76,265 +91,179 @@ def fetch_html(url: str, save_as: str = None) -> str:
         return ""
 
 
-def page_url(page_no: int) -> str:
-    if page_no == 1:
-        return BASE_URL
-    return f"{BASE_URL}?p={page_no}"
-
-
-def detect_max_page(html: str) -> int:
-    """ページネーションから最大ページ数を取得"""
-    # "1|2|3|...|68" のようなリンク列を探す
-    m = re.search(r'\|\s*(\d+)\s*$', html.replace('\n', ' '))
-    if m:
-        return int(m.group(1))
-    # <a href="...p=N"> の最大値を探す
-    nums = re.findall(r'[?&]p=(\d+)', html)
-    if nums:
-        return max(int(n) for n in nums)
-    return 1
-
-
 def strip_tags(s: str) -> str:
     return html_module.unescape(re.sub(r'<[^>]+>', '', s)).strip()
 
 
-def guess_bonus_type(tag: str, skill: str) -> int:
-    for keyword, btype in TAG_BONUS_MAP.items():
-        if keyword in tag or keyword in skill:
-            return btype
-    return hash(skill) % 4
+def get_char_name_from_page(html: str) -> str:
+    """ページタイトルからキャラ名を取得"""
+    # <title>キャラ名 - kmskwiki</title>
+    m = re.search(r'<title[^>]*>\s*([^<\-|]+)', html, re.IGNORECASE)
+    if m:
+        name = m.group(1).strip()
+        if name:
+            return name
+    # h1
+    m = re.search(r'<h1[^>]*>\s*([^<]+)\s*</h1>', html, re.IGNORECASE)
+    if m:
+        return strip_tags(m.group(1))
+    return ""
 
 
-def parse_page(html: str) -> list[dict]:
+def parse_cards(html: str, char_name: str) -> list[dict]:
     """
-    ページHTMLからカードエントリを解析する
+    ページHTMLからカードテーブルを解析
 
-    各エントリの形式:
-      <セクションヘッダー> No.X キャラ名
-      レア：N/R/SR/SSR/UR
-      必殺技：スキル名（= カード名として使用）
-      タグ：部活名（ボーナスタイプ推定に使用）
+    想定テーブル形式（各行）:
+      <td>画像</td> <td>カードID</td> <td>☆N(SR)</td> <td>[タイトル]キャラ名</td>
     """
     cards = []
 
-    # セクション分割: "No.数字 キャラ名" のヘッダーで区切る
-    # <th>, <h2>, <h3>, <td class="..."> などいろんなタグが使われる可能性あり
-    # まずテキスト全体を行に分解してパターンマッチ
-    text = re.sub(r'<br\s*/?>', '\n', html, flags=re.IGNORECASE)
-    text = re.sub(r'</p>', '\n', text, flags=re.IGNORECASE)
-    text = re.sub(r'</div>', '\n', text, flags=re.IGNORECASE)
-    text = re.sub(r'</tr>', '\n', text, flags=re.IGNORECASE)
-    text = re.sub(r'</td>', '\t', text, flags=re.IGNORECASE)
-    text = re.sub(r'</th>', '\t', text, flags=re.IGNORECASE)
-    lines = [strip_tags(line) for line in text.split('\n')]
-    lines = [l for l in lines if l]
+    # テーブル行を全て取得
+    rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL | re.IGNORECASE)
+    for row in rows:
+        cells_raw = re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.DOTALL | re.IGNORECASE)
+        cells = [strip_tags(c) for c in cells_raw]
+        cells = [c for c in cells if c]  # 空セル除去
 
-    # エントリ開始パターン: "No.1 高原ちあき" のような行
-    NO_PAT = re.compile(r'^No\.(\d+)\s+(.+)$')
-    # フィールドパターン
-    RARITY_PAT = re.compile(r'^レア[ィリ]?[ティ]?[：:]\s*(UR|SSR|SR|R|N)\b', re.IGNORECASE)
-    SKILL_PAT = re.compile(r'^必殺技[：:]\s*(.+)$')
-    TAG_PAT = re.compile(r'^タグ[：:]\s*(.+)$')
+        if len(cells) < 3:
+            continue
 
-    current_no = None
-    current_char = ""
-    current_rarity = None
-    current_skill = ""
-    current_tag = ""
+        # 列を特定
+        card_id = None
+        rarity_val = None
+        rarity_name = None
+        card_name_full = None
 
-    def flush():
-        nonlocal current_no, current_char, current_rarity, current_skill, current_tag
-        if current_no is not None and current_rarity and current_skill:
-            cards.append({
-                "no": current_no,
-                "char_name": current_char,
-                "rarity": RARITY_MAP.get(current_rarity, 1),
-                "rarity_name": current_rarity,
-                "card_name": current_skill,
-                "bonus_type": guess_bonus_type(current_tag, current_skill),
-            })
-        current_no = None
-        current_char = ""
-        current_rarity = None
-        current_skill = ""
-        current_tag = ""
-
-    for line in lines:
-        # タブ区切りのセルも処理
-        for cell in line.split('\t'):
-            cell = cell.strip()
-            if not cell:
+        for cell in cells:
+            # カードID: 数字のみ
+            if card_id is None and re.match(r'^\d{3,5}$', cell):
+                card_id = int(cell)
                 continue
 
-            m = NO_PAT.match(cell)
+            # レア度: ☆N(SR) パターン
+            if rarity_val is None and re.search(r'[☆★]\d', cell):
+                rarity_val, rarity_name = parse_rarity(cell)
+                continue
+
+            # カード名: [タイトル]キャラ名 パターン
+            if card_name_full is None and re.match(r'^\[.+\].+', cell):
+                card_name_full = cell
+                continue
+            # または「タイトル キャラ名」など角括弧なしでもキャラ名を含む
+            if card_name_full is None and char_name and char_name in cell and len(cell) > len(char_name):
+                card_name_full = cell
+                continue
+
+        if card_id and rarity_val and card_name_full:
+            # [タイトル]キャラ名 → タイトル部分を抽出
+            m = re.match(r'^\[(.+?)\](.+)$', card_name_full)
             if m:
-                flush()
-                current_no = int(m.group(1))
-                current_char = m.group(2).strip()
-                continue
+                card_title = m.group(1)
+                card_char = m.group(2).strip()
+            else:
+                card_title = card_name_full
+                card_char = char_name
 
-            m = RARITY_PAT.match(cell)
-            if m and current_no is not None:
-                rarity = m.group(1).upper()
-                if rarity in RARITY_MAP:
-                    current_rarity = rarity
-                continue
+            cards.append({
+                "char_name": card_char or char_name,
+                "card_id": card_id,
+                "rarity": rarity_val,
+                "rarity_name": rarity_name,
+                "card_title": card_title,
+                "card_name": card_name_full,
+            })
 
-            m = SKILL_PAT.match(cell)
-            if m and current_no is not None:
-                current_skill = m.group(1).strip()
-                continue
-
-            m = TAG_PAT.match(cell)
-            if m and current_no is not None:
-                current_tag = m.group(1).strip()
-                continue
-
-    flush()
     return cards
 
 
-def run_local():
-    """
-    ローカルHTMLファイルを全部パース
-    読み込み対象（存在するものを全て）:
-      debug_cardlist.html  ← 最初のデバッグファイル
-      debug_page1.html, debug_page2.html, ... ← 手動保存ページ
-    ブラウザで各ページを「名前を付けて保存」→ debug_pageN.html で保存すればOK
-    """
-    import glob
+def scrape_all(max_id: int = 200) -> list[dict]:
     all_cards = []
-    seen_nos = set()
+    consecutive_404 = 0
 
-    # 対象ファイルを収集
-    files = []
-    if Path("debug_cardlist.html").exists():
-        files.append(("debug_cardlist.html", Path("debug_cardlist.html")))
-    for p in sorted(Path(".").glob("debug_page*.html"),
-                    key=lambda x: int(re.search(r'(\d+)', x.name).group(1)
-                                      if re.search(r'(\d+)', x.name) else 0)):
-        files.append((p.name, p))
+    for cid in range(1, max_id + 1):
+        url = f"{BASE}/{cid}"
+        html = fetch(url)
 
-    if not files:
-        print("ローカルHTMLファイルが見つかりません")
-        print("  debug_cardlist.html または debug_pageN.html を tools/ フォルダに置いてください")
-        return []
-
-    for fname, fpath in files:
-        html = fpath.read_text(encoding="utf-8", errors="replace")
-        cards = parse_page(html)
-        # 重複除去（同じ No. は一度だけ）
-        new = [c for c in cards if c["no"] not in seen_nos]
-        seen_nos.update(c["no"] for c in new)
-        print(f"  {fname}: {len(cards)}件 (新規{len(new)}件)")
-        if cards:
-            sample = cards[0]
-            print(f"    例: No.{sample['no']} [{sample['rarity_name']}] {sample['char_name']}  {sample['card_name']}")
-        all_cards.extend(new)
-
-    print(f"\n合計: {len(all_cards)}件")
-    return all_cards
-
-
-def scrape_all(max_pages: int = 0) -> list[dict]:
-    all_cards = []
-
-    # ページ1取得（最大ページ数も確認）
-    print(f"取得中: {page_url(1)}")
-    html1 = fetch_html(page_url(1), save_as="debug_page1.html")
-    if not html1:
-        print("ページ1の取得に失敗しました")
-        return []
-
-    detected = detect_max_page(html1)
-    print(f"最大ページ検出: {detected}")
-    total = max_pages if (max_pages and max_pages < detected) else detected
-
-    cards = parse_page(html1)
-    print(f"  ページ1: {len(cards)}件")
-    all_cards.extend(cards)
-
-    for page in range(2, total + 1):
-        url = page_url(page)
-        print(f"  ページ{page}/{total}: {url}")
-        html = fetch_html(url)
-        if not html:
-            print(f"    取得失敗、スキップ")
+        if html is None:
+            consecutive_404 += 1
+            if consecutive_404 >= 5:
+                print(f"  5連続404（ID {cid-4}〜{cid}）終了")
+                break
+            print(f"  [{cid:3d}] 404")
             continue
-        c = parse_page(html)
-        print(f"    {len(c)}件")
-        all_cards.extend(c)
-        time.sleep(0.5)
+
+        consecutive_404 = 0
+
+        if not html:
+            print(f"  [{cid:3d}] 取得失敗")
+            continue
+
+        char_name = get_char_name_from_page(html)
+        cards = parse_cards(html, char_name)
+        print(f"  [{cid:3d}] {char_name:12s}: {len(cards)}枚")
+        all_cards.extend(cards)
+        time.sleep(0.4)
 
     return all_cards
 
 
 def assign_ids(cards: list[dict]) -> list[dict]:
-    # No. 順でソートして連番 id を付与
-    cards.sort(key=lambda c: c["no"])
+    cards.sort(key=lambda c: c["card_id"])
     for i, c in enumerate(cards, 1):
         c["id"] = i
     return cards
 
 
 def save_csv(cards: list[dict]):
-    if not cards:
-        print("カードが0件です、保存しません")
-        return
-    fieldnames = ["id", "char_name", "rarity", "rarity_name", "card_name", "bonus_type"]
+    fieldnames = ["id", "char_name", "card_id", "rarity", "rarity_name",
+                  "card_title", "card_name"]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(cards)
 
     from collections import Counter
-    rarity_count = Counter(c["rarity_name"] for c in cards)
-    char_count = Counter(c["char_name"] for c in cards)
-    print(f"\n保存: {OUT_CSV}  ({len(cards)}件)")
-    print("レア度分布:", dict(sorted(rarity_count.items())))
-    print(f"キャラ数: {len(char_count)}人")
+    rc = Counter(c["rarity_name"] for c in cards)
+    cc = Counter(c["char_name"] for c in cards)
+    print(f"\n保存: {OUT_CSV}  {len(cards)}件")
+    print("レア度分布:", dict(sorted(rc.items())))
+    print(f"キャラ数: {len(cc)}人")
+    print("カード数多い上位5:", cc.most_common(5))
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local", action="store_true",
-                        help="debug_cardlist.html をパースしてテスト（通信なし）")
-    parser.add_argument("--pages", type=int, default=0,
-                        help="取得するページ数上限（0=全件）")
-    parser.add_argument("--inspect", type=int, metavar="PAGE",
-                        help="指定ページのHTMLを debug_pageN.html に保存して終了")
+    parser.add_argument("--max", type=int, default=200,
+                        help="最大キャラID（デフォルト200）")
+    parser.add_argument("--inspect", type=int, metavar="N",
+                        help="chara/N のHTMLを debug_charaN.html に保存してパース結果表示")
     args = parser.parse_args()
 
-    print("=== あんガル カードデータ取得 (egcardlist) ===\n")
+    print("=== あんガル カードデータ取得 (kmskwiki/chara/N) ===\n")
 
-    if args.inspect:
-        url = page_url(args.inspect)
+    if args.inspect is not None:
+        url = f"{BASE}/{args.inspect}"
         print(f"取得: {url}")
-        html = fetch_html(url, save_as=f"debug_page{args.inspect}.html")
-        if html:
-            cards = parse_page(html)
-            print(f"検出件数: {len(cards)}")
-            for c in cards[:10]:
-                print(f"  No.{c['no']:4d} [{c['rarity_name']}] {c['char_name']:12s}  {c['card_name']}")
+        html = fetch(url, save_as=f"debug_chara{args.inspect}.html")
+        if not html:
+            print("取得失敗")
+            return
+        char_name = get_char_name_from_page(html)
+        print(f"キャラ名: {char_name}")
+        cards = parse_cards(html, char_name)
+        print(f"カード数: {len(cards)}枚")
+        for c in cards:
+            print(f"  ID:{c['card_id']:5d} [{c['rarity_name']:3s}] {c['card_name']}")
         return
 
-    if args.local:
-        cards = run_local()
-        if cards:
-            cards = assign_ids(cards)
-            save_csv(cards)
+    cards = scrape_all(max_id=args.max)
+    if not cards:
+        print("カードを取得できませんでした")
+        print("  python scrape_cards.py --inspect 1  でHTML構造を確認してください")
         return
-
-    cards = scrape_all(max_pages=args.pages)
-    if cards:
-        cards = assign_ids(cards)
-        save_csv(cards)
-    else:
-        print("\n取得できませんでした。")
-        print("まず debug_cardlist.html が正しく取得できているか確認してください:")
-        print("  python scrape_cards.py --inspect 1")
-        print("  # → debug_page1.html を確認して構造を調べる")
+    cards = assign_ids(cards)
+    save_csv(cards)
 
 
 if __name__ == "__main__":
