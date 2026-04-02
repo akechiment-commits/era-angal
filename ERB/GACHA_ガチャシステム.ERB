@@ -9,7 +9,7 @@
 ;   FLAG:116 = プラチナガチャチケット
 ;
 ; カード所持(GLOBAL):
-;   GLOBAL:(3000+card_id) = 所持数（0=未所持）
+;   GLOBAL:(3000+card_id) = 所持枚数（0=未所持）
 ;
 ; キャラ補正(CFLAG):
 ;   CFLAG:N:303 = 表現力ボーナス累計
@@ -17,6 +17,13 @@
 ;   CFLAG:N:305 = 学力ボーナス累計
 ;   CFLAG:N:306 = 好感度ボーナス累計
 ;   CFLAG:N:307 = 所持カード枚数
+;
+; ガチャ排出率 (RAND:1000):
+;   ブロンズ: N45% R30% HR14% SR8% UR2.5% MR0.5%
+;   シルバー: N5%  R20% HR20% SR35% UR18% MR2%
+;   ゴールド: N0%  R3%  HR7%  SR35% UR45% MR10%
+;   プラチナ: N0%  R0%  HR0%  SR15% UR60% MR25%
+;   ダイヤ:   N0%  R2%  HR5%  SR28% UR40% MR25%
 ;==================================================
 
 ;--------------------------------------------------
@@ -33,11 +40,11 @@ PRINTFORML シルバーチケット：{FLAG:114}枚
 PRINTFORML ゴールドチケット：{FLAG:115}枚
 PRINTFORML プラチナチケット：{FLAG:116}枚
 PRINTL
-PRINTFORML [1] ブロンズガチャ（チケット1枚）N/R/SR
-PRINTFORML [2] シルバーガチャ（チケット1枚）R/SR/SSR
-PRINTFORML [3] ゴールドガチャ（チケット1枚）SR/SSR/UR
-PRINTFORML [4] プラチナガチャ（チケット1枚）SSR/UR
-PRINTFORML [5] ダイヤガチャ（ダイヤ5個）SR/SSR/UR
+PRINTFORML [1] ブロンズガチャ（チケット1枚） N/R/HR/SR/UR/MR
+PRINTFORML [2] シルバーガチャ（チケット1枚） R/HR/SR/UR/MR
+PRINTFORML [3] ゴールドガチャ（チケット1枚） SR/UR/MR
+PRINTFORML [4] プラチナガチャ（チケット1枚） SR/UR/MR
+PRINTFORML [5] ダイヤガチャ（ダイヤ5個）     R～MR
 PRINTL
 PRINTFORML [0] 戻る
 INPUT
@@ -84,97 +91,113 @@ GOTO LOOP
 
 ;--------------------------------------------------
 ; ガチャ1回実行 ARG:0=ガチャ種別(1-5)
-; RESULT = 引いたカードID
+; アルゴリズム:
+;   1. レア度決定
+;   2. そのレア度を持つキャラを等確率で選択
+;   3. そのキャラのそのレア度のカードを選択
 ;--------------------------------------------------
 @GACHA_PULL
-;レア度決定
-LOCAL:9 = RAND:100
-LOCAL:8 = 0  ;レア度(1=N 2=R 3=SR 4=SSR 5=UR)
+LOCAL:9 = RAND:1000  ;0-999
+LOCAL:8 = 0          ;決定レア度(1=N 2=R 3=HR 4=SR 5=UR 6=MR)
 
 SELECTCASE ARG:0
-CASE 1  ;ブロンズ: N60% R35% SR5%
-	IF LOCAL:9 < 60
+CASE 1  ;ブロンズ: N45% R30% HR14% SR8% UR2.5% MR0.5%
+	IF LOCAL:9 < 450
 		LOCAL:8 = 1
-	ELSEIF LOCAL:9 < 95
+	ELSEIF LOCAL:9 < 750
 		LOCAL:8 = 2
-	ELSE
+	ELSEIF LOCAL:9 < 890
 		LOCAL:8 = 3
+	ELSEIF LOCAL:9 < 970
+		LOCAL:8 = 4
+	ELSEIF LOCAL:9 < 995
+		LOCAL:8 = 5
+	ELSE
+		LOCAL:8 = 6
 	ENDIF
-CASE 2  ;シルバー: R50% SR40% SSR10%
+CASE 2  ;シルバー: N5% R20% HR20% SR35% UR18% MR2%
 	IF LOCAL:9 < 50
+		LOCAL:8 = 1
+	ELSEIF LOCAL:9 < 250
 		LOCAL:8 = 2
-	ELSEIF LOCAL:9 < 90
+	ELSEIF LOCAL:9 < 450
 		LOCAL:8 = 3
-	ELSE
+	ELSEIF LOCAL:9 < 800
 		LOCAL:8 = 4
-	ENDIF
-CASE 3  ;ゴールド: SR40% SSR45% UR15%
-	IF LOCAL:9 < 40
-		LOCAL:8 = 3
-	ELSEIF LOCAL:9 < 85
-		LOCAL:8 = 4
-	ELSE
+	ELSEIF LOCAL:9 < 980
 		LOCAL:8 = 5
-	ENDIF
-CASE 4  ;プラチナ: SSR55% UR45%
-	IF LOCAL:9 < 55
-		LOCAL:8 = 4
 	ELSE
-		LOCAL:8 = 5
+		LOCAL:8 = 6
 	ENDIF
-CASEELSE  ;ダイヤ: R30% SR45% SSR22% UR3%
+CASE 3  ;ゴールド: R3% HR7% SR35% UR45% MR10%
 	IF LOCAL:9 < 30
 		LOCAL:8 = 2
-	ELSEIF LOCAL:9 < 75
+	ELSEIF LOCAL:9 < 100
 		LOCAL:8 = 3
-	ELSEIF LOCAL:9 < 97
+	ELSEIF LOCAL:9 < 450
 		LOCAL:8 = 4
-	ELSE
+	ELSEIF LOCAL:9 < 900
 		LOCAL:8 = 5
+	ELSE
+		LOCAL:8 = 6
+	ENDIF
+CASE 4  ;プラチナ: SR15% UR60% MR25%
+	IF LOCAL:9 < 150
+		LOCAL:8 = 4
+	ELSEIF LOCAL:9 < 750
+		LOCAL:8 = 5
+	ELSE
+		LOCAL:8 = 6
+	ENDIF
+CASEELSE  ;ダイヤ: R2% HR5% SR28% UR40% MR25%
+	IF LOCAL:9 < 20
+		LOCAL:8 = 2
+	ELSEIF LOCAL:9 < 70
+		LOCAL:8 = 3
+	ELSEIF LOCAL:9 < 350
+		LOCAL:8 = 4
+	ELSEIF LOCAL:9 < 750
+		LOCAL:8 = 5
+	ELSE
+		LOCAL:8 = 6
 	ENDIF
 ENDSELECT
 
-;パートナーのカードプールから選択（TARGET設定済みを優先）
-LOCAL:7 = 0
-IF TARGET >= 0
-	CALL CARD_GET_CHARPOOL, TARGET, LOCAL:8
-	IF LOCAL:9 > 0
-		LOCAL:6 = RAND:LOCAL:9
-		LOCAL:7 = LOCAL:LOCAL:6
+;そのレア度を持つキャラ一覧を取得
+$RETRY_RARITY
+CALL CARD_GET_CHARS_FOR_RARITY, LOCAL:8
+IF LOCAL:9 == 0
+	;そのレア度のカードがない → 1段下げて再試行
+	LOCAL:8 -= 1
+	IF LOCAL:8 >= 1
+		GOTO RETRY_RARITY
+	ELSE
+		PRINTFORMW カードデータが見つかりません。
+		RETURN 0
 	ENDIF
 ENDIF
 
-;パートナーにカードがない場合は全キャラから選択
-IF LOCAL:7 <= 0
-	CALL CARD_GET_CHARPOOL, 0, LOCAL:8
-	IF LOCAL:9 > 0
-		LOCAL:6 = RAND:LOCAL:9
-		LOCAL:7 = LOCAL:LOCAL:6
-	ENDIF
-ENDIF
+;キャラを等確率で選択
+LOCAL:6 = RAND:LOCAL:9
+LOCAL:5 = LOCAL:LOCAL:6  ;選ばれたキャラNo
 
-;それでもなければレア度を下げて再試行
-IF LOCAL:7 <= 0
-	SIF LOCAL:8 > 1
-		LOCAL:8 -= 1
-	CALL CARD_GET_CHARPOOL, 0, LOCAL:8
-	IF LOCAL:9 > 0
-		LOCAL:6 = RAND:LOCAL:9
-		LOCAL:7 = LOCAL:LOCAL:6
-	ENDIF
-ENDIF
-
-IF LOCAL:7 <= 0
-	PRINTFORMW カードデータがまだ登録されていません。
+;そのキャラのそのレア度のカードを取得
+CALL CARD_GET_CHARPOOL, LOCAL:5, LOCAL:8
+IF LOCAL:9 == 0
+	PRINTFORMW カードが見つかりません。
 	RETURN 0
 ENDIF
 
-;カード取得処理
+;カードを等確率で選択
+LOCAL:4 = RAND:LOCAL:9
+LOCAL:7 = LOCAL:LOCAL:4  ;カードID
+
 CALL GACHA_ACQUIRE_CARD, LOCAL:7
 RETURN LOCAL:7
 
 ;--------------------------------------------------
-; カード取得 ARG:0=カードID
+; カード取得処理 ARG:0=カードID
+; 重複時もボーナス加算（減衰あり）
 ;--------------------------------------------------
 @GACHA_ACQUIRE_CARD
 LOCAL:10 = ARG:0  ;カードIDを保存
@@ -182,16 +205,18 @@ CALL CARD_GET_DATA, LOCAL:10
 LOCAL:0 = RESULT:0  ;キャラNo
 LOCAL:1 = RESULT:1  ;レア度
 LOCAL:2 = RESULT:2  ;ボーナスタイプ
-LOCAL:3 = RESULT:3  ;ボーナス値
+LOCAL:3 = RESULT:3  ;基本ボーナス値
 
 ;レア度演出
 DRAWLINE
-IF LOCAL:1 == 5
+IF LOCAL:1 == 6
+	PRINTL ★★★★★★ MR ！！！！！！
+ELSEIF LOCAL:1 == 5
 	PRINTL ★★★★★ UR ！！！！！
 ELSEIF LOCAL:1 == 4
-	PRINTL ★★★★ SSR ！！！
+	PRINTL ★★★★ SR ！！！
 ELSEIF LOCAL:1 == 3
-	PRINTL ★★★ SR ！
+	PRINTL ★★★ HR ！
 ELSEIF LOCAL:1 == 2
 	PRINTL ★★ R
 ELSE
@@ -205,32 +230,44 @@ IF LOCAL:0 > 0
 	PRINTFORML キャラ: %CALLNAME:TARGET%
 ENDIF
 
-;初回取得/重複チェック
+;所持枚数確認
 LOCAL:5 = 3000 + LOCAL:10
 LOCAL:6 = GLOBAL:LOCAL:5
+
+;重複ボーナス計算（1枚目=全額, 2枚目=50%, 3枚目以降=20%, 最低1）
+LOCAL:4 = LOCAL:3
 IF LOCAL:6 == 0
-	PRINTL ★ NEW！
+	PRINTL ★ NEW！（初回ボーナス）
+ELSEIF LOCAL:6 == 1
+	LOCAL:4 = LOCAL:3 / 2
+	SIF LOCAL:4 < 1
+		LOCAL:4 = 1
+	PRINTFORML （重複 {LOCAL:6+1}枚目 → ボーナス半減）
 ELSE
-	PRINTL （重複）
+	LOCAL:4 = LOCAL:3 / 5
+	SIF LOCAL:4 < 1
+		LOCAL:4 = 1
+	PRINTFORML （重複 {LOCAL:6+1}枚目 → ボーナス20%）
 ENDIF
+
 GLOBAL:LOCAL:5 += 1
 
-;キャラボーナス適用（初回取得時のみ）
-IF LOCAL:6 == 0 && LOCAL:0 > 0
+;キャラボーナス適用
+IF LOCAL:0 > 0
 	TARGET = LOCAL:0
 	SELECTCASE LOCAL:2
 	CASE 0
-		CFLAG:TARGET:303 += LOCAL:3
-		PRINTFORML %CALLNAME:TARGET%の表現力 +{LOCAL:3}！
+		CFLAG:TARGET:303 += LOCAL:4
+		PRINTFORML %CALLNAME:TARGET%の表現力 +{LOCAL:4}！（累計+{CFLAG:TARGET:303}）
 	CASE 1
-		CFLAG:TARGET:304 += LOCAL:3
-		PRINTFORML %CALLNAME:TARGET%の運動力 +{LOCAL:3}！
+		CFLAG:TARGET:304 += LOCAL:4
+		PRINTFORML %CALLNAME:TARGET%の運動力 +{LOCAL:4}！（累計+{CFLAG:TARGET:304}）
 	CASE 2
-		CFLAG:TARGET:305 += LOCAL:3
-		PRINTFORML %CALLNAME:TARGET%の学力 +{LOCAL:3}！
+		CFLAG:TARGET:305 += LOCAL:4
+		PRINTFORML %CALLNAME:TARGET%の学力 +{LOCAL:4}！（累計+{CFLAG:TARGET:305}）
 	CASEELSE
-		CFLAG:TARGET:306 += LOCAL:3
-		PRINTFORML %CALLNAME:TARGET%の好感度 +{LOCAL:3}！
+		CFLAG:TARGET:306 += LOCAL:4
+		PRINTFORML %CALLNAME:TARGET%の好感度 +{LOCAL:4}！（累計+{CFLAG:TARGET:306}）
 	ENDSELECT
 	CFLAG:TARGET:307 += 1
 ENDIF
