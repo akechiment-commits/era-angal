@@ -1,68 +1,289 @@
-;---------------------------------------------------------
-;イベントボード周回システム
-;体力消費でサイコロを振り、マスを進む
-;イベントマスで気力消費→PT獲得
-;PT量は好感度・学力・部活力に応じてボーナス
+;==================================================
+; EVENT_BOARD_イベントボード周回.ERB v2
+; 新仕様:
+;   体力消費 → エリア進行 → ミッション発生
+;   → 気力消費 → 発揮値を積む → ミッション達成 → PTゲット
 ;
-;ボード(20マス 0-19):
-;  [ .][イ][ .][ボ][ .][イ][ .][ .][イ][休]  ← 0～9
-;  [ .][イ][ .][ボ][ .][イ][ .][ .][イ][ .][ボ] ← 10～19(19はボーナス)
-;  イ=イベントマス, ボ=ボーナスマス, 休=休憩マス
-;
-;使用変数:
-;  FLAG:33 = 現在のボード位置(0-19)
-;  FLAG:32 = 今月イベントPT(月末リセット)
-;---------------------------------------------------------
+; 使用変数:
+;   TFLAG:91 = イベントタイプ(0:収拾/1:バトル/2:宝探し/3:すごろく)
+;   FLAG:32  = 月間イベントPT累計（月初リセット）
+;   FLAG:33  = すごろく盤面位置(タイプ3のみ, 0-19)
+;   FLAG:34  = ミッション進捗（累積発揮値）
+;   FLAG:35  = ミッション目標値
+;   FLAG:36  = ミッション種別(0=なし/1=通常/2=特大/3=緊急)
+;==================================================
 
 @EVENT_BOARD_MAIN
 IF TARGET < 0
-	PRINTFORMW パートナーを選んでいません。
+	PRINTFORMW パートナーが選択されていません。
 	RETURN 0
 ENDIF
+
+;イベントタイプ選択
+$TYPE_SELECT
+DRAWLINE
+PRINTFORML 【イベントボード】　%NAME:TARGET%
+PRINTL
+PRINTFORML [0] 収拾イベント　（表現力が活きる）
+PRINTFORML [1] バトルイベント（運動力が活きる）
+PRINTFORML [2] 宝探しイベント（学力が活きる）
+PRINTFORML [3] すごろくイベント（好感度が活きる）
+PRINTL
+PRINTFORML [9] 戻る
+INPUT
+IF RESULT == 9
+	RETURN 0
+ELSEIF RESULT == 0
+	TFLAG:91 = 0
+ELSEIF RESULT == 1
+	TFLAG:91 = 1
+ELSEIF RESULT == 2
+	TFLAG:91 = 2
+ELSEIF RESULT == 3
+	TFLAG:91 = 3
+ELSE
+	GOTO TYPE_SELECT
+ENDIF
+
+;ミッション状態クリア（新規開始）
+FLAG:34 = 0
+FLAG:35 = 0
+FLAG:36 = 0
 
 $BOARD_LOOP
 DRAWLINE
 CALL EVENT_BOARD_STATUS
 
-LOCAL:0 = MAXBASE:MASTER:0 / 20
-PRINTL
-PRINTFORML [1] サイコロを振る（体力-{LOCAL:0}）
-PRINTFORML [0] やめる
-PRINTL
-IF BASE:MASTER:0 < LOCAL:0
-	PRINTFORMW 体力が足りない。もう動けない。
-	RETURN 0
-ENDIF
-INPUT
-IF RESULT == 1
-	CALL EVENT_BOARD_ROLL
-	GOTO BOARD_LOOP
-ELSEIF RESULT == 0
-	RETURN 0
+IF FLAG:36 > 0
+	;ミッションアクティブ中
+	CALL EVENT_BOARD_MISSION_STATUS
+	PRINTL
+	LOCAL:0 = MAXBASE:MASTER:1 / 10
+	SIF LOCAL:0 < 5
+		LOCAL:0 = 5
+	PRINTFORML [1] 気力を使う（-{LOCAL:0}）
+	PRINTFORML [0] 撤退（ミッション放棄・イベント終了）
+	INPUT
+	IF RESULT == 1
+		CALL EVENT_BOARD_ATTACK
+	ELSE
+		FLAG:34 = 0
+		FLAG:35 = 0
+		FLAG:36 = 0
+		RETURN 0
+	ENDIF
 ELSE
-	GOTO BOARD_LOOP
+	;ミッションなし・進行フェーズ
+	LOCAL:0 = MAXBASE:MASTER:0 / 20
+	SIF LOCAL:0 < 5
+		LOCAL:0 = 5
+	IF TFLAG:91 == 3
+		PRINTFORML [1] サイコロを振る（体力-{LOCAL:0}）
+	ELSE
+		PRINTFORML [1] エリアを進む（体力-{LOCAL:0}）
+	ENDIF
+	PRINTFORML [0] イベント終了
+	INPUT
+	IF RESULT == 0
+		RETURN 0
+	ENDIF
+	IF TFLAG:91 == 3
+		CALL EVENT_BOARD_SUGOROKU_ADVANCE
+	ELSE
+		CALL EVENT_BOARD_ADVANCE
+	ENDIF
 ENDIF
+GOTO BOARD_LOOP
 
 ;---------------------------------------------------------
-;ステータス表示
+; ステータス表示
 ;---------------------------------------------------------
 @EVENT_BOARD_STATUS
-LOCAL:9 = FLAG:33
-PRINTFORML 【イベントボード】  現在: {LOCAL:9}マス目  今月PT: {FLAG:32}
-PRINTFORM 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}  気力:{BASE:MASTER:1}/{MAXBASE:MASTER:1}
-PRINTL
-;マップ表示（0～9 / 10～19）
+IF TFLAG:91 == 0
+	PRINTFORML 【収拾イベント】　発揮値：表現力
+ELSEIF TFLAG:91 == 1
+	PRINTFORML 【バトルイベント】　発揮値：運動力
+ELSEIF TFLAG:91 == 2
+	PRINTFORML 【宝探しイベント】　発揮値：学力
+ELSE
+	PRINTFORML 【すごろくイベント】　発揮値：好感度
+ENDIF
+CALL EVENT_BOARD_CALC_HAKKIICHI
+PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}　気力:{BASE:MASTER:1}/{MAXBASE:MASTER:1}　発揮値:{RESULT}
+PRINTFORML 今月イベントPT:{FLAG:32}
+IF TFLAG:91 == 3
+	PRINTFORML 盤面位置:{FLAG:33}/19マス
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+; ミッション状況表示
+;---------------------------------------------------------
+@EVENT_BOARD_MISSION_STATUS
+IF FLAG:36 == 1
+	PRINTFORML ▼ 通常ミッション
+ELSEIF FLAG:36 == 2
+	PRINTFORML ▼▼ 特大ミッション
+ELSE
+	PRINTFORML ▼▼▼ 緊急ミッション！
+ENDIF
+PRINTFORML 進捗: {FLAG:34} / {FLAG:35}
+LOCAL:0 = FLAG:34 * 10 / FLAG:35
+SIF LOCAL:0 > 10
+	LOCAL:0 = 10
+PRINTFORM 達成率: [
+FOR LOCAL:8, 0, 10
+	IF LOCAL:8 < LOCAL:0
+		PRINTFORM #
+	ELSE
+		PRINTFORM .
+	ENDIF
+NEXT
+PRINTFORML ] {FLAG:34 * 100 / FLAG:35}%
+RETURN 1
+
+;---------------------------------------------------------
+; エリア進行（体力消費 → ミッション発生）
+;---------------------------------------------------------
+@EVENT_BOARD_ADVANCE
+LOCAL:0 = MAXBASE:MASTER:0 / 20
+SIF LOCAL:0 < 5
+	LOCAL:0 = 5
+
+IF BASE:MASTER:0 < LOCAL:0
+	PRINTFORMW 体力が足りない！これ以上進めない。
+	RETURN 0
+ENDIF
+
+BASE:MASTER:0 -= LOCAL:0
+PRINTFORML 体力 -{LOCAL:0}　エリアを進んだ。
+
+;ミッション発生判定（通常50%/特大30%/緊急15%/回復5%）
+LOCAL:2 = RAND:100
+IF LOCAL:2 < 50
+	FLAG:36 = 1
+	FLAG:35 = 100 + RAND:201
+	FLAG:34 = 0
+	PRINTL
+	PRINTFORML ▼ 通常ミッション発生！　目標値: {FLAG:35}
+ELSEIF LOCAL:2 < 80
+	FLAG:36 = 2
+	FLAG:35 = 400 + RAND:401
+	FLAG:34 = 0
+	PRINTL
+	PRINTFORML ▼▼ 特大ミッション発生！　目標値: {FLAG:35}
+ELSEIF LOCAL:2 < 95
+	FLAG:36 = 3
+	FLAG:35 = 800 + RAND:1201
+	FLAG:34 = 0
+	PRINTL
+	PRINTFORML ▼▼▼ 緊急ミッション発生！！　目標値: {FLAG:35}
+ELSE
+	LOCAL:3 = MAXBASE:MASTER:1 / 5
+	BASE:MASTER:1 += LOCAL:3
+	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+		BASE:MASTER:1 = MAXBASE:MASTER:1
+	PRINTFORML ひと息ついた。　気力 +{LOCAL:3}
+ENDIF
+WAIT
+RETURN 1
+
+;---------------------------------------------------------
+; 攻撃（気力消費 → 発揮値を進捗に加算）
+;---------------------------------------------------------
+@EVENT_BOARD_ATTACK
+LOCAL:0 = MAXBASE:MASTER:1 / 10
+SIF LOCAL:0 < 5
+	LOCAL:0 = 5
+
+IF BASE:MASTER:1 < LOCAL:0
+	PRINTFORMW 気力が足りない！攻撃できない。
+	RETURN 0
+ENDIF
+
+CALL EVENT_BOARD_CALC_HAKKIICHI
+LOCAL:1 = RESULT
+
+BASE:MASTER:1 -= LOCAL:0
+FLAG:34 += LOCAL:1
+PRINTFORML 気力 -{LOCAL:0}　発揮値 +{LOCAL:1}　（進捗: {FLAG:34}/{FLAG:35}）
+
+IF FLAG:34 >= FLAG:35
+	CALL EVENT_BOARD_MISSION_CLEAR
+ELSE
+	WAIT
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+; ミッションクリア処理
+;---------------------------------------------------------
+@EVENT_BOARD_MISSION_CLEAR
+DRAWLINE
+IF FLAG:36 == 1
+	LOCAL:0 = 4
+	PRINTL ★ 通常ミッション クリア！
+ELSEIF FLAG:36 == 2
+	LOCAL:0 = 8
+	PRINTL ★★ 特大ミッション クリア！！
+ELSE
+	LOCAL:0 = 15
+	PRINTL ★★★ 緊急ミッション クリア！！！
+ENDIF
+FLAG:32 += LOCAL:0
+PRINTFORML イベントPT +{LOCAL:0}　（今月累計: {FLAG:32}）
+FLAG:36 = 0
+FLAG:34 = 0
+FLAG:35 = 0
+WAIT
+RETURN 1
+
+;---------------------------------------------------------
+; 発揮値計算（RETURN で返す）
+; イベントタイプにより算出方法が異なる
+;---------------------------------------------------------
+@EVENT_BOARD_CALC_HAKKIICHI
+LOCAL:0 = 10
+IF TFLAG:91 == 0
+	;収拾: 表現力 = 表現経験 * 表現素質^2 / 50000
+	LOCAL:0 = EXP:MASTER:99 * ABL:MASTER:55 * ABL:MASTER:55 / 50000
+ELSEIF TFLAG:91 == 1
+	;バトル: 運動力 = 運動経験 * 運動素質^2 / 50000
+	LOCAL:0 = EXP:MASTER:93 * ABL:MASTER:54 * ABL:MASTER:54 / 50000
+ELSEIF TFLAG:91 == 2
+	;宝探し: 学力 * 5
+	CALL CALC_ACADEMIC_LEVEL, MASTER
+	LOCAL:0 = ABL:MASTER:88 * 5
+ELSE
+	;すごろく: 好感度 / 10
+	LOCAL:0 = CFLAG:TARGET:2 / 10
+ENDIF
+SIF LOCAL:0 < 10
+	LOCAL:0 = 10
+RETURN LOCAL:0
+
+;---------------------------------------------------------
+; すごろく専用：サイコロを振って盤面を進む
+;---------------------------------------------------------
+@EVENT_BOARD_SUGOROKU_ADVANCE
+LOCAL:0 = MAXBASE:MASTER:0 / 20
+SIF LOCAL:0 < 5
+	LOCAL:0 = 5
+
+IF BASE:MASTER:0 < LOCAL:0
+	PRINTFORMW 体力が足りない！これ以上進めない。
+	RETURN 0
+ENDIF
+
+BASE:MASTER:0 -= LOCAL:0
+LOCAL:2 = RAND:6 + 1
+FLAG:33 = (FLAG:33 + LOCAL:2) % 20
+PRINTFORML 体力 -{LOCAL:0}　サイコロ: {LOCAL:2}　=> {FLAG:33}マス目
+
+;盤面マップ表示
 FOR LOCAL:8, 0, 20
-	IF LOCAL:8 == LOCAL:9
-		PRINTFORM [★]
-	ELSEIF LOCAL:8 == 1 || LOCAL:8 == 18
-		PRINTFORM [収]
-	ELSEIF LOCAL:8 == 5 || LOCAL:8 == 15
-		PRINTFORM [闘]
-	ELSEIF LOCAL:8 == 8
-		PRINTFORM [探]
-	ELSEIF LOCAL:8 == 11
-		PRINTFORM [双]
+	IF LOCAL:8 == FLAG:33
+		PRINTFORM [現]
 	ELSEIF LOCAL:8 == 3 || LOCAL:8 == 13 || LOCAL:8 == 19
 		PRINTFORM [ボ]
 	ELSEIF LOCAL:8 == 9
@@ -74,181 +295,39 @@ FOR LOCAL:8, 0, 20
 		PRINTL
 NEXT
 PRINTL
-RETURN 1
 
-;---------------------------------------------------------
-;サイコロを振って移動
-;---------------------------------------------------------
-@EVENT_BOARD_ROLL
-LOCAL:0 = RAND:6 + 1
-LOCAL:1 = MAXBASE:MASTER:0 / 20
-BASE:MASTER:0 -= LOCAL:1
-
-FLAG:33 = (FLAG:33 + LOCAL:0) % 20
-PRINTFORML => {LOCAL:0}マス進んだ → {FLAG:33}番マス
-
-;マス判定
-LOCAL:2 = FLAG:33
-IF LOCAL:2 == 1 || LOCAL:2 == 5 || LOCAL:2 == 8 || LOCAL:2 == 11 || LOCAL:2 == 15 || LOCAL:2 == 18
-	CALL EVENT_BOARD_EVENT_SQUARE
-ELSEIF LOCAL:2 == 3 || LOCAL:2 == 13 || LOCAL:2 == 19
-	CALL EVENT_BOARD_BONUS_SQUARE
-ELSEIF LOCAL:2 == 9
-	CALL EVENT_BOARD_REST_SQUARE
+;マスの効果
+IF FLAG:33 == 3 || FLAG:33 == 13 || FLAG:33 == 19
+	;ボーナスマス
+	LOCAL:3 = 4 + RAND:5
+	FLAG:32 += LOCAL:3
+	PRINTFORMW ★ボーナスマス！　PT +{LOCAL:3}　（累計: {FLAG:32}）
+ELSEIF FLAG:33 == 9
+	;休憩マス
+	LOCAL:3 = MAXBASE:MASTER:1 / 5
+	BASE:MASTER:1 += LOCAL:3
+	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+		BASE:MASTER:1 = MAXBASE:MASTER:1
+	PRINTFORMW ★休憩マス。ひと息ついた。　気力 +{LOCAL:3}
 ELSE
-	PRINTFORMW 通過。何もなかった。
-ENDIF
-RETURN 1
-
-;---------------------------------------------------------
-;イベントマス処理
-;---------------------------------------------------------
-@EVENT_BOARD_EVENT_SQUARE
-LOCAL:3 = MAXBASE:MASTER:1 / 10
-PRINTL
-PRINTFORML ★ イベントマス！
-
-;月別イベントテキスト
-LOCAL:9 = (DAY / 10 % 12 + 3) % 12 + 1
-IF LOCAL:9 == 4
-	PRINTFORML 校庭の桜が満開だ。%NAME:TARGET%と並んで眺めた。
-ELSEIF LOCAL:9 == 5
-	PRINTFORML 体育祭の練習中、%NAME:TARGET%と一緒に走った。
-ELSEIF LOCAL:9 == 6 || LOCAL:9 == 7
-	PRINTFORML 放課後の廊下で%NAME:TARGET%とばったり出会った。
-ELSEIF LOCAL:9 == 8
-	PRINTFORML 夏休みの午後、%NAME:TARGET%と時間を過ごした。
-ELSEIF LOCAL:9 == 9
-	PRINTFORML 文化祭の準備で%NAME:TARGET%と協力した。
-ELSEIF LOCAL:9 == 10 || LOCAL:9 == 11
-	PRINTFORML 秋空の下、%NAME:TARGET%と一緒に帰った。
-ELSEIF LOCAL:9 == 12
-	PRINTFORML 冬の教室で、%NAME:TARGET%と話した。
-ELSEIF LOCAL:9 == 2
-	PRINTFORML バレンタインが近い。%NAME:TARGET%が少し意識しているようだ。
-ELSE
-	PRINTFORML %NAME:TARGET%と学校の廊下で話した。
-ENDIF
-PRINTL
-
-;マス位置からイベントタイプ決定
-;1,18=収拾(表現) 5,15=バトル(運動) 8=宝探し(学力) 11=すごろく(好感度)
-IF FLAG:33 == 1 || FLAG:33 == 18
-	TFLAG:91 = 0
-	PRINTFORML 【収拾イベント】表現力が高いほど有利！
-ELSEIF FLAG:33 == 5 || FLAG:33 == 15
-	TFLAG:91 = 1
-	PRINTFORML 【バトルイベント】運動力が高いほど有利！
-ELSEIF FLAG:33 == 8
-	TFLAG:91 = 2
-	PRINTFORML 【宝探しイベント】学力が高いほど有利！
-ELSE
-	TFLAG:91 = 3
-	PRINTFORML 【すごろくイベント】好感度が高いほど有利！
-ENDIF
-IF BASE:MASTER:1 < LOCAL:3
-	PRINTFORMW 気力が足りず、参加できなかった。
-	RETURN 0
-ENDIF
-PRINTFORML [1] 気力を使って参加（気力-{LOCAL:3}）
-PRINTFORML [0] パス
-INPUT
-IF RESULT == 1
-	BASE:MASTER:1 -= LOCAL:3
-	CALL EVENT_BOARD_CALC_PT, TFLAG:91
-	PRINTFORMW イベントPT +{RESULT}！（今月累計: {FLAG:32}）
-ELSE
-	PRINTFORMW パスした。
-ENDIF
-RETURN 1
-
-;---------------------------------------------------------
-;ボーナスマス処理（PT×2、好感度+）
-;---------------------------------------------------------
-@EVENT_BOARD_BONUS_SQUARE
-PRINTL
-PRINTFORML ☆ ボーナスマス！
-PRINTFORML %NAME:TARGET%との距離が縮まった気がする！
-TFLAG:91 = RAND:4
-CALL EVENT_BOARD_CALC_PT, TFLAG:91
-LOCAL:6 = RESULT
-FLAG:32 -= LOCAL:6
-LOCAL:6 *= 2
-FLAG:32 += LOCAL:6
-CFLAG:TARGET:2 += 2
-PRINTFORMW ボーナスPT +{LOCAL:6}！（今月累計: {FLAG:32}） 好感度+2
-RETURN 1
-
-;---------------------------------------------------------
-;休憩マス処理（気力回復）
-;---------------------------------------------------------
-@EVENT_BOARD_REST_SQUARE
-LOCAL:6 = MAXBASE:MASTER:1 / 5
-BASE:MASTER:1 += LOCAL:6
-SIF BASE:MASTER:1 > MAXBASE:MASTER:1
-	BASE:MASTER:1 = MAXBASE:MASTER:1
-PRINTL
-PRINTFORMW ○ 休憩マス。ひと息ついた。（気力+{LOCAL:6}）
-RETURN 1
-
-;---------------------------------------------------------
-;イベントPT計算
-;好感度・学力・部活力ボーナスを加算してFLAG:32に反映
-;RETURNで獲得PT数を返す
-;---------------------------------------------------------
-@EVENT_BOARD_CALC_PT
-;タイプ別PT計算（ARG:0 = 0:収拾/表現, 1:バトル/運動, 2:宝探し/学力, 3:すごろく/好感度）
-;総合値 = 経験 * 素質^2 / 50000（学力と同じ素質二乗スケーリング）
-LOCAL:4 = 3
-
-IF ARG:0 == 0
-	;収拾: 表現力 = 表現経験 * 表現素質^2 / 50000
-	LOCAL:5 = EXP:MASTER:99 * ABL:MASTER:55 * ABL:MASTER:55 / 50000
-	IF LOCAL:5 >= 200
-		LOCAL:4 += 4
-	ELSEIF LOCAL:5 >= 80
-		LOCAL:4 += 3
-	ELSEIF LOCAL:5 >= 25
-		LOCAL:4 += 2
-	ELSEIF LOCAL:5 >= 5
-		LOCAL:4 += 1
+	;ミッション発生
+	LOCAL:2 = RAND:100
+	IF LOCAL:2 < 50
+		FLAG:36 = 1
+		FLAG:35 = 100 + RAND:201
+		FLAG:34 = 0
+		PRINTFORML ▼ 通常ミッション発生！　目標値: {FLAG:35}
+	ELSEIF LOCAL:2 < 85
+		FLAG:36 = 2
+		FLAG:35 = 400 + RAND:401
+		FLAG:34 = 0
+		PRINTFORML ▼▼ 特大ミッション発生！　目標値: {FLAG:35}
+	ELSE
+		FLAG:36 = 3
+		FLAG:35 = 800 + RAND:1201
+		FLAG:34 = 0
+		PRINTFORML ▼▼▼ 緊急ミッション発生！！　目標値: {FLAG:35}
 	ENDIF
-ELSEIF ARG:0 == 1
-	;バトル: 運動力 = 運動経験 * 運動素質^2 / 50000
-	LOCAL:5 = EXP:MASTER:93 * ABL:MASTER:54 * ABL:MASTER:54 / 50000
-	IF LOCAL:5 >= 200
-		LOCAL:4 += 4
-	ELSEIF LOCAL:5 >= 80
-		LOCAL:4 += 3
-	ELSEIF LOCAL:5 >= 25
-		LOCAL:4 += 2
-	ELSEIF LOCAL:5 >= 5
-		LOCAL:4 += 1
-	ENDIF
-ELSEIF ARG:0 == 2
-	;宝探し: 学力（素質*経験^2で自動算出済み）
-	CALL CALC_ACADEMIC_LEVEL, MASTER
-	IF ABL:MASTER:88 >= 20
-		LOCAL:4 += 4
-	ELSEIF ABL:MASTER:88 >= 10
-		LOCAL:4 += 3
-	ELSEIF ABL:MASTER:88 >= 5
-		LOCAL:4 += 2
-	ELSEIF ABL:MASTER:88 >= 2
-		LOCAL:4 += 1
-	ENDIF
-ELSE
-	;すごろく: 好感度
-	IF CFLAG:TARGET:2 >= 500
-		LOCAL:4 += 4
-	ELSEIF CFLAG:TARGET:2 >= 200
-		LOCAL:4 += 3
-	ELSEIF CFLAG:TARGET:2 >= 50
-		LOCAL:4 += 2
-	ELSEIF CFLAG:TARGET:2 >= 10
-		LOCAL:4 += 1
-	ENDIF
+	WAIT
 ENDIF
-
-FLAG:32 += LOCAL:4
-RETURN LOCAL:4
+RETURN 1
