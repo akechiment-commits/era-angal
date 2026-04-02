@@ -127,7 +127,7 @@ def write_era_erb(cards, char_map, bonus_map=None):
 
     # @CARD_GET_DATA
     L += [
-        "@CARD_GET_DATA",
+        "@CARD_GET_DATA(ARG)",
         ";ARG:0=カードID -> RESULT:0=キャラNo RESULT:1=レア RESULT:2=ボーナスタイプ RESULT:3=ボーナス値",
         "RESULT:0 = 0",
         "RESULT:1 = 0",
@@ -152,9 +152,9 @@ def write_era_erb(cards, char_map, bonus_map=None):
         ";--------------------------------------------------",
         "; @CARD_GET_CHARS_FOR_RARITY ARG:0=レア度(1-6)",
         "; そのレア度のカードを持つキャラNo一覧を返す",
-        "; LOCAL:0..N-1=キャラNoリスト  LOCAL:9=件数",
+        "; GLOBAL:2001..N=キャラNoリスト  GLOBAL:2000=件数",
         ";--------------------------------------------------",
-        "@CARD_GET_CHARS_FOR_RARITY",
+        "@CARD_GET_CHARS_FOR_RARITY(ARG)",
         "LOCAL:9 = 0",
         "SELECTCASE ARG:0",
     ]
@@ -162,18 +162,18 @@ def write_era_erb(cards, char_map, bonus_map=None):
         char_list = chars_by_rarity[rarity]
         L.append(f"CASE {rarity}  ;{RARITY_LABEL.get(rarity, str(rarity))}: {len(char_list)}人")
         for i, cid in enumerate(char_list):
-            L.append(f"\tLOCAL:{i} = {cid}")
-        L.append(f"\tLOCAL:9 = {len(char_list)}")
-    L += ["ENDSELECT", "RETURN LOCAL:9", ""]
+            L.append(f"\tGLOBAL:{2001 + i} = {cid}")
+        L.append(f"\tGLOBAL:2000 = {len(char_list)}")
+    L += ["ENDSELECT", "RETURN GLOBAL:2000", ""]
 
     # @CARD_GET_CHARPOOL  （静的配列 — 高速）
     L += [
         ";--------------------------------------------------",
         "; @CARD_GET_CHARPOOL ARG:0=キャラNo ARG:1=レア度（完全一致）",
         "; そのキャラのそのレア度のカードID一覧を返す",
-        "; LOCAL:0..N-1=カードIDリスト  LOCAL:9=件数",
+        "; GLOBAL:2101..N=カードIDリスト  GLOBAL:2100=件数",
         ";--------------------------------------------------",
-        "@CARD_GET_CHARPOOL",
+        "@CARD_GET_CHARPOOL(ARG, ARG:1)",
         "LOCAL:9 = 0",
         "SELECTCASE ARG:0",
     ]
@@ -186,10 +186,10 @@ def write_era_erb(cards, char_map, bonus_map=None):
             pool = cards_by_char_rarity[(char_id, rarity)]
             L.append(f"\tCASE {rarity}  ;{RARITY_LABEL.get(rarity,'?')}: {len(pool)}枚")
             for i, card_seq in enumerate(pool):
-                L.append(f"\t\tLOCAL:{i} = {card_seq}")
-            L.append(f"\t\tLOCAL:9 = {len(pool)}")
+                L.append(f"\t\tGLOBAL:{2101 + i} = {card_seq}")
+            L.append(f"\t\tGLOBAL:2100 = {len(pool)}")
         L.append(f"\tENDSELECT")
-    L += ["ENDSELECT", "RETURN LOCAL:9", ""]
+    L += ["ENDSELECT", "RETURN GLOBAL:2100", ""]
 
     # 統計コメント
     total_combos = len(cards_by_char_rarity)
