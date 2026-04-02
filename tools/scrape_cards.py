@@ -159,12 +159,12 @@ def parse_cards(html: str, char_name: str) -> list[dict]:
                 rarity_val, rarity_name = parse_rarity(cell)
                 continue
 
-            # カード名: [タイトル]キャラ名 パターン
+            # カード名: [タイトル]キャラ名 パターン（SR以上）
             if card_name_full is None and re.match(r'^\[.+\].+', cell):
                 card_name_full = cell
                 continue
-            # または「タイトル キャラ名」など角括弧なしでもキャラ名を含む
-            if card_name_full is None and char_name and char_name in cell and len(cell) > len(char_name):
+            # Nカード等は角括弧なし・キャラ名そのまま
+            if card_name_full is None and char_name and char_name in cell:
                 card_name_full = cell
                 continue
 
