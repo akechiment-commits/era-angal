@@ -195,20 +195,46 @@ def parse_page(html: str) -> list[dict]:
     return cards
 
 
-def run_local_test():
-    """debug_cardlist.html をパースしてテスト"""
-    local = Path("debug_cardlist.html")
-    if not local.exists():
-        print("debug_cardlist.html が見つかりません")
+def run_local():
+    """
+    ローカルHTMLファイルを全部パース
+    読み込み対象（存在するものを全て）:
+      debug_cardlist.html  ← 最初のデバッグファイル
+      debug_page1.html, debug_page2.html, ... ← 手動保存ページ
+    ブラウザで各ページを「名前を付けて保存」→ debug_pageN.html で保存すればOK
+    """
+    import glob
+    all_cards = []
+    seen_nos = set()
+
+    # 対象ファイルを収集
+    files = []
+    if Path("debug_cardlist.html").exists():
+        files.append(("debug_cardlist.html", Path("debug_cardlist.html")))
+    for p in sorted(Path(".").glob("debug_page*.html"),
+                    key=lambda x: int(re.search(r'(\d+)', x.name).group(1)
+                                      if re.search(r'(\d+)', x.name) else 0)):
+        files.append((p.name, p))
+
+    if not files:
+        print("ローカルHTMLファイルが見つかりません")
+        print("  debug_cardlist.html または debug_pageN.html を tools/ フォルダに置いてください")
         return []
-    html = local.read_text(encoding="utf-8", errors="replace")
-    max_page = detect_max_page(html)
-    print(f"最大ページ: {max_page}")
-    cards = parse_page(html)
-    print(f"ページ1: {len(cards)}件")
-    for c in cards[:5]:
-        print(f"  No.{c['no']:4d} [{c['rarity_name']}] {c['char_name']:12s}  {c['card_name']}")
-    return cards
+
+    for fname, fpath in files:
+        html = fpath.read_text(encoding="utf-8", errors="replace")
+        cards = parse_page(html)
+        # 重複除去（同じ No. は一度だけ）
+        new = [c for c in cards if c["no"] not in seen_nos]
+        seen_nos.update(c["no"] for c in new)
+        print(f"  {fname}: {len(cards)}件 (新規{len(new)}件)")
+        if cards:
+            sample = cards[0]
+            print(f"    例: No.{sample['no']} [{sample['rarity_name']}] {sample['char_name']}  {sample['card_name']}")
+        all_cards.extend(new)
+
+    print(f"\n合計: {len(all_cards)}件")
+    return all_cards
 
 
 def scrape_all(max_pages: int = 0) -> list[dict]:
@@ -294,7 +320,7 @@ def main():
         return
 
     if args.local:
-        cards = run_local_test()
+        cards = run_local()
         if cards:
             cards = assign_ids(cards)
             save_csv(cards)
