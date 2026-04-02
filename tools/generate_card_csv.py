@@ -40,17 +40,28 @@ def load_cards():
 
 
 def build_char_id_map(cards):
-    char_data = Path("character_data.csv")
+    """CharaNN_名前.csv のファイル名からキャラNo（CSV番号）を取得する"""
+    import re
+    chara_dir = Path("../CSV")
     name_to_id = {}
-    if char_data.exists():
-        with open(char_data, encoding="utf-8-sig") as f:
-            for i, row in enumerate(csv.DictReader(f), 1):
-                name = row.get("name", "").strip()
-                if name:
-                    name_to_id[name] = i
-    else:
-        names = list(dict.fromkeys(c["char_name"] for c in cards))
-        name_to_id = {n: i for i, n in enumerate(names, 1)}
+    for p in chara_dir.glob("Chara*.csv"):
+        m = re.match(r"Chara(\d+)_(.+)\.csv", p.name)
+        if m:
+            csv_no = int(m.group(1))
+            char_name = m.group(2)
+            name_to_id[char_name] = csv_no
+    if not name_to_id:
+        # フォールバック: character_data.csv の行番号を使う
+        char_data = Path("character_data.csv")
+        if char_data.exists():
+            with open(char_data, encoding="utf-8-sig") as f:
+                for i, row in enumerate(csv.DictReader(f), 1):
+                    name = row.get("name", "").strip()
+                    if name:
+                        name_to_id[name] = i
+        else:
+            names = list(dict.fromkeys(c["char_name"] for c in cards))
+            name_to_id = {n: i for i, n in enumerate(names, 1)}
     return name_to_id
 
 
@@ -100,7 +111,8 @@ def write_era_erb(cards, char_map, bonus_map=None):
         btype   = (int(c["bonus_type"]) if "bonus_type" in c and c.get("bonus_type","") != ""
                    else bonus_map.get(c["char_name"], hash(c["char_name"]) % 4))
         bval    = RARITY_BONUS.get(rarity, 2)
-        card_info[cid] = (char_id, rarity, btype, bval)
+        card_name = c.get("card_name", c["char_name"])
+        card_info[cid] = (char_id, rarity, btype, bval, card_name)
         if char_id > 0:
             cards_by_char_rarity[(char_id, rarity)].append(cid)
             if char_id not in chars_by_rarity[rarity]:
@@ -129,22 +141,25 @@ def write_era_erb(cards, char_map, bonus_map=None):
     L += [
         "@CARD_GET_DATA(ARG)",
         ";ARG:0=カードID -> RESULT:0=キャラNo RESULT:1=レア RESULT:2=ボーナスタイプ RESULT:3=ボーナス値",
+        ";               -> RESULTS:0=カード名",
         "RESULT:0 = 0",
         "RESULT:1 = 0",
         "RESULT:2 = 0",
         "RESULT:3 = 0",
+        "RESULTS:0 = \"\"",
         f"IF ARG:0 < 1 || ARG:0 > {len(cards)}",
         "\tRETURN 0",
         "ENDIF",
         "SELECTCASE ARG:0",
     ]
     for cid in sorted(card_info):
-        char_id, rarity, btype, bval = card_info[cid]
+        char_id, rarity, btype, bval, card_name = card_info[cid]
         L.append(f"CASE {cid}")
         L.append(f"\tRESULT:0 = {char_id}")
         L.append(f"\tRESULT:1 = {rarity}")
         L.append(f"\tRESULT:2 = {btype}")
         L.append(f"\tRESULT:3 = {bval}")
+        L.append(f"\tRESULTS:0 = \"{card_name}\"")
     L += ["ENDSELECT", "RETURN 1", ""]
 
     # @CARD_GET_CHARS_FOR_RARITY  （静的配列 — 高速）
@@ -174,7 +189,7 @@ def write_era_erb(cards, char_map, bonus_map=None):
         "; GLOBAL:2101..N=カードIDリスト  GLOBAL:2100=件数",
         ";--------------------------------------------------",
         "@CARD_GET_CHARPOOL(ARG, ARG:1)",
-        "LOCAL:9 = 0",
+        "GLOBAL:2100 = 0",
         "SELECTCASE ARG:0",
     ]
     all_chars = sorted(set(k[0] for k in cards_by_char_rarity))
