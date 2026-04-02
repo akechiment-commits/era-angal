@@ -37,13 +37,18 @@ HEADERS = {
 # ☆N(TYPE) の TYPE → 数値・名称マッピング
 # HR=Hyper Rare, MR=Mega Rare, LR=Legend Rare 等の独自表記も対応
 RARITY_ABBR = {
-    "N": (1, "N"), "R": (2, "R"), "HR": (2, "R"),
-    "SR": (3, "SR"), "SSR": (4, "SSR"),
-    "UR": (5, "UR"), "MR": (5, "UR"), "LR": (5, "UR"),
+    "N":  (1, "N"),
+    "R":  (2, "R"),
+    "HR": (3, "HR"),   # ☆3 独自レア度（RとSRの間）
+    "SR": (4, "SR"),
+    "SSR":(5, "SSR"),
+    "UR": (5, "UR"),
+    "MR": (6, "MR"),   # ☆6 最高レア度（URより上）
+    "LR": (6, "LR"),
 }
 # ☆数 → レア度フォールバック（括弧内TYPE不明のとき）
-STAR_RARITY = {1: (1,"N"), 2: (1,"N"), 3: (2,"R"), 4: (3,"SR"),
-               5: (4,"SSR"), 6: (5,"UR"), 7: (5,"UR")}
+STAR_RARITY = {1: (1,"N"), 2: (2,"R"), 3: (3,"HR"), 4: (4,"SR"),
+               5: (5,"UR"), 6: (6,"MR"), 7: (6,"MR")}
 
 
 def parse_rarity(text: str):
@@ -145,7 +150,7 @@ def parse_cards(html: str, char_name: str) -> list[dict]:
 
         for cell in cells:
             # カードID: 数字のみ
-            if card_id is None and re.match(r'^\d{3,5}$', cell):
+            if card_id is None and re.match(r'^\d{1,6}$', cell):
                 card_id = int(cell)
                 continue
 

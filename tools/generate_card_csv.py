@@ -23,7 +23,8 @@ OUT_ERB   = Path("../ERB/CARD_DATA_カードデータ定義.ERB")
 BONUS_TYPE_NAME = {0: "表現力", 1: "運動力", 2: "学力", 3: "好感度"}
 
 # レア度 → ボーナス値
-RARITY_BONUS = {1: 2, 2: 5, 3: 12, 4: 22, 5: 35}
+# 1=N, 2=R, 3=HR, 4=SR, 5=SSR/UR, 6=MR
+RARITY_BONUS = {1: 2, 2: 5, 3: 9, 4: 15, 5: 25, 6: 40}
 
 # キャラ名 → ERA キャラNo. (CSV/Chara*.csv の番号に対応)
 # scrape_chardata.py で取得したキャラ順に合わせて調整が必要
