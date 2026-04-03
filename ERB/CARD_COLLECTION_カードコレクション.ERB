@@ -9,13 +9,13 @@ DRAWLINE
 PRINTL 【カードコレクション】
 PRINTL
 PRINTFORML [1] キャラ別カード補正を見る
-PRINTFORML [2] 所持カード一覧（全部）
+PRINTFORML [2] レア度別カード一覧
 PRINTFORML [0] 戻る
 INPUT
 IF RESULT == 1
 	CALL CARD_COLLECTION_CHAR_BONUS
 ELSEIF RESULT == 2
-	CALL CARD_COLLECTION_LIST
+	CALL CARD_COLLECTION_RARITY_MENU
 ELSEIF RESULT == 0
 	RETURN 0
 ENDIF
@@ -32,7 +32,7 @@ PRINTFORML キャラ名              カード  表現力  運動力  学力  好感度
 DRAWLINE
 REPEAT CHARANUM
 	IF CFLAG:COUNT:307 > 0
-		PRINTFORML %CSVNAME:COUNT%　{CFLAG:COUNT:307}枚  +{CFLAG:COUNT:303}  +{CFLAG:COUNT:304}  +{CFLAG:COUNT:305}  +{CFLAG:COUNT:306}
+		PRINTFORML %CSVNAME:COUNT%	{CFLAG:COUNT:307}枚  +{CFLAG:COUNT:303}  +{CFLAG:COUNT:304}  +{CFLAG:COUNT:305}  +{CFLAG:COUNT:306}
 	ENDIF
 REND
 PRINTL
@@ -45,18 +45,57 @@ WAIT
 RETURN 1
 
 ;--------------------------------------------------
-; 所持カード一覧（全カード）
-; 20件ずつ表示、続きを選択可能
+; レア度選択メニュー
 ;--------------------------------------------------
-@CARD_COLLECTION_LIST
-LOCAL:0 = 1       ;現在のカードID
-LOCAL:1 = 0       ;表示件数カウンタ
-$LIST_LOOP
+@CARD_COLLECTION_RARITY_MENU
+$LOOP
 DRAWLINE
-PRINTL 【所持カード一覧】
+PRINTL 【レア度別カード一覧】
 PRINTL
-LOCAL:2 = 0       ;このページの表示件数
+PRINTFORML [1] N（ノーマル）
+PRINTFORML [2] R（レア）
+PRINTFORML [3] HR（ハイレア）
+PRINTFORML [4] SR（スーパーレア）
+PRINTFORML [5] UR（ウルトラレア）
+PRINTFORML [6] MR（マスターレア）
+PRINTL
+PRINTFORML [0] 戻る
+INPUT
+IF RESULT >= 1 && RESULT <= 6
+	CALL CARD_COLLECTION_RARITY_LIST, RESULT
+ELSEIF RESULT == 0
+	RETURN 0
+ENDIF
+GOTO LOOP
+
+;--------------------------------------------------
+; レア度別カード一覧 ARG:0=レア度(1-6)
+; 所持カードのカード名・枚数・ボーナス値を表示
+;--------------------------------------------------
+@CARD_COLLECTION_RARITY_LIST(ARG)
+LOCAL:8 = ARG:0
+LOCAL:0 = 1      ;カードID
+LOCAL:1 = 0      ;表示件数
 $PAGE_LOOP
+DRAWLINE
+SELECTCASE LOCAL:8
+CASE 1
+	PRINTL 【N カード一覧】
+CASE 2
+	PRINTL 【R カード一覧】
+CASE 3
+	PRINTL 【HR カード一覧】
+CASE 4
+	PRINTL 【SR カード一覧】
+CASE 5
+	PRINTL 【UR カード一覧】
+CASEELSE
+	PRINTL 【MR カード一覧】
+ENDSELECT
+PRINTFORML カード名				枚数  ボーナス/枚
+DRAWLINE
+LOCAL:2 = 0      ;このページの件数
+$SCAN_LOOP
 IF LOCAL:0 > 1748
 	GOTO LIST_END
 ENDIF
@@ -64,33 +103,34 @@ LOCAL:9 = 3000 + LOCAL:0
 A = LOCAL:9
 IF GLOBAL:A > 0
 	CALL CARD_GET_DATA, LOCAL:0
-	IF STR:0 != ""
-		PRINTFORML  [{RESULT:2}] %STR:0%（{GLOBAL:A}枚）
-	ELSE
-		PRINTFORML  [{RESULT:2}] カードID:{LOCAL:0}（{GLOBAL:A}枚）
+	IF RESULT:2 == LOCAL:8
+		IF STR:0 != ""
+			PRINTFORML %STR:0%		{GLOBAL:A}枚  +{RESULT:4}/枚
+		ELSE
+			PRINTFORML ID:{LOCAL:0}		{GLOBAL:A}枚  +{RESULT:4}/枚
+		ENDIF
+		LOCAL:1 += 1
+		LOCAL:2 += 1
 	ENDIF
-	LOCAL:1 += 1
-	LOCAL:2 += 1
 ENDIF
 LOCAL:0 += 1
-IF LOCAL:2 < 20
-	GOTO PAGE_LOOP
+IF LOCAL:2 < 15
+	GOTO SCAN_LOOP
 ENDIF
 PRINTL
-PRINTFORML 　（累計{LOCAL:1}枚表示 / カードID:{LOCAL:0}まで確認済み）
-PRINTFORML [1] 次の20件  [0] 戻る
+PRINTFORML （このページ{LOCAL:2}件 / 累計{LOCAL:1}件）
+PRINTFORML [1] 次の15件  [0] 戻る
 INPUT
 IF RESULT == 1
-	GOTO LIST_LOOP
+	GOTO PAGE_LOOP
 ELSE
 	RETURN 1
 ENDIF
 $LIST_END
-PRINTL
 IF LOCAL:1 == 0
-	PRINTL 所持カードはありません。
+	PRINTL このレア度の所持カードはありません。
 ELSE
-	PRINTFORML 所持カード：{LOCAL:1}種類
+	PRINTFORML 合計 {LOCAL:1}種類のカードを所持
 ENDIF
 WAIT
 RETURN 1
