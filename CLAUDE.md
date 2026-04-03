@@ -18,20 +18,8 @@
 - **ERBファイル**: ゲームロジック・テキスト（Shift-JIS）
 - **CSVファイル**: キャラ・パラメータ定義（Shift-JIS）
 - **71キャラ**: 君咲学院の生徒、`CSV/Chara1〜71.csv` に定義済み
-- **キャラデータ**: `tools/character_data.csv`（身長・誕生日・部活など）
-- **キャラ口調分析**: `tools/character_profiles.txt`
-- **シナリオ原文**: `tools/scenarios/*.txt`（2827ファイル）
-- **CSV生成スクリプト**: `tools/generate_chara_csv.py`
 
 ## エージェント使用禁止
 
 - **Agentツールは使わない**（サブエージェントの起動・並列処理はしない）
 - ファイル検索・コード調査はGlob/Grep/Readツールを直接使う
-
-## emuera.config の設定（変更不要）
-
-```
-呼び出されなかった関数を無視する:YES
-関数が見つからない警告の扱い:IGNORE
-```
-→ 東方固有のERBファイルが残っていても起動エラーにならない
