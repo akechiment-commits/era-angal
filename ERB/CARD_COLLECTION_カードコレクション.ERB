@@ -21,21 +21,29 @@ ENDIF
 GOTO LOOP
 
 ;--------------------------------------------------
-; キャラ別カード補正表示（行単位で完結する形式）
+; キャラ別カード補正表示 (PRINTFORMLC/PRINTFORMRC で列整列)
 ;--------------------------------------------------
 @CARD_COLLECTION_CHAR_BONUS
 DRAWLINE
 PRINTL 【キャラ別カード補正】
 PRINTL
+PRINTFORMLC キャラ名
+PRINTFORMRC 枚数
+PRINTFORMRC 表現
+PRINTFORMRC 運動
+PRINTFORMRC 学力
+PRINTFORMRC 好感
+PRINTL
+DRAWLINE
 LOCAL:9 = 0
 REPEAT CHARANUM
 	IF CFLAG:COUNT:307 > 0
-		PRINTLC %NAME:COUNT%
-		PRINTRC {CFLAG:COUNT:307}枚
-		PRINTRC 表現+{CFLAG:COUNT:303}
-		PRINTRC 運動+{CFLAG:COUNT:304}
-		PRINTRC 学力+{CFLAG:COUNT:305}
-		PRINTRC 好感+{CFLAG:COUNT:306}
+		PRINTFORMLc %NAME:COUNT%
+		PRINTFORMRC {CFLAG:COUNT:307}枚
+		PRINTFORMRC +{CFLAG:COUNT:303}
+		PRINTFORMRC +{CFLAG:COUNT:304}
+		PRINTFORMRC +{CFLAG:COUNT:305}
+		PRINTFORMRC +{CFLAG:COUNT:306}
 		PRINTL
 		LOCAL:9 += CFLAG:COUNT:307
 	ENDIF
@@ -71,8 +79,10 @@ GOTO LOOP
 
 ;--------------------------------------------------
 ; レア度別カード一覧 ARG:0=レア度(1-6)
-; A（LOCAL:0）をインデックス用に使うため
-; カードIDカウンタはLOCAL:5、レア度はLOCAL:8で保持
+; LOCAL:5 = カードIDカウンタ(1..1748)
+; LOCAL:8 = 対象レア度
+; LOCAL:9 = GLOBALインデックス (3000+LOCAL:5)
+; ※ A = expr が正しく動かないため LOCAL:9 経由で代入
 ;--------------------------------------------------
 @CARD_COLLECTION_RARITY_LIST(ARG)
 LOCAL:8 = ARG:0
@@ -100,19 +110,18 @@ $SCAN_LOOP
 IF LOCAL:5 > 1748
 	GOTO LIST_END
 ENDIF
-;所持枚数確認
-A = 3000 + LOCAL:5
+LOCAL:9 = 3000 + LOCAL:5
+A = LOCAL:9
 LOCAL:3 = GLOBAL:A
 IF LOCAL:3 > 0
 	CALL CARD_GET_DATA, LOCAL:5
-	;RESULT:2=レア度をLOCAL:6に退避（RETURNで上書きされる前に）
 	LOCAL:6 = RESULT:2
 	LOCAL:7 = RESULT:4
 	IF LOCAL:6 == LOCAL:8
 		IF STR:0 != ""
-			PRINTFORML 【{LOCAL:6}】%STR:0%（{LOCAL:3}枚 / +{LOCAL:7}/枚）
+			PRINTFORML %STR:0%（{LOCAL:3}枚 / +{LOCAL:7}/枚）
 		ELSE
-			PRINTFORML 【{LOCAL:6}】カードID:{LOCAL:5}（{LOCAL:3}枚 / +{LOCAL:7}/枚）
+			PRINTFORML カードID:{LOCAL:5}（{LOCAL:3}枚 / +{LOCAL:7}/枚）
 		ENDIF
 		LOCAL:1 += 1
 		LOCAL:2 += 1
@@ -134,22 +143,6 @@ ENDIF
 $LIST_END
 IF LOCAL:1 == 0
 	PRINTL このレア度の所持カードはありません。
-	;---デバッグ: 最初の10枚のGLOBAL値と最終チェックカード数---
-	PRINTFORML [DBG] checked cards 1..{LOCAL:5} target_rarity={LOCAL:8}
-	LOCAL:9 = 1
-	$DBG_LOOP
-		IF LOCAL:9 > 10
-			GOTO DBG_END
-		ENDIF
-		A = 3000 + LOCAL:9
-		LOCAL:3 = GLOBAL:A
-		IF LOCAL:3 > 0
-			CALL CARD_GET_DATA, LOCAL:9
-			PRINTFORML [DBG] cardID={LOCAL:9} count={LOCAL:3} rarity={RESULT:2}
-		ENDIF
-		LOCAL:9 += 1
-		GOTO DBG_LOOP
-	$DBG_END
 ELSE
 	PRINTFORML 合計 {LOCAL:1}種類のカードを所持
 ENDIF
