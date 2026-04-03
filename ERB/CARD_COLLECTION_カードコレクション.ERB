@@ -1,6 +1,5 @@
 ;==================================================
 ; CARD_COLLECTION_カードコレクション.ERB
-; カード所持一覧・キャラ別補正確認
 ;==================================================
 
 @CARD_COLLECTION_MAIN
@@ -22,24 +21,20 @@ ENDIF
 GOTO LOOP
 
 ;--------------------------------------------------
-; キャラ別カード補正表示
+; キャラ別カード補正表示（行単位で完結する形式）
 ;--------------------------------------------------
 @CARD_COLLECTION_CHAR_BONUS
 DRAWLINE
 PRINTL 【キャラ別カード補正】
 PRINTL
-PRINTFORML キャラ名		カード  表現力  運動力  学力  好感度
-DRAWLINE
+LOCAL:9 = 0
 REPEAT CHARANUM
 	IF CFLAG:COUNT:307 > 0
-		PRINTFORML %NAME:COUNT%	{CFLAG:COUNT:307}枚  +{CFLAG:COUNT:303}  +{CFLAG:COUNT:304}  +{CFLAG:COUNT:305}  +{CFLAG:COUNT:306}
+		PRINTFORML %NAME:COUNT%（{CFLAG:COUNT:307}枚）: 表現力+{CFLAG:COUNT:303} 運動力+{CFLAG:COUNT:304} 学力+{CFLAG:COUNT:305} 好感度+{CFLAG:COUNT:306}
+		LOCAL:9 += CFLAG:COUNT:307
 	ENDIF
 REND
 PRINTL
-LOCAL:9 = 0
-REPEAT CHARANUM
-	LOCAL:9 += CFLAG:COUNT:307
-REND
 PRINTFORML 合計カード数：{LOCAL:9}枚
 WAIT
 RETURN 1
@@ -70,15 +65,13 @@ GOTO LOOP
 
 ;--------------------------------------------------
 ; レア度別カード一覧 ARG:0=レア度(1-6)
-; LOCAL:5 = カードIDカウンタ（LOCAL:0=Aと衝突しないよう5を使用）
-; LOCAL:8 = 対象レア度
-; LOCAL:1 = 累計表示件数
-; LOCAL:2 = ページ内件数
+; A（LOCAL:0）をインデックス用に使うため
+; カードIDカウンタはLOCAL:5、レア度はLOCAL:8で保持
 ;--------------------------------------------------
 @CARD_COLLECTION_RARITY_LIST(ARG)
 LOCAL:8 = ARG:0
-LOCAL:5 = 1      ;カードID（1～1748）
-LOCAL:1 = 0      ;累計表示件数
+LOCAL:5 = 1
+LOCAL:1 = 0
 $PAGE_LOOP
 DRAWLINE
 SELECTCASE LOCAL:8
@@ -95,23 +88,25 @@ CASE 5
 CASEELSE
 	PRINTL 【MR カード一覧】
 ENDSELECT
-PRINTFORML カード名				枚数  ボーナス/枚
 DRAWLINE
-LOCAL:2 = 0      ;ページ内件数
+LOCAL:2 = 0
 $SCAN_LOOP
 IF LOCAL:5 > 1748
 	GOTO LIST_END
 ENDIF
-LOCAL:9 = 3000 + LOCAL:5
-A = LOCAL:9
-LOCAL:3 = GLOBAL:A   ;所持枚数
+;所持枚数確認
+A = 3000 + LOCAL:5
+LOCAL:3 = GLOBAL:A
 IF LOCAL:3 > 0
 	CALL CARD_GET_DATA, LOCAL:5
-	IF RESULT:2 == LOCAL:8
+	;RESULT:2=レア度をLOCAL:6に退避（RETURNで上書きされる前に）
+	LOCAL:6 = RESULT:2
+	LOCAL:7 = RESULT:4
+	IF LOCAL:6 == LOCAL:8
 		IF STR:0 != ""
-			PRINTFORML %STR:0%	{LOCAL:3}枚  +{RESULT:4}/枚
+			PRINTFORML 【{LOCAL:6}】%STR:0%（{LOCAL:3}枚 / +{LOCAL:7}/枚）
 		ELSE
-			PRINTFORML カードID:{LOCAL:5}	{LOCAL:3}枚  +{RESULT:4}/枚
+			PRINTFORML 【{LOCAL:6}】カードID:{LOCAL:5}（{LOCAL:3}枚 / +{LOCAL:7}/枚）
 		ENDIF
 		LOCAL:1 += 1
 		LOCAL:2 += 1
@@ -122,7 +117,7 @@ IF LOCAL:2 < 15
 	GOTO SCAN_LOOP
 ENDIF
 PRINTL
-PRINTFORML （このページ{LOCAL:2}件 / 累計{LOCAL:1}件）
+PRINTFORML （{LOCAL:2}件表示 / 累計{LOCAL:1}件）
 PRINTFORML [1] 次の15件  [0] 戻る
 INPUT
 IF RESULT == 1
@@ -133,6 +128,22 @@ ENDIF
 $LIST_END
 IF LOCAL:1 == 0
 	PRINTL このレア度の所持カードはありません。
+	;---デバッグ: 最初の10枚のGLOBAL値と最終チェックカード数---
+	PRINTFORML [DBG] checked cards 1..{LOCAL:5} target_rarity={LOCAL:8}
+	LOCAL:9 = 1
+	$DBG_LOOP
+		IF LOCAL:9 > 10
+			GOTO DBG_END
+		ENDIF
+		A = 3000 + LOCAL:9
+		LOCAL:3 = GLOBAL:A
+		IF LOCAL:3 > 0
+			CALL CARD_GET_DATA, LOCAL:9
+			PRINTFORML [DBG] cardID={LOCAL:9} count={LOCAL:3} rarity={RESULT:2}
+		ENDIF
+		LOCAL:9 += 1
+		GOTO DBG_LOOP
+	$DBG_END
 ELSE
 	PRINTFORML 合計 {LOCAL:1}種類のカードを所持
 ENDIF
@@ -141,7 +152,6 @@ RETURN 1
 
 ;--------------------------------------------------
 ; イベントボード発揮値にカード補正を加算
-; ARG:0=キャラNo ARG:1=補正タイプ(0-3) -> RESULT
 ;--------------------------------------------------
 @CARD_BONUS_FOR_HAKKIICHI(ARG, ARG:1)
 LOCAL:0 = ARG:0
