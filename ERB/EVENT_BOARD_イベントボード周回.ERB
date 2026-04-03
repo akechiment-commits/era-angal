@@ -1,16 +1,19 @@
 ;==================================================
-; EVENT_BOARD_イベントボード周回.ERB v2
+; EVENT_BOARD_イベントボード周回.ERB v3
 ; 新仕様:
 ;   体力消費 → エリア進行 → ミッション発生
 ;   → 気力消費 → 発揮値を積む → ミッション達成 → PTゲット
+;   エリア進捗が100%になると踏破報酬 → リセット
 ;
 ; 使用変数:
 ;   TFLAG:91 = イベントタイプ(0:収拾/1:バトル/2:宝探し/3:すごろく)
+;   TSTR:99  = 選択中イベント名
 ;   FLAG:32  = 月間イベントPT累計（月初リセット）
 ;   FLAG:33  = すごろく盤面位置(タイプ3のみ, 0-19)
 ;   FLAG:34  = ミッション進捗（累積発揮値）
 ;   FLAG:35  = ミッション目標値
 ;   FLAG:36  = ミッション種別(0=なし/1=通常/2=特大/3=緊急)
+;   FLAG:38  = エリア進捗（0～99、100で踏破報酬・リセット）
 ;==================================================
 
 @EVENT_BOARD_MAIN
@@ -20,7 +23,8 @@ IF TARGET < 0
 ENDIF
 
 ;今月のイベント一覧を取得
-CALL LOAD_MONTH_EVENTS, DAY:8
+A = DAY:8
+CALL LOAD_MONTH_EVENTS, A
 LOCAL:9 = RESULT	;今月のイベント数
 
 IF LOCAL:9 == 0
@@ -36,13 +40,13 @@ PRINTL
 FOR LOCAL:8, 0, LOCAL:9
 	A = 100 + LOCAL:8
 	IF TFLAG:A == 0
-		PRINTFORML [{LOCAL:8 + 1}] [収拾]　%TSTR:A%
+		PRINTFORML [{LOCAL:8 + 1}] [収拾]　%TSTR:(100+LOCAL:8)%
 	ELSEIF TFLAG:A == 1
-		PRINTFORML [{LOCAL:8 + 1}] [バトル] %TSTR:A%
+		PRINTFORML [{LOCAL:8 + 1}] [バトル] %TSTR:(100+LOCAL:8)%
 	ELSEIF TFLAG:A == 2
-		PRINTFORML [{LOCAL:8 + 1}] [宝探し] %TSTR:A%
+		PRINTFORML [{LOCAL:8 + 1}] [宝探し] %TSTR:(100+LOCAL:8)%
 	ELSE
-		PRINTFORML [{LOCAL:8 + 1}] [すごろく] %TSTR:A%
+		PRINTFORML [{LOCAL:8 + 1}] [すごろく] %TSTR:(100+LOCAL:8)%
 	ENDIF
 NEXT
 PRINTL
@@ -58,7 +62,7 @@ ENDIF
 LOCAL:8 = RESULT - 1
 A = 100 + LOCAL:8
 TFLAG:91 = TFLAG:A
-TSTR:99 = TSTR:A	;イベント名
+TSTR:99 = TSTR:A	;イベント名保存
 
 ;ミッション状態クリア（新規開始）
 FLAG:34 = 0
@@ -117,7 +121,7 @@ PRINTFORML 【%TSTR:99%】
 IF TFLAG:91 == 0
 	PRINTFORML 収拾イベント　発揮値：表現力
 ELSEIF TFLAG:91 == 1
-	PRINTFORML バトルイベント　発揮値：体力
+	PRINTFORML バトルイベント　発揮値：運動力
 ELSEIF TFLAG:91 == 2
 	PRINTFORML 宝探しイベント　発揮値：学力
 ELSE
@@ -125,7 +129,7 @@ ELSE
 ENDIF
 CALL EVENT_BOARD_CALC_HAKKIICHI
 PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}　気力:{BASE:MASTER:1}/{MAXBASE:MASTER:1}　発揮値:{RESULT}
-PRINTFORML 今月イベントPT:{FLAG:32}
+PRINTFORML 今月PT:{FLAG:32}　エリア進捗:{FLAG:38}%
 IF TFLAG:91 == 3
 	PRINTFORML 盤面位置:{FLAG:33}/19マス
 ENDIF
@@ -158,7 +162,7 @@ PRINTFORML ] {FLAG:34 * 100 / FLAG:35}%
 RETURN 1
 
 ;---------------------------------------------------------
-; エリア進行（体力消費 → ミッション発生）
+; エリア進行（体力消費 → エリア進捗 → ミッション発生）
 ;---------------------------------------------------------
 @EVENT_BOARD_ADVANCE
 LOCAL:0 = MAXBASE:MASTER:0 / 20
@@ -171,7 +175,14 @@ IF BASE:MASTER:0 < LOCAL:0
 ENDIF
 
 BASE:MASTER:0 -= LOCAL:0
-PRINTFORML 体力 -{LOCAL:0}　エリアを進んだ。
+
+;エリア進捗 +10
+FLAG:38 += 10
+PRINTFORML 体力 -{LOCAL:0}　エリアを進んだ。（エリア進捗: {FLAG:38}%）
+
+;エリア踏破チェック
+SIF FLAG:38 >= 100
+	CALL EVENT_BOARD_AREA_COMPLETE
 
 ;ミッション発生判定（通常50%/特大30%/緊急15%/回復5%）
 LOCAL:2 = RAND:100
@@ -254,6 +265,20 @@ WAIT
 RETURN 1
 
 ;---------------------------------------------------------
+; エリア踏破報酬（FLAG:38 リセット）
+;---------------------------------------------------------
+@EVENT_BOARD_AREA_COMPLETE
+DRAWLINE
+PRINTL ★★★ エリア踏破！ ★★★
+LOCAL:0 = 5 + RAND:6
+FLAG:32 += LOCAL:0
+PRINTFORML イベントPT +{LOCAL:0}　（今月累計: {FLAG:32}）
+FLAG:38 = 0
+PRINTFORML エリア進捗リセット！次のエリアへ！
+WAIT
+RETURN 1
+
+;---------------------------------------------------------
 ; 発揮値計算（RETURN で返す）
 ; イベントタイプにより算出方法が異なる
 ;---------------------------------------------------------
@@ -293,7 +318,14 @@ ENDIF
 BASE:MASTER:0 -= LOCAL:0
 LOCAL:2 = RAND:6 + 1
 FLAG:33 = (FLAG:33 + LOCAL:2) % 20
-PRINTFORML 体力 -{LOCAL:0}　サイコロ: {LOCAL:2}　=> {FLAG:33}マス目
+
+;エリア進捗 +10
+FLAG:38 += 10
+PRINTFORML 体力 -{LOCAL:0}　サイコロ: {LOCAL:2}　=> {FLAG:33}マス目（エリア進捗: {FLAG:38}%）
+
+;エリア踏破チェック
+SIF FLAG:38 >= 100
+	CALL EVENT_BOARD_AREA_COMPLETE
 
 ;盤面マップ表示
 FOR LOCAL:8, 0, 20
