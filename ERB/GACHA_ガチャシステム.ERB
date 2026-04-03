@@ -37,11 +37,11 @@ PRINTFORML シルバーチケット：{FLAG:114}枚  （MR 0.05\%）
 PRINTFORML ゴールドチケット：{FLAG:115}枚  （MR 0.5\%）
 PRINTFORML プラチナチケット：{FLAG:116}枚  （MR 3\%）
 PRINTL
-PRINTFORML [1] ブロンズガチャ（チケット1枚）
-PRINTFORML [2] シルバーガチャ（チケット1枚）
-PRINTFORML [3] ゴールドガチャ（チケット1枚）
-PRINTFORML [4] プラチナガチャ（チケット1枚）
-PRINTFORML [5] ダイヤガチャ（ダイヤ5個）   （MR 5\%）
+PRINTFORML [1] ブロンズガチャ（1枚）　[11] 10連（10枚）
+PRINTFORML [2] シルバーガチャ（1枚）　[12] 10連（10枚）
+PRINTFORML [3] ゴールドガチャ（1枚）　[13] 10連（10枚）
+PRINTFORML [4] プラチナガチャ（1枚）　[14] 10連（10枚）
+PRINTFORML [5] ダイヤガチャ（ダイヤ5個）   （MR 5\%）　[15] 10連（50個）
 PRINTL
 PRINTFORML [6] チケット・ダイヤ購入
 PRINTL
@@ -85,6 +85,41 @@ CASE 5
 	ENDIF
 CASE 6
 	CALL GACHA_TICKET_SHOP
+CASE 11
+	IF FLAG:113 < 10
+		PRINTFORMW ブロンズチケットが10枚必要です（現在{FLAG:113}枚）。
+	ELSE
+		FLAG:113 -= 10
+		CALL GACHA_PULL_10, 1
+	ENDIF
+CASE 12
+	IF FLAG:114 < 10
+		PRINTFORMW シルバーチケットが10枚必要です（現在{FLAG:114}枚）。
+	ELSE
+		FLAG:114 -= 10
+		CALL GACHA_PULL_10, 2
+	ENDIF
+CASE 13
+	IF FLAG:115 < 10
+		PRINTFORMW ゴールドチケットが10枚必要です（現在{FLAG:115}枚）。
+	ELSE
+		FLAG:115 -= 10
+		CALL GACHA_PULL_10, 3
+	ENDIF
+CASE 14
+	IF FLAG:116 < 10
+		PRINTFORMW プラチナチケットが10枚必要です（現在{FLAG:116}枚）。
+	ELSE
+		FLAG:116 -= 10
+		CALL GACHA_PULL_10, 4
+	ENDIF
+CASE 15
+	IF FLAG:112 < 50
+		PRINTFORMW キミサキダイヤが50個必要です（現在{FLAG:112}個）。
+	ELSE
+		FLAG:112 -= 50
+		CALL GACHA_PULL_10, 5
+	ENDIF
 CASEELSE
 	RETURN 0
 ENDSELECT
@@ -293,7 +328,8 @@ IF LOCAL:0 > 0
 	ENDSELECT
 	CFLAG:TARGET:307 += 1
 ENDIF
-WAIT
+SIF FLAG:120 == 0
+	WAIT
 RETURN 1
 
 ;--------------------------------------------------
@@ -311,6 +347,23 @@ CASE 2
 CASEELSE
 	RETURN CFLAG:TARGET:306
 ENDSELECT
+
+;--------------------------------------------------
+; 10連ガチャ ARG:0=ガチャ種別(1-5)
+; FLAG:120=1 で各結果のWAITを省略
+;--------------------------------------------------
+@GACHA_PULL_10(ARG)
+FLAG:120 = 1
+DRAWLINE
+PRINTL 【10連ガチャ 開始！】
+REPEAT 10
+	CALL GACHA_PULL, ARG:0
+REND
+FLAG:120 = 0
+DRAWLINE
+PRINTL 10連完了！
+WAIT
+RETURN 1
 
 ;--------------------------------------------------
 ; チケット・ダイヤ購入 ARG:なし
