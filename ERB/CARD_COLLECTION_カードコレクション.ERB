@@ -28,11 +28,11 @@ GOTO LOOP
 DRAWLINE
 PRINTL 【キャラ別カード補正】
 PRINTL
-PRINTFORML キャラ名              カード  表現力  運動力  学力  好感度
+PRINTFORML キャラ名		カード  表現力  運動力  学力  好感度
 DRAWLINE
 REPEAT CHARANUM
 	IF CFLAG:COUNT:307 > 0
-		PRINTFORML %CSVNAME:COUNT%	{CFLAG:COUNT:307}枚  +{CFLAG:COUNT:303}  +{CFLAG:COUNT:304}  +{CFLAG:COUNT:305}  +{CFLAG:COUNT:306}
+		PRINTFORML %NAME:COUNT%	{CFLAG:COUNT:307}枚  +{CFLAG:COUNT:303}  +{CFLAG:COUNT:304}  +{CFLAG:COUNT:305}  +{CFLAG:COUNT:306}
 	ENDIF
 REND
 PRINTL
@@ -70,12 +70,15 @@ GOTO LOOP
 
 ;--------------------------------------------------
 ; レア度別カード一覧 ARG:0=レア度(1-6)
-; 所持カードのカード名・枚数・ボーナス値を表示
+; LOCAL:5 = カードIDカウンタ（LOCAL:0=Aと衝突しないよう5を使用）
+; LOCAL:8 = 対象レア度
+; LOCAL:1 = 累計表示件数
+; LOCAL:2 = ページ内件数
 ;--------------------------------------------------
 @CARD_COLLECTION_RARITY_LIST(ARG)
 LOCAL:8 = ARG:0
-LOCAL:0 = 1      ;カードID
-LOCAL:1 = 0      ;表示件数
+LOCAL:5 = 1      ;カードID（1～1748）
+LOCAL:1 = 0      ;累計表示件数
 $PAGE_LOOP
 DRAWLINE
 SELECTCASE LOCAL:8
@@ -94,26 +97,27 @@ CASEELSE
 ENDSELECT
 PRINTFORML カード名				枚数  ボーナス/枚
 DRAWLINE
-LOCAL:2 = 0      ;このページの件数
+LOCAL:2 = 0      ;ページ内件数
 $SCAN_LOOP
-IF LOCAL:0 > 1748
+IF LOCAL:5 > 1748
 	GOTO LIST_END
 ENDIF
-LOCAL:9 = 3000 + LOCAL:0
+LOCAL:9 = 3000 + LOCAL:5
 A = LOCAL:9
-IF GLOBAL:A > 0
-	CALL CARD_GET_DATA, LOCAL:0
+LOCAL:3 = GLOBAL:A   ;所持枚数
+IF LOCAL:3 > 0
+	CALL CARD_GET_DATA, LOCAL:5
 	IF RESULT:2 == LOCAL:8
 		IF STR:0 != ""
-			PRINTFORML %STR:0%		{GLOBAL:A}枚  +{RESULT:4}/枚
+			PRINTFORML %STR:0%	{LOCAL:3}枚  +{RESULT:4}/枚
 		ELSE
-			PRINTFORML ID:{LOCAL:0}		{GLOBAL:A}枚  +{RESULT:4}/枚
+			PRINTFORML カードID:{LOCAL:5}	{LOCAL:3}枚  +{RESULT:4}/枚
 		ENDIF
 		LOCAL:1 += 1
 		LOCAL:2 += 1
 	ENDIF
 ENDIF
-LOCAL:0 += 1
+LOCAL:5 += 1
 IF LOCAL:2 < 15
 	GOTO SCAN_LOOP
 ENDIF
