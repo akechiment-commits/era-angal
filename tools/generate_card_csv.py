@@ -141,12 +141,10 @@ def write_era_erb(cards, char_map, bonus_map=None):
     L += [
         "@CARD_GET_DATA(ARG)",
         ";ARG:0=カードID -> RESULT:0=キャラNo RESULT:1=レア RESULT:2=ボーナスタイプ RESULT:3=ボーナス値",
-        ";               -> RESULTS:0=カード名",
         "RESULT:0 = 0",
         "RESULT:1 = 0",
         "RESULT:2 = 0",
         "RESULT:3 = 0",
-        "RESULTS:0 = \"\"",
         f"IF ARG:0 < 1 || ARG:0 > {len(cards)}",
         "\tRETURN 0",
         "ENDIF",
@@ -159,7 +157,6 @@ def write_era_erb(cards, char_map, bonus_map=None):
         L.append(f"\tRESULT:1 = {rarity}")
         L.append(f"\tRESULT:2 = {btype}")
         L.append(f"\tRESULT:3 = {bval}")
-        L.append(f"\tRESULTS:0 = \"{card_name}\"")
     L += ["ENDSELECT", "RETURN 1", ""]
 
     # @CARD_GET_CHARS_FOR_RARITY  （静的配列 — 高速）
