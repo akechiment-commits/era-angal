@@ -6,6 +6,7 @@
 ;   FLAG:200-204 = パーティスロット0-4（キャラCOUNTインデックス、-1=空き）
 ;   FLAG:205     = デッキ登録済みフラグ
 ;   FLAG:206     = スロット初期化済みフラグ
+;   FLAG:207     = 通算月数（月次集計カウンタ・敵強度スケーリング用）
 ;==========================================================
 
 @DECK_BATTLE
@@ -248,11 +249,24 @@ PRINTFORMW 合計スコア：{RESULT}pt
 RETURN 1
 
 ;---------------------------------------------------------
-; 手動対戦
+; 手動対戦（難度選択）
+;   ARG:0=難度(1=下級 2=中級 3=上級)
 ;---------------------------------------------------------
 @RUN_DECK_BATTLE
 DRAWLINE
-PRINTFORML 【対戦開始】
+PRINTFORML 【校内定期戦 難度選択】
+PRINTFORML [1] 下級戦  勝利:$800  圧勝:$1500
+PRINTFORML [2] 中級戦  勝利:$2000  圧勝:$4000
+PRINTFORML [3] 上級戦  勝利:$4000  圧勝:$8000
+PRINTFORML [0] キャンセル
+$DIFF_SELECT
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT < 1 || RESULT > 3
+	GOTO DIFF_SELECT
+ENDIF
+LOCAL:9 = RESULT	;難度
 
 ;パーティに1人でも居るか確認
 B = 0
@@ -268,26 +282,124 @@ ENDIF
 
 CALL CALC_DECK_SCORE
 A = RESULT
-;スコア最低保証（全員ステータス0でも1人1pt）
 SIF A == 0
 	A = B
 PRINTFORML あなたのスコア：{A}pt
 
-B = FLAG:24 * 300 + 100 + RAND:150
+;難度別 敵スコア・報酬
+SELECTCASE LOCAL:9
+CASE 1
+	PRINTFORML 【下級戦】
+	B = FLAG:207 * 40 + 150 + RAND:100
+	C = 800	;勝利報酬
+	D = 1500	;圧勝報酬
+	E = 5	;好感度ボーナス（圧勝時2倍）
+CASE 2
+	PRINTFORML 【中級戦】
+	B = FLAG:207 * 80 + 350 + RAND:150
+	C = 2000
+	D = 4000
+	E = 10
+CASEELSE
+	PRINTFORML 【上級戦】
+	B = FLAG:207 * 130 + 650 + RAND:200
+	C = 4000
+	D = 8000
+	E = 18
+ENDSELECT
 PRINTFORMW 対戦相手のスコア：{B}pt
 
 PRINTL
 IF A >= B * 130 / 100
 	PRINTFORML 圧倒的勝利！
-	MONEY += 3000
-	PRINTFORML 報酬：${3000}
+	MONEY += D
+	PRINTFORML 報酬：${D}
 	REPEAT 5
 		Z = FLAG:(200 + COUNT)
 		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
 			CONTINUE
-		CFLAG:Z:2 += 15
+		CFLAG:Z:2 += E * 2
 	REND
-	PRINTFORMW パーティ全員の好感度 +15
+	PRINTFORMW パーティ全員の好感度 +{E*2}
+ELSEIF A >= B
+	PRINTFORML 勝利！
+	MONEY += C
+	PRINTFORML 報酬：${C}
+	REPEAT 5
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
+			CONTINUE
+		CFLAG:Z:2 += E
+	REND
+	PRINTFORMW パーティ全員の好感度 +{E}
+ELSE
+	PRINTFORML 惜敗……パーティをもっと鍛えよう！
+	MONEY += 200
+	PRINTFORMW 参加賞：${200}
+ENDIF
+
+RETURN 1
+
+;---------------------------------------------------------
+; 月次自動集計（STAGE_CAPTUREの月初に自動呼び出し）
+;   FLAG:207 = 通算月数（敵強度スケーリング用）
+;---------------------------------------------------------
+@MONTHLY_DECK_RESULT
+;初回初期化
+IF FLAG:206 == 0
+	REPEAT 5
+		FLAG:(200 + COUNT) = -1
+	REND
+	FLAG:206 = 1
+ENDIF
+
+FLAG:207 = DAY / 10	;通算月数を記録（次回重複発火防止）
+
+DRAWLINE
+PRINTFORML 【校内定期戦 月次集計 第{FLAG:207}ヶ月目】
+PRINTL
+
+IF FLAG:205 == 0
+	PRINTFORML （パーティ未登録のため上位5人を自動選出します）
+	CALL AUTO_SELECT_DECK
+ENDIF
+
+CALL SHOW_CURRENT_DECK
+PRINTL
+
+;パーティ人数確認
+B = 0
+REPEAT 5
+	Z = FLAG:(200 + COUNT)
+	SIF Z >= 0 && Z < CHARANUM && Z != MASTER
+		B += 1
+REND
+IF B == 0
+	PRINTFORMW パーティが空のため集計をスキップします。
+	RETURN 0
+ENDIF
+
+CALL CALC_DECK_SCORE
+A = RESULT
+SIF A == 0
+	A = B
+PRINTFORML あなたのパーティスコア：{A}pt
+
+B = FLAG:207 * 60 + 200 + RAND:100
+PRINTFORMW 今月の基準スコア：{B}pt
+
+PRINTL
+IF A >= B * 130 / 100
+	PRINTFORML 圧倒的勝利！今月の定期戦トップに輝いた！
+	MONEY += 4000
+	PRINTFORML 報酬：${4000}
+	REPEAT 5
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
+			CONTINUE
+		CFLAG:Z:2 += 20
+	REND
+	PRINTFORMW パーティ全員の好感度 +20
 ELSEIF A >= B
 	PRINTFORML 勝利！
 	MONEY += 2000
@@ -299,16 +411,28 @@ ELSEIF A >= B
 		CFLAG:Z:2 += 10
 	REND
 	PRINTFORMW パーティ全員の好感度 +10
+ELSEIF A >= B * 80 / 100
+	PRINTFORML 惜敗……あと少しだった！
+	MONEY += 800
+	PRINTFORML 報酬：${800}
+	REPEAT 5
+		Z = FLAG:(200 + COUNT)
+		SIF Z < 0 || Z >= CHARANUM || Z == MASTER
+			CONTINUE
+		CFLAG:Z:2 += 3
+	REND
+	PRINTFORMW パーティ全員の好感度 +3
 ELSE
-	PRINTFORML 惜敗……パーティをもっと鍛えよう！
-	MONEY += 500
-	PRINTFORMW 参加賞：${500}
+	PRINTFORML 敗北……パーティをもっと育てよう！
+	MONEY += 300
+	PRINTFORMW 参加賞：${300}
 ENDIF
 
+WAIT
 RETURN 1
 
 ;---------------------------------------------------------
-; 学期末自動集計（STAGE.ERBのFLAG:24 += 1後に呼ぶ）
+; 学期末集計（互換用・現在は月次に移行済み）
 ;---------------------------------------------------------
 @SEMESTER_DECK_RESULT
 ;FLAG:200-204未初期化なら初期化してから自動選出
