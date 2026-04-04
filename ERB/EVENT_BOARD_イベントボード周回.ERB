@@ -529,15 +529,51 @@ CALL SUGOROKU_DRAW_BOARD
 PRINTL
 
 ;マスの効果
-IF FLAG:33 == 0
-	;スタートマス（周回ボーナス）
+;通常ミッション確定マス: 1,2,4,7
+IF FLAG:33 == 1 || FLAG:33 == 2 || FLAG:33 == 4 || FLAG:33 == 7
+	IF FLAG:36 == 0
+		FLAG:36 = 1
+		A = FLAG:68 * 3 + 78
+		FLAG:35 = 100 * FLAG:A + RAND:200
+		FLAG:34 = 0
+		PRINTFORML 通 通常ミッションマス　▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
+	ELSE
+		PRINTFORML 通 通常ミッションマス（ミッション進行中のため通過）
+	ENDIF
+	WAIT
+;特大ミッション確定マス: 8,10,11
+ELSEIF FLAG:33 == 8 || FLAG:33 == 10 || FLAG:33 == 11
+	IF FLAG:36 == 0
+		FLAG:36 = 2
+		A = FLAG:68 * 3 + 79
+		FLAG:35 = 400 * FLAG:A + RAND:400
+		FLAG:34 = 0
+		PRINTFORML 特 特大ミッションマス　▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
+	ELSE
+		PRINTFORML 特 特大ミッションマス（ミッション進行中のため通過）
+	ENDIF
+	WAIT
+;緊急ミッション確定マス: 14,17
+ELSEIF FLAG:33 == 14 || FLAG:33 == 17
+	IF FLAG:36 == 0
+		FLAG:36 = 3
+		A = FLAG:68 * 3 + 80
+		FLAG:35 = 800 * FLAG:A + RAND:1000
+		FLAG:34 = 0
+		PRINTFORML 緊 緊急ミッションマス　▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
+	ELSE
+		PRINTFORML 緊 緊急ミッションマス（ミッション進行中のため通過）
+	ENDIF
+	WAIT
+;スタートマス
+ELSEIF FLAG:33 == 0
 	LOCAL:4 = 5
 	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
 	FLAG:A += LOCAL:4
 	PRINTFORMW ★ スタートマス！周回ボーナス　PT +{LOCAL:4}
+;ボーナスマス（小）: 3
 ELSEIF FLAG:33 == 3
-	;ボーナスマス（小）
 	LOCAL:4 = 8 + RAND:5
 	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
@@ -547,8 +583,8 @@ ELSEIF FLAG:33 == 3
 	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
 		BASE:MASTER:1 = MAXBASE:MASTER:1
 	PRINTFORMW ★ ボーナスマス！　PT +{LOCAL:4}　気力 +{LOCAL:5}
-ELSEIF FLAG:33 == 5
-	;アイテムマス（おにぎり or ドーナツ）
+;アイテムマス（おにぎり or ドーナツ）: 5,15
+ELSEIF FLAG:33 == 5 || FLAG:33 == 15
 	IF RAND:2 == 0
 		ITEM:90 += 1
 		PRINTFORMW 品 アイテムマス！　おにぎりを入手！（所持{ITEM:90}個）
@@ -556,20 +592,12 @@ ELSEIF FLAG:33 == 5
 		ITEM:92 += 1
 		PRINTFORMW 品 アイテムマス！　ドーナツを入手！（所持{ITEM:92}個）
 	ENDIF
-ELSEIF FLAG:33 == 7
-	;通常ミッション確定マス
-	IF FLAG:36 == 0
-		FLAG:36 = 1
-		A = FLAG:68 * 3 + 78
-		FLAG:35 = 100 * FLAG:A + RAND:200
-		FLAG:34 = 0
-		PRINTFORML ！ ミッションマス　▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
-	ELSE
-		PRINTFORML ！ ミッションマス（ミッション進行中のため通過）
-	ENDIF
-	WAIT
+;ブロンズチケットマス: 6
+ELSEIF FLAG:33 == 6
+	FLAG:113 += 1
+	PRINTFORMW 銅 ブロンズガチャチケットを入手！（計{FLAG:113}枚）
+;休憩マス: 9
 ELSEIF FLAG:33 == 9
-	;休憩マス（体力＋気力回復）
 	LOCAL:4 = MAXBASE:MASTER:0 / 5
 	LOCAL:5 = MAXBASE:MASTER:1 / 5
 	BASE:MASTER:0 += LOCAL:4
@@ -579,20 +607,12 @@ ELSEIF FLAG:33 == 9
 	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
 		BASE:MASTER:1 = MAXBASE:MASTER:1
 	PRINTFORMW 休 休憩マス！　体力 +{LOCAL:4}　気力 +{LOCAL:5}
-ELSEIF FLAG:33 == 11
-	;特大ミッション確定マス
-	IF FLAG:36 == 0
-		FLAG:36 = 2
-		A = FLAG:68 * 3 + 79
-		FLAG:35 = 400 * FLAG:A + RAND:400
-		FLAG:34 = 0
-		PRINTFORML ！ ミッションマス　▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
-	ELSE
-		PRINTFORML ！ ミッションマス（ミッション進行中のため通過）
-	ENDIF
-	WAIT
+;シルバーチケットマス: 12
+ELSEIF FLAG:33 == 12
+	FLAG:114 += 1
+	PRINTFORMW 銀 シルバーガチャチケットを入手！（計{FLAG:114}枚）
+;ボーナスマス（大）: 13
 ELSEIF FLAG:33 == 13
-	;ボーナスマス（大）
 	LOCAL:4 = 15 + RAND:6
 	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
@@ -602,29 +622,16 @@ ELSEIF FLAG:33 == 13
 	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
 		BASE:MASTER:1 = MAXBASE:MASTER:1
 	PRINTFORMW ★★ ボーナスマス！　PT +{LOCAL:4}　気力 +{LOCAL:5}
-ELSEIF FLAG:33 == 15
-	;アイテムマス（ドーナツ or ブロンズチケット）
-	IF RAND:2 == 0
-		ITEM:92 += 1
-		PRINTFORMW 品 アイテムマス！　ドーナツを入手！（所持{ITEM:92}個）
-	ELSE
-		FLAG:113 += 1
-		PRINTFORMW 品 アイテムマス！　ブロンズガチャチケットを入手！（計{FLAG:113}枚）
-	ENDIF
-ELSEIF FLAG:33 == 17
-	;緊急ミッション確定マス
-	IF FLAG:36 == 0
-		FLAG:36 = 3
-		A = FLAG:68 * 3 + 80
-		FLAG:35 = 800 * FLAG:A + RAND:1000
-		FLAG:34 = 0
-		PRINTFORML ！ ミッションマス　▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
-	ELSE
-		PRINTFORML ！ ミッションマス（ミッション進行中のため通過）
-	ENDIF
-	WAIT
+;ゴールドチケットマス: 16
+ELSEIF FLAG:33 == 16
+	FLAG:115 += 1
+	PRINTFORMW 金 ゴールドガチャチケットを入手！（計{FLAG:115}枚）
+;プラチナチケットマス: 18
+ELSEIF FLAG:33 == 18
+	FLAG:116 += 1
+	PRINTFORMW 白 プラチナガチャチケットを入手！（計{FLAG:116}枚）
+;ゴールマス: 19
 ELSEIF FLAG:33 == 19
-	;ゴールマス（大ボーナス＋チケット＋周回）
 	LOCAL:4 = 20 + RAND:11
 	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
@@ -633,33 +640,6 @@ ELSEIF FLAG:33 == 19
 	FLAG:33 = 0
 	PRINTFORML Ｇ ゴール！！　PT +{LOCAL:4}　ブロンズガチャチケット入手！（計{FLAG:113}枚）
 	PRINTFORMW スタートに戻る。
-ELSE
-	;通常マス：ランダムにミッション発生
-	IF FLAG:36 == 0
-		LOCAL:2 = RAND:100
-		IF LOCAL:2 < 50
-			FLAG:36 = 1
-			A = FLAG:68 * 3 + 78
-			FLAG:35 = 100 * FLAG:A + RAND:200
-			FLAG:34 = 0
-			PRINTFORML ▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
-		ELSEIF LOCAL:2 < 80
-			FLAG:36 = 2
-			A = FLAG:68 * 3 + 79
-			FLAG:35 = 400 * FLAG:A + RAND:400
-			FLAG:34 = 0
-			PRINTFORML ▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
-		ELSEIF LOCAL:2 < 95
-			FLAG:36 = 3
-			A = FLAG:68 * 3 + 80
-			FLAG:35 = 800 * FLAG:A + RAND:1000
-			FLAG:34 = 0
-			PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
-		ELSE
-			PRINTFORML ひと息ついた。
-		ENDIF
-		WAIT
-	ENDIF
 ENDIF
 RETURN 1
 
@@ -710,9 +690,9 @@ RETURN 1
 ;---------------------------------------------------------
 ; すごろくボード描画
 ; レイアウト（U字型 20マス）:
-;   出発→[発][　][　][★][　][品][　][！][　][休]↓
+;   出発→[発][通][通][★][通][品][銅][通][特][休]↓
 ;         0   1   2   3   4   5   6   7   8   9
-;         [Ｇ][！][　][品][　][！][　][★][　][　]←
+;         [Ｇ][白][緊][金][緊][品][★][銀][特][特]←
 ;         19  18  17  16  15  14  13  12  11  10
 ;---------------------------------------------------------
 @SUGOROKU_DRAW_BOARD
@@ -729,7 +709,7 @@ FOR LOCAL:8, 0, 10
 	CALL SUGOROKU_PRINT_CELL, LOCAL:9
 NEXT
 PRINTFORML ←
-PRINTFORML [発]スタート [★]ボーナス [品]アイテム [！]ミッション [休]休憩 [Ｇ]ゴール [◆]現在地
+PRINTFORML [発]スタート [★]ボーナス [品]アイテム [通]通常M [特]特大M [緊]緊急M [銅][銀][金][白]チケット [休]休憩 [Ｇ]ゴール [◆]現在地
 RETURN
 
 ;---------------------------------------------------------
@@ -740,18 +720,30 @@ IF ARG:0 == FLAG:33
 	PRINTFORM [◆]
 ELSEIF ARG:0 == 0
 	PRINTFORM [発]
-ELSEIF ARG:0 == 3 || ARG:0 == 13
+ELSEIF ARG:0 == 1 || ARG:0 == 2 || ARG:0 == 4 || ARG:0 == 7
+	PRINTFORM [通]
+ELSEIF ARG:0 == 3
 	PRINTFORM [★]
 ELSEIF ARG:0 == 5 || ARG:0 == 15
 	PRINTFORM [品]
-ELSEIF ARG:0 == 7 || ARG:0 == 11 || ARG:0 == 17
-	PRINTFORM [！]
+ELSEIF ARG:0 == 6
+	PRINTFORM [銅]
+ELSEIF ARG:0 == 8 || ARG:0 == 10 || ARG:0 == 11
+	PRINTFORM [特]
 ELSEIF ARG:0 == 9
 	PRINTFORM [休]
+ELSEIF ARG:0 == 12
+	PRINTFORM [銀]
+ELSEIF ARG:0 == 13
+	PRINTFORM [★]
+ELSEIF ARG:0 == 14 || ARG:0 == 17
+	PRINTFORM [緊]
+ELSEIF ARG:0 == 16
+	PRINTFORM [金]
+ELSEIF ARG:0 == 18
+	PRINTFORM [白]
 ELSEIF ARG:0 == 19
 	PRINTFORM [Ｇ]
-ELSE
-	PRINTFORM [　]
 ENDIF
 RETURN
 ;---------------------------------------------------------
