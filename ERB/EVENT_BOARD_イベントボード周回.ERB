@@ -8,7 +8,7 @@
 ; 使用変数:
 ;   TFLAG:91 = イベントタイプ(0:収拾/1:バトル/2:宝探し/3:すごろく)
 ;   TSTR:99  = 選択中イベント名
-;   FLAG:32  = 月間イベントPT累計（月初リセット）
+;   FLAG:32  = 未使用（廃止）
 ;   FLAG:33  = すごろく盤面位置(タイプ3のみ, 0-19)
 ;   FLAG:34  = ミッション進捗（累積発揮値）
 ;   FLAG:35  = ミッション目標値
@@ -194,9 +194,9 @@ PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}　気力:{BASE:MASTER:1}/{MAXBAS
 A = FLAG:68 + 98	;エリア番号index
 B = 71 + FLAG:68	;イベントPT index
 IF TFLAG:91 == 3
-	PRINTFORML 今月PT:{FLAG:32}　エリア{FLAG:A}　周回数:{FLAG:37}周
+	PRINTFORML エリア{FLAG:A}　周回数:{FLAG:37}周
 ELSE
-	PRINTFORML 今月PT:{FLAG:32}　エリア{FLAG:A}　進捗:{FLAG:38}/100
+	PRINTFORML エリア{FLAG:A}　進捗:{FLAG:38}/100
 ENDIF
 PRINTFORML %TSTR:99%PT:{FLAG:B}
 A = FLAG:68 * 3 + 78	;通常Lv index
@@ -342,11 +342,10 @@ ELSE
 ENDIF
 FLAG:A += 1
 PRINTFORML → Lv{FLAG:A}へ！
-FLAG:32 += LOCAL:0
 B = 71 + FLAG:68
 FLAG:B += LOCAL:0
 PRINTFORML イベントPT +{LOCAL:0}
-PRINTFORML 今月累計:{FLAG:32}　%TSTR:99%PT:{FLAG:B}
+PRINTFORML %TSTR:99%PT:{FLAG:B}
 PRINTL
 ;ミッションクリア報酬：ガチャ2回
 ;通常=ブロンズ(1) 特大=シルバー(2) 緊急=ゴールド(3)
@@ -378,10 +377,9 @@ DRAWLINE
 A = FLAG:68 + 98	;エリア番号index
 PRINTFORML ★★★ エリア{FLAG:A} 踏破！ ★★★
 LOCAL:0 = 5 + RAND:6
-FLAG:32 += LOCAL:0
 B = 71 + FLAG:68
 FLAG:B += LOCAL:0
-PRINTFORML イベントPT +{LOCAL:0}　（今月累計: {FLAG:32}）
+PRINTFORML イベントPT +{LOCAL:0}
 FLAG:38 = 0
 FLAG:A += 1
 PRINTFORML エリア{FLAG:A}に進行！
@@ -573,14 +571,12 @@ ELSEIF FLAG:33 == 14 || FLAG:33 == 17
 ;スタートマス
 ELSEIF FLAG:33 == 0
 	LOCAL:4 = 5
-	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
 	FLAG:A += LOCAL:4
 	PRINTFORMW ★ スタートマス！周回ボーナス　PT +{LOCAL:4}
 ;ボーナスマス（小）: 3
 ELSEIF FLAG:33 == 3
 	LOCAL:4 = 8 + RAND:5
-	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
 	FLAG:A += LOCAL:4
 	LOCAL:5 = MAXBASE:MASTER:1 / 10
@@ -619,7 +615,6 @@ ELSEIF FLAG:33 == 12
 ;ボーナスマス（大）: 13
 ELSEIF FLAG:33 == 13
 	LOCAL:4 = 15 + RAND:6
-	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
 	FLAG:A += LOCAL:4
 	LOCAL:5 = MAXBASE:MASTER:1 / 5
@@ -638,7 +633,6 @@ ELSEIF FLAG:33 == 18
 ;ゴールマス: 19
 ELSEIF FLAG:33 == 19
 	LOCAL:4 = 20 + RAND:11
-	FLAG:32 += LOCAL:4
 	A = 71 + FLAG:68
 	FLAG:A += LOCAL:4
 	FLAG:113 += 1
@@ -658,10 +652,9 @@ RETURN 1
 @EVENT_BOARD_RANDOM_DROP
 ;常時：イベントPT +1～3
 LOCAL:0 = RAND:3 + 1
-FLAG:32 += LOCAL:0
 A = 71 + FLAG:68
 FLAG:A += LOCAL:0
-PRINTFORML 　→ イベントPT +{LOCAL:0}　（今月累計: {FLAG:32}）
+PRINTFORML 　→ イベントPT +{LOCAL:0}
 
 ;ランダムドロップ判定（確率: 全体12.62%）
 LOCAL:1 = RAND:10000
