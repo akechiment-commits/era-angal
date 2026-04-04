@@ -28,13 +28,14 @@ IF TARGET < 0
 	RETURN 0
 ENDIF
 
-;月変更チェック → ミッションLv・イベントポイントリセット
+;月変更チェック → ミッションLv・イベントポイント・エリア番号リセット
 IF FLAG:67 != DAY:8
-	FLAG:64 = 1
-	FLAG:65 = 1
-	FLAG:66 = 1
 	REPEAT 6
-		FLAG:(71 + COUNT) = 0
+		FLAG:(71 + COUNT) = 0	;イベントポイント
+		FLAG:(98 + COUNT) = 1	;エリア番号
+	REND
+	REPEAT 18
+		FLAG:(78 + COUNT) = 1	;イベント別ミッションLv（各3スロット×6イベント）
 	REND
 	FLAG:67 = DAY:8
 ENDIF
@@ -173,10 +174,14 @@ ELSE
 ENDIF
 CALL EVENT_BOARD_CALC_HAKKIICHI
 PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}　気力:{BASE:MASTER:1}/{MAXBASE:MASTER:1}　発揮値:{RESULT}
-A = 71 + FLAG:68
-PRINTFORML 今月PT:{FLAG:32}　エリア進捗:{FLAG:38}/100
-PRINTFORML %TSTR:99%PT:{FLAG:A}
-PRINTFORML ミッションLv　通常:{FLAG:64}　特大:{FLAG:65}　緊急:{FLAG:66}
+A = FLAG:68 + 98	;エリア番号index
+B = 71 + FLAG:68	;イベントPT index
+PRINTFORML 今月PT:{FLAG:32}　エリア{FLAG:A}　進捗:{FLAG:38}/100
+PRINTFORML %TSTR:99%PT:{FLAG:B}
+A = FLAG:68 * 3 + 78	;通常Lv index
+B = A + 1	;特大Lv index
+C = A + 2	;緊急Lv index
+PRINTFORML ミッションLv　通常:{FLAG:A}　特大:{FLAG:B}　緊急:{FLAG:C}
 IF TFLAG:91 == 3
 	PRINTFORML 盤面位置:{FLAG:33}/19マス
 ENDIF
@@ -186,12 +191,13 @@ RETURN 1
 ; ミッション状況表示
 ;---------------------------------------------------------
 @EVENT_BOARD_MISSION_STATUS
+A = FLAG:68 * 3 + 77 + FLAG:36	;現在のミッションLv index
 IF FLAG:36 == 1
-	PRINTFORML ▼ 通常ミッション Lv{FLAG:64}
+	PRINTFORML ▼ 通常ミッション Lv{FLAG:A}
 ELSEIF FLAG:36 == 2
-	PRINTFORML ▼▼ 特大ミッション Lv{FLAG:65}
+	PRINTFORML ▼▼ 特大ミッション Lv{FLAG:A}
 ELSE
-	PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:66}！
+	PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:A}！
 ENDIF
 PRINTFORML 進捗: {FLAG:34} / {FLAG:35}
 LOCAL:0 = FLAG:34 * 10 / FLAG:35
@@ -236,22 +242,25 @@ IF FLAG:36 == 0
 	LOCAL:2 = RAND:100
 	IF LOCAL:2 < 50
 		FLAG:36 = 1
-		FLAG:35 = 100 * FLAG:64 + RAND:200
+		A = FLAG:68 * 3 + 78	;通常Lv index
+		FLAG:35 = 100 * FLAG:A + RAND:200
 		FLAG:34 = 0
 		PRINTL
-		PRINTFORML ▼ 通常ミッション Lv{FLAG:64} 発生！　目標値: {FLAG:35}
+		PRINTFORML ▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 	ELSEIF LOCAL:2 < 80
 		FLAG:36 = 2
-		FLAG:35 = 400 * FLAG:65 + RAND:400
+		A = FLAG:68 * 3 + 79	;特大Lv index
+		FLAG:35 = 400 * FLAG:A + RAND:400
 		FLAG:34 = 0
 		PRINTL
-		PRINTFORML ▼▼ 特大ミッション Lv{FLAG:65} 発生！　目標値: {FLAG:35}
+		PRINTFORML ▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 	ELSEIF LOCAL:2 < 95
 		FLAG:36 = 3
-		FLAG:35 = 800 * FLAG:66 + RAND:1000
+		A = FLAG:68 * 3 + 80	;緊急Lv index
+		FLAG:35 = 800 * FLAG:A + RAND:1000
 		FLAG:34 = 0
 		PRINTL
-		PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:66} 発生！！　目標値: {FLAG:35}
+		PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
 	ELSE
 		LOCAL:3 = MAXBASE:MASTER:1 / 5
 		BASE:MASTER:1 += LOCAL:3
@@ -295,27 +304,24 @@ RETURN 1
 ;---------------------------------------------------------
 @EVENT_BOARD_MISSION_CLEAR
 DRAWLINE
+A = FLAG:68 * 3 + 77 + FLAG:36	;現在のミッションLv index
 IF FLAG:36 == 1
-	LOCAL:0 = 2 + 2 * FLAG:64	;Lv1=4 Lv2=6 Lv3=8...
-	PRINTFORML ★ 通常ミッション Lv{FLAG:64} クリア！
-	FLAG:64 += 1
-	PRINTFORML 通常ミッション → Lv{FLAG:64}へ！
+	LOCAL:0 = 2 + 2 * FLAG:A	;Lv1=4 Lv2=6...
+	PRINTFORML ★ 通常ミッション Lv{FLAG:A} クリア！
 ELSEIF FLAG:36 == 2
-	LOCAL:0 = 4 + 4 * FLAG:65	;Lv1=8 Lv2=12 Lv3=16...
-	PRINTFORML ★★ 特大ミッション Lv{FLAG:65} クリア！！
-	FLAG:65 += 1
-	PRINTFORML 特大ミッション → Lv{FLAG:65}へ！
+	LOCAL:0 = 4 + 4 * FLAG:A	;Lv1=8 Lv2=12...
+	PRINTFORML ★★ 特大ミッション Lv{FLAG:A} クリア！！
 ELSE
-	LOCAL:0 = 7 + 8 * FLAG:66	;Lv1=15 Lv2=23 Lv3=31...
-	PRINTFORML ★★★ 緊急ミッション Lv{FLAG:66} クリア！！！
-	FLAG:66 += 1
-	PRINTFORML 緊急ミッション → Lv{FLAG:66}へ！
+	LOCAL:0 = 7 + 8 * FLAG:A	;Lv1=15 Lv2=23...
+	PRINTFORML ★★★ 緊急ミッション Lv{FLAG:A} クリア！！！
 ENDIF
+FLAG:A += 1
+PRINTFORML → Lv{FLAG:A}へ！
 FLAG:32 += LOCAL:0
-A = 71 + FLAG:68
-FLAG:A += LOCAL:0
+B = 71 + FLAG:68
+FLAG:B += LOCAL:0
 PRINTFORML イベントPT +{LOCAL:0}
-PRINTFORML 今月累計:{FLAG:32}　%TSTR:99%PT:{FLAG:A}
+PRINTFORML 今月累計:{FLAG:32}　%TSTR:99%PT:{FLAG:B}
 FLAG:36 = 0
 FLAG:34 = 0
 FLAG:35 = 0
@@ -327,12 +333,16 @@ RETURN 1
 ;---------------------------------------------------------
 @EVENT_BOARD_AREA_COMPLETE
 DRAWLINE
-PRINTL ★★★ エリア踏破！ ★★★
+A = FLAG:68 + 98	;エリア番号index
+PRINTFORML ★★★ エリア{FLAG:A} 踏破！ ★★★
 LOCAL:0 = 5 + RAND:6
 FLAG:32 += LOCAL:0
+B = 71 + FLAG:68
+FLAG:B += LOCAL:0
 PRINTFORML イベントPT +{LOCAL:0}　（今月累計: {FLAG:32}）
 FLAG:38 = 0
-PRINTFORML エリア進捗リセット！次のエリアへ！
+FLAG:A += 1
+PRINTFORML エリア{FLAG:A}に進行！
 WAIT
 RETURN 1
 
@@ -345,19 +355,17 @@ RETURN 1
 ;---------------------------------------------------------
 @EVENT_BOARD_ABANDON_MISSION
 DRAWLINE
+A = FLAG:68 * 3 + 77 + FLAG:36	;現在のミッションLv index
 IF FLAG:36 == 1
-	SIF FLAG:64 > 1
-		FLAG:64 -= 1
-	PRINTFORML ミッション破棄。通常ミッション → Lv{FLAG:64}
+	PRINTFORML ミッション破棄。通常ミッション（Lv{FLAG:A}）
 ELSEIF FLAG:36 == 2
-	SIF FLAG:65 > 1
-		FLAG:65 -= 1
-	PRINTFORML ミッション破棄。特大ミッション → Lv{FLAG:65}
+	PRINTFORML ミッション破棄。特大ミッション（Lv{FLAG:A}）
 ELSE
-	SIF FLAG:66 > 1
-		FLAG:66 -= 1
-	PRINTFORML ミッション破棄。緊急ミッション → Lv{FLAG:66}
+	PRINTFORML ミッション破棄。緊急ミッション（Lv{FLAG:A}）
 ENDIF
+SIF FLAG:A > 1
+	FLAG:A -= 1
+PRINTFORML → Lv{FLAG:A}に下がった。
 FLAG:34 = 0
 FLAG:35 = 0
 FLAG:36 = 0
@@ -509,19 +517,22 @@ ELSE
 		LOCAL:2 = RAND:100
 		IF LOCAL:2 < 50
 			FLAG:36 = 1
-			FLAG:35 = 100 * FLAG:64 + RAND:200
+			A = FLAG:68 * 3 + 78	;通常Lv index
+			FLAG:35 = 100 * FLAG:A + RAND:200
 			FLAG:34 = 0
-			PRINTFORML ▼ 通常ミッション Lv{FLAG:64} 発生！　目標値: {FLAG:35}
+			PRINTFORML ▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 		ELSEIF LOCAL:2 < 85
 			FLAG:36 = 2
-			FLAG:35 = 400 * FLAG:65 + RAND:400
+			A = FLAG:68 * 3 + 79	;特大Lv index
+			FLAG:35 = 400 * FLAG:A + RAND:400
 			FLAG:34 = 0
-			PRINTFORML ▼▼ 特大ミッション Lv{FLAG:65} 発生！　目標値: {FLAG:35}
+			PRINTFORML ▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 		ELSE
 			FLAG:36 = 3
-			FLAG:35 = 800 * FLAG:66 + RAND:1000
+			A = FLAG:68 * 3 + 80	;緊急Lv index
+			FLAG:35 = 800 * FLAG:A + RAND:1000
 			FLAG:34 = 0
-			PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:66} 発生！！　目標値: {FLAG:35}
+			PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
 		ENDIF
 		WAIT
 	ENDIF
