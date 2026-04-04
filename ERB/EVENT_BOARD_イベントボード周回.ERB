@@ -282,29 +282,94 @@ RETURN 1
 ; 発揮値計算（RETURN で返す）
 ; イベントタイプにより算出方法が異なる
 ;---------------------------------------------------------
+;---------------------------------------------------------
+; イベントデッキスコア計算（定期戦と同じデッキを使用）
+; TFLAG:91 のイベントタイプごとにステータス重みが変わる
+; 有利属性が高い場合は x1.2 ボーナス
+;---------------------------------------------------------
 @EVENT_BOARD_CALC_HAKKIICHI
-LOCAL:0 = 10
-IF TFLAG:91 == 0
-	;収拾: 表現力 = 表現経験 * 表現素質^2 / 50000
-	LOCAL:0 = EXP:MASTER:99 * ABL:MASTER:55 * ABL:MASTER:55 / 50000
-ELSEIF TFLAG:91 == 1
-	;バトル: 運動力 = 運動経験 * 運動素質^2 / 50000
-	LOCAL:0 = EXP:MASTER:93 * ABL:MASTER:54 * ABL:MASTER:54 / 50000
-ELSEIF TFLAG:91 == 2
-	;宝探し: 学力 * 5
-	CALL CALC_ACADEMIC_LEVEL, MASTER
-	LOCAL:0 = ABL:MASTER:88 * 5
-ELSE
-	;すごろく: 好感度 / 10
-	LOCAL:0 = CFLAG:TARGET:2 / 10
-ENDIF
-SIF LOCAL:0 < 10
-	LOCAL:0 = 10
-RETURN LOCAL:0
+A = 0	;合計スコア
+B = 0	;有効人数
+C = 0	;有利属性合計（ボーナス判定用）
 
-;---------------------------------------------------------
-; すごろく専用：サイコロを振って盤面を進む
-;---------------------------------------------------------
+REPEAT 5
+	Z = FLAG:(200 + COUNT)
+	SIF Z < 0 || Z >= CHARANUM || Z == MASTER
+		CONTINUE
+
+	;デッキキャラ個別スコア（親密度ベース共通）
+	LOCAL:1 = CFLAG:Z:2 / 10
+
+	IF TFLAG:91 == 0
+		;収拾: 表現力重視
+		LOCAL:1 += ABL:Z:88 * 5	;学力
+		LOCAL:1 += ABL:Z:93 * 5	;運動
+		LOCAL:1 += ABL:Z:94 * 15	;表現★
+		LOCAL:1 += ABL:Z:95 * 5	;知識
+		C += ABL:Z:94	;有利属性:表現
+	ELSEIF TFLAG:91 == 1
+		;バトル: 運動重視
+		LOCAL:1 += ABL:Z:88 * 5	;学力
+		LOCAL:1 += ABL:Z:93 * 15	;運動★
+		LOCAL:1 += ABL:Z:94 * 5	;表現
+		LOCAL:1 += ABL:Z:95 * 5	;知識
+		C += ABL:Z:93	;有利属性:運動
+	ELSEIF TFLAG:91 == 2
+		;宝探し: 学力+知識重視
+		LOCAL:1 += ABL:Z:88 * 12	;学力★
+		LOCAL:1 += ABL:Z:93 * 3	;運動
+		LOCAL:1 += ABL:Z:94 * 3	;表現
+		LOCAL:1 += ABL:Z:95 * 10	;知識★
+		C += ABL:Z:88 + ABL:Z:95	;有利属性:学力+知識
+	ELSE
+		;すごろく: 親密度重視
+		LOCAL:1 += CFLAG:Z:2 / 10	;親密度追加
+		LOCAL:1 += ABL:Z:88 * 5	;学力
+		LOCAL:1 += ABL:Z:93 * 5	;運動
+		LOCAL:1 += ABL:Z:94 * 5	;表現
+		LOCAL:1 += ABL:Z:95 * 5	;知識
+		C += CFLAG:Z:2	;有利属性:親密度
+	ENDIF
+
+	;カードボーナス（定期戦と同じ）
+	LOCAL:1 += CFLAG:Z:303
+	LOCAL:1 += CFLAG:Z:304
+	LOCAL:1 += CFLAG:Z:305
+	LOCAL:1 += CFLAG:Z:306
+
+	A += LOCAL:1
+	B += 1
+REND
+
+;デッキ未編成時は最低値
+SIF B == 0
+	RETURN 10
+
+;有利属性ボーナス（平均がしきい値を超えたら x1.2）
+LOCAL:3 = C / B
+IF TFLAG:91 == 0 && LOCAL:3 >= 50
+	TIMES A, 1.20
+	PRINTFORML 	（表現ボーナス x1.2）
+ELSEIF TFLAG:91 == 1 && LOCAL:3 >= 50
+	TIMES A, 1.20
+	PRINTFORML 	（運動ボーナス x1.2）
+ELSEIF TFLAG:91 == 2 && LOCAL:3 >= 80
+	TIMES A, 1.20
+	PRINTFORML 	（学力+知識ボーナス x1.2）
+ELSEIF TFLAG:91 == 3 && LOCAL:3 >= 500
+	TIMES A, 1.20
+	PRINTFORML 	（親密ボーナス x1.2）
+ENDIF
+
+;5人フルパーティボーナス
+SIF B == 5
+	TIMES A, 1.10
+
+SIF A < 10
+	A = 10
+
+RETURN A
+
 @EVENT_BOARD_SUGOROKU_ADVANCE
 LOCAL:0 = MAXBASE:MASTER:0 / 20
 SIF LOCAL:0 < 5
