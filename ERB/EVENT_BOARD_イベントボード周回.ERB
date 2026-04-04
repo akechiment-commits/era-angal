@@ -250,6 +250,9 @@ BASE:MASTER:0 -= LOCAL:0
 FLAG:38 += 10
 PRINTFORML 体力 -{LOCAL:0}　エリアを進んだ。（進捗: {FLAG:38}/100）
 
+;ランダムドロップ（PT + 稀にアイテム）
+CALL EVENT_BOARD_RANDOM_DROP
+
 ;エリア踏破チェック
 SIF FLAG:38 >= 100
 	CALL EVENT_BOARD_AREA_COMPLETE
@@ -495,6 +498,9 @@ FLAG:33 = (FLAG:33 + LOCAL:2) % 20
 FLAG:38 += 10
 PRINTFORML 体力 -{LOCAL:0}　サイコロ: {LOCAL:2}　=> {FLAG:33}マス目（進捗: {FLAG:38}/100）
 
+;ランダムドロップ（PT + 稀にアイテム）
+CALL EVENT_BOARD_RANDOM_DROP
+
 ;エリア踏破チェック
 SIF FLAG:38 >= 100
 	CALL EVENT_BOARD_AREA_COMPLETE
@@ -553,6 +559,49 @@ ELSE
 		ENDIF
 		WAIT
 	ENDIF
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+; エリア進行ランダムドロップ
+; 常に1～3 イベントPT獲得 ＋ 稀にアイテムドロップ
+; 確率: おにぎり5% / ドーナツ5% / ブロンズ2% / シルバー0.5%
+;       ゴールド0.1% / プラチナ0.02%
+;---------------------------------------------------------
+@EVENT_BOARD_RANDOM_DROP
+;常時：イベントPT +1～3
+LOCAL:0 = RAND:3 + 1
+FLAG:32 += LOCAL:0
+A = 71 + FLAG:68
+FLAG:A += LOCAL:0
+PRINTFORML 　→ イベントPT +{LOCAL:0}　（今月累計: {FLAG:32}）
+
+;ランダムドロップ判定（確率: 全体12.62%）
+LOCAL:1 = RAND:10000
+IF LOCAL:1 < 500
+	;おにぎり 5%
+	ITEM:90 += 1
+	PRINTFORML 　★ おにぎりを拾った！（所持{ITEM:90}個）
+ELSEIF LOCAL:1 < 1000
+	;ドーナツ 5%
+	ITEM:92 += 1
+	PRINTFORML 　★ ドーナツを拾った！（所持{ITEM:92}個）
+ELSEIF LOCAL:1 < 1200
+	;ブロンズチケット 2%
+	FLAG:113 += 1
+	PRINTFORML 　★ ブロンズガチャチケットを拾った！（計{FLAG:113}枚）
+ELSEIF LOCAL:1 < 1250
+	;シルバーチケット 0.5%
+	FLAG:114 += 1
+	PRINTFORML 　★★ シルバーガチャチケットを拾った！（計{FLAG:114}枚）
+ELSEIF LOCAL:1 < 1260
+	;ゴールドチケット 0.1%
+	FLAG:115 += 1
+	PRINTFORML 　★★★ ゴールドガチャチケットを拾った！！（計{FLAG:115}枚）
+ELSEIF LOCAL:1 < 1262
+	;プラチナチケット 0.02%（1/5000）
+	FLAG:116 += 1
+	PRINTFORML 　★★★★ プラチナガチャチケットを拾った！！！（計{FLAG:116}枚）
 ENDIF
 RETURN 1
 
