@@ -199,7 +199,7 @@ B = A + 1	;特大Lv index
 C = A + 2	;緊急Lv index
 PRINTFORML ミッションLv　通常:{FLAG:A}　特大:{FLAG:B}　緊急:{FLAG:C}
 IF TFLAG:91 == 3
-	PRINTFORML 盤面位置:{FLAG:33}/19マス
+	CALL SUGOROKU_DRAW_BOARD
 ENDIF
 PRINTFORML おにぎり:{ITEM:90}個　カレー:{ITEM:91}個　ドーナツ:{ITEM:92}個　パフェ:{ITEM:93}個
 RETURN 1
@@ -509,11 +509,11 @@ ENDIF
 
 BASE:MASTER:0 -= LOCAL:0
 LOCAL:2 = RAND:6 + 1
+LOCAL:3 = FLAG:33	;移動前の位置
 FLAG:33 = (FLAG:33 + LOCAL:2) % 20
 
 ;エリア進捗 +10
 FLAG:38 += 10
-PRINTFORML 体力 -{LOCAL:0}　サイコロ: {LOCAL:2}　=> {FLAG:33}マス目（進捗: {FLAG:38}/100）
 
 ;ランダムドロップ（PT + 稀にアイテム）
 CALL EVENT_BOARD_RANDOM_DROP
@@ -522,57 +522,141 @@ CALL EVENT_BOARD_RANDOM_DROP
 SIF FLAG:38 >= 100
 	CALL EVENT_BOARD_AREA_COMPLETE
 
-;盤面マップ表示
-FOR LOCAL:8, 0, 20
-	IF LOCAL:8 == FLAG:33
-		PRINTFORM [現]
-	ELSEIF LOCAL:8 == 3 || LOCAL:8 == 13 || LOCAL:8 == 19
-		PRINTFORM [ボ]
-	ELSEIF LOCAL:8 == 9
-		PRINTFORM [休]
-	ELSE
-		PRINTFORM [ .]
-	ENDIF
-	SIF LOCAL:8 == 9
-		PRINTL
-NEXT
+PRINTFORML 体力 -{LOCAL:0}　サイコロ: {LOCAL:2}　マス{LOCAL:3}→マス{FLAG:33}（進捗: {FLAG:38}/100）
+
+;ボード描画
+CALL SUGOROKU_DRAW_BOARD
 PRINTL
 
 ;マスの効果
-IF FLAG:33 == 3 || FLAG:33 == 13 || FLAG:33 == 19
-	;ボーナスマス
-	LOCAL:3 = 4 + RAND:5
-	FLAG:32 += LOCAL:3
-	PRINTFORMW ★ボーナスマス！　PT +{LOCAL:3}　（累計: {FLAG:32}）
-ELSEIF FLAG:33 == 9
-	;休憩マス
-	LOCAL:3 = MAXBASE:MASTER:1 / 5
-	BASE:MASTER:1 += LOCAL:3
+IF FLAG:33 == 0
+	;スタートマス（周回ボーナス）
+	LOCAL:4 = 5
+	FLAG:32 += LOCAL:4
+	A = 71 + FLAG:68
+	FLAG:A += LOCAL:4
+	PRINTFORMW ★ スタートマス！周回ボーナス　PT +{LOCAL:4}
+ELSEIF FLAG:33 == 3
+	;ボーナスマス（小）
+	LOCAL:4 = 8 + RAND:5
+	FLAG:32 += LOCAL:4
+	A = 71 + FLAG:68
+	FLAG:A += LOCAL:4
+	LOCAL:5 = MAXBASE:MASTER:1 / 10
+	BASE:MASTER:1 += LOCAL:5
 	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
 		BASE:MASTER:1 = MAXBASE:MASTER:1
-	PRINTFORMW ★休憩マス。ひと息ついた。　気力 +{LOCAL:3}
+	PRINTFORMW ★ ボーナスマス！　PT +{LOCAL:4}　気力 +{LOCAL:5}
+ELSEIF FLAG:33 == 5
+	;アイテムマス（おにぎり or ドーナツ）
+	IF RAND:2 == 0
+		ITEM:90 += 1
+		PRINTFORMW 品 アイテムマス！　おにぎりを入手！（所持{ITEM:90}個）
+	ELSE
+		ITEM:92 += 1
+		PRINTFORMW 品 アイテムマス！　ドーナツを入手！（所持{ITEM:92}個）
+	ENDIF
+ELSEIF FLAG:33 == 7
+	;通常ミッション確定マス
+	IF FLAG:36 == 0
+		FLAG:36 = 1
+		A = FLAG:68 * 3 + 78
+		FLAG:35 = 100 * FLAG:A + RAND:200
+		FLAG:34 = 0
+		PRINTFORML ！ ミッションマス　▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
+	ELSE
+		PRINTFORML ！ ミッションマス（ミッション進行中のため通過）
+	ENDIF
+	WAIT
+ELSEIF FLAG:33 == 9
+	;休憩マス（体力＋気力回復）
+	LOCAL:4 = MAXBASE:MASTER:0 / 5
+	LOCAL:5 = MAXBASE:MASTER:1 / 5
+	BASE:MASTER:0 += LOCAL:4
+	SIF BASE:MASTER:0 > MAXBASE:MASTER:0
+		BASE:MASTER:0 = MAXBASE:MASTER:0
+	BASE:MASTER:1 += LOCAL:5
+	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+		BASE:MASTER:1 = MAXBASE:MASTER:1
+	PRINTFORMW 休 休憩マス！　体力 +{LOCAL:4}　気力 +{LOCAL:5}
+ELSEIF FLAG:33 == 11
+	;特大ミッション確定マス
+	IF FLAG:36 == 0
+		FLAG:36 = 2
+		A = FLAG:68 * 3 + 79
+		FLAG:35 = 400 * FLAG:A + RAND:400
+		FLAG:34 = 0
+		PRINTFORML ！ ミッションマス　▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
+	ELSE
+		PRINTFORML ！ ミッションマス（ミッション進行中のため通過）
+	ENDIF
+	WAIT
+ELSEIF FLAG:33 == 13
+	;ボーナスマス（大）
+	LOCAL:4 = 15 + RAND:6
+	FLAG:32 += LOCAL:4
+	A = 71 + FLAG:68
+	FLAG:A += LOCAL:4
+	LOCAL:5 = MAXBASE:MASTER:1 / 5
+	BASE:MASTER:1 += LOCAL:5
+	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+		BASE:MASTER:1 = MAXBASE:MASTER:1
+	PRINTFORMW ★★ ボーナスマス！　PT +{LOCAL:4}　気力 +{LOCAL:5}
+ELSEIF FLAG:33 == 15
+	;アイテムマス（ドーナツ or ブロンズチケット）
+	IF RAND:2 == 0
+		ITEM:92 += 1
+		PRINTFORMW 品 アイテムマス！　ドーナツを入手！（所持{ITEM:92}個）
+	ELSE
+		FLAG:113 += 1
+		PRINTFORMW 品 アイテムマス！　ブロンズガチャチケットを入手！（計{FLAG:113}枚）
+	ENDIF
+ELSEIF FLAG:33 == 17
+	;緊急ミッション確定マス
+	IF FLAG:36 == 0
+		FLAG:36 = 3
+		A = FLAG:68 * 3 + 80
+		FLAG:35 = 800 * FLAG:A + RAND:1000
+		FLAG:34 = 0
+		PRINTFORML ！ ミッションマス　▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
+	ELSE
+		PRINTFORML ！ ミッションマス（ミッション進行中のため通過）
+	ENDIF
+	WAIT
+ELSEIF FLAG:33 == 19
+	;ゴールマス（大ボーナス＋チケット＋周回）
+	LOCAL:4 = 20 + RAND:11
+	FLAG:32 += LOCAL:4
+	A = 71 + FLAG:68
+	FLAG:A += LOCAL:4
+	FLAG:113 += 1
+	FLAG:33 = 0
+	PRINTFORML Ｇ ゴール！！　PT +{LOCAL:4}　ブロンズガチャチケット入手！（計{FLAG:113}枚）
+	PRINTFORMW スタートに戻る。
 ELSE
-	;ミッション発生（ミッション中は発生しない）
+	;通常マス：ランダムにミッション発生
 	IF FLAG:36 == 0
 		LOCAL:2 = RAND:100
 		IF LOCAL:2 < 50
 			FLAG:36 = 1
-			A = FLAG:68 * 3 + 78	;通常Lv index
+			A = FLAG:68 * 3 + 78
 			FLAG:35 = 100 * FLAG:A + RAND:200
 			FLAG:34 = 0
 			PRINTFORML ▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
-		ELSEIF LOCAL:2 < 85
+		ELSEIF LOCAL:2 < 80
 			FLAG:36 = 2
-			A = FLAG:68 * 3 + 79	;特大Lv index
+			A = FLAG:68 * 3 + 79
 			FLAG:35 = 400 * FLAG:A + RAND:400
 			FLAG:34 = 0
 			PRINTFORML ▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
-		ELSE
+		ELSEIF LOCAL:2 < 95
 			FLAG:36 = 3
-			A = FLAG:68 * 3 + 80	;緊急Lv index
+			A = FLAG:68 * 3 + 80
 			FLAG:35 = 800 * FLAG:A + RAND:1000
 			FLAG:34 = 0
 			PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
+		ELSE
+			PRINTFORML ひと息ついた。
 		ENDIF
 		WAIT
 	ENDIF
@@ -622,6 +706,54 @@ ELSEIF LOCAL:1 < 1262
 ENDIF
 RETURN 1
 
+
+;---------------------------------------------------------
+; すごろくボード描画
+; レイアウト（U字型 20マス）:
+;   出発→[発][　][　][★][　][品][　][！][　][休]↓
+;         0   1   2   3   4   5   6   7   8   9
+;         [Ｇ][！][　][品][　][！][　][★][　][　]←
+;         19  18  17  16  15  14  13  12  11  10
+;---------------------------------------------------------
+@SUGOROKU_DRAW_BOARD
+;上段マス 0～9（左→右）
+PRINTFORM 出発→
+FOR LOCAL:8, 0, 10
+	CALL SUGOROKU_PRINT_CELL, LOCAL:8
+NEXT
+PRINTFORML ↓
+;下段マス 19～10（右→左 = 左から19,18,...,10の順で表示）
+PRINTFORM 　　　
+FOR LOCAL:8, 0, 10
+	LOCAL:9 = 19 - LOCAL:8
+	CALL SUGOROKU_PRINT_CELL, LOCAL:9
+NEXT
+PRINTFORML ←
+PRINTFORML [発]スタート [★]ボーナス [品]アイテム [！]ミッション [休]休憩 [Ｇ]ゴール [◆]現在地
+RETURN
+
+;---------------------------------------------------------
+; すごろくセル1マス表示（ARG:0=マス番号）
+;---------------------------------------------------------
+@SUGOROKU_PRINT_CELL(ARG)
+IF ARG:0 == FLAG:33
+	PRINTFORM [◆]
+ELSEIF ARG:0 == 0
+	PRINTFORM [発]
+ELSEIF ARG:0 == 3 || ARG:0 == 13
+	PRINTFORM [★]
+ELSEIF ARG:0 == 5 || ARG:0 == 15
+	PRINTFORM [品]
+ELSEIF ARG:0 == 7 || ARG:0 == 11 || ARG:0 == 17
+	PRINTFORM [！]
+ELSEIF ARG:0 == 9
+	PRINTFORM [休]
+ELSEIF ARG:0 == 19
+	PRINTFORM [Ｇ]
+ELSE
+	PRINTFORM [　]
+ENDIF
+RETURN
 ;---------------------------------------------------------
 ; アイテム使用：おにぎり（体力+1000）
 ;---------------------------------------------------------
