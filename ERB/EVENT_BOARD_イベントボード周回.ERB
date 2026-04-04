@@ -97,17 +97,35 @@ IF FLAG:36 > 0
 	LOCAL:0 = MAXBASE:MASTER:1 / 10
 	SIF LOCAL:0 < 5
 		LOCAL:0 = 5
+	LOCAL:1 = MAXBASE:MASTER:0 / 20
+	SIF LOCAL:1 < 5
+		LOCAL:1 = 5
 	PRINTFORML [1] 気力を使う（-{LOCAL:0}）
-	PRINTFORML [0] 撤退（ミッション放棄・イベント終了）
-	INPUT
-	IF RESULT == 1
-		CALL EVENT_BOARD_ATTACK
+	IF TFLAG:91 == 3
+		PRINTFORML [2] サイコロを振る（体力-{LOCAL:1}）
 	ELSE
-		FLAG:34 = 0
-		FLAG:35 = 0
-		FLAG:36 = 0
-		RETURN 0
+		PRINTFORML [2] エリアを進む（体力-{LOCAL:1}）
 	ENDIF
+	PRINTFORML [3] デッキ編成
+	PRINTFORML [0] ミッション破棄（このミッションLv-1）
+	$BOARD_MISSION_INPUT
+	INPUT
+	SELECTCASE RESULT
+	CASE 1
+		CALL EVENT_BOARD_ATTACK
+	CASE 2
+		IF TFLAG:91 == 3
+			CALL EVENT_BOARD_SUGOROKU_ADVANCE
+		ELSE
+			CALL EVENT_BOARD_ADVANCE
+		ENDIF
+	CASE 3
+		CALL EDIT_DECK
+	CASE 0
+		CALL EVENT_BOARD_ABANDON_MISSION
+	CASEELSE
+		GOTO BOARD_MISSION_INPUT
+	ENDSELECT
 ELSE
 	;ミッションなし・進行フェーズ
 	LOCAL:0 = MAXBASE:MASTER:0 / 20
@@ -118,16 +136,24 @@ ELSE
 	ELSE
 		PRINTFORML [1] エリアを進む（体力-{LOCAL:0}）
 	ENDIF
+	PRINTFORML [2] デッキ編成
 	PRINTFORML [0] イベント終了
+	$BOARD_ADVANCE_INPUT
 	INPUT
-	IF RESULT == 0
+	SELECTCASE RESULT
+	CASE 0
 		RETURN 0
-	ENDIF
-	IF TFLAG:91 == 3
-		CALL EVENT_BOARD_SUGOROKU_ADVANCE
-	ELSE
-		CALL EVENT_BOARD_ADVANCE
-	ENDIF
+	CASE 1
+		IF TFLAG:91 == 3
+			CALL EVENT_BOARD_SUGOROKU_ADVANCE
+		ELSE
+			CALL EVENT_BOARD_ADVANCE
+		ENDIF
+	CASE 2
+		CALL EDIT_DECK
+	CASEELSE
+		GOTO BOARD_ADVANCE_INPUT
+	ENDSELECT
 ENDIF
 GOTO BOARD_LOOP
 
@@ -205,32 +231,34 @@ PRINTFORML 体力 -{LOCAL:0}　エリアを進んだ。（進捗: {FLAG:38}/100）
 SIF FLAG:38 >= 100
 	CALL EVENT_BOARD_AREA_COMPLETE
 
-;ミッション発生判定（通常50%/特大30%/緊急15%/回復5%）
-LOCAL:2 = RAND:100
-IF LOCAL:2 < 50
-	FLAG:36 = 1
-	FLAG:35 = 100 * FLAG:64 + RAND:200
-	FLAG:34 = 0
-	PRINTL
-	PRINTFORML ▼ 通常ミッション Lv{FLAG:64} 発生！　目標値: {FLAG:35}
-ELSEIF LOCAL:2 < 80
-	FLAG:36 = 2
-	FLAG:35 = 400 * FLAG:65 + RAND:400
-	FLAG:34 = 0
-	PRINTL
-	PRINTFORML ▼▼ 特大ミッション Lv{FLAG:65} 発生！　目標値: {FLAG:35}
-ELSEIF LOCAL:2 < 95
-	FLAG:36 = 3
-	FLAG:35 = 800 * FLAG:66 + RAND:1000
-	FLAG:34 = 0
-	PRINTL
-	PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:66} 発生！！　目標値: {FLAG:35}
-ELSE
-	LOCAL:3 = MAXBASE:MASTER:1 / 5
-	BASE:MASTER:1 += LOCAL:3
-	SIF BASE:MASTER:1 > MAXBASE:MASTER:1
-		BASE:MASTER:1 = MAXBASE:MASTER:1
-	PRINTFORML ひと息ついた。　気力 +{LOCAL:3}
+;ミッション発生判定（ミッション中は発生しない）
+IF FLAG:36 == 0
+	LOCAL:2 = RAND:100
+	IF LOCAL:2 < 50
+		FLAG:36 = 1
+		FLAG:35 = 100 * FLAG:64 + RAND:200
+		FLAG:34 = 0
+		PRINTL
+		PRINTFORML ▼ 通常ミッション Lv{FLAG:64} 発生！　目標値: {FLAG:35}
+	ELSEIF LOCAL:2 < 80
+		FLAG:36 = 2
+		FLAG:35 = 400 * FLAG:65 + RAND:400
+		FLAG:34 = 0
+		PRINTL
+		PRINTFORML ▼▼ 特大ミッション Lv{FLAG:65} 発生！　目標値: {FLAG:35}
+	ELSEIF LOCAL:2 < 95
+		FLAG:36 = 3
+		FLAG:35 = 800 * FLAG:66 + RAND:1000
+		FLAG:34 = 0
+		PRINTL
+		PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:66} 発生！！　目標値: {FLAG:35}
+	ELSE
+		LOCAL:3 = MAXBASE:MASTER:1 / 5
+		BASE:MASTER:1 += LOCAL:3
+		SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+			BASE:MASTER:1 = MAXBASE:MASTER:1
+		PRINTFORML ひと息ついた。　気力 +{LOCAL:3}
+	ENDIF
 ENDIF
 WAIT
 RETURN 1
@@ -312,6 +340,30 @@ RETURN 1
 ; 発揮値計算（RETURN で返す）
 ; イベントタイプにより算出方法が異なる
 ;---------------------------------------------------------
+;---------------------------------------------------------
+; ミッション破棄（Lv-1 → ミッションなし状態へ）
+;---------------------------------------------------------
+@EVENT_BOARD_ABANDON_MISSION
+DRAWLINE
+IF FLAG:36 == 1
+	SIF FLAG:64 > 1
+		FLAG:64 -= 1
+	PRINTFORML ミッション破棄。通常ミッション → Lv{FLAG:64}
+ELSEIF FLAG:36 == 2
+	SIF FLAG:65 > 1
+		FLAG:65 -= 1
+	PRINTFORML ミッション破棄。特大ミッション → Lv{FLAG:65}
+ELSE
+	SIF FLAG:66 > 1
+		FLAG:66 -= 1
+	PRINTFORML ミッション破棄。緊急ミッション → Lv{FLAG:66}
+ENDIF
+FLAG:34 = 0
+FLAG:35 = 0
+FLAG:36 = 0
+WAIT
+RETURN 1
+
 ;---------------------------------------------------------
 ; イベントデッキスコア計算（定期戦と同じデッキを使用）
 ; TFLAG:91 のイベントタイプごとにステータス重みが変わる
@@ -452,24 +504,26 @@ ELSEIF FLAG:33 == 9
 		BASE:MASTER:1 = MAXBASE:MASTER:1
 	PRINTFORMW ★休憩マス。ひと息ついた。　気力 +{LOCAL:3}
 ELSE
-	;ミッション発生
-	LOCAL:2 = RAND:100
-	IF LOCAL:2 < 50
-		FLAG:36 = 1
-		FLAG:35 = 100 * FLAG:64 + RAND:200
-		FLAG:34 = 0
-		PRINTFORML ▼ 通常ミッション Lv{FLAG:64} 発生！　目標値: {FLAG:35}
-	ELSEIF LOCAL:2 < 85
-		FLAG:36 = 2
-		FLAG:35 = 400 * FLAG:65 + RAND:400
-		FLAG:34 = 0
-		PRINTFORML ▼▼ 特大ミッション Lv{FLAG:65} 発生！　目標値: {FLAG:35}
-	ELSE
-		FLAG:36 = 3
-		FLAG:35 = 800 * FLAG:66 + RAND:1000
-		FLAG:34 = 0
-		PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:66} 発生！！　目標値: {FLAG:35}
+	;ミッション発生（ミッション中は発生しない）
+	IF FLAG:36 == 0
+		LOCAL:2 = RAND:100
+		IF LOCAL:2 < 50
+			FLAG:36 = 1
+			FLAG:35 = 100 * FLAG:64 + RAND:200
+			FLAG:34 = 0
+			PRINTFORML ▼ 通常ミッション Lv{FLAG:64} 発生！　目標値: {FLAG:35}
+		ELSEIF LOCAL:2 < 85
+			FLAG:36 = 2
+			FLAG:35 = 400 * FLAG:65 + RAND:400
+			FLAG:34 = 0
+			PRINTFORML ▼▼ 特大ミッション Lv{FLAG:65} 発生！　目標値: {FLAG:35}
+		ELSE
+			FLAG:36 = 3
+			FLAG:35 = 800 * FLAG:66 + RAND:1000
+			FLAG:34 = 0
+			PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:66} 発生！！　目標値: {FLAG:35}
+		ENDIF
+		WAIT
 	ENDIF
-	WAIT
 ENDIF
 RETURN 1
