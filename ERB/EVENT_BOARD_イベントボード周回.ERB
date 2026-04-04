@@ -108,6 +108,10 @@ IF FLAG:36 > 0
 		PRINTFORML [2] エリアを進む（体力-{LOCAL:1}）
 	ENDIF
 	PRINTFORML [3] デッキ編成
+	SIF ITEM:92 > 0
+		PRINTFORML [4] ドーナツを使う（気力+1500）　所持:{ITEM:92}個
+	SIF ITEM:93 > 0
+		PRINTFORML [5] パフェを使う（気力+3000）　所持:{ITEM:93}個
 	PRINTFORML [0] ミッション破棄（このミッションLv-1）
 	$BOARD_MISSION_INPUT
 	INPUT
@@ -122,6 +126,10 @@ IF FLAG:36 > 0
 		ENDIF
 	CASE 3
 		CALL EDIT_DECK
+	CASE 4
+		CALL EVENT_BOARD_USE_ENERGY_1
+	CASE 5
+		CALL EVENT_BOARD_USE_ENERGY_2
 	CASE 0
 		CALL EVENT_BOARD_ABANDON_MISSION
 	CASEELSE
@@ -138,6 +146,10 @@ ELSE
 		PRINTFORML [1] エリアを進む（体力-{LOCAL:0}）
 	ENDIF
 	PRINTFORML [2] デッキ編成
+	SIF ITEM:90 > 0
+		PRINTFORML [3] おにぎりを使う（体力+1000）　所持:{ITEM:90}個
+	SIF ITEM:91 > 0
+		PRINTFORML [4] カレーを使う（体力+5000）　所持:{ITEM:91}個
 	PRINTFORML [0] イベント終了
 	$BOARD_ADVANCE_INPUT
 	INPUT
@@ -152,6 +164,10 @@ ELSE
 		ENDIF
 	CASE 2
 		CALL EDIT_DECK
+	CASE 3
+		CALL EVENT_BOARD_USE_STAMINA_1
+	CASE 4
+		CALL EVENT_BOARD_USE_STAMINA_2
 	CASEELSE
 		GOTO BOARD_ADVANCE_INPUT
 	ENDSELECT
@@ -185,6 +201,7 @@ PRINTFORML ミッションLv　通常:{FLAG:A}　特大:{FLAG:B}　緊急:{FLAG:C}
 IF TFLAG:91 == 3
 	PRINTFORML 盤面位置:{FLAG:33}/19マス
 ENDIF
+PRINTFORML おにぎり:{ITEM:90}個　カレー:{ITEM:91}個　ドーナツ:{ITEM:92}個　パフェ:{ITEM:93}個
 RETURN 1
 
 ;---------------------------------------------------------
@@ -537,4 +554,64 @@ ELSE
 		WAIT
 	ENDIF
 ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+; アイテム使用：おにぎり（体力+1000）
+;---------------------------------------------------------
+@EVENT_BOARD_USE_STAMINA_1
+IF ITEM:90 <= 0
+	PRINTFORMW おにぎりを持っていない！
+	RETURN 0
+ENDIF
+ITEM:90 -= 1
+BASE:MASTER:0 += 1000
+SIF BASE:MASTER:0 > MAXBASE:MASTER:0
+	BASE:MASTER:0 = MAXBASE:MASTER:0
+PRINTFORMW おにぎりを食べた！　体力 +1000　（残り{ITEM:90}個）
+RETURN 1
+
+;---------------------------------------------------------
+; アイテム使用：カレー（体力+5000）
+;---------------------------------------------------------
+@EVENT_BOARD_USE_STAMINA_2
+IF ITEM:91 <= 0
+	PRINTFORMW カレーを持っていない！
+	RETURN 0
+ENDIF
+ITEM:91 -= 1
+BASE:MASTER:0 += 5000
+SIF BASE:MASTER:0 > MAXBASE:MASTER:0
+	BASE:MASTER:0 = MAXBASE:MASTER:0
+PRINTFORMW カレーを食べた！　体力 +5000　（残り{ITEM:91}個）
+RETURN 1
+
+;---------------------------------------------------------
+; アイテム使用：ドーナツ（気力+1500）
+;---------------------------------------------------------
+@EVENT_BOARD_USE_ENERGY_1
+IF ITEM:92 <= 0
+	PRINTFORMW ドーナツを持っていない！
+	RETURN 0
+ENDIF
+ITEM:92 -= 1
+BASE:MASTER:1 += 1500
+SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+	BASE:MASTER:1 = MAXBASE:MASTER:1
+PRINTFORMW ドーナツを食べた！　気力 +1500　（残り{ITEM:92}個）
+RETURN 1
+
+;---------------------------------------------------------
+; アイテム使用：パフェ（気力+3000）
+;---------------------------------------------------------
+@EVENT_BOARD_USE_ENERGY_2
+IF ITEM:93 <= 0
+	PRINTFORMW パフェを持っていない！
+	RETURN 0
+ENDIF
+ITEM:93 -= 1
+BASE:MASTER:1 += 3000
+SIF BASE:MASTER:1 > MAXBASE:MASTER:1
+	BASE:MASTER:1 = MAXBASE:MASTER:1
+PRINTFORMW パフェを食べた！　気力 +3000　（残り{ITEM:93}個）
 RETURN 1
