@@ -222,6 +222,29 @@ def write_era_erb(cards, char_map, bonus_map=None):
         print(f"  {RARITY_LABEL.get(r,r)}: {len(chars_by_rarity[r])}人")
 
 
+def update_card_count_limits(total):
+    """SHOP.ERBとCARD_COLLECTION.ERBのハードコードされたカード上限を更新する"""
+    import re
+    targets = [
+        (Path("../ERB/SHOP_ショップ.ERB"),
+         r"IF LOCAL:5 > \d+\n\tGOTO CHAR_CARD_END",
+         f"IF LOCAL:5 > {total}\n\tGOTO CHAR_CARD_END"),
+        (Path("../ERB/CARD_COLLECTION_カードコレクション.ERB"),
+         r"IF LOCAL:5 > \d+\n\tGOTO LIST_END",
+         f"IF LOCAL:5 > {total}\n\tGOTO LIST_END"),
+    ]
+    for path, pattern, replacement in targets:
+        if not path.exists():
+            continue
+        with open(path, "rb") as f:
+            content = f.read().decode("cp932").replace("\r\n", "\n")
+        new_content = re.sub(pattern, replacement, content)
+        if new_content != content:
+            with open(path, "wb") as f:
+                f.write(new_content.replace("\n", "\r\n").encode("cp932"))
+            print(f"カード上限を{total}に更新: {path.name}")
+
+
 def main():
     print("=== ERA カードデータ生成 ===\n")
     cards = load_cards()
@@ -232,6 +255,7 @@ def main():
     print(f"カード数: {len(cards)}, キャラ数: {len(set(c['char_name'] for c in cards))}")
     write_era_csv(cards)
     write_era_erb(cards, char_map, bonus_map)
+    update_card_count_limits(len(cards))
     print("\n完了。")
 
 
