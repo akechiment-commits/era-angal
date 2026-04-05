@@ -35,7 +35,7 @@ def load_cards():
     if not CARD_CSV.exists():
         print(f"ERROR: {CARD_CSV} が見つかりません。先に scrape_cards.py を実行してください。")
         return []
-    with open(CARD_CSV, encoding="utf-8") as f:
+    with open(CARD_CSV, encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
 
