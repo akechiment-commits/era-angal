@@ -206,6 +206,22 @@ PRINTFORML ミッションLv　通常:{FLAG:A}　特大:{FLAG:B}　緊急:{FLAG:C}
 IF TFLAG:91 == 3
 	CALL SUGOROKU_DRAW_BOARD
 ENDIF
+A = 104 + FLAG:68
+B = FLAG:A
+SELECTCASE B
+CASE 0
+	PRINTFORML マイルストーン[○○○○○]　次: 30PT
+CASE 1
+	PRINTFORML マイルストーン[●○○○○]　次: 60PT
+CASE 2
+	PRINTFORML マイルストーン[●●○○○]　次: 100PT（ピックアップカード）
+CASE 3
+	PRINTFORML マイルストーン[●●●○○]　次: 200PT
+CASE 4
+	PRINTFORML マイルストーン[●●●●○]　次: 350PT（ピックアップSR）
+CASEELSE
+	PRINTFORML マイルストーン[●●●●●]　全達成！
+ENDSELECT
 PRINTFORML おにぎり:{ITEM:90}個　カレー:{ITEM:91}個　ドーナツ:{ITEM:92}個　パフェ:{ITEM:93}個
 RETURN 1
 
@@ -347,24 +363,25 @@ FLAG:B += LOCAL:0
 PRINTFORML イベントPT +{LOCAL:0}
 PRINTFORML %TSTR:99%PT:{FLAG:B}
 PRINTL
-;ミッションクリア報酬：ガチャ2回
+;ミッションクリア報酬：ピックアップガチャ2回
 ;通常=ブロンズ(1) 特大=シルバー(2) 緊急=ゴールド(3)
 LOCAL:9 = FLAG:36
 FLAG:36 = 0
 FLAG:34 = 0
 FLAG:35 = 0
+CALL LOAD_EVENT_PICKUP_CARDS, DAY:8, FLAG:68
 IF LOCAL:9 == 1
-	PRINTFORML 【報酬】ブロンズガチャ ×2
-	CALL GACHA_PULL, 1
-	CALL GACHA_PULL, 1
+	PRINTFORML 【報酬】ピックアップブロンズガチャ ×2
+	CALL GACHA_PULL_PICKUP, 1
+	CALL GACHA_PULL_PICKUP, 1
 ELSEIF LOCAL:9 == 2
-	PRINTFORML 【報酬】シルバーガチャ ×2
-	CALL GACHA_PULL, 2
-	CALL GACHA_PULL, 2
+	PRINTFORML 【報酬】ピックアップシルバーガチャ ×2
+	CALL GACHA_PULL_PICKUP, 2
+	CALL GACHA_PULL_PICKUP, 2
 ELSE
-	PRINTFORML 【報酬】ゴールドガチャ ×2
-	CALL GACHA_PULL, 3
-	CALL GACHA_PULL, 3
+	PRINTFORML 【報酬】ピックアップゴールドガチャ ×2
+	CALL GACHA_PULL_PICKUP, 3
+	CALL GACHA_PULL_PICKUP, 3
 ENDIF
 WAIT
 RETURN 1
@@ -904,4 +921,96 @@ BASE:MASTER:1 += 3000
 SIF BASE:MASTER:1 > MAXBASE:MASTER:1
 	BASE:MASTER:1 = MAXBASE:MASTER:1
 PRINTFORMW パフェを食べた！　気力 +3000　（残り{ITEM:93}個）
+RETURN 1
+
+;---------------------------------------------------------
+; マイルストーン達成チェック・報酬付与
+; FLAG:(104+FLAG:68) = 達成済み数（0～5）
+;---------------------------------------------------------
+@EVENT_BOARD_CHECK_MILESTONES
+A = 71 + FLAG:68
+LOCAL:0 = FLAG:A	;現在のPT
+B = 104 + FLAG:68
+LOCAL:1 = FLAG:B	;達成済み数
+
+SIF LOCAL:1 >= 5
+	RETURN 0
+
+$MS_LOOP
+SELECTCASE LOCAL:1
+CASE 0
+	SIF LOCAL:0 < 30
+		RETURN 1
+	FLAG:B += 1
+	LOCAL:1 += 1
+	FLAG:113 += 1
+	DRAWLINE
+	PRINTL ★ マイルストーン【30PT】達成！
+	PRINTL ブロンズガチャチケット ×1 獲得！
+	WAIT
+CASE 1
+	SIF LOCAL:0 < 60
+		RETURN 1
+	FLAG:B += 1
+	LOCAL:1 += 1
+	FLAG:114 += 1
+	DRAWLINE
+	PRINTL ★★ マイルストーン【60PT】達成！
+	PRINTL シルバーガチャチケット ×1 獲得！
+	WAIT
+CASE 2
+	SIF LOCAL:0 < 100
+		RETURN 1
+	FLAG:B += 1
+	LOCAL:1 += 1
+	DRAWLINE
+	PRINTL ★★★ マイルストーン【100PT】達成！
+	PRINTL イベントピックアップカード確定！
+	CALL LOAD_EVENT_PICKUP_CARDS, DAY:8, FLAG:68
+	CALL EVENT_BOARD_AWARD_PICKUP_CARD, 3
+	WAIT
+CASE 3
+	SIF LOCAL:0 < 200
+		RETURN 1
+	FLAG:B += 1
+	LOCAL:1 += 1
+	FLAG:115 += 1
+	DRAWLINE
+	PRINTL ★★★ マイルストーン【200PT】達成！
+	PRINTL ゴールドガチャチケット ×1 獲得！
+	WAIT
+CASE 4
+	SIF LOCAL:0 < 350
+		RETURN 1
+	FLAG:B += 1
+	LOCAL:1 += 1
+	DRAWLINE
+	PRINTL ★★★★ マイルストーン【350PT】達成！
+	PRINTL イベントピックアップSRカード確定！
+	CALL LOAD_EVENT_PICKUP_CARDS, DAY:8, FLAG:68
+	CALL EVENT_BOARD_AWARD_PICKUP_CARD, 4
+	WAIT
+CASEELSE
+	RETURN 1
+ENDSELECT
+GOTO MS_LOOP
+
+;---------------------------------------------------------
+; ピックアップカード付与 ARG:0=最低レア度(3=HR,4=SR)
+; GLOBAL:2199/2200+ にキャラ済みが前提
+;---------------------------------------------------------
+;---------------------------------------------------------
+; ピックアップカード付与 ARG:0=最低レア度(未使用、互換用)
+; GLOBAL:2199/2200+ にカードID済みが前提
+;---------------------------------------------------------
+@EVENT_BOARD_AWARD_PICKUP_CARD(ARG)
+IF GLOBAL:2199 <= 0
+	FLAG:115 += 1
+	PRINTFORML （ピックアップなし→ゴールドチケット×1）
+	RETURN 0
+ENDIF
+LOCAL:0 = RAND:GLOBAL:2199
+A = 2200 + LOCAL:0
+LOCAL:1 = GLOBAL:A	;カードID
+CALL GACHA_ACQUIRE_CARD, LOCAL:1
 RETURN 1
