@@ -2,9 +2,15 @@
 # -*- coding: utf-8 -*-
 # イベントカードリストからピックアップカードIDのERBを生成
 
-import re, os, csv
+import re, os, csv, unicodedata
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+
+def normalize(s):
+    s = unicodedata.normalize('NFC', s)
+    s = s.replace('！', '!').replace('？', '?').replace('＊', '*')
+    s = s.replace('＆', '&').replace('　', ' ')
+    return s
 
 # --- card_name -> card_id マップ ---
 card_name_to_id = {}
@@ -15,13 +21,16 @@ with open(os.path.join(BASE, 'card_data.csv'), encoding='utf-8-sig') as f:
         card_name_to_id[name] = cid
 
 # --- event_card_list.txt を解析 ---
-event_cards = {}  # イベント名 -> [cardID, ...]
+# キーは正規化済みイベント名
+event_cards = {}  # 正規化イベント名 -> [cardID, ...]
 current_event = None
 with open(os.path.join(BASE, 'event_card_list.txt'), encoding='utf-8') as f:
     for line in f:
         line = line.rstrip('\n')
         if line and not line.startswith(' ') and not line.startswith('\t'):
-            event_name = re.sub(r'[（(][\d/]+[）)]', '', line).strip()
+            # 日付（2014/03/31）と種別[親愛度]を除去
+            raw = re.sub(r'[（(][\d/]+[）)]\s*(?:\[.+?\])?', '', line).strip()
+            event_name = normalize(raw)
             current_event = event_name
             event_cards[current_event] = []
         elif current_event and line.strip():
@@ -42,7 +51,7 @@ with open(erb_path, 'rb') as f:
 month_events = {}
 cur_month = None
 idx = 0
-for line in erb_content.split('\n'):
+for line in erb_content.replace('\r\n', '\n').split('\n'):
     m = re.match(r'CASE\s+(\d+)', line.strip())
     if m:
         v = int(m.group(1))
@@ -55,10 +64,11 @@ for line in erb_content.split('\n'):
         month_events[(cur_month, idx)] = m.group(1)
         idx += 1
 
-# --- マッチング確認 ---
+# --- マッチング確認（正規化して比較）---
 matched = 0
 for (month, idx2), ename in sorted(month_events.items()):
-    cards = event_cards.get(ename, [])
+    norm_ename = normalize(ename)
+    cards = event_cards.get(norm_ename, [])
     if cards:
         matched += 1
         print(f"  {month}月[{idx2}] {ename} → {len(cards)}枚: {cards[:3]}{'...' if len(cards)>3 else ''}")
@@ -81,7 +91,7 @@ lines.append('SELECTCASE LOCAL:9')
 
 for (month, idx2), ename in sorted(month_events.items()):
     n = (month - 1) * 6 + idx2
-    cards = event_cards.get(ename, [])[:7]
+    cards = event_cards.get(normalize(ename), [])[:7]
     lines.append(f'CASE {n}\t;{month}月[{idx2}] {ename}')
     if cards:
         for i, c in enumerate(cards):
