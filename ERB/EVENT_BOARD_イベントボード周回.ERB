@@ -221,22 +221,34 @@ PRINTFORML ミッションLv　通常:{FLAG:A}　特大:{FLAG:B}　緊急:{FLAG:C}
 IF TFLAG:91 == 3
 	CALL SUGOROKU_DRAW_BOARD
 ENDIF
-A = 104 + FLAG:68
-B = FLAG:A
-SELECTCASE B
-CASE 0
-	PRINTFORML マイルストーン[○○○○○]　次: 30PT
-CASE 1
-	PRINTFORML マイルストーン[●○○○○]　次: 60PT
-CASE 2
-	PRINTFORML マイルストーン[●●○○○]　次: 100PT（ピックアップカード）
-CASE 3
-	PRINTFORML マイルストーン[●●●○○]　次: 200PT
-CASE 4
-	PRINTFORML マイルストーン[●●●●○]　次: 350PT（ピックアップSR）
-CASEELSE
-	PRINTFORML マイルストーン[●●●●●]　全達成！
-ENDSELECT
+; 次の報酬を動的に表示
+CALL LOAD_EVENT_REWARDS, DAY:8, FLAG:68
+IF GLOBAL:2999 > 0
+	LOCAL:2 = GLOBAL:2999	;tiercount
+	A = 120 + FLAG:68
+	LOCAL:1 = FLAG:A	;claim count
+	LOCAL:3 = LOCAL:1 % LOCAL:2	;loop内tier
+	LOCAL:4 = LOCAL:1 / LOCAL:2	;完了ループ数
+	B = 2999 + LOCAL:2
+	LOCAL:5 = GLOBAL:B	;loop PT総量
+	B = 3000 + LOCAL:3
+	LOCAL:6 = GLOBAL:B	;次tier基本PT
+	LOCAL:7 = LOCAL:4 * LOCAL:5 + LOCAL:6	;次tierに必要な累計PT
+	A = 127 + FLAG:68
+	LOCAL:8 = FLAG:A	;現在の累計PT
+	LOCAL:9 = LOCAL:7 - LOCAL:8	;不足PT
+	B = 3100 + LOCAL:3
+	LOCAL:10 = GLOBAL:B	;次tier報酬type
+	B = 3200 + LOCAL:3
+	LOCAL:11 = GLOBAL:B	;次tier報酬value
+	IF LOCAL:9 <= 0
+		PRINTFORML 次の報酬: 受取可能！
+	ELSE
+		PRINTFORM 次の報酬: あと{LOCAL:9}PT　→　
+		CALL EVENT_BOARD_REWARD_TEXT, LOCAL:10, LOCAL:11
+	ENDIF
+	PRINTFORML 報酬進捗: {LOCAL:3}/{LOCAL:2}（ループ{LOCAL:4}周目）
+ENDIF
 PRINTFORML おにぎり:{ITEM:90}個　カレー:{ITEM:91}個　ドーナツ:{ITEM:92}個　パフェ:{ITEM:93}個
 RETURN 1
 
@@ -375,7 +387,8 @@ B = 127 + FLAG:68
 FLAG:B += LOCAL:0
 PRINTFORML イベントPT +{LOCAL:0}
 CALL EVENT_BOARD_CLAIM_REWARDS
-PRINTFORML %TSTR:99%PT:{FLAG:B}
+B = 127 + FLAG:68
+PRINTFORML 累計PT:{FLAG:B}
 PRINTL
 ;ミッションクリア報酬：ピックアップガチャ2回
 ;通常=ブロンズ(1) 特大=シルバー(2) 緊急=ゴールド(3)
