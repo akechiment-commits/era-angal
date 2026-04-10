@@ -274,9 +274,9 @@ for case_num in sorted(case_to_name.keys()):
 
     lines.append(f'CASE {case_num}\t;{month}月[{slot}] {erb_name}')
     for i, (pt, typ, val, comment) in enumerate(tiers):
-        lines.append(
-            f'\tGLOBAL:{3000+i} = {pt}\t\tGLOBAL:{3100+i} = {typ}\tGLOBAL:{3200+i} = {val}\t;{comment}'
-        )
+        lines.append(f'\tGLOBAL:{3000+i} = {pt}\t;{comment}')
+        lines.append(f'\tGLOBAL:{3100+i} = {typ}')
+        lines.append(f'\tGLOBAL:{3200+i} = {val}')
     lines.append(f'\tGLOBAL:2999 = {tier_count}')
     ok_count += 1
 
