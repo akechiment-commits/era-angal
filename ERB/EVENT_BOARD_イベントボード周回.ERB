@@ -112,6 +112,8 @@ IF FLAG:36 > 0
 		PRINTFORML [4] ドーナツを使う（気力+1500）　所持:{ITEM:92}個
 	SIF ITEM:93 > 0
 		PRINTFORML [5] パフェを使う（気力+3000）　所持:{ITEM:93}個
+	SIF ITEM:94 > 0
+		PRINTFORML [7] お弁当を食べる（体力・気力全回復）　所持:{ITEM:94}個
 	PRINTFORML [6] 報酬確認
 	PRINTFORML [0] ミッション破棄（このミッションLv-1）
 	$BOARD_MISSION_INPUT
@@ -133,6 +135,8 @@ IF FLAG:36 > 0
 		CALL EVENT_BOARD_USE_ENERGY_2
 	CASE 6
 		CALL EVENT_BOARD_SHOW_REWARDS
+	CASE 7
+		CALL EVENT_BOARD_USE_BENTO
 	CASE 0
 		CALL EVENT_BOARD_ABANDON_MISSION
 	CASEELSE
@@ -151,6 +155,8 @@ ELSE
 		PRINTFORML [3] おにぎりを使う（体力+1000）　所持:{ITEM:90}個
 	SIF ITEM:91 > 0
 		PRINTFORML [4] カレーを使う（体力+5000）　所持:{ITEM:91}個
+	SIF ITEM:94 > 0
+		PRINTFORML [6] お弁当を食べる（体力・気力全回復）　所持:{ITEM:94}個
 	PRINTFORML [5] 報酬確認
 	PRINTFORML [0] イベント終了
 	$BOARD_ADVANCE_INPUT
@@ -172,6 +178,8 @@ ELSE
 		CALL EVENT_BOARD_USE_STAMINA_2
 	CASE 5
 		CALL EVENT_BOARD_SHOW_REWARDS
+	CASE 6
+		CALL EVENT_BOARD_USE_BENTO
 	CASEELSE
 		GOTO BOARD_ADVANCE_INPUT
 	ENDSELECT
@@ -1109,6 +1117,8 @@ CASE 7
 	PRINTFORML ゴールドチケット×{ARG:1}
 CASE 8
 	PRINTFORML ダイヤ×{ARG:1}
+CASE 10
+	PRINTFORML お弁当×{ARG:1}
 CASE 9
 	CALL CARD_GET_DATA, ARG:1
 	LOCAL:0 = RESULT:2
@@ -1127,6 +1137,20 @@ CASE 9
 	PRINTFORML  %STR:0%
 ENDSELECT
 RETURN 0
+
+;---------------------------------------------------------
+; アイテム使用：お弁当（体力・気力全回復）
+;---------------------------------------------------------
+@EVENT_BOARD_USE_BENTO
+IF ITEM:94 <= 0
+	PRINTFORMW お弁当を持っていない！
+	RETURN 0
+ENDIF
+ITEM:94 -= 1
+BASE:MASTER:0 = MAXBASE:MASTER:0
+BASE:MASTER:1 = MAXBASE:MASTER:1
+PRINTFORMW お弁当を食べた！　体力・気力が全回復した！　（残り{ITEM:94}個）
+RETURN 1
 
 ;---------------------------------------------------------
 ; 報酬自動受取（PT到達で即時付与）
@@ -1185,6 +1209,8 @@ CASE 8
 	FLAG:112 += ARG:1
 CASE 9
 	CALL GACHA_ACQUIRE_CARD, ARG:1
+CASE 10
+	ITEM:94 += ARG:1
 ENDSELECT
 RETURN 0
 
