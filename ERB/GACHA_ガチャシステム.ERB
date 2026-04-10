@@ -249,13 +249,43 @@ RETURN LOCAL:7
 ;--------------------------------------------------
 
 ;--------------------------------------------------
-; ピックアップガチャ1回 ARG:0=ガチャ種別(1-5)
-; GLOBAL:2199=件数 GLOBAL:2200～=ピックアップキャラNo
-; 50%確率でピックアップ優先（なければ通常プール）
+; @GACHA_PICKUP_FIND_CARD ARG:0=レア度 → RESULT=カードID（0=なし）
+; ピックアッププール(GLOBAL:2200+)から指定レア度のカードをランダム選択
 ;--------------------------------------------------
+@GACHA_PICKUP_FIND_CARD(ARG)
+LOCAL:5 = 0
+A = GLOBAL:2199
+FOR LOCAL:4, 0, A
+	B = 2200 + LOCAL:4
+	LOCAL:7 = GLOBAL:B
+	CALL CARD_GET_DATA, LOCAL:7
+	IF RESULT:2 == ARG:0
+		LOCAL:5 += 1
+	ENDIF
+REND
+IF LOCAL:5 == 0
+	RETURN 0
+ENDIF
+B = LOCAL:5
+LOCAL:6 = RAND:B
+LOCAL:5 = 0
+A = GLOBAL:2199
+FOR LOCAL:4, 0, A
+	B = 2200 + LOCAL:4
+	LOCAL:7 = GLOBAL:B
+	CALL CARD_GET_DATA, LOCAL:7
+	IF RESULT:2 == ARG:0
+		IF LOCAL:5 == LOCAL:6
+			RETURN LOCAL:7
+		ENDIF
+		LOCAL:5 += 1
+	ENDIF
+REND
+RETURN 0
+
 ;--------------------------------------------------
 ; ピックアップガチャ1回 ARG:0=ガチャ種別(1-5)
-; 通常と同じレア度テーブルで決定→同レア度ピックアップカードを50%優先
+; 通常と同じレア度テーブルで決定→同レア度ピックアップカードを25%優先
 ;--------------------------------------------------
 @GACHA_PULL_PICKUP(ARG)
 LOCAL:9 = RAND:10000
@@ -322,52 +352,28 @@ CASEELSE	;ダイヤ: R20% HR20% SR34% UR20% MR6%
 	ENDIF
 ENDSELECT
 
-;50%でピックアップ：同レア度のカードを探す
+;25%でピックアップ試行（同レア度のカードを優先選択）
 IF GLOBAL:2199 > 0
-	IF RAND:4 == 0
-		LOCAL:5 = 0	;マッチ件数
-		A = GLOBAL:2199
-		FOR LOCAL:4, 0, A
-			A = 2200 + LOCAL:4
-			LOCAL:7 = GLOBAL:A
-			CALL CARD_GET_DATA, LOCAL:7
-			IF RESULT:2 == LOCAL:8
-				LOCAL:5 += 1
-			ENDIF
-		REND
-		IF LOCAL:5 > 0
-			;マッチした中からランダム選択
-			A = LOCAL:5
-			LOCAL:6 = RAND:A
-			LOCAL:5 = 0
-			A = GLOBAL:2199
-			FOR LOCAL:4, 0, A
-				A = 2200 + LOCAL:4
-				LOCAL:7 = GLOBAL:A
-				CALL CARD_GET_DATA, LOCAL:7
-				IF RESULT:2 == LOCAL:8
-					IF LOCAL:5 == LOCAL:6
-						CALL GACHA_ACQUIRE_CARD, LOCAL:7
-						PRINTL 　[ピックアップ！]
-						RETURN LOCAL:7
-					ENDIF
-					LOCAL:5 += 1
-				ENDIF
-			REND
-		ENDIF
-	ENDIF
+	SIF RAND:4 != 0
+		GOTO PU_NORMAL
+	CALL GACHA_PICKUP_FIND_CARD, LOCAL:8
+	SIF RESULT == 0
+		GOTO PU_NORMAL
+	LOCAL:7 = RESULT
+	CALL GACHA_ACQUIRE_CARD, LOCAL:7
+	PRINTL 　[ピックアップ！]
+	RETURN LOCAL:7
 ENDIF
 
 ;通常プール（LOCAL:8のレア度で）
+$PU_NORMAL
 $RETRY_PU_RARITY
 CALL CARD_GET_CHARS_FOR_RARITY, LOCAL:8
 IF GLOBAL:2000 == 0
 	LOCAL:8 -= 1
-	IF LOCAL:8 >= 1
+	SIF LOCAL:8 >= 1
 		GOTO RETRY_PU_RARITY
-	ELSE
-		RETURN 0
-	ENDIF
+	RETURN 0
 ENDIF
 A = GLOBAL:2000
 LOCAL:6 = RAND:A
@@ -375,9 +381,8 @@ LOCAL:3 = 2001 + LOCAL:6
 A = LOCAL:3
 LOCAL:5 = GLOBAL:A
 CALL CARD_GET_CHARPOOL, LOCAL:5, LOCAL:8
-IF GLOBAL:2100 == 0
+SIF GLOBAL:2100 == 0
 	GOTO RETRY_PU_RARITY
-ENDIF
 A = GLOBAL:2100
 LOCAL:4 = RAND:A
 LOCAL:3 = 2101 + LOCAL:4
@@ -385,7 +390,6 @@ A = LOCAL:3
 LOCAL:7 = GLOBAL:A
 CALL GACHA_ACQUIRE_CARD, LOCAL:7
 RETURN LOCAL:7
-
 @GACHA_ACQUIRE_CARD(ARG)
 LOCAL:8 = TARGET    ;元のTARGETを保存
 LOCAL:10 = ARG:0
