@@ -176,6 +176,24 @@ def find_cards(erb_name):
             return cards
     return None
 
+# ===== 最終イベント用 71段階テーブル生成 =====
+# ひまりUR(id:1674)を最後に固定、残り70枚はボックス(type 11)
+FINAL_EVENT_HIMARI_ID = 1674
+
+def make_final_tier_table():
+    """
+    最終イベント専用: 71段階
+    tier 0-69: ボックスSR/UR (type 11, value 0)
+    tier 70:   ひまりUR (type 9, value 1674)
+    PT: 280刻み×70 + 20000
+    """
+    result = []
+    for i in range(70):
+        pt = 280 * (i + 1)
+        result.append((pt, 11, 0, 'ボックスSR/UR'))
+    result.append((20000, 9, FINAL_EVENT_HIMARI_ID, '[またね]鶴海ひまり(UR)'))
+    return result
+
 # ===== 報酬テーブル生成 =====
 def make_tier_table(raw_cards):
     """
@@ -241,15 +259,23 @@ for case_num in sorted(case_to_name.keys()):
         skip_count += 1
         continue
 
-    print(f'CASE {case_num} {month}月[{slot}] {erb_name}: {len(cards)}枚')
-    tiers = make_tier_table(cards)
+    # 最終イベントは特殊処理
+    is_final = '最終イベント' in erb_name
+    if is_final:
+        print(f'CASE {case_num} {month}月[{slot}] {erb_name}: 最終イベント専用71段階')
+        tiers = make_final_tier_table()
+        tier_count = 71
+    else:
+        print(f'CASE {case_num} {month}月[{slot}] {erb_name}: {len(cards)}枚')
+        tiers = make_tier_table(cards)
+        tier_count = 50
 
     lines.append(f'CASE {case_num}\t;{month}月[{slot}] {erb_name}')
     for i, (pt, typ, val, comment) in enumerate(tiers):
         lines.append(
             f'\tGLOBAL:{3000+i} = {pt}\t\tGLOBAL:{3100+i} = {typ}\tGLOBAL:{3200+i} = {val}\t;{comment}'
         )
-    lines.append(f'\tGLOBAL:2999 = 50')
+    lines.append(f'\tGLOBAL:2999 = {tier_count}')
     ok_count += 1
 
 lines.append('ENDSELECT')
