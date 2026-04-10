@@ -105,11 +105,11 @@ lines.append('RETURN GLOBAL:2199')
 
 # --- 既存の @LOAD_EVENT_PICKUP_CHARS / @LOAD_EVENT_PICKUP_CARDS を除去して追記 ---
 for func_name in ['@LOAD_EVENT_PICKUP_CHARS', '@LOAD_EVENT_PICKUP_CARDS']:
-    if func_name in erb_content:
-        erb_content = re.sub(
-            r'\n;--------------------------------------------------\n; ' + re.escape(func_name[1:]) + r'.*?(?=\n@|\Z)',
-            '', erb_content, flags=re.DOTALL
-        )
+    # コメントブロックを含む関数全体を除去（;---〜から次の@関数の直前まで）
+    erb_content = re.sub(
+        r'\n;-+\n(?:;[^\n]*\n)*' + re.escape(func_name) + r'\([^\n]*\n.*?(?=\n@|\Z)',
+        '', erb_content, flags=re.DOTALL
+    )
 
 new_content = erb_content.rstrip() + '\n' + '\n'.join(lines) + '\n'
 with open(erb_path, 'wb') as f:
