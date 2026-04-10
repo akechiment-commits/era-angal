@@ -6,7 +6,7 @@
 ;   エリア進捗が100%になると踏破報酬 → リセット
 ;
 ; 使用変数:
-;   TFLAG:91 = イベントタイプ(0:収拾/1:バトル/2:宝探し/3:すごろく)
+;   TFLAG:91 = イベントタイプ(0:収拾/1:バトル/2:宝探し/3:すごろく/4:親愛度)
 ;   TSTR:99  = 選択中イベント名
 ;   FLAG:32  = 未使用（廃止）
 ;   FLAG:33  = すごろく盤面位置(タイプ3のみ, 0-19)
@@ -186,8 +186,10 @@ ELSEIF TFLAG:91 == 1
 	PRINTFORML バトルイベント　発揮値：運動力
 ELSEIF TFLAG:91 == 2
 	PRINTFORML 宝探しイベント　発揮値：学力
-ELSE
+ELSEIF TFLAG:91 == 3
 	PRINTFORML すごろくイベント　発揮値：好感度
+ELSE
+	PRINTFORML 親愛度イベント　発揮値：親密度+表現
 ENDIF
 CALL EVENT_BOARD_CALC_HAKKIICHI
 PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}　気力:{BASE:MASTER:1}/{MAXBASE:MASTER:1}　発揮値:{RESULT}
@@ -375,7 +377,6 @@ LOCAL:8 = GLOBAL:2199
 LOCAL:10 = GLOBAL:2200
 LOCAL:11 = GLOBAL:2201
 LOCAL:12 = GLOBAL:2202
-PRINTFORML [DBG] 月={LOCAL:7} idx={FLAG:68} 件数={LOCAL:8} IDs={LOCAL:10},{LOCAL:11},{LOCAL:12}
 IF LOCAL:9 == 1
 	PRINTFORML 【報酬】ピックアップブロンズガチャ ×2
 	CALL GACHA_PULL_PICKUP, 1
@@ -474,13 +475,21 @@ REPEAT 5
 		LOCAL:1 += ABL:Z:94 * 3	;表現
 		LOCAL:1 += ABL:Z:95 * 10	;知識★
 		C += ABL:Z:88 + ABL:Z:95	;有利属性:学力+知識
-	ELSE
+	ELSEIF TFLAG:91 == 3
 		;すごろく: 親密度重視
 		LOCAL:1 += CFLAG:Z:2 / 10	;親密度追加
 		LOCAL:1 += ABL:Z:88 * 5	;学力
 		LOCAL:1 += ABL:Z:93 * 5	;運動
 		LOCAL:1 += ABL:Z:94 * 5	;表現
 		LOCAL:1 += ABL:Z:95 * 5	;知識
+		C += CFLAG:Z:2	;有利属性:親密度
+	ELSE
+		;親愛度: 親密度★+表現重視
+		LOCAL:1 += CFLAG:Z:2 / 5	;親密度★★
+		LOCAL:1 += ABL:Z:88 * 3	;学力
+		LOCAL:1 += ABL:Z:93 * 3	;運動
+		LOCAL:1 += ABL:Z:94 * 10	;表現★
+		LOCAL:1 += ABL:Z:95 * 3	;知識
 		C += CFLAG:Z:2	;有利属性:親密度
 	ENDIF
 
@@ -512,6 +521,9 @@ ELSEIF TFLAG:91 == 2 && LOCAL:3 >= 80
 ELSEIF TFLAG:91 == 3 && LOCAL:3 >= 500
 	TIMES A, 1.20
 	PRINTFORML 	（親密ボーナス x1.2）
+ELSEIF TFLAG:91 == 4 && LOCAL:3 >= 500
+	TIMES A, 1.20
+	PRINTFORML 	（親愛ボーナス x1.2）
 ENDIF
 
 ;5人フルパーティボーナス
