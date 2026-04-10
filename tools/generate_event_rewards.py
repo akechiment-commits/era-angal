@@ -178,20 +178,22 @@ def find_cards(erb_name):
 
 # ===== 最終イベント用 71段階テーブル生成 =====
 # ひまりUR(id:1674)を最後に固定、残り70枚はボックス(type 11)
-FINAL_EVENT_HIMARI_ID = 1674
+FINAL_EVENT_NATSUMI_ID = 1671  # [特別な君と]三波なつみ (UR)
+FINAL_EVENT_HIMARI_ID  = 1674  # [またね]鶴海ひまり (UR)
 
 def make_final_tier_table():
     """
     最終イベント専用: 71段階
-    tier 0-69: ボックスSR/UR (type 11, value 0)
-    tier 70:   ひまりUR (type 9, value 1674)
-    PT: 280刻み×70 + 20000
+    tier 0-68 (69個): ボックスSR (type 11, value 0)  280PT刻み
+    tier 69:           なつみUR (type 9, value 1671)  19700PT
+    tier 70:           ひまりUR (type 9, value 1674)  20000PT
     """
     result = []
-    for i in range(70):
+    for i in range(69):
         pt = 280 * (i + 1)
-        result.append((pt, 11, 0, 'ボックスSR/UR'))
-    result.append((20000, 9, FINAL_EVENT_HIMARI_ID, '[またね]鶴海ひまり(UR)'))
+        result.append((pt, 11, 0, 'ボックスSR'))
+    result.append((19700, 9, FINAL_EVENT_NATSUMI_ID, '[特別な君と]三波なつみ(UR)'))
+    result.append((20000, 9, FINAL_EVENT_HIMARI_ID,  '[またね]鶴海ひまり(UR)'))
     return result
 
 # ===== 報酬テーブル生成 =====
