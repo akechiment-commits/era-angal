@@ -482,15 +482,10 @@ IF LOCAL:0 > 0
 	SELECTCASE LOCAL:1
 	CASE 1, 2
 		;N/R → 好感度
-		CFLAG:TARGET:306 += LOCAL:4
-		PRINTFORML %CALLNAME:TARGET%の好感度 +{LOCAL:4}！（累計+{CFLAG:TARGET:306}）
+		PRINTFORML %CALLNAME:TARGET%の好感度ボーナス +{LOCAL:4}！
 	CASEELSE
 		;HR以上 → 全能力1/4ずつ
-		CFLAG:TARGET:303 += LOCAL:4 / 4
-		CFLAG:TARGET:304 += LOCAL:4 / 4
-		CFLAG:TARGET:305 += LOCAL:4 / 4
-		CFLAG:TARGET:306 += LOCAL:4 / 4
-		PRINTFORML %CALLNAME:TARGET%の全能力 +{LOCAL:4/4}ずつ！（表現{CFLAG:TARGET:303} 運動{CFLAG:TARGET:304} 学力{CFLAG:TARGET:305} 好感{CFLAG:TARGET:306}）
+		PRINTFORML %CALLNAME:TARGET%の全能力ボーナス +{LOCAL:4/4}ずつ！
 	ENDSELECT
 	CFLAG:TARGET:307 += 1
 ENDIF
@@ -521,6 +516,61 @@ CASE 2
 CASEELSE
 	RETURN CFLAG:TARGET:306
 ENDSELECT
+
+;--------------------------------------------------
+; 全キャラのカードボーナスを所持カードから動的再計算
+; CFLAG:Z:303-306 を上書きする
+;--------------------------------------------------
+@CARD_RECALC_BONUSES
+;全キャラ分をリセット
+REPEAT CHARANUM
+	CFLAG:COUNT:303 = 0
+	CFLAG:COUNT:304 = 0
+	CFLAG:COUNT:305 = 0
+	CFLAG:COUNT:306 = 0
+REND
+;全カード(1-1884)を走査
+FOR LOCAL:95, 1, 1885
+	A = 3000 + LOCAL:95
+	LOCAL:96 = FLAG:A	;所持枚数
+	IF LOCAL:96 > 0
+		CALL CARD_GET_DATA, LOCAL:95
+		LOCAL:90 = RESULT:1	;キャラNo
+		LOCAL:91 = RESULT:2	;レア度
+		LOCAL:92 = RESULT:4	;基本ボーナス値
+		IF LOCAL:90 > 0 && LOCAL:92 > 0
+			LOCAL:89 = GETCHARA(LOCAL:90)
+			IF LOCAL:89 >= 0
+				;K枚所持時の合計ボーナス = base + (K-1)*base/rate + (K>=12 ? base*3 : 0)
+				SELECTCASE LOCAL:91
+				CASE 6	;MR rate=2
+					LOCAL:93 = LOCAL:92 + (LOCAL:96 - 1) * LOCAL:92 / 2
+				CASE 5	;UR rate=4
+					LOCAL:93 = LOCAL:92 + (LOCAL:96 - 1) * LOCAL:92 / 4
+				CASE 4	;SR rate=5
+					LOCAL:93 = LOCAL:92 + (LOCAL:96 - 1) * LOCAL:92 / 5
+				CASE 1	;N rate=20
+					LOCAL:93 = LOCAL:92 + (LOCAL:96 - 1) * LOCAL:92 / 20
+				CASEELSE	;R,HR rate=10
+					LOCAL:93 = LOCAL:92 + (LOCAL:96 - 1) * LOCAL:92 / 10
+				ENDSELECT
+				SIF LOCAL:96 >= 12
+					LOCAL:93 += LOCAL:92 * 3
+				;レア度別振り分け
+				SELECTCASE LOCAL:91
+				CASE 1, 2	;N/R → 好感度
+					CFLAG:(LOCAL:89):306 += LOCAL:93
+				CASEELSE	;HR以上 → 全能力1/4
+					CFLAG:(LOCAL:89):303 += LOCAL:93 / 4
+					CFLAG:(LOCAL:89):304 += LOCAL:93 / 4
+					CFLAG:(LOCAL:89):305 += LOCAL:93 / 4
+					CFLAG:(LOCAL:89):306 += LOCAL:93 / 4
+				ENDSELECT
+			ENDIF
+		ENDIF
+	ENDIF
+NEXT
+RETURN
 
 ;--------------------------------------------------
 ; 10連ガチャ ARG:0=ガチャ種別(1-5)
