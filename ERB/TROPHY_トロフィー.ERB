@@ -2162,9 +2162,15 @@ P:1 += RESULT
 ; ARG:0 = LOCALS インデックス（19=体力 / 20=気力）
 ;--------------------------------------------------
 @TROPHY_FEAT_MAXBASE(ARG)
+;ARG:0 = 19(体力) or 20(気力)
 LOCAL:0 = ARG:0
-LOCAL:1 = TALENT:MASTER:(LOCALS:(LOCAL:0))	;現在レベル
-LOCAL:2 = 5 + LOCAL:1 * 2			;次の購入コスト（初回=5、+2ずつ）
+;LOCALS は呼び出し元ローカルなので直接TALENT名を使う
+IF LOCAL:0 == 19
+	LOCAL:1 = TALENT:MASTER:最大体力強化
+ELSE
+	LOCAL:1 = TALENT:MASTER:最大気力強化
+ENDIF
+LOCAL:2 = 5 + LOCAL:1 * 2		;次の購入コスト（初回=5、+2ずつ）
 ;利用可能SP再計算
 CALL TROPHY_COUNT_ALL
 LOCAL:90 = B:1 + S:1 * 2 + G:1 * 3 + P:1 * 10
@@ -2190,7 +2196,11 @@ IF RESULT == 0
 		PRINTFORMW SP不足（必要{LOCAL:2} / 残{LOCAL:91}）
 		GOTO MAXBASE_INPUT
 	ENDIF
-	TALENT:MASTER:(LOCALS:(LOCAL:0)) += 1
+	IF LOCAL:0 == 19
+		TALENT:MASTER:最大体力強化 += 1
+	ELSE
+		TALENT:MASTER:最大気力強化 += 1
+	ENDIF
 	GLOBAL:205 += LOCAL:2
 	SAVEGLOBAL
 	SIF LOCAL:0 == 19
@@ -2200,7 +2210,11 @@ IF RESULT == 0
 	PRINTFORMW Lv{LOCAL:1 + 1}になりました（{LOCAL:2}SP消費）
 ELSEIF RESULT == 1 && LOCAL:1 > 0
 	LOCAL:3 = LOCAL:1 * (LOCAL:1 + 4)
-	TALENT:MASTER:(LOCALS:(LOCAL:0)) = 0
+	IF LOCAL:0 == 19
+		TALENT:MASTER:最大体力強化 = 0
+	ELSE
+		TALENT:MASTER:最大気力強化 = 0
+	ENDIF
 	GLOBAL:205 -= LOCAL:3
 	SAVEGLOBAL
 	SIF LOCAL:0 == 19
