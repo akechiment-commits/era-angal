@@ -1187,9 +1187,7 @@ LOCALS:14 = 日光浴
 LOCALS:15 = 月光浴
 LOCALS:16 = 治療
 LOCALS:17 = 鼓舞
-LOCALS:18 = 酒豪
-LOCALS:19 = 千里眼
-LOCALS:20 = 淫具知識
+LOCALS:18 = 淫具知識
 
 DRAWLINE
 PRINTFORML スキルポイント: {LOCAL:91} SP（累計取得 {LOCAL:90} / 消費済 {GLOBAL:205}）
@@ -1197,7 +1195,7 @@ PRINTFORML B×1 / S×2 / G×3 / P×10　強化系8SP・それ以外5SP
 PRINTL 
 PRINTFORML 　[番号]　特殊能力　　　　コスト  状態
 
-FOR LOCAL, 0, 21
+FOR LOCAL, 0, 19
 	;コスト判定（強化系=8、その他=5）
 	IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
 		LOCAL:2 = 8
@@ -1233,7 +1231,7 @@ IF RESULT == 100
 ELSEIF RESULT == 98
 	;全スキル取得（SP不足チェックあり）
 	LOCAL:3 = 0
-	FOR LOCAL, 0, 21
+	FOR LOCAL, 0, 19
 		IF TALENT:MASTER:(LOCALS:LOCAL) == 0
 			IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
 				LOCAL:3 += 8
@@ -1245,7 +1243,7 @@ ELSEIF RESULT == 98
 	IF LOCAL:3 > LOCAL:91
 		PRINTFORMW SP不足（必要{LOCAL:3} / 現在{LOCAL:91}）
 	ELSE
-		FOR LOCAL, 0, 21
+		FOR LOCAL, 0, 19
 			IF TALENT:MASTER:(LOCALS:LOCAL) == 0
 				TALENT:MASTER:(LOCALS:LOCAL) = 1
 				IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
@@ -1262,7 +1260,7 @@ ELSEIF RESULT == 98
 ELSEIF RESULT == 99
 	;全スキルを忘れる
 	LOCAL:3 = 0
-	FOR LOCAL, 0, 21
+	FOR LOCAL, 0, 19
 		IF TALENT:MASTER:(LOCALS:LOCAL)
 			TALENT:MASTER:(LOCALS:LOCAL) = 0
 			IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
@@ -1276,7 +1274,7 @@ ELSEIF RESULT == 99
 	SAVEGLOBAL
 	PRINTFORMW 全特殊能力を忘れました（{LOCAL:3}SP還元）
 	RESTART
-ELSEIF RESULT >= 21 || LOCALS:RESULT == ""
+ELSEIF RESULT >= 19 || LOCALS:RESULT == ""
 	PRINTFORML 正しい値を入力してください
 	GOTO INPUT_LOOP
 ENDIF
@@ -1289,7 +1287,7 @@ ELSE
 	LOCAL:5 = 5
 ENDIF
 
-IF TALENT:MASTER:(LOCALS:LOCAL:4)
+IF TALENT:MASTER:(LOCALS:(LOCAL:4))
 	;取得済み → 忘れる確認
 	;強化スキルを保持している場合は連動して忘れる
 	LOCAL:6 = 0
@@ -1309,9 +1307,9 @@ IF TALENT:MASTER:(LOCALS:LOCAL:4)
 	ENDIF
 	LOCAL:8 = LOCAL:5 + LOCAL:6
 	IF LOCAL:7 >= 0
-		PRINTFORML 【%LOCALS:LOCAL:4%】【%LOCALS:(LOCAL:7)%】をまとめて忘れますか？
+		PRINTFORML 【%LOCALS:(LOCAL:4)%】【%LOCALS:(LOCAL:7)%】をまとめて忘れますか？
 	ELSE
-		PRINTFORML 【%LOCALS:LOCAL:4%】を忘れますか？
+		PRINTFORML 【%LOCALS:(LOCAL:4)%】を忘れますか？
 	ENDIF
 	PRINTFORML {LOCAL:8}SP を返還します
 	PRINTL [0] はい
@@ -1319,7 +1317,7 @@ IF TALENT:MASTER:(LOCALS:LOCAL:4)
 	$INPUT_LOOP_FORGET
 	INPUT
 	IF RESULT == 0
-		TALENT:MASTER:(LOCALS:LOCAL:4) = 0
+		TALENT:MASTER:(LOCALS:(LOCAL:4)) = 0
 		GLOBAL:205 -= LOCAL:5
 		IF LOCAL:7 >= 0
 			TALENT:MASTER:(LOCALS:(LOCAL:7)) = 0
@@ -1350,18 +1348,18 @@ ELSEIF LOCAL:5 <= LOCAL:91
 		PRINTFORMW 先に基本スキル（強化前）を習得してください
 		RESTART
 	ENDIF
-	TRYCALLFORM TROPHY_FEAT_GET_%LOCALS:LOCAL:4%
+	TRYCALLFORM TROPHY_FEAT_GET_%LOCALS:(LOCAL:4)%
 	PRINTFORML 効果：%RESULTS:3%
-	PRINTFORML 【%LOCALS:LOCAL:4%】を習得しますか？（{LOCAL:5}SP）
+	PRINTFORML 【%LOCALS:(LOCAL:4)%】を習得しますか？（{LOCAL:5}SP）
 	PRINTL [0] はい
 	PRINTL [1] いいえ
 	$INPUT_LOOP_GET
 	INPUT
 	IF RESULT == 0
-		TALENT:MASTER:(LOCALS:LOCAL:4) = 1
+		TALENT:MASTER:(LOCALS:(LOCAL:4)) = 1
 		GLOBAL:205 += LOCAL:5
 		SAVEGLOBAL
-		PRINTFORMW 【%LOCALS:LOCAL:4%】を習得しました（{LOCAL:5}SP消費）
+		PRINTFORMW 【%LOCALS:(LOCAL:4)%】を習得しました（{LOCAL:5}SP消費）
 		RESTART
 	ELSEIF RESULT == 1
 		RESTART
@@ -1375,51 +1373,51 @@ ENDIF
 
 @TROPHY_FEAT_GET_恋人ボーナス
 ;Stage50をクリア
-RESULTS:3 = 恋人の人数によって戦闘力ボーナスが得られます
+RESULTS:3 = 恋人の人数に応じてイベントポイント獲得量が増加します
 SIF GLOBAL:200 & 1p5
 	RETURN 1
 
 @TROPHY_FEAT_GET_恋人ボーナス強化
 ;Stage99をクリア
-RESULTS:3 = 恋人の人数に応じて得られる戦闘能力ボーナスが1.5倍になります
+RESULTS:3 = 恋人ボーナスの効果が1.5倍になります
 SIF GLOBAL:200 & 1p6
 	RETURN 1
 
 @TROPHY_FEAT_GET_恋慕ボーナス
 ;好感度50000以上の実績を取得済みかチェック
-RESULTS:3 = 恋慕の人数によって戦闘時の防御力ボーナスが得られます
+RESULTS:3 = 恋慕の人数に応じてイベントポイント獲得量が増加します
 SIF GLOBAL:200 & 1p22
 	RETURN 1
 
 @TROPHY_FEAT_GET_恋慕ボーナス強化
 ;好感度100000以上の実績を取得済みかチェック
-RESULTS:3 = 恋慕の人数に応じて得られる防御力ボーナスが2倍になります
+RESULTS:3 = 恋慕ボーナスの効果が2倍になります
 SIF GLOBAL:200 & 1p23
 	RETURN 1
 
 @TROPHY_FEAT_GET_親愛ボーナス
 ;霊夢様に50勝する
-RESULTS:3 = 親愛の人数によって戦闘力ボーナスが得られます
+RESULTS:3 = 親愛の人数に応じてイベントポイント獲得量が増加します
 SIF GLOBAL:200 & 1p8
 	RETURN 1
 
 @TROPHY_FEAT_GET_親愛ボーナス強化
 ;霊夢様に99勝する
-RESULTS:3 = 親愛の人数に応じて得られる戦闘能力ボーナスが3倍になります
+RESULTS:3 = 親愛ボーナスの効果が3倍になります
 SIF GLOBAL:200 & 1p9
 	RETURN 1
 
 @TROPHY_FEAT_GET_淫乱ボーナス
 ;最強四重絶頂を達成する
 CALL TROPHY_201_1
-RESULTS:3 = 淫乱の人数によって耐力・魔力ボーナスが得られます
+RESULTS:3 = 淫乱の人数に応じてイベントポイント獲得量が増加します
 SIF GLOBAL:201 & 1p1
 	RETURN 1
 
 @TROPHY_FEAT_GET_淫乱ボーナス強化
 ;最強五重絶頂を達成する
 CALL TROPHY_201_3
-RESULTS:3 = 淫乱の人数に応じて得られる耐力・魔力ボーナスが3倍になります
+RESULTS:3 = 淫乱ボーナスの効果が3倍になります
 SIF GLOBAL:201 & 1p3
 	RETURN 1
 
@@ -1488,18 +1486,6 @@ SIF GLOBAL:200 & 1p16
 ;Stage50をクリア
 RESULTS:3 = コマンドを実行しやすくなり、パートナーと過ごす終了後の自慰回数が増加します
 SIF GLOBAL:200 & 1p5
-	RETURN 1
-
-@TROPHY_FEAT_GET_酒豪
-;戦闘力10000000以上
-RESULTS:3 = 実行できるコマンドが増加し、プレゼントの種類に酒樽が追加されます
-SIF GLOBAL:200 & 1p28
-	RETURN 1
-
-@TROPHY_FEAT_GET_千里眼
-;Stage攻略中の敵撃破数1000以上
-RESULTS:3 = Stage攻略中に常に中ボス・ボスの居場所が分かるようになります
-SIF GLOBAL:200 & 1p31
 	RETURN 1
 
 @TROPHY_FEAT_GET_淫具知識
