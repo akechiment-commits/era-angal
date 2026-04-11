@@ -85,9 +85,16 @@ FOR LOCAL, 0, 50
 	RESETCOLOR
 NEXT
 
+;イベント完走実績（イベント編のみ）
+SIF FLAG:57 == 0
+	CALL TROPHY_EVENT_LIST
+
 DRAWLINE
 ;実績数カウント
 CALL TROPHY_COUNT(LOCAL:2)
+;イベント完走を加算（イベント編のみ）
+SIF FLAG:57 == 0
+	CALL TROPHY_COUNT_EVENTS
 ;実績数表示
 CALL TROPHY_COUNT_PRINT
 $CHAR_LIST_END
@@ -280,6 +287,9 @@ S:1 += LOCAL:11
 G:1 += LOCAL:12
 P:1 += LOCAL:13
 
+;イベント完走を合計に加算
+CALL TROPHY_COUNT_EVENTS
+
 ;--------------------------------------------------
 ;実績数表示
 ;--------------------------------------------------
@@ -327,15 +337,6 @@ VARSET T, 0
 VARSET LOCAL, 0
 ;経験～～以上等の実績はここで一括して判定
 FOR LOCAL, 1, CHARANUM
-	;好感度
-	SIF CFLAG:LOCAL:2 >= 1000
-		GLOBAL:200 |= 1p20
-	SIF CFLAG:LOCAL:2 >= 10000
-		GLOBAL:200 |= 1p21
-	SIF CFLAG:LOCAL:2 >= 50000
-		GLOBAL:200 |= 1p22
-	SIF CFLAG:LOCAL:2 >= 100000
-		GLOBAL:200 |= 1p23
 NEXT
 
 VARSET LOCAL, 0
@@ -502,35 +503,6 @@ SIF LOCAL:1 < LOCAL:2
 ;全て調合していれば達成
 SIF LOCAL:1 == LOCAL:2
 	RETURN 1
-
-@TROPHY_200_20
-RESULTS:0 = ブロンズ
-RESULTS:1 = I like Anata
-RESULTS:2 = 好感度1000以上
-;達成判定は一括
-
-
-@TROPHY_200_21
-RESULTS:0 = ブロンズ
-RESULTS:1 = I love Anata
-RESULTS:2 = 好感度10000以上
-;達成判定は一括
-
-
-@TROPHY_200_22
-RESULTS:0 = シルバー
-RESULTS:1 = I love only Anata
-RESULTS:2 = 好感度50000以上
-;達成判定は一括
-
-
-
-@TROPHY_200_23
-RESULTS:0 = ゴールド
-RESULTS:1 = 愛は永遠に
-RESULTS:2 = 好感度100000以上
-;達成判定は一括
-
 
 @TROPHY_CHECK_201(ARG, ARG:1)
 LOADGLOBAL
@@ -1331,15 +1303,13 @@ SIF GLOBAL:200 & 1p6
 	RETURN 1
 
 @TROPHY_FEAT_GET_恋慕ボーナス
-;好感度50000以上
-CALL TROPHY_200_22
+;好感度50000以上の実績を取得済みかチェック
 RESULTS:3 = 恋慕の人数によって戦闘時の防御力ボーナスが得られます
 SIF GLOBAL:200 & 1p22
 	RETURN 1
 
 @TROPHY_FEAT_GET_恋慕ボーナス強化
-;好感度100000以上
-CALL TROPHY_200_23
+;好感度100000以上の実績を取得済みかチェック
 RESULTS:3 = 恋慕の人数に応じて得られる防御力ボーナスが2倍になります
 SIF GLOBAL:200 & 1p23
 	RETURN 1
@@ -1567,3 +1537,85 @@ NEXT
 SIF LOCAL:8 == LCHAR
 	P:1 = 1
 
+;--------------------------------------------------
+; @TROPHY_EVENT_LIST  イベント完走実績一覧表示
+; 月ごとに [完]/[ ] を表示
+;--------------------------------------------------
+@TROPHY_EVENT_LIST
+LOADGLOBAL
+DRAWLINE
+PRINTL 　イベント完走実績　20000PT達成で完走扱い
+FOR LOCAL, 1, 13
+	SELECTCASE LOCAL
+	CASE 1
+		LOCAL:5 = 0
+		LOCAL:6 = 4
+	CASE 2
+		LOCAL:5 = 4
+		LOCAL:6 = 4
+	CASE 3
+		LOCAL:5 = 8
+		LOCAL:6 = 4
+	CASE 4
+		LOCAL:5 = 12
+		LOCAL:6 = 5
+	CASE 5
+		LOCAL:5 = 17
+		LOCAL:6 = 5
+	CASE 6
+		LOCAL:5 = 22
+		LOCAL:6 = 5
+	CASE 7
+		LOCAL:5 = 27
+		LOCAL:6 = 4
+	CASE 8
+		LOCAL:5 = 31
+		LOCAL:6 = 5
+	CASE 9
+		LOCAL:5 = 36
+		LOCAL:6 = 4
+	CASE 10
+		LOCAL:5 = 40
+		LOCAL:6 = 4
+	CASE 11
+		LOCAL:5 = 44
+		LOCAL:6 = 4
+	CASE 12
+		LOCAL:5 = 48
+		LOCAL:6 = 4
+	ENDSELECT
+	PRINTFORM 　{LOCAL}月:
+	FOR LOCAL:4, 0, LOCAL:6
+		GETBIT GLOBAL:204, LOCAL:5 + LOCAL:4
+		IF RESULT
+			SETCOLOR 80, 200, 220
+			PRINT [完]
+			RESETCOLOR
+		ELSE
+			SETCOLOR 105, 105, 105
+			PRINT [ ]
+			RESETCOLOR
+		ENDIF
+	NEXT
+	PRINTL
+NEXT
+
+;--------------------------------------------------
+; @TROPHY_COUNT_EVENTS  イベント完走実績数集計
+; 既存のB/S/G/Pに加算する（リセットしない）
+;--------------------------------------------------
+@TROPHY_COUNT_EVENTS
+LOADGLOBAL
+;52イベント完走実績を現在のB/Pに加算
+B:0 += 52
+P:0 += 1
+
+LOCAL:0 = 0
+FOR LOCAL:1, 0, 52
+	GETBIT GLOBAL:204, LOCAL:1
+	LOCAL:0 += RESULT
+NEXT
+B:1 += LOCAL:0
+
+SIF LOCAL:0 == 52
+	P:1 += 1
