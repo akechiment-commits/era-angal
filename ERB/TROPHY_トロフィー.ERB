@@ -1946,11 +1946,12 @@ GLOBAL:209 = 0
 GLOBAL:210 = 0
 GLOBAL:211 = 0
 GLOBAL:212 = 0
-;一時領域リセット（300+N=レア度ビット, 400+N=総種類数, 500+N=キラ枚数）
+;一時領域リセット（300+N=レア度ビット, 400+N=総種類数, 500+N=キラ数, 600+N=所持種類数）
 FOR LOCAL:99, 1, 72
 	GLOBAL:(300+LOCAL:99) = 0
 	GLOBAL:(400+LOCAL:99) = 0
 	GLOBAL:(500+LOCAL:99) = 0
+	GLOBAL:(600+LOCAL:99) = 0
 NEXT
 LOCAL:97 = 0	;全体で所持している種類数
 
@@ -1965,7 +1966,8 @@ FOR LOCAL:95, 1, 1885
 		LOCAL:96 = FLAG:A	;所持枚数
 		IF LOCAL:96 >= 1
 			LOCAL:97 += 1
-			SETBIT GLOBAL:(300+LOCAL:90), LOCAL:91 - 1	;レア度ビット
+			GLOBAL:(600+LOCAL:90) += 1	;所持種類数++
+			SETBIT GLOBAL:(300+LOCAL:90), LOCAL:91 - 1	;レア度ビット（Bronze用）
 		ENDIF
 		SIF LOCAL:96 >= 12
 			GLOBAL:(500+LOCAL:90) += 1	;キラ数++
@@ -1978,18 +1980,19 @@ SIF LOCAL:97 == 1884
 
 ;各キャラの達成判定
 FOR LOCAL:99, 1, 72
-	LOCAL:88 = GLOBAL:(300+LOCAL:99)	;レア度ビット
+	LOCAL:88 = GLOBAL:(300+LOCAL:99)	;レア度ビット（Bronze用）
 	LOCAL:89 = GLOBAL:(400+LOCAL:99)	;総種類数
 	LOCAL:86 = GLOBAL:(500+LOCAL:99)	;キラ数
-	;ブロンズ: N(1)R(2)HR(3)SR(4) の bits 0-3 = 15 が全て揃い
+	LOCAL:87 = GLOBAL:(600+LOCAL:99)	;所持種類数
+	;ブロンズ: N/R/HR/SR 各1枚以上所持（bits 0-3 = 15）
 	IF (LOCAL:88 & 15) == 15
 		SIF LOCAL:99 <= 63
 			SETBIT GLOBAL:206, LOCAL:99 - 1
 		SIF LOCAL:99 >= 64
 			SETBIT GLOBAL:207, LOCAL:99 - 64
 	ENDIF
-	;ゴールド: 全6レア度 bits 0-5 = 63 が全て揃い
-	IF (LOCAL:88 & 63) == 63
+	;ゴールド: 全カード種類を1枚以上所持
+	IF LOCAL:89 > 0 && LOCAL:87 == LOCAL:89
 		SIF LOCAL:99 <= 63
 			SETBIT GLOBAL:208, LOCAL:99 - 1
 		SIF LOCAL:99 >= 64
@@ -2009,6 +2012,7 @@ FOR LOCAL:99, 1, 72
 	GLOBAL:(300+LOCAL:99) = 0
 	GLOBAL:(400+LOCAL:99) = 0
 	GLOBAL:(500+LOCAL:99) = 0
+	GLOBAL:(600+LOCAL:99) = 0
 NEXT
 SAVEGLOBAL
 RETURN
