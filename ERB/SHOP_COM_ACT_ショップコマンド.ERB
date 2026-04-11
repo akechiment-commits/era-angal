@@ -312,6 +312,7 @@ PRINTL 　　　　　　☆：パートナー　★：助手　を表しています
 ;-------------------------------------------------
 @TURNEND_COM
 VARSET LOCAL, 0
+LOCAL:98 = CFLAG:COUNT:2	;好感度基準値（恋人ボーナス用）
 ;SHOP.ERBのREPEAT CHARANUM中
 ;待機中指示コマンド実行
 IF COUNT != MASTER && CFLAG:COUNT:17 == 0
@@ -701,6 +702,24 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		
 		;実行したコマンドを保存
 		Y:COUNT = 12
+	ENDIF
+	;恋人ボーナス：今回の好感度増加分にボーナス
+	IF TALENT:MASTER:恋人ボーナス || TALENT:MASTER:恋人ボーナス強化
+		LOCAL:97 = CFLAG:COUNT:2 - LOCAL:98
+		IF LOCAL:97 > 0
+			LOCAL:96 = 0
+			FOR LOCAL:95, 1, CHARANUM
+				SIF TALENT:(LOCAL:95):153
+					LOCAL:96 += 1
+			NEXT
+			IF LOCAL:96 > 0
+				IF TALENT:MASTER:恋人ボーナス強化
+					CFLAG:COUNT:2 += LOCAL:97 * LOCAL:96 * 2 / 100
+				ELSE
+					CFLAG:COUNT:2 += LOCAL:97 * LOCAL:96 / 100
+				ENDIF
+			ENDIF
+		ENDIF
 	ENDIF
 	;リング資金稼ぎ
 	CALL TURNEND_EARN_MONEY_TM
