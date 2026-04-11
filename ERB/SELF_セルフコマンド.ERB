@@ -12,8 +12,6 @@ SIF TALENT:85 || ABL:1 >= 10
 	CALL AFTER_S_CHECK
 ;レズプレイチェック
 CALL AFTER_L_CHECK
-;晩酌チェック
-CALL SELF_SAKE_CHECK
 ;合意持ちなら夜這いに来る可能性アリ(主人公が童貞だと発生しない)
 SIF TALENT:152 && TALENT:MASTER:154 == 0
 	CALL SELF_CHECK2
@@ -569,64 +567,6 @@ IF TALENT:121 && TALENT:ASSI:121 && ABL:6 >= 8 && ABL:11 >= 3
 ENDIF
 ;カットフラグを戻す
 CFLAG:99 = LOCAL:100
-RETURN 0
-
-@SELF_SAKE_CHECK
-;晩酌イベントチェック
-;カットフラグが立っていたらリターン
-SIF CFLAG:98 & 8
-	RETURN 0
-;反発感情あり、夜でない、体力５００以下の場合はだめ
-SIF MARK:TARGET:3 >= 1 || TIME == 0 || BASE:0 < 500
-	RETURN 0
-IF (MARK:TARGET:2 >= 1 && CFLAG:2 >= 500) || (TALENT:TARGET:217 == 1 && CFLAG:2 >= 200)
-	S = 10
-	;酒豪なら効果上昇
-	SIF TALENT:TARGET:217
-		S += 10
-	;マスターが酒豪なら効果上昇
-	SIF TALENT:MASTER:217
-		S += 10
-	;恋慕なら気を許しているので効果上昇
-	SIF TALENT:TARGET:85
-		S += 5
-	;親愛の場合さらに気を許しているので効果上昇
-	SIF TALENT:TARGET:88
-		S += 5
-	;自制心の場合、飲み過ぎないように気をつけてしまうので効果半減
-	SIF TALENT:TARGET:20
-		TIMES S , 0.50
-	
-	;好感度上昇
-	CFLAG:2 += S
-	;変数退避
-	LOCAL = S
-	DRAWLINE
-	;カットフラグを退避
-	LOCAL:100 = CFLAG:99
-	;口上開始前の地の文をカットするか
-	TFLAG:13 = 82
-	CALL SELF_MAEKOJO
-	;地の文章カット
-	IF CFLAG:99 ==1
-;		TFLAG:13 = 82
-		CALL SELF_KOJO
-	ELSE
-		PRINTFORML %CALLNAME:MASTER%が寝る準備をしていると%CALLNAME:TARGET%が晩酌に誘いに来た
-;		TFLAG:13 = 82
-		CALL SELF_KOJO
-		PRINTFORML それからしばらく%CALLNAME:TARGET%と%CALLNAME:MASTER%は楽しく酒を飲み交わした
-	ENDIF
-	;変数を戻す
-	S = LOCAL
-	PRINTFORML 
-	PRINTFORML 好感度上昇:{S}
-	SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
-		PRINTFORML 好感度合計:{CFLAG:2}
-	PRINTFORMW 
-	;カットフラグを戻す
-	CFLAG:99 = LOCAL:100
-ENDIF
 RETURN 0
 
 @SELF_CHECK2
