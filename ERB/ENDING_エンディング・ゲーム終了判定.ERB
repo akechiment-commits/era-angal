@@ -350,3 +350,111 @@ PRINTL
 PRINTL  
 
 RETURN 1
+
+
+;==================================================
+; エンディングシステム（あんガル版）
+;==================================================
+
+;--------------------------------------------------
+; エンディングメイン（任意コマンド[127]から呼ばれる）
+;--------------------------------------------------
+@ENDING_PLAYER
+SIF TARGET <= 0
+	PRINTFORMW パートナーを選んでからエンディングを見てください
+	RETURN 0
+
+DRAWLINE
+A = NO:TARGET
+
+;エンディング種別判定
+IF CFLAG:TARGET:29
+	;リングを渡している → 結婚エンド
+	SETCOLOR 255, 220, 100
+	PRINTFORML ――― %CALLNAME:TARGET% との 結婚エンド ―――
+	RESETCOLOR
+	PRINTL
+	TRYCALLFORM ENDING_MARRIAGE_{A}
+	IF RESULT == 0
+		CALL ENDING_MARRIAGE_DEFAULT
+	ENDIF
+ELSE
+	;リングなし → 卒業エンド
+	SETCOLOR 150, 220, 255
+	PRINTFORML ――― %CALLNAME:TARGET% との 卒業エンド ―――
+	RESETCOLOR
+	PRINTL
+	TRYCALLFORM ENDING_GRADUATE_{A}
+	IF RESULT == 0
+		CALL ENDING_GRADUATE_DEFAULT
+	ENDIF
+ENDIF
+
+PRINTL
+DRAWLINE
+PRINTFORML このエンディングを見た後、どうしますか？
+PRINTFORML [0] 周回プレイ（1年生4月へ・データ全引継ぎ）
+PRINTFORML [1] そのまま続ける
+$INPUT_END_CHOICE
+INPUT
+IF RESULT == 0
+	CALL ENDING_NEW_CYCLE
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ELSE
+	GOTO INPUT_END_CHOICE
+ENDIF
+
+RETURN 0
+
+;--------------------------------------------------
+; 結婚エンド汎用テキスト（個別未実装キャラ用）
+;--------------------------------------------------
+@ENDING_MARRIAGE_DEFAULT
+PRINTFORML 学院での三年間――様々な出来事を経て辿り着いた、この瞬間。
+PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%の手を取り、静かに言葉を紡いだ。
+PRINTFORML 「一緒にいてほしい。ずっと、これからも」
+PRINTFORML %CALLNAME:TARGET%は少し俯き、それからゆっくりと顔を上げた。
+PRINTFORMW その瞳は、まっすぐに%CALLNAME:MASTER%を見つめていた。
+PRINTL
+PRINTFORMW 					―― 結婚エンド ――
+RETURN 1
+
+;--------------------------------------------------
+; 卒業エンド汎用テキスト（個別未実装キャラ用）
+;--------------------------------------------------
+@ENDING_GRADUATE_DEFAULT
+PRINTFORML 卒業式の日、紺碧の空の下で%CALLNAME:TARGET%と並んで立った。
+PRINTFORML 共に過ごした日々は、もう二度と戻らない。
+PRINTFORML けれど、この胸に刻まれたものは確かに存在した。
+PRINTFORMW 別れ際、%CALLNAME:TARGET%は一度だけ振り返り、微笑んだ。
+PRINTL
+PRINTFORMW 					―― 卒業エンド ――
+RETURN 1
+
+;--------------------------------------------------
+; 周回処理（全データ引継ぎ・1年生4月へ）
+;--------------------------------------------------
+@ENDING_NEW_CYCLE
+PRINTFORMW それでは1年生の4月に戻ります。これまでのデータは全て引き継がれます。
+DAY = 0
+TIME = 0
+FLAG:24 = 1	;1年生に戻る
+FLAG:25 = 0
+FLAG:26 += 1	;周回カウンター
+FLAG:27 = 0	;試験ビットマスクリセット
+FLAG:31 = 0	;月変わり検出リセット
+FLAG:32 = 0	;月次イベントPTリセット
+FLAG:67 = 0	;イベントボード月次検出リセット
+FLAG:69 = 0	;イベント通知リセット
+TARGET = -1
+ASSI = -1
+;パートナー以外を全削除
+A = CHARANUM
+REPEAT A
+	SIF CHARANUM > 1
+		DELCHARA 1
+REND
+CALL START_PARTNER_SELECT
+RETURN 0
