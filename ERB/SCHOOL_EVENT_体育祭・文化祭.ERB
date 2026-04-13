@@ -41,6 +41,24 @@ IF TIME:1 == 61 && FLAG:51 != DAY:3 && TIME == 0
 	RETURN 1
 ENDIF
 
+;--- 学力コンテスト（冬1月 Day10、TIME:1=62） ---
+;授業時間(TIME==0)に発動
+IF TIME:1 == 62 && FLAG:54 != DAY:3 && TIME == 0
+	PRINTL
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　　　　今日は学力コンテストの日です！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTL
+	IF TARGET >= 0
+		CALL KNOWLEDGE_CONTEST
+	ELSE
+		PRINTFORMW パートナーがいないため学力コンテストを見学するだけになった。
+		FLAG:54 = DAY:3
+	ENDIF
+	BEGIN TURNEND
+	RETURN 1
+ENDIF
+
 ;--- 試験はENDING_CHECK(日数切れ)から自動発動 ---
 ;FLAG:27ベースの手動トリガーは廃止
 
@@ -56,6 +74,8 @@ RETURN 0
 ;FLAG:51 = 文化祭を実施した年（DAY:3と比較）
 ;FLAG:52 = 体育祭優勝経験フラグ（累計）
 ;FLAG:53 = 文化祭大成功経験フラグ（累計）
+;FLAG:54 = 学力コンテストを実施した年（DAY:3と比較）
+;FLAG:55 = 学力コンテスト優勝経験フラグ（累計）
 ;
 ;スコア計算:
 ;  主人公: 技能(上限なし) + 対応素質/2 + RAND:15
@@ -253,4 +273,97 @@ PRINTFORML （気力消費: 文化祭で全力パフォーマンス）
 WAIT
 
 FLAG:51 = DAY:3
+RETURN 1
+
+;---------------------------------------------------------
+;学力コンテスト
+;---------------------------------------------------------
+@KNOWLEDGE_CONTEST
+DRAWLINE
+PRINTFORML 【学力コンテスト】
+PRINTL
+
+IF FLAG:54 == DAY:3
+	PRINTFORMW 今年の学力コンテストはすでに終わりました。来年また頑張ろう。
+	RETURN 0
+ENDIF
+
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%はペアを組んで学力コンテストに挑む！
+PRINTFORML 知識技能と知識素質が高いほど良い成績が出る。
+PRINTL
+
+;--- スコア計算 ---
+;主人公: 知識技能(上限なし) + 知識素質/2 + RAND:15
+LOCAL:0 = ABL:MASTER:95 + ABL:MASTER:56 / 2 + RAND:15
+;パートナー: 知識技能(上限100) + 知識素質/2 + RAND:10
+LOCAL:1 = ABL:TARGET:95 + ABL:TARGET:56 / 2 + RAND:10
+;知識部パートナーボーナス
+IF CFLAG:TARGET:25 == 3
+	LOCAL:1 += 15
+	PRINTFORML ★%CALLNAME:TARGET%は知識部！鋭い分析で問題を解き切った！
+ENDIF
+LOCAL:2 = LOCAL:0 + LOCAL:1
+
+PRINTFORML ─────────────────────
+PRINTFORML あなたのスコア     : {LOCAL:0}点
+PRINTFORML %CALLNAME:TARGET%のスコア: {LOCAL:1}点
+PRINTFORML ペア合計スコア     : {LOCAL:2}点
+PRINTFORML ─────────────────────
+WAIT
+
+;--- ランク判定 ---
+DRAWLINE
+IF LOCAL:2 >= 300
+PRINTFORML 　　　★★★ 優勝！！★★★
+PRINTFORML 会場に割れんばかりの拍手が響く。
+PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は互いにハイタッチした。
+PRINTL
+CFLAG:TARGET:2 += 15
+ABL:MASTER:56 += 5
+SIF ABL:MASTER:56 > 100
+	ABL:MASTER:56 = 100
+FLAG:55 = FLAG:55 + 1
+PRINTFORML 好感度 +15　知識素質 +5
+ELSEIF LOCAL:2 >= 220
+PRINTFORML 　　　準優勝！
+PRINTFORML 惜しくも2位。でも堂々たる結果だった。
+PRINTFORML %CALLNAME:TARGET%は「次は絶対1位を取ろう」と力強く言った。
+PRINTL
+CFLAG:TARGET:2 += 10
+ABL:MASTER:56 += 3
+SIF ABL:MASTER:56 > 100
+	ABL:MASTER:56 = 100
+PRINTFORML 好感度 +10　知識素質 +3
+ELSEIF LOCAL:2 >= 140
+PRINTFORML 　　　3位入賞！
+PRINTFORML 表彰状をもらった。%CALLNAME:TARGET%と一緒に記念写真を撮った。
+PRINTL
+CFLAG:TARGET:2 += 7
+ABL:MASTER:56 += 1
+SIF ABL:MASTER:56 > 100
+	ABL:MASTER:56 = 100
+PRINTFORML 好感度 +7　知識素質 +1
+ELSE
+PRINTFORML 　　　参加賞
+PRINTFORML 今回は実力を出し切れなかった。
+PRINTFORML でも%CALLNAME:TARGET%は「一緒に挑めてよかった」と笑ってくれた。
+PRINTL
+CFLAG:TARGET:2 += 3
+PRINTFORML 好感度 +3
+ENDIF
+
+PRINTL
+;気力消費（頭を使ったので）
+BASE:MASTER:1 -= MAXBASE:MASTER:1 / 4
+SIF BASE:MASTER:1 < 0
+	BASE:MASTER:1 = 0
+PRINTFORML （気力消費: 学力コンテストで全力を尽くした）
+WAIT
+
+FLAG:54 = DAY:3
 RETURN 1
