@@ -53,11 +53,67 @@
 
 | タスク | 概要 |
 |---|---|
-| **顔グラ対応** | キャラ画像ファイルを用意して表示 |
+| **顔グラ対応** | EmueraEM+EEへ移行後、resources/フォルダに画像を置いて表示（後述 Phase K） |
 | **シナリオ実装** | 個別イベント（エンディング基盤は完成済み、個別テキスト追加待ち） |
 | **カードアルバム（図鑑）** | コンプ率表示・全カード一覧 |
 | **エリア上限設定** | イベントボードのエリア番号が現状無限に上昇 |
 | **カードのショップ購入** | ポイント交換・直接購入機能 |
+
+---
+
+## Phase K: エンジン移行（Emuera1820 → EmueraEM+EE）⬜ 準備中
+
+### 目的
+Emuera1820は画像表示非対応。EmueraEM+EEへ移行することで顔グラ・立ち絵・背景画像が使えるようになる。
+
+### エンジン比較
+
+| | Emuera1820（現在） | Emuera1824 | EmueraEM+EE（目標） |
+|---|---|---|---|
+| 画像表示 | ❌ | ✅ 基本対応 | ✅ 拡張対応 |
+| GCREATEFROMFILE | ❌ | ✅（パス指定不可）| ✅（相対パス直指定可）|
+| HTML_PRINT img | ❌ | ✅ | ✅ |
+| SPRITELOAD | ❌ | ✅ | ✅ |
+| 既存ERB互換性 | — | ほぼ完全互換 | ほぼ完全互換 |
+
+### ダウンロード先
+
+- **EmueraEM+EE（推奨）**: https://gitlab.com/EvilMask/emuera.em/-/releases
+- **Emuera1824（安定版）**: https://osdn.net/projects/emuera/downloads/70571/Emuera1824.zip/
+- **ドキュメント**: https://evilmask.gitlab.io/emuera.em.doc/
+
+### 移行手順
+
+1. 上記からemueraEM+EE の exeをDL
+2. `Emuera1820.exe` はそのまま残す（バックアップ）
+3. DLしたexeを同じフォルダに置いてゲームを起動してみる
+4. エラーが出なければ移行成功 → `emuera.config` はそのまま流用可
+5. `resources/` フォルダに顔グラ画像を追加 → ERBから呼び出す
+
+### 画像ファイル命名規則（予定）
+
+```
+resources/
+  face_01.png  … NO:1 君嶋あかり の顔グラ
+  face_02.png  … NO:2 の顔グラ
+  ...（face_XX.png で統一）
+```
+
+### ERBでの呼び出しコード（移行後に追加予定）
+
+```erb
+;キャラ顔グラ表示（移行後に実装）
+@SHOW_FACE(ARG)
+  GCREATEFROMFILE 0, "resources/face_{ARG:0}.png", 1
+  GDISP 0, 0, 0, GWIDTH(0), GHEIGHT(0)
+  RETURN
+```
+
+### リポジトリ側の準備（完了済み）
+
+- `resources/` フォルダ作成済み
+- `resources/readme_resources.txt` に命名規則・使い方メモ記載済み
+- 現行の `Emuera1820.exe` はそのまま保持
 
 ---
 
