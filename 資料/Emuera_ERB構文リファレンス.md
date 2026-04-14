@@ -258,8 +258,8 @@ WEND
 
 ```erb
 $ラベル名
-GOTO $ラベル名（またはGOTO ラベル名）
-RESTART    ;現在の関数を最初から再実行
+GOTO $ラベル名   ;$は省略可
+RESTART          ;現在の関数を最初から再実行
 ```
 
 ### RETURN
