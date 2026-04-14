@@ -1,0 +1,719 @@
+﻿@サイド領域描画
+#DIMS 表示文字列
+#DIMS 追加表示文字列
+
+サイド描画行数保存 = LINECOUNT
+LOCAL = 5525
+LOCAL:1 = 500
+LOCAL:2 = 4360
+;基礎部分
+表示文字列 = <div rect='{LOCAL}, 0, 4375, {LOCAL:2}' padding='50,25,250' color='#101010' border='31' bcolor='#C0C0C0'><nobr>
+追加表示文字列 = 
+
+TRYCALLFORM サイド描画表示種類_%サイド描画表示種類%(表示文字列, 追加表示文字列)
+表示文字列 += "</nobr></div>"
+;下部分表示
+表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_表示なし'>表示なし</button></div>"
+SIF サイド描画表示種類 == "表示なし"
+	表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+
+IF SAVESTR:ゲームフェイズ管理 == "通常モード"
+	LOCAL += LOCAL:1 + 50
+	LOCAL:1 = 700
+	表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,0,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_クイック移動'>クイック移動</button></div>"
+	SIF サイド描画表示種類 == "クイック移動"
+		表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+ENDIF
+
+LOCAL += LOCAL:1 + 50
+LOCAL:1 = 500
+表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_能力表示'>能力表示</button></div>"
+SIF サイド描画表示種類 == "能力表示"
+	表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+
+IF SAVESTR:ゲームフェイズ管理 == "通常モード"
+	LOCAL += LOCAL:1 + 50
+	LOCAL:1 = 500
+	SELECTCASE サイド領域_同室者表示フラグ
+		CASE 0
+			LOCALS '= "田"
+		CASE 1
+			LOCALS '= "口"
+		CASE 2
+			LOCALS '= "罒"
+	ENDSELECT
+	表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_同室者'>同室者<font color='#ff3399'>%LOCALS%</font></button></div>"
+	;表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_同室者'>同室者<font color='#ff3399'>\@ サイド領域_同室者表示フラグ? 口# 田\@</font></button></div>"
+	SIF サイド描画表示種類 == "同室者"
+		表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+ENDIF
+IF SAVESTR:ゲームフェイズ管理 == "通常モード"
+	LOCAL += LOCAL:1 + 50
+	IF CFLAG:PLAYER:うふふ && CFLAG:TARGET:うふふ
+		LOCAL:1 = 700
+		表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_クイック自慰'>クイック自慰</button></div>"
+		SIF サイド描画表示種類 == "クイック自慰"
+			表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+	ELSE
+		LOCAL:1 = 900
+		表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_クイック触れ合い'>クイック触れ合い</button></div>"
+		SIF サイド描画表示種類 == "クイック触れ合い"
+			表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+	ENDIF
+ENDIF
+IF SAVESTR:ゲームフェイズ管理 == "マッサージモード"
+	LOCAL += LOCAL:1 + 50
+	LOCAL:1 = 800
+	表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><button value='サイド領域_サイド切り替え_おさわりモード'>おさわりモード</button></div>"
+	SIF サイド描画表示種類 == "おさわりモード"
+		表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+ENDIF
+
+LOCAL += LOCAL:1 + 50
+LOCAL:1 = 700
+CALL 複数人一枚絵_表示処理(1)
+IF RESULT
+	表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><font color='#%カラーパレット_HTML("黄")%'><button value='サイド領域_サイド切り替え_複数人一枚絵'>複数人一枚絵</button></font></div>"
+ELSE
+	表示文字列 += @"<div rect='{LOCAL}, {LOCAL:2 - 15}, {LOCAL:1}, 200' padding='25,15,0' color='#101010' border='31' bcolor='#C0C0C0'><font color='#%カラーパレット_HTML("グレーアウト")%'><button value='サイド領域_サイド切り替え_複数人一枚絵'>複数人一枚絵</button></font></div>"
+ENDIF
+SIF サイド描画表示種類 == "複数人一枚絵"
+	表示文字列 += @"<div rect='{LOCAL + 25}, {LOCAL:2 - 35}, {LOCAL:1 - 40}, 60' color='#101010'></div>"
+
+; ENDIF
+
+SIF 追加表示文字列 != ""
+	表示文字列 += @"%追加表示文字列%"
+HTML_PRINT 表示文字列, 1
+
+@サイド領域_エロステータス把握(ARG)
+#DIMS L_STR, 2
+VARSET L_STR
+IF CFLAG:ARG:ゲージ起動分類 == 1
+	L_STR = (恋慕対象)
+	L_STR:1 = color='#FF3399'
+ELSEIF CFLAG:ARG:発情期フラグ < 0
+	L_STR = (発情期)
+	L_STR:1 = color='#FF3399'
+ELSEIF PREGNANCY_PROGRESS(ARG) == 5
+	L_STR = (臨月)
+	L_STR:1 = color='#FF3399'
+ELSEIF TALENT:ARG:妊娠
+	L_STR = (妊娠中)
+	L_STR:1 = color='#FF99CF'
+ELSEIF  GETBIT(TALENT:ARG:性別, 0) == 0 && TALENT:ARG:Ｖ感度 == -2
+ELSEIF RISKY_DAY(ARG) == 2 && あなた特殊能力:朔望鑑定術 >= 2
+	L_STR = (超危険日)
+	L_STR:1 = color='#FF3399'
+ELSEIF RISKY_DAY(ARG) == 1 && あなた特殊能力:朔望鑑定術 >= 2
+	L_STR = (危険日)
+	L_STR:1 = color='#FFCCE7'
+ELSEIF RISKY_DAY(ARG) == -1 && あなた特殊能力:朔望鑑定術 >= 2
+	L_STR = （安全日）
+	L_STR:1 = color='#ccffff'
+ENDIF
+RESULTS '= L_STR
+RESULTS:1 '= L_STR:1
+
+
+@サイド領域_改行処理
+
+FOR LOCAL, 0, 40 - (LINECOUNT - サイド描画行数保存)
+	PRINTL
+NEXT
+
+
+@サイド領域_実行処理
+#DIM 入力数値
+
+IF STRCOUNT(RESULTS, "サイド領域_サイド切り替え_")
+	IF サイド描画表示種類 == "同室者" && STRCOUNT(RESULTS, "同室者")
+		サイド領域_同室者表示フラグ ++
+		SIF サイド領域_同室者表示フラグ > 2
+			サイド領域_同室者表示フラグ = 0
+	ENDIF
+	サイド描画表示種類 = %REPLACE(RESULTS, "サイド領域_サイド切り替え_", "")%
+	サイド領域_同室者表示ページ数 = 0
+	RETURN 1
+ENDIF
+
+SELECTCASE サイド描画表示種類
+	CASE "クイック移動"
+		RFLAG:サイドボタン操作 = 0
+		IF STRCOUNT(RESULTS, "サイド領域_スクロール_")
+			IF RESULTS == "サイド領域_スクロール_左"
+				サイド描画横スクロール保存 = MAX(0, サイド描画横スクロール保存 - 84)
+			ELSEIF RESULTS == "サイド領域_スクロール_右"
+				サイド描画横スクロール保存 = MIN(サイド描画_クイック移動マップ横幅保存 - 84, サイド描画横スクロール保存 + 84)
+			ELSEIF RESULTS == "サイド領域_スクロール_上"
+				サイド描画縦スクロール保存 = MAX(0, サイド描画縦スクロール保存 - 36)
+			ELSEIF RESULTS == "サイド領域_スクロール_下"
+				;2行の余裕を持たせる
+				サイド描画縦スクロール保存 = MIN(サイド描画_クイック移動マップ縦幅保存 - 34, サイド描画縦スクロール保存 + 36)
+			ENDIF
+			RETURN 1
+		ENDIF
+		IF RESULTS == "サイド領域_OPTION変数:簡易クイック表示"
+			INVERTBIT OPTION変数:簡易クイック表示, 0
+			RETURN 1
+		ENDIF
+		;うふふ中は移動なし
+		SIF CFLAG:PLAYER:うふふ
+			RETURN 1
+		;飲み会中は移動なし
+		SIF CFLAG:PLAYER:飲み会
+			RETURN 1
+		IF RESULTS == "サイド領域_自室に戻る"
+			TFLAG:SELECTCOM受け渡し = 400
+			SELECTCOM = 400
+			TFLAG:エリア切り替え時_目的地格納 = 100
+			TFLAG:コマンド外移動時_目的地格納 = CFLAG:PLAYER:自室位置
+			RETURN 0
+		ENDIF
+		入力数値 = 0
+		入力数値 = TOINT(REPLACE(RESULTS, "サイド領域_", ""))
+		SIF 入力数値 == 0
+			RETURN 1
+
+		CALL 表示マップ切り替え判定(入力数値)
+		LOCAL = RESULT
+		IF 入力数値 == 99
+			;エリア移動選択
+			IF RFLAG:追跡フラグ
+				;追跡中は自動で移動
+				RESULT = 1
+			ELSE
+				CALL エリア移動選択画面表示
+			ENDIF
+			IF RESULT == -1
+				;移動しない場合
+				RETURN 1
+			ELSEIF RESULT == 1
+				;移動処理へ進む
+				;サイド描画横スクロール保存 = 0
+				SELECTCOM = 400
+				TFLAG:SELECTCOM受け渡し = 400
+				;SIF RESULT == -1
+				;	RETURN -1
+				;RETURN 0
+			ENDIF
+		;ELSEIF CFLAG:PLAYER:現在位置 == 入力数値
+		;	RETURN 1
+		ELSEIF LOCAL
+			;サイド描画横スクロール保存 = 0
+			RETURN 1
+		;ELSEIF 存在しない移動先(CFLAG:PLAYER:現在マップ種別, 入力数値)
+		;	RETURN 1
+		;ELSEIF 存在しない移動先(CFLAG:PLAYER:現在マップ種別, CFLAG:PLAYER:現在位置)
+		;商業区や居住区の個別部屋にいると考えられるので、即座に移動する
+		;	CFLAG:MASTER:現在位置 = 入力数値
+		ELSE
+			TFLAG:SELECTCOM受け渡し = 400
+			SELECTCOM = 400
+			TFLAG:エリア切り替え時_目的地格納 = CFLAG:PLAYER:現在マップ種別 + 100
+			TFLAG:コマンド外移動時_目的地格納 = 入力数値
+		ENDIF
+	CASE "能力表示"
+		SIF RESULTS == "サイド領域_弱点コマンド全表示"
+			CALL 弱点コマンド全表示(TARGET)
+		RETURN 1
+	CASE "同室者"
+			IF RESULTS == "サイド領域_前ページ"
+				サイド領域_同室者表示ページ数 -= 1
+			ELSEIF RESULTS == "サイド領域_次ページ"
+				サイド領域_同室者表示ページ数 += 1
+			ENDIF
+			RETURN 1
+	CASE "クイック触れ合い"
+		IF RESULTS == "サイド領域_おさわりモード"
+			RFLAG:おさわりモード中 = 1
+			CALL おさわりモード(TARGET)
+			RFLAG:おさわりモード中 = 0
+			RETURN 1
+		ENDIF
+		CALLFORM 身体に触れる_ABLE_%REPLACE(RESULTS, "サイド領域_", "")%
+		RFLAG:サイドボタン受渡し変数 = RESULT
+		RFLAG:サイドボタン操作 = 0
+		RESULT = 306
+		JUMP USERCOM
+	CASE "クイック自慰"
+		自慰ターゲット保存 = TARGET
+		CALLFORM 自慰_ABLE_%REPLACE(RESULTS, "サイド領域_", "")%
+		RFLAG:サイドボタン受渡し変数 = RESULT
+		RFLAG:サイドボタン操作 = 0
+		RESULT = 9
+		JUMP USERCOM
+	CASE "おさわりモード"
+		IF RESULTS == "サイド領域_おさわりモード"
+			RFLAG:おさわりモード中 = 1
+			CALL おさわりモード(TARGET)
+			RFLAG:おさわりモード中 = 0
+			RETURN 1
+		ENDIF
+ENDSELECT
+
+RETURN 0
+
+
+@サイド描画表示種類_クイック移動(表示文字列, 追加表示文字列)
+#DIMS REF 表示文字列
+#DIMS REF 追加表示文字列
+#DIM 現在マップ保存 = -1, -1
+
+IF CFLAG:PLAYER:現在マップ種別 == 999
+ELSE
+	IF OPTION変数:簡易クイック表示
+		CALL DRAW_簡易MAP()
+	ELSE
+		IF 現在マップ保存 != CFLAG:PLAYER:現在マップ種別 || 現在マップ保存:1 != TFLAG:マップ種別
+			サイド描画横スクロール保存 = 0
+			サイド描画縦スクロール保存 = 0
+			現在マップ保存 = CFLAG:PLAYER:現在マップ種別
+			現在マップ保存:1 = TFLAG:マップ種別
+		ENDIF
+		CALL DRAW_MAP(84, サイド描画横スクロール保存, サイド描画縦スクロール保存)
+		サイド描画_クイック移動マップ横幅保存 = RESULT
+	ENDIF
+	REPLACE RESULTS, "value='", "value='サイド領域_"
+	表示文字列 += @"%RESULTS%"
+
+	IF CFLAG:PLAYER:現在マップ種別 != 999
+		追加表示文字列 += "<div rect='5600, 4125, 4225, 100'>"
+		IF FLAG:お出かけ先フラグ < 1
+			追加表示文字列 += "<p align='center'><button value='サイド領域_99'>[エリア移動] "
+			IF エリアNEW表示判定()
+				;存在するけど訪れたことのないエリアがあるなら強調表示
+				追加表示文字列 += @"<font color='#%カラーパレット_HTML("黄")%'>NEW！</font>"
+			ENDIF
+			追加表示文字列 += "</button>"
+		ELSE
+			追加表示文字列 += "　　　　　　　　　"
+		ENDIF
+		IF FLAG:お出かけ先フラグ < 1
+			追加表示文字列 += "　　　<button value='サイド領域_自室に戻る'>[自室へ移動]</button>"
+		ELSE
+			追加表示文字列 += "　　　　　　　　　"
+		ENDIF
+		IF OPTION変数:簡易クイック表示
+			追加表示文字列 += "　　　<button value='サイド領域_OPTION変数:簡易クイック表示'>[マップ表示へ]</button>"
+		ELSE
+			追加表示文字列 += "　　　<button value='サイド領域_OPTION変数:簡易クイック表示'>[簡易表示へ]</button>"
+		ENDIF
+		SIF FLAG:お出かけ先フラグ < 1
+			追加表示文字列 += "</p>"
+		追加表示文字列 += "</div>"
+	ENDIF
+	;マップが横幅よりデカいならスクロールキー表示
+	IF サイド描画_クイック移動マップ横幅保存 > 84
+		追加表示文字列 += "<div rect='5600, 4125, 4225, 100'>"
+		IF サイド描画横スクロール保存 > 0
+			追加表示文字列 += "<button value='サイド領域_スクロール_左'>[←]</button>"
+		ELSE
+			追加表示文字列 += "　　"
+		ENDIF
+		IF サイド描画縦スクロール保存 > 0
+			追加表示文字列 += "<button value='サイド領域_スクロール_上'>[↑]</button>"
+		ELSE
+			追加表示文字列 += "　　"
+		ENDIF
+		IF サイド描画縦スクロール保存 + 36 < サイド描画_クイック移動マップ縦幅保存
+			追加表示文字列 += "<button value='サイド領域_スクロール_下'>[↓]</button>"
+		ELSE
+			追加表示文字列 += "　　"
+		ENDIF
+		IF サイド描画横スクロール保存 + 84 < サイド描画_クイック移動マップ横幅保存
+			追加表示文字列 += "<button value='サイド領域_スクロール_右'>[→] </button>"
+		ELSE
+			追加表示文字列 += "　　"
+		ENDIF
+		追加表示文字列 += "</div>"
+	ENDIF
+ENDIF
+
+@サイド描画表示種類_能力表示(表示文字列, 追加表示文字列)
+#DIMS REF 表示文字列
+#DIMS REF 追加表示文字列
+
+IF TARGET > 0
+	表示文字列 += @"■%NAME表示(TARGET)%<br>"
+	CALL PRINT_STATE_BASE(TARGET)
+	表示文字列 += @" %RESULTS%<br>"
+	CALL PRINT_STATE_TALENT(TARGET)
+	表示文字列 += @" %RESULTS%<br>"
+	CALL PRINT_STATE_CLOTH(TARGET)
+	表示文字列 += @" %RESULTS%<br>"
+	CALL PRINT_STATE_弱点コマンド(TARGET, "サイド領域_弱点コマンド全表示")
+	表示文字列 += @" %RESULTS%<br>"
+	REPLACE RESULTS, "value='", "value='サイド領域_"
+ENDIF
+
+
+@サイド描画表示種類_同室者(表示文字列, 追加表示文字列)
+#DIMS REF 表示文字列
+#DIMS REF 追加表示文字列
+#DIMS ボタン文字列
+#DIMS 画像表示文字列
+#DIM L_CNT
+#DIM 助手人数
+#DIM 助手候補, 1000
+#DIM 表示可能人数
+#DIM 横幅
+
+VARSET LOCAL
+VARSET 助手候補
+ボタン文字列 '= ""
+画像表示文字列 '= ""
+;横に何人入るか
+表示可能人数 = ((1600 / GETCONFIG("フォントサイズ")) - 55 ) / 8
+IF 表示可能人数 > 1 && GET_TARGETNUM() > 1 && サイド領域_同室者表示フラグ == 2
+	VARSET LOCALS
+	助手人数 = 二人目画像表示用(-1, CFLAG:MASTER:うふふ ^ 1)
+	;LOCAL:1 = 1 + MIN(助手人数, 表示可能人数)
+	LOCAL = ((1600 / GETCONFIG("フォントサイズ")) - 55 ) / 11
+	IF 助手人数 > LOCAL
+		横幅 = 800
+	ELSE
+		表示可能人数 = LOCAL
+		横幅 =  1100
+	ENDIF
+	L_CNT = 0
+	WHILE L_CNT < 助手人数
+		助手候補:L_CNT = 二人目画像表示用(L_CNT + 1, CFLAG:MASTER:うふふ ^ 1)
+		L_CNT ++
+	WEND
+	FOR L_CNT, 0, 助手人数
+		IF L_CNT < サイド領域_同室者表示ページ数 * 表示可能人数 * 2
+			CONTINUE
+		ENDIF
+		SIF L_CNT - (サイド領域_同室者表示ページ数 * 表示可能人数 * 2) == 表示可能人数 * 2
+			BREAK
+		IF L_CNT - (サイド領域_同室者表示ページ数 * 表示可能人数 * 2) == 表示可能人数
+			;1度だけ折り返す
+			表示文字列 += @"%ボタン文字列%<br>%画像表示文字列%%"<br>" * (1 + 横幅 * GETCONFIG("フォントサイズ") / (GETCONFIG("一行の高さ") * 50))%"
+			ボタン文字列 '= ""
+			画像表示文字列 '= ""
+		ENDIF
+		LOCAL = 助手候補:L_CNT
+		CALL サイド領域_エロステータス把握(LOCAL)
+		LOCALS '= RESULTS
+		LOCALS:1 '= RESULTS:1
+		SIF STRLENS(CALLNAME:LOCAL + LOCALS) + 2 > (横幅 * 2 / 100)
+			LOCALS '= ""
+		LOCALS:2 '= 短冊グラ表示用文字列関数(LOCAL, 1 + L_CNT, 横幅)
+		画像表示文字列 += @"<button value='{LOCAL + 2000}' title='%CALLNAME:LOCAL + LOCALS%&#13;&#10;%RESULTS:(3+L_CNT)%'>%LOCALS:2%</button>"
+		ボタン文字列 += @"<button value='{LOCAL + 2000}' title='%CALLNAME:LOCAL + LOCALS%'><font face='' %LOCALS:1%>%"[" + CALLNAME:LOCAL + "]" + LOCALS, MIN((横幅 * 2 / 100), 40), LEFT%</font></button>"
+	NEXT
+	追加表示文字列 += "<div rect='5600, 4125, 4225, 100'>"
+	IF サイド領域_同室者表示ページ数 > 0
+		追加表示文字列 += "<button value='サイド領域_前ページ'>[前のページへ]</button>"
+	ELSE
+		追加表示文字列 += "　　　　　　　"
+	ENDIF
+	追加表示文字列 += "　　　"
+	IF 表示可能人数 * 2 * (サイド領域_同室者表示ページ数 + 1) < 助手人数 + 1
+		追加表示文字列 += "<button value='サイド領域_次ページ'>[次のページへ]</button>"
+	ENDIF
+	追加表示文字列 += "</div>"
+	表示文字列 += @"%ボタン文字列%<br>%画像表示文字列%%"<br>" * (1 + 横幅 * GETCONFIG("フォントサイズ") / (GETCONFIG("一行の高さ") * 50))%"
+ELSEIF 表示可能人数 > 0 && (GET_TARGETNUM() == 1 || サイド領域_同室者表示フラグ)
+	;対象が一人、または複数プレイ時はなるべく大きく短冊を表示
+	VARSET LOCALS
+	;ターゲット
+	助手人数 = 二人目画像表示用(-1)
+	IF GET_TARGETNUM() == 1 || 表示可能人数 == 1
+		;対象が一人の場合
+		LOCAL:1 = 1
+	ELSEIF サイド領域_同室者表示フラグ
+		;最大２人しか並ばないモード
+		LOCAL:1 = 2
+		助手人数 = 二人目画像表示用(-1, 1)
+	ELSE
+		;助手も含めて全員横一列に表示
+		LOCAL:1 = 1 + MIN(助手人数, 表示可能人数)
+	ENDIF
+	横幅 =  LIMIT(800 * 表示可能人数 / LOCAL:1, 800, 2000)
+	助手候補:0 = TARGET
+	L_CNT = 1
+	IF サイド領域_同室者表示フラグ
+		WHILE L_CNT - 1 < 助手人数
+			助手候補:L_CNT = 二人目画像表示用(L_CNT, 1)
+			L_CNT ++
+		WEND
+	ELSE
+		WHILE L_CNT - 1 < 助手人数
+			助手候補:L_CNT = 二人目画像表示用(L_CNT)
+			L_CNT ++
+		WEND
+	ENDIF
+	; IF 表示可能人数 * 2 < 助手人数 + 1
+	; 	;2段使っても表示しきれない場合、表示キャラをランダムで抽出する
+	; 	FOR L_CNT, 助手人数, 1, -1
+	; 		SWAP 助手候補:L_CNT, 助手候補:(RAND(1,L_CNT))
+	; 	NEXT
+	; ENDIF
+	;INFO画面の３P表示と同室者表示の並びを合わせる
+	;画像二人目番号 = 助手候補:1
+	IF 表示可能人数 > 1
+		;助手を横一列に表示
+		FOR L_CNT, 0, 助手人数 + 1
+			IF L_CNT < サイド領域_同室者表示ページ数 * 表示可能人数 * 2
+				CONTINUE
+			ENDIF
+			SIF サイド領域_同室者表示フラグ && L_CNT > 1
+				BREAK
+			SIF L_CNT - (サイド領域_同室者表示ページ数 * 表示可能人数 * 2) == 表示可能人数 * 2
+				BREAK
+			IF L_CNT - (サイド領域_同室者表示ページ数 * 表示可能人数 * 2) == 表示可能人数
+				;1度だけ折り返す
+				表示文字列 += @"%ボタン文字列%<br>%画像表示文字列%%"<br>" * (1 + 横幅 * GETCONFIG("フォントサイズ") / (GETCONFIG("一行の高さ") * 50))%"
+				ボタン文字列 '= ""
+				画像表示文字列 '= ""
+			ENDIF
+			IF サイド領域_同室者表示フラグ && L_CNT > 0 && 助手人数 > 1
+				LOCAL = 助手候補:((RAND:(助手人数 - 1)) + 1)
+			ELSE
+				LOCAL = 助手候補:L_CNT
+			ENDIF
+			CALL サイド領域_エロステータス把握(LOCAL)
+			LOCALS '= RESULTS
+			LOCALS:1 '= RESULTS:1
+			SIF STRLENS(CALLNAME:LOCAL + LOCALS) + 2 > (横幅 * 2 / 100)
+				LOCALS '= ""
+			LOCALS:2 '= 短冊グラ表示用文字列関数(LOCAL, 1 + L_CNT, 横幅)
+			画像表示文字列 += @"<button value='{LOCAL + 2000}' title='%CALLNAME:LOCAL + LOCALS%&#13;&#10;%RESULTS:(3+L_CNT)%'>%LOCALS:2%</button>"
+			ボタン文字列 += @"<button value='{LOCAL + 2000}' title='%CALLNAME:LOCAL + LOCALS%'><font face='' %LOCALS:1%>%"[" + CALLNAME:LOCAL + "]" + LOCALS, MIN((横幅 * 2 / 100), 40), LEFT%</font></button>"
+		NEXT
+		IF サイド領域_同室者表示フラグ == 0
+			追加表示文字列 += "<div rect='5600, 4125, 4225, 100'>"
+			IF サイド領域_同室者表示ページ数 > 0
+				追加表示文字列 += "<button value='サイド領域_前ページ'>[前のページへ]</button>"
+			ELSE
+				追加表示文字列 += "　　　　　　　"
+			ENDIF
+			追加表示文字列 += "　　　"
+			IF 表示可能人数 * 2 * (サイド領域_同室者表示ページ数 + 1) < 助手人数 + 1
+				追加表示文字列 += "<button value='サイド領域_次ページ'>[次のページへ]</button>"
+			ENDIF
+			追加表示文字列 += "</div>"
+		ENDIF
+	ELSEIF 表示可能人数 == 1
+		;ターゲットのみ表示
+		LOCAL = TARGET
+		CALL サイド領域_エロステータス把握(LOCAL)
+		LOCALS '= RESULTS
+		LOCALS:1 '= RESULTS:1
+		LOCALS:2 '= 短冊グラ表示用文字列関数(LOCAL, 1, 横幅)
+		画像表示文字列 += @"<button value='{LOCAL + 2000}' title='%CALLNAME:LOCAL + LOCALS%&#13;&#10;%RESULTS:3%'>%LOCALS:2%</button>"
+		ボタン文字列 += @"<button value='{LOCAL + 2000}' title='%CALLNAME:LOCAL + LOCALS%'><font face='' %LOCALS:1%>%"[" + CALLNAME:LOCAL + "]" + LOCALS, 16, LEFT%</font></button>"
+	ENDIF
+	表示文字列 += @"%ボタン文字列%<br>%画像表示文字列%%"<br>" * (1 + 横幅 * GETCONFIG("フォントサイズ") / (GETCONFIG("一行の高さ") * 50))%"
+ELSE
+	;表示文字列 += "<br>"
+	FOR LOCAL, 1, CHARANUM
+		;表示可能人数が0なら表示終了
+		SIF 表示可能人数 < 1
+			BREAK
+		IF TARGET:LOCAL == TARGET
+		ELSEIF TARGET:LOCAL > 0 && LOCAL:2 < 4
+			IF LOCAL:1 < サイド領域_同室者表示ページ数 * 表示可能人数 * 4
+				LOCAL:1 ++
+				CONTINUE
+			ENDIF
+			VARSET LOCALS
+			CALL サイド領域_エロステータス把握(TARGET:LOCAL)
+			LOCALS '= RESULTS
+			LOCALS:1 '= RESULTS:1
+			LOCALS:2 '= 顔グラ表示用文字列関数(TARGET:LOCAL, 1+LOCAL:1, LOCAL:1 / 表示可能人数, 800)
+			画像表示文字列 += @"<button value='{TARGET:LOCAL + 2000}' title='%CALLNAME:(TARGET:LOCAL) + LOCALS%&#13;&#10;%RESULTS:(3+LOCAL:1)%'>%LOCALS:2%</button>"
+			ボタン文字列 += @"<button value='{TARGET:LOCAL + 2000}' title='%CALLNAME:(TARGET:LOCAL) + LOCALS%'><font face='' %LOCALS:1%>%"[" + CALLNAME:(TARGET:LOCAL) + "]", 16, LEFT%</font></button>"
+			LOCAL:1 ++
+			LOCAL:3 ++
+			IF LOCAL:3 / 表示可能人数 > LOCAL:2
+				表示文字列 += @"%ボタン文字列%<br>%画像表示文字列%%"<br>" * 8%"
+				ボタン文字列 '= ""
+				画像表示文字列 '= ""
+				LOCAL:2 ++
+			ENDIF
+		ELSE
+			IF ボタン文字列 != ""
+				表示文字列 += @"%ボタン文字列%<br>%画像表示文字列%%"<br>" * 8%"
+				ボタン文字列 '= ""
+				画像表示文字列 '= ""
+			ENDIF
+			BREAK
+		ENDIF
+	NEXT
+	追加表示文字列 += "<div rect='5600, 4125, 4225, 100'>"
+	IF サイド領域_同室者表示ページ数 > 0
+		追加表示文字列 += "<button value='サイド領域_前ページ'>[前のページへ]</button>"
+	ELSE
+		追加表示文字列 += "　　　　　　　"
+	ENDIF
+	追加表示文字列 += "　　　"
+	IF TARGET:LOCAL > 0
+		追加表示文字列 += "<button value='サイド領域_次ページ'>[次のページへ]</button>"
+	ENDIF
+	追加表示文字列 += "</div>"
+ENDIF
+
+
+@サイド描画表示種類_クイック触れ合い(表示文字列, 追加表示文字列)
+#DIM CONST 関数接頭辞長さ = STRLENSU("身体に触れる_ABLE_")
+;「身体に触れる」ではないが、身体に触れるセクハラコマンドを追加。胸を揉む、乳首ひっかき、尻尾の付け根を揉む、股間を弄るが対象
+;モードに入るコマンド (キス、肩組み乳揉み、尻を揉む) や、ミニゲームが始まる乳首当てゲームなどはクイックじゃないので対象外
+#DIM CONST 追加セクハラコマンド = 321, 324, 322, 327
+#DIMS REF 表示文字列
+#DIMS REF 追加表示文字列
+#DIMS コマンド候補保存, 33 ;フォントサイズが弄られてても溢れない行数はこのくらいが限界
+#DIM 候補数
+#DIM コマンドありフラグ
+#DIM ループ用
+
+SIF !TARGET
+	RETURN 0
+IF CFLAG:PLAYER:うふふ && CFLAG:TARGET:うふふ
+	表示文字列 += "セクハラ不能状態のためコマンド非表示<br>"
+	RETURN 0
+ENDIF
+
+CALL COM_ABLE306
+IF RESULT
+	;まずは選択肢のリストを作る
+	CALL 触れ合い選択肢リスト(コマンド候補保存)
+	候補数 = RESULT
+
+	;配置先整理中のため、単純に並べて表示
+	コマンドありフラグ = 0
+	FOR ループ用, 0, 候補数
+		CALLFORM 身体に触れる_ABLE_%コマンド候補保存:ループ用%
+		IF RESULT
+			CALLFORMF COMNAME_S306_{RESULT}
+			表示文字列 += @"<button value='サイド領域_%コマンド候補保存:ループ用%'>[%TSTR:コマンド名受渡, 20, LEFT%]</button><br>"
+			コマンドありフラグ = 1
+		ENDIF
+	NEXT
+	FOR ループ用, 0, VARSIZE("追加セクハラコマンド")
+		CALLFORM COM_ABLE{追加セクハラコマンド:ループ用}
+		IF RESULT
+			CALLFORMF COMNAME{追加セクハラコマンド:ループ用}
+			表示文字列 += @"<button value='{追加セクハラコマンド:ループ用}'>[%TSTR:コマンド名受渡, 20, LEFT%]</button><br>"
+			コマンドありフラグ = 1
+		ENDIF
+	NEXT
+	; 表示文字列 += "</nobr></div>"
+	; 表示文字列 += "<div rect='5600, 1000, 1000, 3000'><nobr><img src='汎用人型' height='2000' width='500'>"
+
+	IF コマンドありフラグ == 0
+		表示文字列 += "現在可能なセクハラはありません<br>"
+	ELSE
+		;-------------------おさわりモード
+		;セクハラ可能なら常に表示して、画像がないから実行できない旨をモード側で説明する
+		;とりあえず下の方に独立して配置
+		追加表示文字列 += "<div rect='5600, 4125, 4225, 100'>"
+		追加表示文字列 += @"<button value='サイド領域_おさわりモード'>[おさわりモード]</button>"
+		追加表示文字列 += "</div>"
+		;----------------------
+	ENDIF
+ELSE
+	表示文字列 += "セクハラ不能状態のためコマンド非表示<br>"
+ENDIF
+
+
+@サイド描画表示種類_クイック自慰(表示文字列, 追加表示文字列)
+#DIM CONST 関数接頭辞長さ = STRLENSU("自慰_ABLE_")
+#DIMS REF 表示文字列
+#DIMS REF 追加表示文字列
+#DIMS コマンド候補保存, 33 ;フォントサイズが弄られてても溢れない行数はこのくらいが限界
+#DIM 候補数
+#DIM コマンドありフラグ
+#DIM 自慰ターゲット退避
+#DIM ループ用
+
+
+SIF !TARGET
+	RETURN 0
+IF !CFLAG:PLAYER:うふふ || !CFLAG:TARGET:うふふ
+	表示文字列 += "自慰不能状態のためコマンド非表示<br>"
+	RETURN 0
+ENDIF
+
+自慰ターゲット退避 = 自慰ターゲット保存
+自慰ターゲット保存 = TARGET
+CALL COM_ABLE9
+IF RESULT
+	;まずは選択肢のリストを作る
+	CALL 自慰選択肢リスト(コマンド候補保存)
+	候補数 = RESULT
+
+	;配置先整理中のため、単純に並べて表示
+	コマンドありフラグ = 0
+	FOR ループ用, 0, 候補数
+		CALLFORM 自慰_ABLE_%コマンド候補保存:ループ用%
+		IF RESULT
+			表示文字列 += @"<button value='サイド領域_%コマンド候補保存:ループ用%'>[%コマンド候補保存:ループ用, 20, LEFT%]</button><br>"
+			コマンドありフラグ = 1
+		ENDIF
+	NEXT
+	; 表示文字列 += "</nobr></div>"
+	; 表示文字列 += "<div rect='5600, 1000, 1000, 3000'><nobr><img src='汎用人型' height='2000' width='500'>"
+
+	IF コマンドありフラグ == 0
+		表示文字列 += "現在指示可能な自慰はありません<br>"
+	ELSE
+		;NOOP
+	ENDIF
+ELSE
+	表示文字列 += "自慰不能状態のためコマンド非表示<br>"
+ENDIF
+自慰ターゲット保存 = 自慰ターゲット退避
+
+
+@サイド描画表示種類_おさわりモード(表示文字列, 追加表示文字列)
+#DIMS REF 表示文字列
+#DIMS REF 追加表示文字列
+
+IF TARGET
+	表示文字列 += @"<br>"
+	表示文字列 += @"おさわりモード<br>"
+
+	表示文字列 += @"<br>"
+	表示文字列 += @"対象をクリックしてコマンドを発動させる<br>"
+	表示文字列 += @"おさわりファイルがあれば画像をさわることでも反応する<br>"
+	表示文字列 += @"<br>"
+	表示文字列 += @"右クリックでコマンドのグループ切替ができる<br>"
+	表示文字列 += @"ホイールでログのスクロールができる<br>"
+	表示文字列 += @"<br>"
+	表示文字列 += @"キーボードではSHIFTでグループ切替ができる<br>"
+	表示文字列 += @"PageUpでログのスクロールができる<br>"
+
+	表示文字列 += @"<br>アロマオイル"
+	表示文字列 += @"<br>ボトルをクリックするとアロマオイルを使用できる"
+	表示文字列 += @"<br>橙：警戒度減少量の増加"
+	表示文字列 += @"<br>青：理性を抑制方向に補正"
+	表示文字列 += @"<br>桃：警戒度上昇の抑制"
+
+	;セクハラ可能なら常に表示して、画像がないから実行できない旨をモード側で説明する
+	;開始ボタンは下の方に独立して配置
+	追加表示文字列 += "<div rect='5600, 4125, 4225, 100'>"
+	追加表示文字列 += @"<button value='サイド領域_おさわりモード'>[おさわりモードを開始する]</button>"
+	追加表示文字列 += "</div>"
+	;----------------------
+ENDIF
+
+
+@サイド描画表示種類_複数人一枚絵(表示文字列, 追加表示文字列)
+#DIMS REF 表示文字列
+#DIMS REF 追加表示文字列
+
+CALL 複数人一枚絵_表示処理()
+
+IF RESULTS != ""
+	;何番でもいいけどとりあえず19990を使用
+	GDISPOSE 19990
+	SPRITEDISPOSE "複数人一枚絵"
+	CALL GCREATE_拡張子(19990, RESULTS)
+	IF RESULT
+		SPRITECREATE "複数人一枚絵", 19990
+		表示文字列 += @"<img src='複数人一枚絵' width='{GWIDTH(19990) / GETCONFIG("フォントサイズ") * 100}' height='{GHEIGHT(19990) / GETCONFIG("フォントサイズ") * 100}'>"
+	ENDIF
+ENDIF

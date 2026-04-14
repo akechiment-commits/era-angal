@@ -1,0 +1,123 @@
+﻿;-------------------------------------------------
+;胸愛撫
+;愛撫系コマンド、レベル2
+;-------------------------------------------------
+@COMNAME6
+#FUNCTIONS
+TSTR:コマンド名受渡 = 胸愛撫
+SIF GETBIT(FLAG:モード管理, モードビット_同時)
+	TSTR:コマンド名受渡 = 同時に胸愛撫
+
+
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_6
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("うふふ_被挿入中")
+弱点コマンドカテゴリ = B_女
+同時モード許可 = 2
+同時モード拡張許可 = 1
+オートコマンド許可 = 1
+連続オート許可 = 1
+
+
+@COM_TOOLTIP_6
+LOCALS = <br>■胸愛撫<br>
+LOCALS += "相手の乳房を優しく愛撫するコマンド。"
+LOCALS += "<br>COMタイプ：うふふor被挿入中<br>取得ソース：快Ｂ・露出・接触"
+LOCALS += "<br>固有の取得経験：なし<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@COM6
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+
+CALL SOURCE_CALC_露出(TARGET, PLAYER, 50)
+CALL SOURCE_CALC_接触(TARGET, PLAYER, 80)
+CALL SOURCE_CALC_快Ｂ(TARGET, PLAYER, 100)
+SIF TALENT:PLAYER:器用な指
+	CALL SOURCE_CALC_快Ｂ(TARGET, PLAYER, 50)
+;もうひとつの実行キャラの指と対象キャラの胸が空いていたなら両手で愛撫した扱いで快Ｂにボーナス
+SIF (TEQUIP:PLAYER:指 || TEQUIP:PLAYER:指２) && (TEQUIP:TARGET:胸 || TEQUIP:TARGET:胸２)
+	CALL SOURCE_CALC_快Ｂ(TARGET, PLAYER, 30)
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;同性愛
+SIF 同性愛性癖判定(TARGET,PLAYER)
+	EXP:TARGET:同性愛経験 += 5
+SIF 同性愛性癖判定(PLAYER,TARGET)
+	EXP:PLAYER:同性愛経験 += 5
+
+CALL バスト変動処理(TARGET, "愛撫", 1)
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE6
+;胸愛撫実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(6)
+	RETURN RESULT
+;Bがない場合駄目
+SIF TALENT:TARGET:Ｂ感度 == -2
+	RETURN 0
+SIF GETBIT(TALENT:TARGET:性別, 0) == 0
+	RETURN 0
+
+;鎧があると無理
+SIF TEQUIP:上半身鎧あり
+	RETURN 0
+;指を何かに使ってるなら無理
+SIF TEQUIP:PLAYER:指
+	RETURN 0
+;胸を何かに使ってる・届かないなら無理
+SIF TEQUIP:TARGET:胸
+	RETURN 0
+CALL MODE_部位届く判定(部位_胸, PLAYER, TARGET)
+SIF RESULT == 0
+	RETURN 0
+	
+;オートコマンド中の制限
+SIF FLAG:オートコマンド判定中フラグ && TALENT:TARGET:性別 == 2 &&  OPTION変数:男性への愛撫禁止
+	RETURN 0	
+	
+RETURN 1
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM6
+#DIM 同時キャラ番号
+PRINTFORM %CALLNAME:PLAYER%は
+IF GETBIT(FLAG:モード管理, モードビット_同時)
+	FOR 同時キャラ番号, 0, 同時モード_選択数
+		SIF 同時キャラ番号 > 0
+			PRINT 、
+		PRINTFORM %CALLNAME:(同時モード_選択キャラ:同時キャラ番号)%
+	NEXT
+	PRINT の胸を揉みしだいた…
+	RETURN 0
+ENDIF
+
+IF MODE_存在判定_順不同("ＶＡ挿入系", PLAYER, TARGET)
+	PRINTFORM %CALLNAME:TARGET%とつながったまま%OPPAI_DESCRIPTION(TARGET)%
+ELSE
+	PRINTFORM %CALLNAME:TARGET%の%OPPAI_DESCRIPTION(TARGET)%
+ENDIF
+;欲望のPALAMLV3以上＋
+;小柄体型
+IF TALENT:種族 < 0
+	PRINTL を優しく撫でるように触れた…
+ELSE
+	PRINTL を揉みしだいた…
+ENDIF
+

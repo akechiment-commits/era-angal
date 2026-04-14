@@ -1,0 +1,337 @@
+﻿@ランダムキャラデータベースセット(ＤＢ名 = Ｒキャラ初期値記録)
+#DIMS ＤＢ名
+
+;基本構造は従来の変数"従業員初期値記録"に似たイメージ
+;配列番号の代わりにidと"管理番号"列を用いて複数キャラを管理する
+DT_CREATE ＤＢ名
+
+;どのキャラのデータかを判別する部分
+DT_COLUMN_ADD ＤＢ名, "管理番号", 4, 0
+
+;大分割。CSVと似た感じで素質とか能力とか入れる
+DT_COLUMN_ADD ＤＢ名, "カテゴリ", 5, 0
+
+;小分割
+DT_COLUMN_ADD ＤＢ名, "項目", 4, 0
+
+;「管理番号・カテゴリ・項目」の組み合わせはテーブル内でユニークになるよう関数ではコントロールされている
+;（これら3つが全て一致する行は2行以上存在しないはず)
+
+;値
+;数値か文字列のどちらかのみが入り、どちらにも値が入らないよう関数ではコントロールされている
+DT_COLUMN_ADD ＤＢ名, "値_数値", 4
+DT_COLUMN_ADD ＤＢ名, "値_文字列"
+
+
+;指定したDBに新しいランダムキャラデータ枠を作り、その管理番号を返す
+@ランダムキャラデータ_NEW(ＤＢ名 = Ｒキャラ初期値記録, 人物番号 = 0)
+#DIMS ＤＢ名
+#DIM 人物番号
+#DIM DT_ID
+#DIM 管理番号
+
+管理番号 = ランダムキャラデータ_GET_KEY_FROM_PERSON(ＤＢ名, 人物番号)
+SIF 管理番号 != 0
+	THROW ランダムキャラデータベース：%ＤＢ名%には既に人物番号データ（{人物番号}）に対する管理データセットが存在しています
+
+管理番号 = ランダムキャラデータ_CREATE_KEY(ＤＢ名)
+DT_ROW_ADD ＤＢ名, "管理番号", 管理番号, "カテゴリ", "人物番号", "項目", 0, "値_数値", 人物番号
+;そうそう Utils.TimePoint() が0になることはないはず
+SIF RESULT == 0
+	THROW ランダムキャラデータの登録に失敗しました
+RETURN 管理番号
+
+
+;指定したDBの新しい管理番号 (DB内で使われている最大の管理番号+1) を返す
+@ランダムキャラデータ_CREATE_KEY(ＤＢ名 = Ｒキャラ初期値記録)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM TMP_RANDCHARA, 1
+
+SELECTCASE DT_SELECT(ＤＢ名, @"カテゴリ = '人物番号' And 項目 = 0", "管理番号 Desc", TMP_RANDCHARA)
+	CASE 0
+		RETURNF 1
+	CASE IS >= 1
+		RETURNF MAX(0, DT_CELL_GET(ＤＢ名, TMP_RANDCHARA:0, "管理番号", 1)) + 1
+	CASEELSE
+		THROW ランダムキャラデータベース：%ＤＢ名%は存在しません
+ENDSELECT
+
+;指定したDBから指定した管理番号のデータを全て削除する
+;(管理番号のヘッダ行には無効を示すデータが入り、再利用されない)
+@ランダムキャラデータ_IGNORE_KEY(ＤＢ名 = Ｒキャラ初期値記録, 管理番号)
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIM DYNAMIC ランダムキャラレコード, ランダムキャラレコード最大数
+#DIM ランダムキャラレコード行数
+#DIM ループ用
+
+ランダムキャラレコード行数 = DT_SELECT(ＤＢ名, @"管理番号 = {管理番号}", , ランダムキャラレコード)
+FOR ループ用, 0, MIN(ランダムキャラレコード行数, ランダムキャラレコード最大数)
+	IF DT_CELL_GETS(ＤＢ名, ランダムキャラレコード:ループ用, "カテゴリ", 1) == "人物番号" && DT_CELL_GET(ＤＢ名, ランダムキャラレコード:ループ用, "項目", 1) == 0
+		DT_CELL_SET ＤＢ名, ランダムキャラレコード:ループ用, "値_数値", , 1
+		DT_CELL_SET ＤＢ名, ランダムキャラレコード:ループ用, "値_文字列", ランダムキャラデータ_無効, 1
+	ELSE
+		DT_ROW_REMOVE ＤＢ名, ランダムキャラレコード:ループ用
+	ENDIF
+NEXT
+SIF ランダムキャラレコード行数 > ランダムキャラレコード最大数
+	RESTART
+RETURN
+
+
+;指定したDB内に指定した管理番号のデータが存在するか確認し、存在すれば1、しなければ0を返す
+@ランダムキャラデータ_IS_KEY_EXIST(ＤＢ名 = Ｒキャラ初期値記録, 管理番号)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIM TMP_RANDCHARA, 1
+
+SELECTCASE DT_SELECT(ＤＢ名, @"管理番号 = {管理番号} And カテゴリ = '人物番号' And 項目 = 0", , TMP_RANDCHARA)
+	CASE 0
+		RETURNF 0
+	CASE 1
+		RETURNF 1
+	CASE IS > 1
+		THROW ランダムキャラデータベース：%ＤＢ名%のデータ（管理番号:{管理番号}, カテゴリ, '人物番号', 項目, 0）が複数存在しています
+	CASEELSE
+		THROW ランダムキャラデータベース：%ＤＢ名%は存在しません
+ENDSELECT
+
+;指定したDB内の指定した管理番号のデータが無効化されているか確認し、無効化されていれば1、いなければ0を返す
+;管理番号がそもそも存在しない場合も0が返る
+@ランダムキャラデータ_IS_KEY_IGNORED(ＤＢ名 = Ｒキャラ初期値記録, 管理番号)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIM TMP_RANDCHARA, 1
+
+SELECTCASE DT_SELECT(ＤＢ名, @"管理番号 = {管理番号} And カテゴリ = '人物番号' And 項目 = 0", , TMP_RANDCHARA)
+	CASE 0
+		RETURNF 0
+	CASE 1
+		SIF DT_CELL_ISNULL(ＤＢ名, TMP_RANDCHARA:0, "値_数値", 1) == 1 && DT_CELL_GETS(ＤＢ名, TMP_RANDCHARA:0, "値_文字列", 1) == ランダムキャラデータ_無効
+			RETURNF 1
+		RETURNF 0
+	CASE IS > 1
+		THROW ランダムキャラデータベース：%ＤＢ名%のデータ（管理番号:{管理番号}, カテゴリ, '人物番号', 項目, 0）が複数存在しています
+	CASEELSE
+		THROW ランダムキャラデータベース：%ＤＢ名%は存在しません
+ENDSELECT
+
+
+;指定したDB内に指定した人物番号のデータが存在するか確認し、存在すればその管理番号、しなければ0を返す
+@ランダムキャラデータ_GET_KEY_FROM_PERSON(ＤＢ名 = Ｒキャラ初期値記録, 人物番号)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM 人物番号
+#DIM TMP_RANDCHARA, 1
+
+SELECTCASE DT_SELECT(ＤＢ名, @"カテゴリ = '人物番号' And 項目 = 0 And 値_数値 = {人物番号}", , TMP_RANDCHARA)
+	CASE 0
+		RETURNF 0
+	CASE 1
+		RETURNF DT_CELL_GET(ＤＢ名, TMP_RANDCHARA:0, "管理番号", 1)
+	CASE IS > 1
+		THROW ランダムキャラデータベース：%ＤＢ名%に人物番号データ（{人物番号}）に対する管理データセットが複数存在しています
+	CASEELSE
+		THROW ランダムキャラデータベース：%ＤＢ名%は存在しません
+ENDSELECT
+
+
+;カテゴリとマッピングされたキャラ変数の対応を返す
+;項目をGETNUMBするときに使うので、名前など二次元以上じゃないものは除外
+@FIND_CHARADATA_FROM_CATEGORY(カテゴリ)
+#FUNCTIONS
+#DIMS カテゴリ
+SELECTCASE カテゴリ
+	CASE "基礎"
+		RETURNF "BASE"
+	CASE "素質"
+		RETURNF "TALENT"
+	CASE "能力"
+		RETURNF "ABL"
+	CASE "経験"
+		RETURNF "EXP"
+	CASE "刻印"
+		RETURNF "MARK"
+	; CASE "相性"
+	; 	RETURNF "RELATION"
+	CASE "珠"
+		RETURNF "JUEL"
+	CASE "装着物"
+		RETURNF "EQUIP"
+	CASE "フラグ"
+		RETURNF "CFLAG"
+ENDSELECT
+RETURNF カテゴリ
+
+
+;指定したDB内に指定した管理番号・カテゴリ・項目のデータが存在するか確認し、存在すればその行ID、しなければ0を返す
+@ランダムキャラデータ_FIND(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目 = 0)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIM 項目
+#DIM TMP_RANDCHARA, 1
+
+SELECTCASE DT_SELECT(ＤＢ名, @"管理番号 = {管理番号} And カテゴリ = '%カテゴリ%' And 項目 = {項目}", , TMP_RANDCHARA)
+	CASE 1
+		RETURNF TMP_RANDCHARA:0
+	CASE 0
+		RETURNF 0
+	CASE IS > 1
+		THROW ランダムキャラデータベース：%ＤＢ名%のデータ（管理番号:{管理番号}, カテゴリ, '%カテゴリ%', 項目, {項目}）が複数存在しています
+	CASEELSE
+		THROW ランダムキャラデータベース：%ＤＢ名%は存在しません
+ENDSELECT
+
+;項目に文字列が使える便利版
+@ランダムキャラデータ_FIND_B(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目ラベル)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIMS 項目ラベル
+RETURNF ランダムキャラデータ_FIND(ＤＢ名, 管理番号, カテゴリ, GETNUMB(FIND_CHARADATA_FROM_CATEGORY(カテゴリ), 項目ラベル))
+
+
+;指定したDBから指定した管理番号・カテゴリ・項目の数値データを取得する
+;存在しない場合は0が返り、文字列データを数値として取得しようとするとエラーが出る
+@ランダムキャラデータ_GET(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目 = 0)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIM 項目
+#DIM DT_ID
+
+DT_ID = ランダムキャラデータ_FIND(ＤＢ名, 管理番号, カテゴリ, 項目)
+SIF DT_ID == 0
+	RETURNF 0
+
+SIF DT_CELL_ISNULL(ＤＢ名, DT_ID, "値_数値", 1) == 1
+	THROW ランダムキャラデータベース：%ＤＢ名%から取得しようとしているデータ（管理番号:{管理番号}, カテゴリ, '%カテゴリ%', 項目, {項目}）は数値型ではありません
+
+RETURNF DT_CELL_GET(ＤＢ名, DT_ID, "値_数値", 1)
+
+;指定したDBから指定した管理番号・カテゴリ・項目の文字列データを取得する
+;存在しない場合は空文字列が返り、数値データを文字列として取得しようとするとエラーが出る
+@ランダムキャラデータ_GETS(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目 = 0)
+#FUNCTIONS
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIM 項目
+#DIM DT_ID
+
+DT_ID = ランダムキャラデータ_FIND(ＤＢ名, 管理番号, カテゴリ, 項目)
+SIF DT_ID == 0
+	RETURNF ""
+
+SIF DT_CELL_ISNULL(ＤＢ名, DT_ID, "値_文字列", 1) == 1
+	THROW ランダムキャラデータベース：%ＤＢ名%から取得しようとしているデータ（管理番号:{管理番号}, カテゴリ, '%カテゴリ%', 項目, {項目}）は文字列型ではありません
+
+RETURNF DT_CELL_GETS(ＤＢ名, DT_ID, "値_文字列", 1)
+
+;項目に文字列が使える便利版
+@ランダムキャラデータ_GET_B(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目ラベル)
+#FUNCTION
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIMS 項目ラベル
+RETURNF ランダムキャラデータ_GET(ＤＢ名, 管理番号, カテゴリ, GETNUMB(FIND_CHARADATA_FROM_CATEGORY(カテゴリ), 項目ラベル))
+
+@ランダムキャラデータ_GETS_B(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目ラベル)
+#FUNCTIONS
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIMS 項目ラベル
+RETURNF ランダムキャラデータ_GETS(ＤＢ名, 管理番号, カテゴリ, GETNUMB(FIND_CHARADATA_FROM_CATEGORY(カテゴリ), 項目ラベル))
+
+
+;指定したDBへ指定した管理番号・カテゴリ・項目の数値データをセットする
+;既に同じ項目のデータが存在する場合の挙動は上書きフラグに依存する(0 = 上書きしない, 0以外 = 上書きする)
+@ランダムキャラデータ_SET(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目 = 0, 設定値 = 0, 上書きフラグ = 1)
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIM 項目
+#DIM 設定値
+#DIM 上書きフラグ
+#DIM DT_ID
+
+DT_ID = ランダムキャラデータ_FIND(ＤＢ名, 管理番号, カテゴリ, 項目)
+IF DT_ID == 0
+	DT_ROW_ADD ＤＢ名, "管理番号", 管理番号, "カテゴリ", カテゴリ, "項目", 項目, "値_数値", 設定値
+	SIF RESULT == 0
+		THROW ランダムキャラデータの登録に失敗しました
+ELSEIF 上書きフラグ
+	DT_CELL_SET ＤＢ名, DT_ID, "値_数値", 設定値, 1
+	DT_CELL_SET ＤＢ名, DT_ID, "値_文字列", , 1
+ENDIF
+
+;指定したDBへ指定した管理番号・カテゴリ・項目の文字列データをセットする
+;既に同じ項目のデータが存在する場合の挙動は上書きフラグに依存する(0 = 上書きしない, 0以外 = 上書きする)
+@ランダムキャラデータ_SETS(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目 = 0, 設定値 = "", 上書きフラグ = 1)
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIM 項目
+#DIMS 設定値
+#DIM 上書きフラグ
+#DIM DT_ID
+
+DT_ID = ランダムキャラデータ_FIND(ＤＢ名, 管理番号, カテゴリ, 項目)
+IF DT_ID == 0
+	DT_ROW_ADD ＤＢ名, "管理番号", 管理番号, "カテゴリ", カテゴリ, "項目", 項目, "値_文字列", 設定値
+	SIF RESULT == 0
+		THROW ランダムキャラデータの登録に失敗しました
+ELSEIF 上書きフラグ
+	DT_CELL_SET ＤＢ名, DT_ID, "値_数値", , 1
+	DT_CELL_SET ＤＢ名, DT_ID, "値_文字列", 設定値, 1
+ENDIF
+
+;項目に文字列が使える便利版
+@ランダムキャラデータ_SET_B(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目ラベル, 設定値 = 0, 上書きフラグ = 1)
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIMS 項目ラベル
+#DIM 設定値
+#DIM 上書きフラグ
+JUMP ランダムキャラデータ_SET(ＤＢ名, 管理番号, カテゴリ, GETNUMB(FIND_CHARADATA_FROM_CATEGORY(カテゴリ), 項目ラベル), 設定値, 上書きフラグ)
+
+@ランダムキャラデータ_SETS_B(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目ラベル, 設定値 = "", 上書きフラグ = 1)
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIMS 項目ラベル
+#DIMS 設定値
+#DIM 上書きフラグ
+JUMP ランダムキャラデータ_SETS(ＤＢ名, 管理番号, カテゴリ, GETNUMB(FIND_CHARADATA_FROM_CATEGORY(カテゴリ), 項目ラベル), 設定値, 上書きフラグ)
+
+
+;指定したDBから指定した管理番号・カテゴリ・項目のデータを削除する
+@ランダムキャラデータ_REMOVE(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目 = 0)
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIM 項目
+#DIM DT_ID
+
+DT_ID = ランダムキャラデータ_FIND(ＤＢ名, 管理番号, カテゴリ, 項目)
+IF DT_ID != 0
+	DT_ROW_REMOVE ＤＢ名, DT_ID
+ENDIF
+
+;項目に文字列が使える便利版
+@ランダムキャラデータ_REMOVE_B(ＤＢ名 = Ｒキャラ初期値記録, 管理番号, カテゴリ, 項目ラベル)
+#DIMS ＤＢ名
+#DIM 管理番号
+#DIMS カテゴリ
+#DIMS 項目ラベル
+JUMP ランダムキャラデータ_REMOVE(ＤＢ名, 管理番号, カテゴリ, GETNUMB(FIND_CHARADATA_FROM_CATEGORY(カテゴリ), 項目ラベル))

@@ -1,0 +1,2023 @@
+﻿@SHOW_STATUS
+#DIMS ボタン表示格納用
+#DIMS フォント格納用
+#DIM ループ用
+#DIM 行数保存
+#DIM 文字数カウント
+#DIM うふふ終了フラグ
+#DIM 追い出されフラグ
+#DIM 改行フラグ
+#DIM ツールチップフラグ
+#DIM 背景用行数保存
+#DIMS divHTML
+
+TOOLTIP_CUSTOM 1
+TOOLTIP_SETFONTSIZE 12
+TOOLTIP_SETDURATION 100000
+
+VARSET LOCAL
+
+;-------------------------------------------------
+;時間経過、キャラの移動
+;-------------------------------------------------
+CALL CHARA_MOVEMENT
+IF TCVAR:MASTER:馴れ合い強度 >= 1
+	LOCAL:1 = IN_ROOM("MIN", CFLAG:MASTER:現在位置, "CFLAG", 6)
+	LOCAL:2 = CFLAG:(LOCAL:1):態度保存
+	; IF CFLAG:MASTER:隠密
+	; 	;隠密だと空気変わらない
+	; ELSEIF LOCAL:2 <= 0 && LOCAL:1 > 0 && CFLAG:(LOCAL:1):現在位置 != CFLAG:(LOCAL:1):前ターン位置 && !CFLAG:(LOCAL:1):睡眠
+	; 	PRINTFORMW %CALLNAME:(LOCAL:1)%が入ってきたことにより空気が変わってしまった…
+	; ENDIF
+ENDIF
+VARSET LOCAL
+
+TFLAG:行動前時刻 = TIME + 1440 * DAY
+CFLAG:MASTER:睡眠 = 0
+
+;-------------------------------------------------
+;キャラの態度
+;-------------------------------------------------
+CALL CHARA_ATTITUDE
+
+;-------------------------------------------------
+;TARGET選択
+;-------------------------------------------------
+CALL TARGET_SET()
+
+IF オートコマンド_飲み会開始フラグ
+	FOR LOCAL, 1, CHARANUM
+		SIF TARGET:LOCAL < 1
+			BREAK
+		SIF 飲み会参加判定(TARGET:LOCAL) == 1
+			CFLAG:(TARGET:LOCAL):飲み会 = 1
+	NEXT
+	CALL TARGET_SET()
+	オートコマンド_飲み会開始フラグ = 0
+ENDIF
+
+;TFLAG:TARGET変更用が設定されているときその番号のターゲットが存在するならTARGETに代入、いなければTFLAG:TARGET変更用をリセット
+LOCAL:1 = 0
+IF TFLAG:調教モード == 3
+	SIF FINDELEMENT(飲み会TARGET, TARGET:0, 1) < 0
+		TARGET = 飲み会TARGET:1
+	FOR LOCAL,1,CHARANUM
+		SIF TFLAG:TARGET変更用 < 1
+			BREAK
+		SIF 飲み会TARGET:LOCAL < 1
+			BREAK
+		IF 飲み会TARGET:LOCAL == TFLAG:TARGET変更用
+			TARGET = 飲み会TARGET:LOCAL
+			LOCAL:1 ++
+		ENDIF
+	NEXT
+ELSE
+	SIF FINDELEMENT(TARGET, TARGET:0, 1) < 0
+		TARGET = TARGET:1
+	SIF あなた追跡キャラ && IS_SAME_ROOM(MASTER, あなた追跡キャラ)
+		TARGET = あなた追跡キャラ
+	IF GETBIT(FLAG:モード管理, モードビット_指示)
+		IF TFLAG:あなたターゲット用
+			TFLAG:TARGET変更用 = 0
+			TARGET = 0
+		ENDIF
+	ELSE
+		PLAYER = MASTER
+	ENDIF
+	IF TFLAG:TARGET変更用 > 0
+		FOR LOCAL,1,CHARANUM
+			SIF TARGET:LOCAL < 1
+				BREAK
+			IF TARGET:LOCAL == TFLAG:TARGET変更用
+				TARGET = TARGET:LOCAL
+				LOCAL:1 ++
+			ENDIF
+		NEXT
+	ENDIF
+	;もし隠密うふふ中なら相手にTARGETを固定
+	IF CFLAG:PLAYER:隠密 && CFLAG:PLAYER:うふふ && (!CFLAG:TARGET:隠密 || !CFLAG:TARGET:うふふ) && GETBIT(FLAG:モード管理, モードビット_指示) == 0
+		FOR LOCAL,1,CHARANUM
+			SIF TARGET:LOCAL < 1
+				BREAK
+			IF CFLAG:(TARGET:LOCAL):うふふ
+				TARGET = TARGET:LOCAL
+				BREAK
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+SIF !LOCAL:1
+	TFLAG:TARGET変更用 = 0
+
+;MASTERと同室フラグ
+LOCALS '= ""
+LOCALS:1 '= ""
+;念の為好感度レベルでソートし直し
+CALL SORT_CHARALIST()
+DRAWLINE
+うふふ終了フラグ = 0
+FOR LOCAL,1,CHARANUM
+	SIF CFLAG:(CFLAG_SORTARRAY:LOCAL):滞在期間 < 0
+		CONTINUE
+	IF CFLAG:(CFLAG_SORTARRAY:LOCAL):現在位置 == CFLAG:MASTER:現在位置 && CFLAG:(CFLAG_SORTARRAY:LOCAL):現在マップ種別 == CFLAG:MASTER:現在マップ種別
+		IF TCVAR:(CFLAG_SORTARRAY:LOCAL):ちょっかい経過時間 > 0 && CFLAG:MASTER:うふふ && !CFLAG:(CFLAG_SORTARRAY:LOCAL):うふふ
+			;途中で別の相手とうふふ
+			PRINTFORMW %CALLNAME:MASTER%が他の相手をし始めたのて、%CALLNAME:(CFLAG_SORTARRAY:LOCAL)%は%CALLNAME:(ABS(CFLAG:(CFLAG_SORTARRAY:LOCAL):デート) - 100)%とのデートに戻っていった……。
+			CALL デートちょっかい終了処理(CFLAG_SORTARRAY:LOCAL)
+			CALL 同行解除処理(CFLAG_SORTARRAY:LOCAL)
+		ELSEIF TCVAR:(CFLAG_SORTARRAY:LOCAL):ちょっかい経過時間 < 0
+			;デートちょっかい関連処理
+			IF TCVAR:(CFLAG_SORTARRAY:LOCAL):ちょっかい経過時間 == -2
+				;デート中止
+				PRINTW 用事に時間を掛けすぎてしまったようだ。
+				PRINTFORMW %CALLNAME:(ABS(CFLAG:(CFLAG_SORTARRAY:LOCAL):デート) - 100)%からデートを後日に延期しようと告げられ、%CALLNAME:(CFLAG_SORTARRAY:LOCAL)%は少し残念そうな顔をしている……。
+				CALL デートちょっかい終了処理(ABS(CFLAG:(CFLAG_SORTARRAY:LOCAL):デート))
+				CALL デートちょっかい終了処理(CFLAG_SORTARRAY:LOCAL)
+				CFLAG:(ABS(CFLAG:(CFLAG_SORTARRAY:LOCAL):デート) - 100):デート = 0
+				CFLAG:(CFLAG_SORTARRAY:LOCAL):デート = 0
+			ELSEIF TCVAR:(CFLAG_SORTARRAY:LOCAL):ちょっかい経過時間 == -1
+				;デート再開
+				PRINTW そろそろ約束の時間のようだ。
+				PRINTFORM %CALLNAME:(CFLAG_SORTARRAY:LOCAL)%は
+				IF CHECK_SPERM(TARGET, MASTER) > 0
+					PRINTFORM %CALLNAME:MASTER%の%TEXTR("濃厚な/")%%TEXTR("精液/ザーメン")%を%TEXTR("胎に残した/子宮に溜めこんだ")%まま、
+				ENDIF
+				PRINTFORMW %CALLNAME:(ABS(CFLAG:(CFLAG_SORTARRAY:LOCAL):デート) - 100)%とのデートに戻っていった……。
+				CALL デートちょっかい終了処理(CFLAG_SORTARRAY:LOCAL)
+				うふふ終了フラグ = 2
+			ENDIF
+		ELSEIF !CFLAG:(CFLAG_SORTARRAY:LOCAL):同室 && !CFLAG:(CFLAG_SORTARRAY:LOCAL):睡眠 && !CFLAG:(CFLAG_SORTARRAY:LOCAL):体力限界
+			;遭遇口上（ターゲットになってなくても喋る）と情事発覚口上
+			CALL AFFAIR_DISCLOSURE((CFLAG_SORTARRAY:LOCAL), うふふ終了フラグ, LOCALS, LOCALS:1)
+			SIF RESULT > 0
+				うふふ終了フラグ = 1
+			IF RESULT == 2
+				追い出されフラグ = 1
+				BREAK
+			ENDIF
+			SIF RESULT < 0
+				RESTART
+		ELSEIF !TCVAR:(CFLAG_SORTARRAY:LOCAL):挨拶フラグ && !CFLAG:(CFLAG_SORTARRAY:LOCAL):睡眠 && !CFLAG:(CFLAG_SORTARRAY:LOCAL):体力限界 && PREVCOM == 841
+			CALL AFFAIR_DISCLOSURE((CFLAG_SORTARRAY:LOCAL), うふふ終了フラグ, LOCALS, LOCALS:1)
+			SIF RESULT < 0
+				RESTART
+		ENDIF
+		CFLAG:(CFLAG_SORTARRAY:LOCAL):同室 = 1
+	;覗きは一旦オミット
+	ELSE
+	; 	;相手からこちらが見えていて、相手かこちらかが移動したかこちらが押し倒した
+	; 	SIF CAN_MOVE(CFLAG:LOCAL:現在位置, CFLAG:MASTER:現在位置) == 2 && (CFLAG:MASTER:前ターン位置 != CFLAG:MASTER:現在位置 || CFLAG:LOCAL:前ターン位置 != CFLAG:LOCAL:現在位置 || TRAIN_COMNAME(PREVCOM) == "押し倒す") && !CFLAG:LOCAL:睡眠
+	; 		CALL AFFAIR_DISCLOSURE(LOCAL, 1)
+		CFLAG:(CFLAG_SORTARRAY:LOCAL):同室 = 0
+	ENDIF
+NEXT
+IF うふふ終了フラグ == 1
+	CALL うふふ終了処理("目撃される")
+ELSEIF うふふ終了フラグ == 2
+	CALL うふふ終了処理("デート再開")
+ENDIF
+IF 追い出されフラグ
+	追い出されフラグ = 0
+	RESTART
+ENDIF
+SIF LOCALS != ""
+	PRINTFORMW %LOCALS%が%GETPLACENAME(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置)%に居た
+SIF LOCALS:1 != ""
+	PRINTFORMW %LOCALS:1%が%GETPLACENAME(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置)%に来た
+;馴れ合い強度決定
+;TARGET側
+IF TFLAG:調教モード == 3
+	FOR LOCAL,1,CHARANUM
+		SIF 飲み会TARGET:LOCAL < 1
+			BREAK
+		;合意がないと2以上にならない
+		IF 陥落チェック_性的＋疑似恋慕(飲み会TARGET:LOCAL)
+			TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 = CFLAG:(飲み会TARGET:LOCAL):態度保存
+		;飲み会中は酩酊数値一定以上でも2以上になる
+		ELSEIF BASE:(飲み会TARGET:LOCAL):酩酊 > 500
+			TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 = CFLAG:(飲み会TARGET:LOCAL):態度保存
+		ELSE
+			TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 = MIN(CFLAG:(飲み会TARGET:LOCAL):態度保存 , 1)
+		ENDIF
+		;言いなり状態なら常に最大でセクハラ全開放
+		IF TCVAR:(飲み会TARGET:LOCAL):言いなり == 1 || TCVAR:(飲み会TARGET:LOCAL):特殊言いなり >= 1
+			TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 = 3
+		;自室で遊ぶ場合は１以上保証
+		ELSEIF CFLAG:(飲み会TARGET:LOCAL):一緒に遊ぶ && CFLAG:(飲み会TARGET:LOCAL):現在位置 == CFLAG:MASTER:自室位置
+			TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 = MAX(TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 , 1)
+		ELSEIF フィールド展開:セクハラ緩和
+			;セクハラ緩和時も１以上保証
+			TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 = MAX(TCVAR:(飲み会TARGET:LOCAL):馴れ合い強度 , 1)
+		ENDIF
+	NEXT
+ELSE
+	FOR LOCAL,1,CHARANUM
+		SIF TARGET:LOCAL < 1
+			BREAK
+		;合意がないと2以上にならない
+		IF 陥落チェック_性的＋疑似恋慕(TARGET:LOCAL)
+			TCVAR:(TARGET:LOCAL):馴れ合い強度 = CFLAG:(TARGET:LOCAL):態度保存
+		ELSE
+			TCVAR:(TARGET:LOCAL):馴れ合い強度 = MIN(CFLAG:(TARGET:LOCAL):態度保存 , 1)
+		ENDIF
+		;自室で遊ぶ場合は１以上保証
+		;言いなり状態なら常に最大でセクハラ全開放
+		IF TCVAR:(TARGET:LOCAL):言いなり == 1 || TCVAR:(TARGET:LOCAL):特殊言いなり >= 1
+			TCVAR:(TARGET:LOCAL):馴れ合い強度 = 3
+		ELSEIF CFLAG:(TARGET:LOCAL):一緒に遊ぶ && CFLAG:(TARGET:LOCAL):現在位置 == CFLAG:MASTER:自室位置
+			TCVAR:(TARGET:LOCAL):馴れ合い強度 = MAX(TCVAR:(TARGET:LOCAL):馴れ合い強度 , 1)
+		ELSEIF フィールド展開:セクハラ緩和
+			;セクハラ緩和時も１以上保証
+			TCVAR:(TARGET:LOCAL):馴れ合い強度 = MAX(TCVAR:(TARGET:LOCAL):馴れ合い強度 , 1)
+		ENDIF
+	NEXT
+ENDIF
+
+TCVAR:MASTER:馴れ合い強度 = TCVAR:TARGET:馴れ合い強度
+
+;ウフフ終了TEQUIP処理
+FOR LOCAL,0,CHARANUM
+	SIF CFLAG:LOCAL:滞在期間 < 0
+		CONTINUE
+	IF MODE_存在判定_ターゲット側("全裸散歩", LOCAL)
+		;なんもしない
+	ELSEIF CFLAG:LOCAL:体力限界
+		;なんもしない
+	ELSEIF !CFLAG:LOCAL:うふふ || CFLAG:LOCAL:現在位置 != CFLAG:LOCAL:前ターン位置 || CFLAG:LOCAL:現在マップ種別 != CFLAG:LOCAL:前マップ種別
+		IF CSTR:LOCAL:うふふ前の服 != ""
+			CALL CLOTHES_CHANGE(LOCAL, CSTR:LOCAL:うふふ前の服)
+;			CSTR:LOCAL:着せ替え服 = %CSTR:LOCAL:うふふ前の服%
+			CSTR:LOCAL:うふふ前の服 = 
+		ENDIF
+;		CALL CLOTHES_RESET_TRAIN(LOCAL)
+		FOR LOCAL:1, 10, 100
+			TEQUIP:LOCAL:(LOCAL:1) = 0
+		NEXT
+	ENDIF
+
+	IF LOCAL == MASTER && あなた追跡キャラ
+	ELSEIF (CSTR:うふふシチュ記録 == "物陰連れ込み" || CSTR:PLAYER:うふふシチュ記録 == "物陰連れ込み") && (LOCAL == PLAYER || LOCAL == TARGET)
+	ELSE
+		IF CFLAG:LOCAL:現在位置 != CFLAG:LOCAL:前ターン位置 || CFLAG:LOCAL:現在マップ種別 != CFLAG:LOCAL:前マップ種別 || (CFLAG:MASTER:隠密 != CFLAG:LOCAL:隠密 && !CFLAG:LOCAL:キャラ同士うふふ)
+			CALL 移動時モード消去(LOCAL)
+		ENDIF
+	ENDIF
+	
+	IF CFLAG:LOCAL:うふふ
+		;うふふ時は自動着替えは発動しない
+		;ついでにうふふ突入前の服を保存する
+		IF CSTR:LOCAL:うふふ前の服 == ""
+			CSTR:LOCAL:うふふ前の服 = %CSTR:LOCAL:着せ替え服%
+			SIF CSTR:LOCAL:うふふ前の服 == ""
+				CSTR:LOCAL:うふふ前の服 = デフォルト
+		ENDIF
+		;うふふ開始時間も記録
+		IF CFLAG:LOCAL:うふふ開始時間記録 < 1 && !CFLAG:LOCAL:体力限界
+			CFLAG:LOCAL:うふふ開始時間記録 = TIME + DAY * 1440
+		ENDIF
+		;うふふ中、全ての服がなくなっているのなら全裸に切り替える
+		IF 全裸チェック(LOCAL) == 1
+			;全裸なら全裸に
+			CALL CLOTHES_CHANGE(LOCAL, "全裸")
+			;初回フラグに記録
+			IF STRFIND(CSTR:LOCAL:衣装初回_着用うふふ, "_全裸_") < 0
+				SIF CSTR:LOCAL:衣装初回_着用うふふ == ""
+					CSTR:LOCAL:衣装初回_着用うふふ = _
+				CSTR:LOCAL:衣装初回_着用うふふ += "全裸_"
+			ENDIF
+		ENDIF
+		CONTINUE
+	ENDIF
+	IF CFLAG:LOCAL:飲み会
+		;飲み会時は自動着替えは発動しない
+		CONTINUE
+	ENDIF
+	IF CFLAG:LOCAL:体力限界
+		;ダウン時は（ｒｙ
+		CONTINUE
+	ENDIF
+	IF SAVESTR:ゲームフェイズ管理 == "マッサージモード"
+		;マッサージ中は自動着替えは発動しない
+		CONTINUE
+	ENDIF
+	IF CFLAG:LOCAL:睡眠
+		;睡眠時は（ｒｙ
+		;睡眠中、全ての服がなくなっているのなら全裸に切り替える
+		IF 全裸チェック(LOCAL) == 1
+			;全裸なら全裸に
+			CALL CLOTHES_CHANGE(LOCAL, "全裸")
+		ENDIF
+		CONTINUE
+	ENDIF
+
+	CALL CLOTHES_CHECK(LOCAL)
+NEXT
+;-------------------------------------------------
+;連れ込まれ処理
+;-------------------------------------------------
+IF 連れ込みパターン == ""
+	CALL 物陰連れ込まれ処理
+	SIF RESULT
+		RESTART
+ENDIF
+;-------------------------------------------------
+;遭遇口上（TARGETのみ）
+;-------------------------------------------------
+CALL KOJO_遭遇時EVENT
+;-------------------------------------------------
+;情報表示
+;-------------------------------------------------
+DRAWLINE
+IF OPTION変数:サイド領域非表示 == 0
+	CALL サイド領域描画
+ENDIF
+;時計画像表示
+CALL INFO_CLOCK_IMAGE(TIME)
+IF TIME > 1440
+	DAY ++
+	TIME -= 1440
+ENDIF
+LOCALS = %月算出()%
+PRINTFORM {RESULT}年目 %LOCALS% {DAY % 30 + 1}日(%GET_DAY()%){TIME / 60}時{TIME % 60}分 
+IF DAY * 1440 + TIME - CFLAG:MASTER:314 >= 960
+	PRINT [要睡眠]
+ELSEIF DAY * 1440 + TIME - CFLAG:MASTER:314 >= 720 || あなた特殊能力:無間睡眠
+	PRINT [睡眠可]
+ENDIF
+PRINT  
+;-------------------------------------------------
+;状態情報（現在隠密のみ）
+;-------------------------------------------------
+SIF CFLAG:MASTER:隠密
+	PRINTFORM （隠密中）
+;-------------------------------------------------
+;リゾートランク
+;-------------------------------------------------
+SIF CFLAG:PLAYER:現在マップ種別 == 0
+	PRINTFORM 　　リゾートランク：%リゾートランク文字列:リゾートランク%
+PRINTL
+;-------------------------------------------------
+;現在位置情報
+;-------------------------------------------------
+PRINTFORM %GETPLACENAME(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置)%
+;-------------------------------------------------
+;雑務ゲージ
+;-------------------------------------------------
+IF (CFLAG:PLAYER:現在位置) != 20 && (CFLAG:PLAYER:現在位置) / 100 != 20 && CFLAG:PLAYER:現在マップ種別 == 0
+	PRINTFORM 　　　雑務:{雑務ゲージ:(CFLAG:PLAYER:現在位置), 5}/10000　
+	CALL PRINT_COLORBAR, 雑務ゲージ:(CFLAG:PLAYER:現在位置), 10000, 600, 60, BARCOLORSET("白"), RESULT:1
+ENDIF
+;-------------------------------------------------
+;背景色変更
+;-------------------------------------------------
+IF BATHROOM(CFLAG:PLAYER:現在マップ種別, CFLAG:PLAYER:現在位置)
+	SETBGCOLOR 0x101020
+	SETCOLOR カラーパレット("黄")
+	PRINTL 　　　♨♨♨♨♨【入浴中】♨♨♨♨♨
+	RESETCOLOR
+ELSEIF SAUNAROOM(CFLAG:PLAYER:現在マップ種別, CFLAG:PLAYER:現在位置)
+	SETBGCOLOR 0x201010
+	SETCOLOR カラーパレット("真っ赤")
+	PRINTL 　　　♨♨♨♨♨【サウナ中】♨♨♨♨♨
+	RESETCOLOR
+ELSE
+	RESETBGCOLOR
+	PRINTL
+ENDIF
+
+IF 開催予定祭り名 != "" &&  開催予定日取り == DAY
+	SETCOLOR カラーパレット("黄")
+	PRINTFORM 「%SUBSTRING(開催予定祭り名, 9)%」開催中！
+	RESETCOLOR
+	PRINTL
+ENDIF
+;-------------------------------------------------
+;フィールド表示
+;-------------------------------------------------
+SETCOLOR カラーパレット("えっちな色")
+;PRINT フィールド効果：
+RESETCOLOR
+LOCALS = <font color='#%カラーパレット_HTML("えっちな色")%'>
+LOCALS += "フィールド効果："
+LOCAL:1 = 0
+FOR LOCAL, 0, 50
+	SIF ERDNAME(フィールド展開, LOCAL) == ""
+		BREAK
+	SIF フィールド展開:LOCAL <= 0
+		CONTINUE
+	CALLFORM フィールド効果解説_%ERDNAME(フィールド展開, LOCAL)%
+	IF OPTION変数:ツールチップ切り替え == 0
+		LOCALS += @"<nonbutton title='%TSTR:ツールチップ受渡%'>[%RESULTS%]</nonbutton>"
+	ELSE
+		LOCALS += @"<nonbutton>[%RESULTS%]</nonbutton>"
+	ENDIF
+	LOCAL:1 ++
+NEXT
+LOCALS += "</font>"
+SIF LOCAL:1 == 0
+	LOCALS = なし
+HTML_PRINT LOCALS
+RESETCOLOR
+;DRAWLINE
+PRINTL ------------------------------------------------------------------------------------------------------------
+背景用行数保存 = LINECOUNT
+;-------------------------------------------------
+;TARGET情報とモード切り替え
+;-------------------------------------------------
+VARSET LOCAL
+
+IF TARGET || (GETBIT(FLAG:モード管理, モードビット_指示) && PLAYER != MASTER)
+	;MASTERの位置から見て他の部屋にだれかいるかどうか
+	LOCAL:1 = 0
+	FOR LOCAL,1,CHARANUM
+		SIF CFLAG:LOCAL:現在位置 == CFLAG:MASTER:現在位置 && CFLAG:LOCAL:現在マップ種別 == CFLAG:MASTER:現在マップ種別
+			CONTINUE
+		SIF CAN_MOVE(CFLAG:PLAYER:現在マップ種別, CFLAG:MASTER:現在位置, CFLAG:LOCAL:現在位置) == 2
+			LOCAL:1 ++
+	NEXT
+	IF CFLAG:うふふ == 1
+		TFLAG:調教モード = 2
+	ELSEIF CFLAG:飲み会 == 1
+		TFLAG:調教モード = 3
+	ELSE
+		TFLAG:調教モード = 1
+	ENDIF
+	文字数カウント = 8
+	divHTML = 同室者：
+	改行フラグ = 0
+	IF OPTION変数:同室者非表示 == 0
+		FOR LOCAL,1,CHARANUM
+		;同室一覧から即座に相手を変えられるようにする
+			SIF TARGET:LOCAL < 1
+				BREAK
+			IF TARGET:LOCAL == PLAYER
+				IF TARGET != MASTER && GETBIT(FLAG:モード管理, モードビット_指示)
+					divHTML += @"<button value='2000'>[%CALLNAME:MASTER%]</button> "
+				ENDIF
+			ELSEIF TARGET:LOCAL == TARGET
+				CONTINUE
+			ELSE
+				フォント格納用 = 
+				IF CSTR:(TARGET:LOCAL):同室者一覧表示名 != ""
+					ボタン表示格納用 = [%CSTR:(TARGET:LOCAL):同室者一覧表示名%
+				ELSE
+					ボタン表示格納用 = [%CALLNAME:(TARGET:LOCAL)%
+				ENDIF
+				IF CFLAG:(TARGET:LOCAL):体力限界
+					RESETCOLOR
+					ボタン表示格納用 += "(ダウン)"
+				ELSE
+					IF TALENT:(TARGET:LOCAL):恋慕 == 1
+						フォント格納用 = %カラーパレット_HTML("えっちな色")%
+						ボタン表示格納用 += "(恋<img src='えっちハート'>)"
+					ELSEIF TALENT:(TARGET:LOCAL):恋慕 == 2
+						フォント格納用 = %カラーパレット_HTML("えっちな色")%
+						IF TALENT:(TARGET:LOCAL):性別 == 2
+							ボタン表示格納用 += "(夫<img src='えっちハート'>)"
+						ELSE
+							ボタン表示格納用 += "(妻<img src='えっちハート'>)"
+						ENDIF
+					ELSEIF CFLAG:(TARGET:LOCAL):ゲージ起動分類 == 1
+						フォント格納用 = %カラーパレット_HTML("薄ピンク")%
+						ボタン表示格納用 += "(恋)"
+					ENDIF
+					IF TALENT:(TARGET:LOCAL):セフレ
+						SIF フォント格納用 != カラーパレット_HTML("えっちな色")
+							フォント格納用 = %カラーパレット_HTML("ピンク")%
+						ボタン表示格納用 += "(セ)"
+					ENDIF
+					IF TALENT:(TARGET:LOCAL):妊娠
+						IF PREGNANCY_PROGRESS(TARGET:LOCAL) == 5
+							ボタン表示格納用 += "(臨)"
+						ELSE
+							ボタン表示格納用 += "(妊)"
+						ENDIF
+						SIF フォント格納用 != カラーパレット_HTML("えっちな色")
+							フォント格納用 = %カラーパレット_HTML("ピンク")%
+					ELSEIF CFLAG:(TARGET:LOCAL):発情期フラグ < 0
+						SIF フォント格納用 != カラーパレット_HTML("えっちな色")
+							フォント格納用 = %カラーパレット_HTML("ピンク")%
+						ボタン表示格納用 += "(発)"
+					ELSEIF あなた特殊能力:朔望鑑定術 >= 2 && GETBIT(TALENT:(TARGET:LOCAL):性別, 0) && TALENT:(TARGET:LOCAL):Ｖ感度 > -2
+						IF RISKY_DAY(TARGET:LOCAL) == 2
+							ボタン表示格納用 += "(危)"
+							SIF フォント格納用 != カラーパレット_HTML("えっちな色")
+								フォント格納用 = %カラーパレット_HTML("ピンク")%
+						ELSEIF RISKY_DAY(TARGET:LOCAL) == 1
+							ボタン表示格納用 += "(危)"
+							SIF フォント格納用 != カラーパレット_HTML("えっちな色")
+								フォント格納用 = %カラーパレット_HTML("薄ピンク")%
+						ENDIF
+					ENDIF
+					IF CFLAG:(TARGET:LOCAL):デート
+						ボタン表示格納用 += "(デ)"
+					ENDIF
+				ENDIF
+				SIF CFLAG:(TARGET:LOCAL):マッサージ助手
+					ボタン表示格納用 += "(助)"
+				RESULTS = 
+				CALL 追加アイコン表示処理(TARGET:LOCAL, ボタン表示格納用)
+				ボタン表示格納用 += RESULTS
+				ボタン表示格納用 += "]"
+				文字数カウント += STRLENS(REPLACE((ボタン表示格納用), "<.*>", "　"))
+				IF 文字数カウント > 101
+					divHTML += "<br>"
+					文字数カウント = STRLENS(REPLACE((ボタン表示格納用), "<.*>", "　"))
+					改行フラグ ++
+				ENDIF
+				IF TFLAG:調教モード == 3 && CFLAG:(TARGET:LOCAL):同室文字色 == 0 && 文字色グループ取得(TARGET:LOCAL) < 0
+					divHTML += ボタン表示格納用
+					;PRINTPLAINFORM %ボタン表示格納用%
+				ELSE
+					IF 文字色グループ取得(TARGET:LOCAL) >= 0
+						divHTML += @"<font color='#%十六進数文字列化(同室時_グループ文字色:(文字色グループ取得(TARGET:LOCAL)))%'><button value='{(TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button></font>"
+					ELSEIF CFLAG:(TARGET:LOCAL):同室文字色
+						divHTML += @"<font color='#%十六進数文字列化(CFLAG:(TARGET:LOCAL):同室文字色)%'><button value='{(TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button></font>"
+					ELSEIF フォント格納用 != ""
+						divHTML += @"<font color='#%フォント格納用%'><button value='{(TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button></font>"
+					ELSE
+						divHTML += @"<button value='{(TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button>"
+					ENDIF
+					;PRINTBUTTON ボタン表示格納用, (TARGET:LOCAL)+2000
+				ENDIF
+				divHTML += " "
+				文字数カウント ++
+			ENDIF
+		NEXT
+		divHTML += "<button value='807'>[同室者を非表示]</button>"
+	ELSE
+		divHTML += "<button value='807'>[同室者を表示]</button>"
+	ENDIF
+	IF TFLAG:調教モード == 3
+		divHTML += "<br>"
+		改行フラグ ++
+		文字数カウント = 14
+		divHTML += "飲み会参加者："
+		IF OPTION変数:同室者非表示 == 0
+			FOR LOCAL,1,CHARANUM
+			;同室一覧から即座に相手を変えられるようにする
+				SIF 飲み会TARGET:LOCAL < 1
+					BREAK
+				IF 飲み会TARGET:LOCAL == TARGET
+				ELSEIF 飲み会TARGET:LOCAL
+					フォント格納用 = 
+					ボタン表示格納用 = [%CALLNAME:(飲み会TARGET:LOCAL)%
+					IF CFLAG:(TARGET:LOCAL):体力限界
+						RESETCOLOR
+						ボタン表示格納用 += "(ダウン)"
+					ELSE
+						IF TALENT:(飲み会TARGET:LOCAL):恋慕 == 1
+							フォント格納用 = %カラーパレット_HTML("えっちな色")%
+							ボタン表示格納用 += "(恋<img src='えっちハート'>)"
+						ELSEIF TALENT:(飲み会TARGET:LOCAL):恋慕 == 2
+							フォント格納用 = %カラーパレット_HTML("えっちな色")%
+							IF TALENT:(飲み会TARGET:LOCAL):性別 == 2
+								ボタン表示格納用 += "(夫<img src='えっちハート'>)"
+							ELSE
+								ボタン表示格納用 += "(妻<img src='えっちハート'>)"
+							ENDIF
+						ELSEIF CFLAG:(飲み会TARGET:LOCAL):ゲージ起動分類 == 1
+							フォント格納用 = %カラーパレット_HTML("薄ピンク")%
+							ボタン表示格納用 += "(恋)"
+						ENDIF
+						IF TALENT:(飲み会TARGET:LOCAL):セフレ
+							ボタン表示格納用 += "(セ)"
+						ENDIF
+						IF TALENT:(飲み会TARGET:LOCAL):妊娠
+							IF PREGNANCY_PROGRESS(飲み会TARGET:LOCAL) == 5
+								ボタン表示格納用 += "(臨)"
+							ELSE
+								ボタン表示格納用 += "(妊)"
+							ENDIF
+							SIF フォント格納用 != カラーパレット_HTML("えっちな色")
+								フォント格納用 = %カラーパレット_HTML("ピンク")%
+						ELSEIF CFLAG:(飲み会TARGET:LOCAL):発情期フラグ < 0
+							フォント格納用 = %カラーパレット_HTML("えっちな色")%
+							ボタン表示格納用 += "(発)"
+						ELSEIF あなた特殊能力:朔望鑑定術 >= 2 && GETBIT(TALENT:(飲み会TARGET:LOCAL):性別, 0) && TALENT:(飲み会TARGET:LOCAL):Ｖ感度 > -2
+							IF RISKY_DAY(飲み会TARGET:LOCAL) == 2
+								ボタン表示格納用 += "(危)"
+								フォント格納用 = %カラーパレット_HTML("赤ピンク")%
+							ELSEIF RISKY_DAY(飲み会TARGET:LOCAL) == 1
+								ボタン表示格納用 += "(危)"
+								SIF フォント格納用 != カラーパレット_HTML("えっちな色")
+									フォント格納用 = %カラーパレット_HTML("薄ピンク")%
+							ENDIF
+						ENDIF
+					ENDIF
+					RESULTS = 
+					CALL 追加アイコン表示処理(飲み会TARGET:LOCAL, ボタン表示格納用)
+					ボタン表示格納用 += RESULTS
+					ボタン表示格納用 += "]"
+					文字数カウント += STRLENS(REPLACE((ボタン表示格納用), "<.*>", "　"))
+					IF 文字数カウント > 85
+						divHTML += "<br>"
+						文字数カウント = 0
+						改行フラグ ++
+					ENDIF
+					IF 文字色グループ取得(飲み会TARGET:LOCAL) >= 0
+						divHTML += @"<font color='#%十六進数文字列化(同室時_グループ文字色:(文字色グループ取得(飲み会TARGET:LOCAL)))%'><button value='{(飲み会TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button></font>"
+					ELSEIF CFLAG:(飲み会TARGET:LOCAL):同室文字色
+						divHTML += @"<font color='#%十六進数文字列化(CFLAG:(飲み会TARGET:LOCAL):同室文字色)%'><button value='{(飲み会TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button></font>"
+					ELSEIF フォント格納用 != ""
+						divHTML += @"<font color='#%フォント格納用%'><button value='{(飲み会TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button></font>"
+					ELSE
+						divHTML += @"<button value='{(飲み会TARGET:LOCAL)+2000}'>%ボタン表示格納用%</button>"
+					ENDIF
+				ENDIF
+				divHTML += " "
+			NEXT
+		ENDIF
+	ENDIF
+	divHTML += "<br>"
+	改行フラグ ++
+	HTML_PRINT @"<div rect='0,0,5400,5000'>%divHTML%</div>", 1
+	FOR LOCAL, 0, 改行フラグ + 1
+		PRINTL
+	NEXT
+	LOCAL:1 = 0
+	divHTML = 
+	FOR LOCAL,1,CHARANUM
+		SIF TARGET:LOCAL <= 0
+			BREAK
+		SIF !CFLAG:(TARGET:LOCAL):同行 && !CFLAG:(TARGET:LOCAL):デート残り時間
+			CONTINUE
+		SIF CFLAG:(TARGET:LOCAL):うふふ
+			CONTINUE
+		LOCAL:1 ++
+		SIF LOCAL:1 > 1
+			divHTML += "、"
+		IF OPTION変数:ツールチップ切り替え == 0
+			IF CFLAG:(TARGET:LOCAL):同行
+				divHTML += @"<button value='{(TARGET:LOCAL)+2000}' title='残り同行時間：{CFLAG:(TARGET:LOCAL):同行}分'>%CALLNAME:(TARGET:LOCAL)%</button>"
+			ELSE
+				divHTML += @"<button value='{(TARGET:LOCAL)+2000}' title='残り同行時間：{CFLAG:(TARGET:LOCAL):デート残り時間}分'>%CALLNAME:(TARGET:LOCAL)%</button>"
+			ENDIF
+		ELSE
+			divHTML += @"%CALLNAME:(TARGET:LOCAL)%"
+		ENDIF
+	NEXT
+	SIF LOCAL:1
+		divHTML += "同行中"
+	HTML_PRINT @"<div rect='0,0,5400,5000'>%divHTML%</div>", 1
+	PRINTL 
+		
+	;ここで立ち絵表示
+	;LOCAL = (画像二人目番号 ? 画像二人目番号# 二人目画像表示用())
+	IF GETBIT(FLAG:モード管理, モードビット_指示) && TARGET == PLAYER
+		TARGET = MASTER
+	ENDIF
+	IF GETBIT(画像サイズ切り替えOPTION記憶, 0)
+		LOCALS:1 '= 短冊グラ表示用文字列関数(TARGET,,,1)
+		LOCALS '= @"<div rect='0, 0, 1125, 2475'><button value='889' title='表示方法変更:正方形&#13;&#10;%RESULTS:2%'>%LOCALS:1%"
+		LOCALS += @"%"<br>" * 20%[表示方法変更:正方形]</button>"
+;		LOCALS '= @"<div rect='0, 0, 1125, 2475'><button value='889' title='表示方法変更:正方形(\@ LOCAL? 3P対応# 単独\@)&#13;&#10;%RESULTS:2%'>%LOCALS:1%"
+;		LOCALS += @"%"<br>" * 20%[表示方法変更:\@ LOCAL? 3P対応# 正方形\@]</button>"
+;		SIF LOCAL
+;			LOCALS += @"<button value='{LOCAL+2000}' title='%CALLNAME:LOCAL%をメインにする'>[%CALLNAME:LOCAL%]</button>"
+		LOCALS += @"</div>"
+		HTML_PRINT LOCALS, 1
+	; ELSEIF GETBIT(画像サイズ切り替えOPTION記憶, 4) && LOCAL
+	; 	LOCALS:1 '= 顔グラ表示用文字列関数(TARGET,,,,1)
+	; 	LOCALS '= @"<div rect='0, 0, 1125, 2475'><button value='889' title='表示方法変更:正方形(単独)&#13;&#10;%RESULTS:2%'>%LOCALS:1%</button>"
+	; 	LOCALS:2 '= 顔グラ表示用文字列関数(LOCAL, 1, 1012)
+	; 	LOCALS += @"<br><button value='{LOCAL+2000}' title='%CALLNAME:LOCAL%をメインにする&#13;&#10;%RESULTS:3%'>%LOCALS:2%</button>"
+	; 	LOCALS += @"%"<br>" * 19%<button value='889' title='表示方法変更:正方形(単独)'>[表示方法変更:正方形]</button>"
+	; 	LOCALS += @"<button value='{LOCAL+2000}' title='%CALLNAME:LOCAL%をメインにする'>[%CALLNAME:LOCAL%]</button>"
+	; 	LOCALS += @"</div>"
+	; 	HTML_PRINT LOCALS, 1
+	ELSE
+		LOCALS:1 '= 顔グラ表示用文字列関数(TARGET,,,,1)
+		LOCALS '= @"<div rect='0, 0, 1125, 1350'><button value='889' title='表示方法変更:短冊&#13;&#10;%RESULTS:2%'>%LOCALS:1%"
+		LOCALS += @"%"<br>" * 10%[表示方法変更:短冊]</button>"
+		; SIF LOCAL
+		; 	LOCALS += @"<button value='{LOCAL+2000}' title='%CALLNAME:LOCAL%をメインにする'>[%CALLNAME:LOCAL%]</button>"
+		LOCALS += @"</div>"
+		HTML_PRINT LOCALS, 1
+	ENDIF
+	;画像二人目番号 = 0
+	PRINT 　　　　　　　　　　　 
+	IF CFLAG:TARGET:ゲージ起動分類 == 1 || CFLAG:TARGET:発情期フラグ < 0
+		SETCOLOR カラーパレット("えっちな色")
+	ELSEIF TALENT:TARGET:妊娠
+		SETCOLOR カラーパレット("ピンク")
+	ELSEIF あなた特殊能力:朔望鑑定術 >= 2 && GETBIT(TALENT:TARGET:性別, 0) && TALENT:TARGET:Ｖ感度 > -2
+		IF RISKY_DAY(TARGET) == 2
+			SETCOLOR カラーパレット("赤ピンク")
+		ELSEIF RISKY_DAY(TARGET) == 1
+			SETCOLOR カラーパレット("薄ピンク")
+		ENDIF
+	ENDIF
+	行数保存 = LINECOUNT
+	PRINTFORM %NAME表示(TARGET)%
+	SIF CFLAG:TARGET:ゲージ起動分類 == 1
+		PRINT (恋慕対象)
+	IF CFLAG:TARGET:発情期フラグ < 0
+		IF TCVAR:強制発情フラグ == 1
+			PRINT (発情中
+		ELSE
+			PRINT (発情期
+		ENDIF
+		PRINT_IMG "えっちハート"
+		PRINT )
+	ENDIF
+	IF TALENT:TARGET:妊娠
+		SETCOLOR カラーパレット("ピンク")
+		IF PREGNANCY_PROGRESS(TARGET) == 5
+			PRINT (臨月
+		ELSE
+			PRINT (妊娠中
+		ENDIF
+		PRINT_IMG "えっちハート"
+		PRINT )
+	ELSEIF あなた特殊能力:朔望鑑定術 >= 2 && GETBIT(TALENT:TARGET:性別, 0) && TALENT:TARGET:Ｖ感度 > -2
+		IF RISKY_DAY(TARGET) == 2
+			SETCOLOR カラーパレット("赤ピンク")
+			PRINT (
+			PRINT_IMG "えっちハート"
+			PRINT 超危険日
+			PRINT_IMG "えっちハート"
+			PRINT )
+		ELSEIF RISKY_DAY(TARGET) == 1
+			SETCOLOR カラーパレット("薄ピンク")
+			PRINT (危険日
+			PRINT_IMG "えっちハート"
+			PRINT )
+		ELSEIF RISKY_DAY(TARGET) == -1
+			SETCOLOR 0xccffff
+			PRINT （安全日）
+		ENDIF
+	ENDIF
+	RESETCOLOR
+	SIF CFLAG:TARGET:隠密
+		PRINT （隠密）
+	;酩酊系
+	IF CFLAG:TARGET:酔いすぎ == 1
+		PRINT （泥酔）
+	ELSEIF CFLAG:TARGET:酔いすぎ == 2 && TCVAR:TARGET:泥酔眠姦
+		PRINT （泥酔）
+	ELSEIF CFLAG:TARGET:酔いすぎ == 2
+		PRINT （二日酔い）
+	ELSEIF BASE:TARGET:酩酊 == 0
+		
+	ELSEIF BASE:TARGET:酩酊 < 500
+		PRINT （ほろ酔い）
+	ELSEIF BASE:TARGET:酩酊 < 1000
+		PRINT （酩酊）
+	ENDIF
+	IF TCVAR:TARGET:泥酔眠姦 && CFLAG:TARGET:睡眠 == 0
+		SETCOLOR カラーパレット("赤ピンク")
+		PRINT (前後不覚
+		PRINT_IMG "えっちハート"
+		PRINT )
+	ENDIF
+	; 意識状態(睡眠/トランス)
+	CALL 意識状態表示(TARGET)
+	IF CFLAG:TARGET:体力限界
+		PRINT （ダウン）
+	ENDIF
+	LOCAL = BASE:怒り / 200
+	IF CFLAG:怒り
+		SETCOLOR 255,0,0
+		PRINT 　　怒
+		RESETCOLOR
+	ELSEIF LOCAL
+		PRINTFORM 　　怒り:%"！" * LOCAL%
+	ENDIF
+	CALL 追加アイコン表示処理(TARGET, "PRINT")
+	PRINTL
+
+	IF CFLAG:デート
+		PRINTFORM 　　　　　　　　 　　　%CALLNAME:(ABS(CFLAG:デート) - 100)%とデート中
+		PRINT_IMG "えっちハート"
+	ENDIF
+	CALL SHOW_INFO_PALAM
+	PRINT 　　　　　　　　　　　 
+	IF TARGET == MASTER
+		PRINTFORML 残り滞在日数：オーナー
+		PRINT 　　　　　　　　　　　 
+		;CALL PRINT_好感度レベル表示(PLAYER)
+		PRINTL 
+		IF CFLAG:PLAYER:ゲージ起動分類 == 1
+			PRINT 　　　　　　　　　　　 
+			;CALL INFO_恋慕レベル表示(PLAYER)
+			PRINTL
+		ENDIF
+	ELSE
+		IF CFLAG:TARGET:滞在期間 == 999
+			PRINTFORML 残り滞在日数：常時滞在
+		ELSE
+			PRINTFORML 残り滞在日数：{CFLAG:TARGET:滞在期間, 2}日
+		ENDIF
+		PRINT 　　　　　　　　　　　 
+		CALL PRINT_好感度レベル表示(TARGET)
+		PRINTL 
+		IF CFLAG:TARGET:ゲージ起動分類 == 1
+			PRINT 　　　　　　　　　　　 
+			CALL INFO_恋慕レベル表示(TARGET)
+			PRINTL
+		ENDIF
+	ENDIF
+	RESETCOLOR
+	PRINT 　　　　　　　 　　　　　服装:
+	LOCALS = 
+	IF CSTR:TARGET:着せ替え服 != ""
+		VARSET RESULTS
+		ツールチップフラグ = 0
+		TRYCALLFORM CLOTHES_衣装説明_%CSTR:TARGET:着せ替え服%
+		IF OPTION変数:ツールチップ切り替え == 0 && RESULTS != ""
+			LOCALS += @"<nonbutton title = '%RESULTS%"
+			IF RESULTS:1 != ""
+				LOCALS += @"<br>出典元：%RESULTS:1%'>"
+			ELSE
+				LOCALS += @"'>"
+			ENDIF
+			ツールチップフラグ = 1
+		ENDIF
+		IF CSTR:TARGET:着せ替え服 == "浴衣"
+			LOCALS += "ユカタヴィラ"
+		ELSE
+			LOCALS += @"%CSTR:TARGET:着せ替え服%"
+		ENDIF
+		SIF CSTR:TARGET:着せ替え服追加名 != ""
+			LOCALS += @"（%CSTR:TARGET:着せ替え服追加名%）"
+		SIF ツールチップフラグ
+			LOCALS += "</nonbutton>"
+	ELSE
+		IF OPTION変数:ツールチップ切り替え == 0 && CSTR:TARGET:普段着解説 != ""
+			LOCALS += @"<nonbutton title = '■%CSTR:TARGET:服名称%%REPLACE(CSTR:TARGET:普段着解説, " ", "<br>")%'>"
+		ENDIF
+		LOCALS += "普段着"
+		IF OPTION変数:ツールチップ切り替え == 0 && CSTR:TARGET:普段着解説 != ""
+			LOCALS += @"</nonbutton>"
+		ENDIF
+	ENDIF
+	HTML_PRINT LOCALS, 1
+	PRINTL
+ELSE
+	TFLAG:調教モード = 0
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+ENDIF
+PRINT 　　　　　　　　　　　 
+CALL SHOW_EQUIP_2
+
+IF TARGET > 0
+	IF SAVESTR:ゲームフェイズ管理 == "マッサージモード"
+		;本来関数化して汎用化するべきなんだろうけどめんどいのでとりあえず仮分岐
+	ELSE
+		LOCAL = LIMIT(BASE:ムード / 300,0,5)
+		PRINT 　　　　　　　　　　　 
+		PRINTFORM ムード:
+		SIF BASE:ムード == MAXBASE:ムード
+			SETCOLOR 255,51,153
+		PRINTFORM %UNICODE(0x2665) * LOCAL,5,LEFT% 
+		RESETCOLOR
+		LOCAL = MAX(BASE:理性 / 200,1)
+		PRINT 理性:
+		SIF BASE:理性 < 100
+			SETCOLOR 255,255,0
+		PRINTFORM %"★" * LOCAL,10,LEFT% 
+		RESETCOLOR
+	ENDIF
+	PRINTL 
+	; PRINT 　　　　　　　　　　　 
+	; PRINTFORM 満足:
+	; CALL PRINT_COLORBAR, BASE:満足, MAXBASE:満足, 600, 60, BARCOLORSET("白"), RESULT:1
+	; 	PRINTFORM ({BASE:満足,4}/{MAXBASE:満足,4})
+	; PRINTL 
+	PRINT 　　　　　　　　　　　 
+	CALL 通常時体力ゲージ表示(TARGET)
+	PRINTL 
+	PRINT 　　　　　　　　　　　 
+	CALL 通常時性欲ゲージ表示(TARGET)
+	PRINTL 
+
+	CALL SHOW_INFO_各種ゲージ(TARGET)
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINT 　　　　　　　　　　　
+	IF 弱点チェック(TARGET, "SITUATION_マッサージモード")
+		SETCOLOR カラーパレット("ピンク")
+		PRINT_IMG "えっちハート"
+		PRINTFORM 弱点シチュ：マッサージ
+		PRINT_IMG "えっちハート"
+		RESETCOLOR
+	ELSEIF 弱点チェック(TARGET, "SITUATION_むりやりうふふモード")
+		SETCOLOR カラーパレット("ピンク")
+		PRINT_IMG "えっちハート"
+		PRINTFORM 弱点シチュ：むりやりうふふ
+		PRINT_IMG "えっちハート"
+		RESETCOLOR
+	ELSEIF 弱点チェック(TARGET, @"SITUATION_%CSTR:TARGET:うふふシチュ記録%")
+		SETCOLOR カラーパレット("ピンク")
+		PRINT_IMG "えっちハート"
+		PRINTFORM 弱点シチュ：%CSTR:TARGET:うふふシチュ記録%
+		PRINT_IMG "えっちハート"
+		RESETCOLOR
+	ENDIF
+	PRINTL
+	PRINT 　　　　　　　　　　　 
+	divHTML = 
+	divHTML += "<font color='#FFD900'><button value='803'>[能力表示]</button>　　　　　　 　"
+	IF CFLAG:PLAYER:うふふ == 0
+		PRINT 　　　
+		IF あなた追跡キャラ
+			divHTML += @"　　　<button value='805'>[追跡中：%CALLNAME:あなた追跡キャラ%]</button>"
+		ELSE
+			divHTML += @"　　　<button value='805'>[このキャラを追跡]</button>"
+		ENDIF
+	; ELSE
+	; 	PRINT 　　　
+	; 	divHTML += @"　　　<button value='806'>[うふふチュートリアル]</button>"
+	ENDIF
+	HTML_PRINT @"<div rect='0,0,5400,200'>%divHTML%</font></div>", 1
+	PRINTL
+	IF CFLAG:TARGET:うふふ == 0
+		TRYCCALLFORM 口上_INFO画面_一言コメント_{NO:TARGET}(TARGET)
+			SIF KSTR:0 == ""
+				PRINTL 
+		CATCH
+			PRINTL 
+		ENDCATCH
+	ELSE
+		PRINTL 
+	ENDIF
+ELSEIF GETBIT(FLAG:モード管理, モードビット_指示) && TARGET == MASTER
+	PRINTL 
+	PRINTL 
+	PRINTL 
+
+	PRINT 　　　　　　　　　　　 
+	IF BASE:酩酊 > 0
+		LOCALS = 酩酊:
+		PRINTFORM %LOCALS%
+		IF BASE:酩酊 < 500
+			CALL PRINT_COLORBAR, BASE:酩酊, MAXBASE:酩酊, 600, 100, BARCOLORSET("青"), RESULT:1
+		ELSE
+			CALL PRINT_COLORBAR, BASE:酩酊, MAXBASE:酩酊, 600, 100, BARCOLORSET("真っ赤"), RESULT:1
+		ENDIF
+		LOCALS = ({BASE:酩酊,4}/{MAXBASE:酩酊,4})
+		PRINTFORM %LOCALS,14,LEFT%
+	ELSEIF BASE:酩酊 < 0
+		LOCALS = 二日酔い:
+		PRINTFORM %LOCALS%
+		CALL PRINT_COLORBAR, BASE:酩酊 * -1, MAXBASE:酩酊, 600, 100, BARCOLORSET("真っ赤"), RESULT:1
+		LOCALS = ({BASE:酩酊 * -1,4}/{MAXBASE:酩酊,4})
+		PRINTFORM %LOCALS,14,LEFT%
+	ENDIF
+	PRINTL 
+	PRINT 　　　　　　　　　　　 
+	
+	IF TALENT:TARGET:2 & 2
+		LOCALS = 勃起:
+		PRINTFORM %LOCALS%
+		IF BASE:勃起 >= 1000
+			CALL PRINT_COLORBAR, 1000, 1000, 600, 100, BARCOLORSET("紫"), RESULT:1
+		ELSE
+			CALL PRINT_COLORBAR, BASE:勃起, 1000, 600, 100, BARCOLORSET("紫"), RESULT:1
+		ENDIF
+		LOCALS = ({BASE:勃起,4}/{MAXBASE:勃起,4})
+		PRINTFORM %LOCALS,14,LEFT%
+	ENDIF
+	PRINTL 
+	PRINT 　　　　　　　　　　　 
+	IF 射精可能(TARGET)
+		LOCALS = 精力:
+		PRINTFORM %LOCALS%
+		CALL PRINT_COLORBAR, BASE:精力, MAXBASE:精力, 600, 100, BARCOLORSET("青緑"), RESULT:1
+		IF OPTION変数:射精ゲージ濃縮切り替え_あなた
+			LOCALS = <div rect='0,0,1600,150'><button value='894' title='%精液濃縮解説()%'>
+			LOCALS += @"(濃縮値：{TCVAR:TARGET:精液濃縮})"
+			IF TCVAR:TARGET:精液濃縮 >= 20
+				LOCALS += @"<font color='#%カラーパレット_HTML("真っ赤")%'>特濃</font>"
+			ELSEIF TCVAR:TARGET:精液濃縮 >= 10
+				LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>濃</font>"
+			ENDIF
+			LOCALS += "</button></div>"
+		ELSE
+			LOCALS = <div rect='0,0,1600,150'><button value='894' title='%精液濃縮解説()%'>
+			LOCALS += @"({BASE:TARGET:精力,4}/{MAXBASE:TARGET:精力,4})"
+			IF TCVAR:TARGET:精液濃縮 >= 20
+				LOCALS += @"<font color='#%カラーパレット_HTML("真っ赤")%'>特濃</font>"
+			ELSEIF TCVAR:TARGET:精液濃縮 >= 10
+				LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>濃</font>"
+			ENDIF
+			LOCALS += "</button></div>"
+		ENDIF
+		HTML_PRINT LOCALS, 1
+		PRINTFORM %"", 16%
+	ENDIF
+;	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINT 　　　　　　　　　　　 
+	divHTML = 
+	divHTML += "<font color='#FFD900'><button value='804'>[能力表示]</button>　　　　　　 　"
+	HTML_PRINT @"<div rect='0,0,5400,200'>%divHTML%</font></div>", 1
+	PRINTL
+	RESETCOLOR
+	PRINTL 
+	PRINTL 
+ELSE
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+	PRINTL 
+ENDIF
+PRINTL ------------------------------------------------------------------------------------------------------------
+
+
+TRYCCALLFORM SHOW_INFO_%SAVESTR:ゲームフェイズ管理%
+CATCH
+	CALL SHOW_INFO_PALAM_PLAYER
+ENDCATCH
+
+行数保存 = LINECOUNT - 行数保存
+IF 行数保存 < 21
+	FOR LOCAL, 行数保存, 21
+		PRINTL
+	NEXT
+ENDIF
+;背景画像表示
+SIF FLAG:150 == 0
+	CALL BackGround(背景用行数保存)
+
+; LOCAL = 10000
+; SIF TALENT:MASTER:絶倫
+; 	LOCAL /= 2
+; MAXBASE:MASTER:射精 = LOCAL
+
+; SIF MAXBASE:TARGET:射精 == 0
+; 	MAXBASE:TARGET:射精 = 10000
+
+CALL MODE_BUTTON
+
+; @LIFE_BAR
+; PRINT 体力
+; LOCAL = BASE:TARGET:体力
+; SIF BASE:TARGET:体力 < 0
+; 	LOCAL = 0
+; BAR LOCAL, MAXBASE:TARGET:体力,32
+; PRINTFORML ({LOCAL}/{MAXBASE:TARGET:体力})
+
+
+@SAVEINFO
+
+LOCALS = %月算出()%
+LOCALS = {RESULT}年目 %月算出()% {DAY % 30 + 1}日(%GET_DAY()%)
+
+IF STR:セーブコメント保存 != ""
+	PUTFORM %LOCALS, 22, LEFT% %リゾート名称% 人気度：%リゾート人気度全文字列()% %STR:セーブコメント保存%
+ELSE
+	PUTFORM %LOCALS, 22, LEFT% %リゾート名称% 人気度：%リゾート人気度全文字列()%
+ENDIF
+
+
+@SHOW_EQUIP_2
+;状況の表示
+;調教対象には使わない、特殊な着脱式の道具を追加した場合はここに追加をしてください
+;（場所変更、マスターや助手が使用する道具等）
+IF TEQUIP:野外プレイ == 2
+	PRINT  [野外プレイ中]
+ELSEIF TEQUIP:野外プレイ == 1
+	PRINT  [館内露出プレイ中]
+ENDIF
+SIF TEQUIP:お風呂場プレイ
+	PRINT  [お風呂場プレイ中]
+PRINTL  
+	
+	
+@SHOW_INFO_PALAM
+#DIMS HTML表示文字列
+#DIMS ゲージ表示文
+#DIMS 数値表示文
+
+PRINTL
+VARSET LOCAL
+HTML表示文字列 = 
+LOCALS = 
+ゲージ表示文 = 
+IF INFO格納フィルタ:0
+	LOCALS = <div rect='3375,-100,3750,3125'><font color='#666666'><button value='9100'> ▼PALAM_list[\@ INFO格納フィルタ:0 ? 閉 # 開 \@]</button>------</font><br>
+	ゲージ表示文 = <div rect='3375,200,3750,3125'>
+ELSE
+	LOCALS = <div rect='3375,-100,3750,3125'><button value='9100'> ▼PALAM_list[\@ INFO格納フィルタ:0 ? 閉 # 開 \@]</button>------<br>
+	ゲージ表示文 = <div rect='3375,-100,3750,3125'><br>
+	FOR LOCAL,0,10
+		SIF !STRLENS(PALAMNAME:LOCAL)
+			CONTINUE
+		SIF GETBIT(TALENT:TARGET:性別, 0) == 0 && LOCAL == 1
+			CONTINUE
+		SIF LOCAL != 4 && TALENT:TARGET:(LOCAL + 部位感度) == -2
+			CONTINUE
+		LOCALS += @" %PALAMNAME:LOCAL%Lv{GETPALAMLV(PALAM:LOCAL,15),2} "
+		;ゲージ描画
+		ゲージ表示文 += "　　　　　"
+		IF PALAM:LOCAL && PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1) > 0
+			ゲージ表示文 += @"<shape type='rect' param='0,70,{MIN(400, PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1))},30' color='#%カラーパレット_HTML("PALAMゲージ有")%'>"
+		ENDIF
+		IF PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1) - PALAM:LOCAL && (400 - (PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1))) > 0
+			ゲージ表示文 += @"<shape type='rect' param='0,70,{MAX(0, 400 - (PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1)))},30' color='#%カラーパレット_HTML("PALAMゲージ無")%'>"
+		ENDIF
+		ゲージ表示文 += "<br>"
+		LOCAL:1 = PALAM:LOCAL
+		LOCAL:2 = 0
+		;これだけ特殊
+		IF LOCAL == 9 && LOCAL:1 >= 20000
+			LOCALS += @"%"摩擦 0",8%<br>"
+		ELSE
+			;桁合わせ
+			FOR LOCAL:10,0,10
+				IF LOCAL:1 > 999999
+					LOCAL:1 /= 1000
+					LOCAL:2 ++
+				ENDIF
+			NEXT
+			数値表示文 = {LOCAL:1}
+			SELECTCASE LOCAL:2
+				CASE 1
+					数値表示文 += "k"
+				CASE 2
+					数値表示文 += "M"
+				CASE 3
+					数値表示文 += "G"
+				CASE 4
+					数値表示文 += "T"
+				CASE 5
+					数値表示文 += "P"
+			ENDSELECT
+			LOCALS += @"%数値表示文, 8%<br>"
+			IF LOCAL == 4
+				LOCALS += "<br>"
+				ゲージ表示文 += "<br>"
+			ENDIF
+		ENDIF
+	NEXT
+	HTML表示文字列 += @"%ゲージ表示文%</div>%LOCALS%</div>"
+	LOCALS = <div rect='4375,12,3750,3125'>
+	ゲージ表示文 = <div rect='4375,12,3750,3125'>
+	FOR LOCAL,10,100
+		SIF !STRLENS(PALAMNAME:LOCAL)
+			CONTINUE
+		LOCALS += @" %PALAMNAME:LOCAL%Lv{GETPALAMLV(PALAM:LOCAL,15),2} "
+
+		;ゲージ描画
+		ゲージ表示文 += "　　　　　"
+		IF PALAM:LOCAL && PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1) > 0
+			ゲージ表示文 += @"<shape type='rect' param='0,70,{PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1)},30' color='#%カラーパレット_HTML("PALAMゲージ有")%'>"
+		ENDIF
+		IF PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1) - PALAM:LOCAL && (400 - (PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1))) > 0
+			ゲージ表示文 += @"<shape type='rect' param='0,70,{400 - (PALAM:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:LOCAL,15) + 1))},30' color='#%カラーパレット_HTML("PALAMゲージ無")%'>"
+		ENDIF
+		ゲージ表示文 += "<br>"
+
+		LOCAL:1 = PALAM:LOCAL
+		LOCAL:2 = 0
+		;桁合わせ
+		FOR LOCAL:10,0,10
+
+			IF LOCAL:1 > 999999
+				LOCAL:1 /= 1000
+				LOCAL:2 ++
+			ENDIF
+		NEXT
+		数値表示文 = {LOCAL:1}
+		SELECTCASE LOCAL:2
+			CASE 1
+				数値表示文 += "k"
+			CASE 2
+				数値表示文 += "M"
+			CASE 3
+				数値表示文 += "G"
+			CASE 4
+				数値表示文 += "T"
+			CASE 5
+				数値表示文 += "P"
+		ENDSELECT
+		LOCALS += @"%数値表示文, 8%<br>"
+		IF LOCAL == 20
+			LOCALS += "<br>"
+			ゲージ表示文 += "<br>"
+		ENDIF
+	NEXT
+ENDIF
+LOCALS += "</div>"
+HTML表示文字列 += @"%ゲージ表示文%</div>%LOCALS%"
+HTML_PRINT HTML表示文字列, 1
+
+@SHOW_INFO_各種ゲージ(対象キャラ)
+#DIM 対象キャラ
+
+LOCALS = <div rect='1150,150,3750,3125'>
+IF BASE:酩酊 > 0
+	LOCALS += "酩酊:"
+	IF BASE:酩酊 < 500
+		CALL PRINT_COLORBAR_HTML, BASE:酩酊, MAXBASE:酩酊, 600, 100, BARCOLORSET_HTML("青"), RESULTS:1
+		LOCALS += @"%RESULTS%"
+	ELSE
+		CALL PRINT_COLORBAR_HTML, BASE:酩酊, MAXBASE:酩酊, 600, 100, BARCOLORSET_HTML("真っ赤"), RESULTS:1
+		LOCALS += @"%RESULTS%"
+	ENDIF
+	LOCALS += @"({BASE:酩酊,4}/{MAXBASE:酩酊,4})"
+	LOCALS += "<br>"
+ELSEIF BASE:酩酊 < 0
+	LOCALS += "二日酔い:"
+	CALL PRINT_COLORBAR_HTML, BASE:酩酊 * -1, MAXBASE:酩酊, 600, 100, BARCOLORSET_HTML("真っ赤"), RESULTS:1
+	LOCALS += @"%RESULTS%"
+	LOCALS += @"({BASE:酩酊 * -1,4}/{MAXBASE:酩酊,4})"
+	LOCALS += "<br>"
+ENDIF
+IF TALENT:TARGET:2 & 2
+	LOCALS += "勃起:"
+	IF BASE:勃起 >= 1000
+		CALL PRINT_COLORBAR_HTML, 1000, 1000, 600, 100, BARCOLORSET_HTML("紫"), RESULTS:1
+	ELSE
+		CALL PRINT_COLORBAR_HTML, BASE:勃起, 1000, 600, 100, BARCOLORSET_HTML("紫"), RESULTS:1
+	ENDIF
+	LOCALS += @"%RESULTS%"
+	LOCALS += @"({BASE:勃起,4}/{MAXBASE:勃起,4})"
+	LOCALS += "<br>"
+ENDIF
+IF 射精可能(TARGET)
+	LOCALS += "精力:"
+	CALL PRINT_COLORBAR_HTML, BASE:精力, MAXBASE:精力, 600, 100, BARCOLORSET_HTML("青緑"), RESULTS:1
+	LOCALS += @"%RESULTS%"
+	IF OPTION変数:射精ゲージ濃縮切り替え_あなた
+		LOCALS += @"<button value='894' title='%精液濃縮解説()%'>"
+		LOCALS += @"(濃縮値：{TCVAR:TARGET:精液濃縮})"
+		IF TCVAR:TARGET:精液濃縮 >= 20
+			LOCALS += @"<font color='#%カラーパレット_HTML("真っ赤")%'>特濃</font>"
+		ELSEIF TCVAR:TARGET:精液濃縮 >= 10
+			LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>濃　</font>"
+		ENDIF
+		LOCALS += "</button>"
+	ELSE
+		LOCALS += @"<button value='894' title='%精液濃縮解説()%'>"
+		LOCALS += @"({BASE:TARGET:精力,4}/{MAXBASE:TARGET:精力,4})"
+		IF TCVAR:TARGET:精液濃縮 >= 20
+			LOCALS += @"<font color='#%カラーパレット_HTML("真っ赤")%'>特濃</font>"
+		ELSEIF TCVAR:TARGET:精液濃縮 >= 10
+			LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>濃　</font>"
+		ENDIF
+		LOCALS += "</button>"
+	ENDIF
+	LOCALS += "<br>"
+ENDIF
+LOCALS += "</div>"
+
+HTML_PRINT LOCALS, 1
+
+
+
+@SHOW_INFO_PALAM_PLAYER
+#DIMS HTML文字列
+#DIMS ゲージ表示文
+#DIMS ゲージ数値
+#DIM 横位置
+
+
+IF OPTION変数:PLAYER画像オフ
+ELSE
+	HTML文字列 = %顔グラ表示用文字列関数(PLAYER, 1000)%
+	IF STRFIND(HTML文字列, "顔ノーイメ") < 0
+		HTML_PRINT @"<div rect='4300, -650, 1125, 1350'>%HTML文字列%</div>", 1
+	ENDIF
+ENDIF
+
+IF BASE:PLAYER:酩酊 > 0
+	PRINT 　　　　　　　　　　　 
+	LOCALS = 酩酊(%CALLNAME:PLAYER%)
+	PRINTFORM %LOCALS,20,LEFT%
+	IF BASE:PLAYER:酩酊 < 500
+		CALL PRINT_COLORBAR, BASE:PLAYER:酩酊, MAXBASE:PLAYER:酩酊, 600, 100, BARCOLORSET("青"), RESULT:1
+	ELSE
+		CALL PRINT_COLORBAR, BASE:PLAYER:酩酊, MAXBASE:PLAYER:酩酊, 600, 100, BARCOLORSET("真っ赤"), RESULT:1
+	ENDIF
+	LOCALS = ({BASE:PLAYER:酩酊,4}/{MAXBASE:PLAYER:酩酊,4})
+	PRINTFORM %LOCALS,14,LEFT%
+	PRINTL 
+ELSEIF BASE:PLAYER:酩酊 < 0
+	PRINT 　　　　　　　　　　　 
+	LOCALS = 二日酔い(%CALLNAME:PLAYER%)
+	PRINTFORM %LOCALS,20,LEFT%
+	CALL PRINT_COLORBAR, BASE:PLAYER:酩酊 * -1, MAXBASE:PLAYER:酩酊, 600, 100, BARCOLORSET("真っ赤"), RESULT:1
+	LOCALS = ({BASE:PLAYER:酩酊 * -1,4}/{MAXBASE:酩酊,4})
+	PRINTFORM %LOCALS,14,LEFT%
+	PRINTL 
+ENDIF
+
+PRINT 　　　　　　　　　　　 
+IF TALENT:PLAYER:性別 & 2
+	LOCALS = 勃起(%CALLNAME:PLAYER%)
+	PRINTFORM %LOCALS,20,LEFT%
+	IF BASE:PLAYER:勃起 >= 1000
+		CALL PRINT_COLORBAR, 1000, 1000, 600, 100, BARCOLORSET("紫"), RESULT:1
+	ELSE
+		CALL PRINT_COLORBAR, BASE:PLAYER:勃起, 1000, 600, 100, BARCOLORSET("紫"), RESULT:1
+	ENDIF
+	LOCALS = ({BASE:PLAYER:勃起,4}/{MAXBASE:PLAYER:勃起,4})
+	PRINTFORM %LOCALS,14,LEFT%　
+ENDIF
+IF PLAYER == MASTER
+	IF あなた射精我慢フラグ
+		HTML_PRINT @"<div rect='0,0,900,150'><font color='#%カラーパレット_HTML("黄")%'><button value='890'>絶頂我慢:[ON]</button></font></div>", 1
+	ELSE
+		HTML_PRINT @"<div rect='0,0,900,150'><button value='890'>絶頂我慢:[OFF]</button></div>", 1
+	ENDIF
+ENDIF
+
+PRINTL
+
+PRINT 　　　　　　　　　　　 
+IF 射精可能(PLAYER)
+	LOCALS = 精力(%CALLNAME:PLAYER%)
+	PRINTFORM %LOCALS,20,LEFT%
+	CALL PRINT_COLORBAR, BASE:PLAYER:精力, MAXBASE:PLAYER:精力, 600, 100, BARCOLORSET("青緑"), RESULT:1
+	IF OPTION変数:射精ゲージ濃縮切り替え_あなた
+		LOCALS = <div rect='0,0,1600,150'><button value='894' title='%精液濃縮解説()%'>
+		LOCALS += @"(濃縮値：{TCVAR:PLAYER:精液濃縮})"
+		IF TCVAR:PLAYER:精液濃縮 >= 20
+			LOCALS += @"<font color='#%カラーパレット_HTML("真っ赤")%'>特濃</font>"
+		ELSEIF TCVAR:PLAYER:精液濃縮 >= 10
+			LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>濃</font>"
+		ENDIF
+		LOCALS += "</button></div>"
+	ELSE
+		LOCALS = <div rect='0,0,1600,150'><button value='894' title='%精液濃縮解説()%'>
+		LOCALS += @"({BASE:PLAYER:精力,4}/{MAXBASE:PLAYER:精力,4})"
+		IF TCVAR:PLAYER:精液濃縮 >= 20
+			LOCALS += @"<font color='#%カラーパレット_HTML("真っ赤")%'>特濃</font>"
+		ELSEIF TCVAR:PLAYER:精液濃縮 >= 10
+			LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>濃</font>"
+		ENDIF
+		LOCALS += "</button></div>"
+	ENDIF
+	HTML_PRINT LOCALS, 1
+	PRINTFORM %"", 16%
+	HTML_PRINT @"<div rect='0,0,900,150'><button value='891'>[射精先設定]</button></div>", 1
+ENDIF
+PRINTL
+
+VARSET LOCAL
+横位置 = 1150
+LOCALS = <div rect='{横位置},0,5625,312'>
+ゲージ表示文 = <div rect='{横位置 + 50},0,5625,312'>
+FOR LOCAL, 0, 5
+	SIF !STRLENS(PALAMNAME:LOCAL)
+		CONTINUE
+	SIF GETBIT(TALENT:PLAYER:性別, 0) == 0 && LOCAL == 1
+		CONTINUE
+	SIF LOCAL != 4 && TALENT:PLAYER:(LOCAL + 部位感度) == -2
+		CONTINUE
+	LOCALS += @"  %PALAMNAME:LOCAL%Lv{GETPALAMLV(PALAM:PLAYER:LOCAL,15),2} "
+	;現在のPALAMLV
+	ゲージ表示文 += "　　　　　"
+	IF PALAM:PLAYER:LOCAL && PALAM:PLAYER:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:PLAYER:LOCAL,15) + 1) > 0
+		ゲージ表示文 += @"<shape type='rect' param='0,70,{PALAM:PLAYER:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:PLAYER:LOCAL,15) + 1)},30' color='#%カラーパレット_HTML("PALAMゲージ有")%'>"
+	ENDIF
+	IF PALAMLV:(GETPALAMLV(PALAM:PLAYER:LOCAL,15) + 1) - PALAM:PLAYER:LOCAL && (400 - (PALAM:PLAYER:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:PLAYER:LOCAL,15) + 1))) > 0
+		ゲージ表示文 += @"<shape type='rect' param='0,70,{400 - (PALAM:PLAYER:LOCAL * 400 / PALAMLV:(GETPALAMLV(PALAM:PLAYER:LOCAL,15) + 1))},30' color='#%カラーパレット_HTML("PALAMゲージ無")%'>"
+	ENDIF
+	ゲージ表示文 += " "
+
+	LOCAL:1 = PALAM:PLAYER:LOCAL
+	LOCAL:2 = 0
+	;これだけ特殊
+	IF LOCAL == 9 && LOCAL:1 >= 20000
+		ゲージ数値 = %"摩擦 0",8% 
+	ELSE
+		;桁合わせ
+		FOR LOCAL:10,0,10
+			IF LOCAL:1 > 999999
+				LOCAL:1 /= 1000
+				LOCAL:2 ++
+			ENDIF
+		NEXT
+		ゲージ数値 = {LOCAL:1}
+		SELECTCASE LOCAL:2
+			CASE 1
+				ゲージ数値 += "k"
+			CASE 2
+				ゲージ数値 += "M"
+			CASE 3
+				ゲージ数値 += "G"
+			CASE 4
+				ゲージ数値 += "T"
+			CASE 5
+				ゲージ数値 += "P"
+		ENDSELECT
+	ENDIF
+	LOCALS += @"%ゲージ数値, 8%"
+	LOCAL:3 ++
+	IF LOCAL:3 % 3 == 0
+		LOCALS += "<br>"
+		ゲージ表示文 += "<br>"
+	ENDIF
+NEXT
+HTML文字列 = %ゲージ表示文%</div>%LOCALS%</div>
+HTML_PRINT HTML文字列
+
+PRINTL 
+
+;-------------------------------------------------
+;関数名:SORT_CFLAG
+;CFLAG:ARGの昇順でCFLAG_SORTARRAY:1にキャラ番号を代入する
+;ARG CFLAGの番号
+;-------------------------------------------------
+@SORT_CFLAG(ARG)
+#DIM SORT_NUM, 3000
+VARSET SORT_NUM
+VARSET CFLAG_SORTARRAY
+
+FOR LOCAL, 1, CHARANUM
+	SORT_NUM:(LOCAL - 1) = (CFLAG:LOCAL:ARG + 1) * -1
+	CFLAG_SORTARRAY:(LOCAL - 1) = LOCAL
+NEXT
+ARRAYMSORT SORT_NUM, CFLAG_SORTARRAY
+ARRAYSHIFT CFLAG_SORTARRAY, 1, 0
+
+;-------------------------------------------------
+;関数名:SORT_CHARALIST
+;CFLAG_SORTARRAY:1にキャラ番号を代入する
+;並べる基準はオプションで制御
+;-------------------------------------------------
+@SORT_CHARALIST()
+#DIM SORT_NUM, キャラクタ数上限
+VARSET SORT_NUM
+VARSET CFLAG_SORTARRAY
+
+FOR LOCAL, 1, CHARANUM
+	SELECTCASE OPTION変数:キャラリスト並び替え
+		CASE 0
+			;好感度
+			SORT_NUM:(LOCAL - 1) = (CFLAG:LOCAL:好感度レベル + 1) * -1
+		CASE 1
+			;恋慕
+			SORT_NUM:(LOCAL - 1) = (CFLAG:LOCAL:恋慕レベル + 1) * -1
+		CASE 2
+			;コマンド回数
+			SORT_NUM:(LOCAL - 1) = (CFLAG:LOCAL:コマンドタゲ回数記録 + 1) * -1
+		CASE 3
+			;バストサイズ
+			SORT_NUM:(LOCAL - 1) = (補正込みバストサイズ(LOCAL) + 1) * -1
+		CASE 4
+			;性欲
+			SORT_NUM:(LOCAL - 1) = (BASE:LOCAL:性欲 + 1) * -1
+	ENDSELECT
+	CFLAG_SORTARRAY:(LOCAL - 1) = LOCAL
+NEXT
+ARRAYMSORT SORT_NUM, CFLAG_SORTARRAY
+ARRAYSHIFT CFLAG_SORTARRAY, 1, 0
+
+;-------------------------------------------------
+;関数名:TARGET_SET
+;同室中のキャラをTARGETに代入
+;-------------------------------------------------
+@TARGET_SET()
+#DIM TARGET保存
+;もとのTARGETを保存
+
+TARGET保存 = TARGET
+
+VARSET LOCAL
+VARSET TARGET
+VARSET 飲み会TARGET
+IF TFLAG:調教モード == 3
+	FOR LOCAL,1,CHARANUM
+		SIF CFLAG:MASTER:現在マップ種別 != CFLAG:(CFLAG_SORTARRAY:LOCAL):現在マップ種別
+			CONTINUE
+		SIF CFLAG:MASTER:現在位置 != CFLAG:(CFLAG_SORTARRAY:LOCAL):現在位置
+			CONTINUE
+		IF CFLAG:(CFLAG_SORTARRAY:LOCAL):飲み会
+			LOCAL:1 ++
+			飲み会TARGET:(LOCAL:1) = CFLAG_SORTARRAY:LOCAL
+		ELSE
+			LOCAL:2 ++
+			TARGET:(LOCAL:2) = CFLAG_SORTARRAY:LOCAL
+		ENDIF
+	NEXT
+	IF TARGET保存 >= CHARANUM
+		TARGET = 飲み会TARGET:1
+	ELSEIF MATCH(TARGET, TARGET保存) && TARGET保存 > 0 && CFLAG:TARGET保存:飲み会
+		;元のTARGETがいるならそれ
+		TARGET = TARGET保存
+	ELSE
+		TARGET = 飲み会TARGET:1
+	ENDIF
+ELSE
+	FOR LOCAL,1,CHARANUM
+		SIF CFLAG:MASTER:現在マップ種別 != CFLAG:(CFLAG_SORTARRAY:LOCAL):現在マップ種別
+			CONTINUE
+		SIF CFLAG:MASTER:現在位置 != CFLAG:(CFLAG_SORTARRAY:LOCAL):現在位置
+			CONTINUE
+		LOCAL:1 ++
+		TARGET:(LOCAL:1) = CFLAG_SORTARRAY:LOCAL
+	NEXT
+	IF TARGET保存 >= CHARANUM
+		TARGET = TARGET:1
+	ELSEIF MATCH(TARGET, TARGET保存) && TARGET保存 > 0
+		;元のTARGETがいるならそれ
+		TARGET = TARGET保存
+	ELSE
+		TARGET = TARGET:1
+	ENDIF
+ENDIF
+
+
+
+;キャラの態度
+@CHARA_ATTITUDE
+FOR LOCAL,1,CHARANUM
+	SIF CFLAG:LOCAL:滞在期間 < 0
+		CONTINUE
+	;二行に分けてるのは単純に見づらいから
+	LOCAL:1 = TALENT:LOCAL:恋慕 * 10 + MARK:LOCAL:屈服刻印 * 3 + MARK:LOCAL:快楽刻印 * 3 + MIN(ABL:LOCAL:欲望 * 10,50) + GETPALAMLV(PALAM:LOCAL:欲情,5) * 5 + BASE:LOCAL:ムード / 50 + (1000 - BASE:LOCAL:理性) / 30 + BASE:LOCAL:酩酊 / 20
+	LOCAL:1 += CFLAG:LOCAL:好感度レベル / 10 + 恋慕_恋心比較(LOCAL)
+	;既成事実
+	SIF 陥落チェック_性的(LOCAL) && 初体験日取得("初うふふ", LOCAL, MASTER)
+		LOCAL:1 += 5
+	;欲情補正
+	LOCAL:1 = LOCAL:1 * (5000 + MAX(PALAM:LOCAL:欲情,5000)) / 10000
+	;恋愛対象時、性欲補正
+	IF 恋愛対象外チェック(LOCAL) == 0 && !RFLAG:性愛対象外
+		IF 陥落チェック(LOCAL)
+			LOCAL:1 += BASE:LOCAL:性欲 / 100
+		ELSE
+			LOCAL:1 += BASE:LOCAL:性欲 / 200
+		ENDIF
+	ENDIF
+	SELECTCASE LOCAL:1
+		CASE IS >= 150
+			CFLAG:LOCAL:態度保存 = 3
+		CASE IS >= 100 + TALENT:LOCAL:一線越えない * 20
+			CFLAG:LOCAL:態度保存 = 2
+		CASE IS >= 50 + TALENT:LOCAL:一線越えない * 10
+			CFLAG:LOCAL:態度保存 = 1
+		CASEELSE
+			CFLAG:LOCAL:態度保存 = 0
+	ENDSELECT
+	SIF TCVAR:LOCAL:トランス残り時間 > 0
+		CFLAG:LOCAL:態度保存 = MAX(CFLAG:LOCAL:態度保存, 1)
+	SIF CFLAG:LOCAL:怒り
+		CFLAG:LOCAL:態度保存 = 0
+	SIF CFLAG:LOCAL:睡眠
+		CFLAG:LOCAL:態度保存 = 0
+NEXT
+
+;情事の発覚
+@AFFAIR_DISCLOSURE(対象キャラ, うふふ終了フラグ, 在室キャラ, 在室キャラ:1)
+#DIM 対象キャラ
+#DIM うふふ終了フラグ
+#DIMS REF 在室キャラ
+#DIM L_TMP
+#DIMS L_TMPS, 2
+
+VARSET LOCAL
+LOCAL:1 = IN_ROOM("MAX", CFLAG:MASTER:現在位置, "CFLAG", GETNUM(CFLAG, "うふふ"))
+IF CFLAG:MASTER:隠密
+	;隠密だとそもそも遭遇しない
+ELSEIF MODE_存在判定_プレイヤー側("全裸散歩", PLAYER) && !MODE_存在判定_ターゲット側("全裸散歩", 対象キャラ)
+	DRAWLINE
+	PRINTFORML %CALLNAME:対象キャラ%がこちらに近づいてくる……！
+	PRINTFORMW %CALLNAME:PLAYER%たちは見つかる前に急いでこの場から立ち去った……
+	CALL 全裸散歩終了処理()
+	RETURN -1
+ELSEIF LOCAL:1 && CFLAG:(LOCAL:1):うふふ && うふふ終了フラグ == 0 && 対象キャラ != LOCAL:1 && フィールド展開:うふふ目撃スルー == 0
+	DRAWLINE
+	IF  FINDCHARA(TCVAR:泥酔眠姦, 1, 1) > 0
+		PRINTFORMW %CALLNAME:対象キャラ%が帰ってきてしまったがなんとか誤魔化すことができた……
+		LOCAL:2 = 1
+	ELSE
+		PRINTFORMW %CALLNAME:対象キャラ%に%CALLNAME:(LOCAL:1)%との情事を見られてしまった！
+		IF 陥落チェック_性的(対象キャラ) && 初体験日取得("初うふふ", 対象キャラ, MASTER)
+			PRINTFORMW %CALLNAME:対象キャラ%は負けじと%CALLNAME:MASTER%に体を摺り寄せてきた
+			CFLAG:対象キャラ:うふふ = CFLAG:(LOCAL:1):うふふ
+			DRAWLINE
+			RETURN 0
+		ELSE
+			CFLAG:対象キャラ:情事目撃 = LOCAL:1
+			LOCAL:2 = 1
+		ENDIF
+	ENDIF
+ENDIF
+IF CFLAG:MASTER:隠密
+	;隠密だとそもそも遭遇しない
+ELSEIF ROOM_SEX(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) == 0
+	;性別施設じゃないなら発動しない
+ELSEIF フィールド展開:異性施設侵入 == 0 && TALENT:MASTER:性別 != ROOM_SEX(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) && TALENT:MASTER:性別 != 0 && TALENT:MASTER:性別 != 3 && うふふ終了フラグ == 0
+	IF 陥落チェック(対象キャラ)
+		IF TCVAR:対象キャラ:異性施設見逃し済み == 0
+			DRAWLINE
+			PRINTFORMW %CALLNAME:対象キャラ%に%GETPLACENAME(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置)%にいるところを見られてしまった！
+			PRINTFORMW %CALLNAME:対象キャラ%は他の人に見つからないように、と%CALLNAME:MASTER%を見逃してくれた。
+			TCVAR:対象キャラ:異性施設見逃し済み = 1
+		ENDIF
+	ELSE
+		DRAWLINE
+		PRINTFORMW %CALLNAME:対象キャラ%に%GETPLACENAME(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置)%にいるところを見られてしまった！
+		PRINTFORMW %CALLNAME:MASTER%は追い出されてしまった……。
+		あなた追跡キャラ = 0
+		SELECTCASE CFLAG:MASTER:現在マップ種別
+			CASE 0
+				CFLAG:MASTER:現在位置 = 2
+			;海エリア
+			CASE 3
+				CFLAG:MASTER:現在位置 = 3
+		ENDSELECT
+		TFLAG:マップ種別 = 派生マップ番号取得(CFLAG:PLAYER:現在マップ種別, CFLAG:MASTER:現在位置)
+		FOR LOCAL, 1, CHARANUM
+			SIF TARGET:LOCAL < 1
+				BREAK
+			SIF 追従中キャラ(TARGET:LOCAL)
+				CFLAG:(TARGET:LOCAL):現在位置 = CFLAG:MASTER:現在位置
+		NEXT
+		LOCAL:2 = 2
+	ENDIF
+ENDIF
+SIF LOCAL:2 == 2
+	RETURN 2
+IF LOCAL:2 || うふふ終了フラグ
+	RETURN 1
+ENDIF
+;通常遭遇
+;先んじて部屋にいたのか、あるいは後から来たのか
+IF (CFLAG:対象キャラ:前ターン位置 == CFLAG:対象キャラ:現在位置 && CFLAG:対象キャラ:前マップ種別 == CFLAG:対象キャラ:現在マップ種別)
+	IF REGEXPMATCH(在室キャラ, "たち$", L_TMP, L_TMPS)
+	ELSEIF STRLENSU(在室キャラ) > 30
+		在室キャラ += "たち"
+	ELSE
+		SIF 在室キャラ != ""
+			在室キャラ += "、"
+		在室キャラ += CALLNAME:対象キャラ
+	ENDIF
+ELSEIF (CFLAG:対象キャラ:前ターン位置 != CFLAG:対象キャラ:現在位置 || CFLAG:対象キャラ:前マップ種別 != CFLAG:対象キャラ:現在マップ種別) && (CFLAG:MASTER:前ターン位置 == CFLAG:MASTER:現在位置 && CFLAG:MASTER:前マップ種別 == CFLAG:MASTER:現在マップ種別)
+	IF REGEXPMATCH(在室キャラ:1, "たち$", L_TMP, L_TMPS)
+	ELSEIF STRLENSU(在室キャラ:1) > 30
+		在室キャラ:1 += "たち"
+	ELSE
+		SIF 在室キャラ:1 != ""
+			在室キャラ:1 += "、"
+		在室キャラ:1 += CALLNAME:対象キャラ
+	ENDIF
+ENDIF
+IF CFLAG:MASTER:隠密
+	;隠密だと話しかけてこない
+	LOCAL:3 = 0
+ELSE
+	LOCAL:3 = 1
+ENDIF
+IF LOCAL:3
+	IF CFLAG:対象キャラ:情事目撃 && CFLAG:(CFLAG:対象キャラ:情事目撃):現在位置 != CFLAG:対象キャラ:現在位置 && フィールド展開:うふふ目撃スルー == 0
+		PRINTFORMW %CALLNAME:対象キャラ%に先の%CALLNAME:(CFLAG:対象キャラ:情事目撃)%との一件について問い詰められた…
+		TRYCALLFORM KOJO_EVENT_情事目撃_{NO:対象キャラ}(対象キャラ)
+		CFLAG:対象キャラ:情事目撃 = 0
+	ELSEIF !TCVAR:対象キャラ:挨拶フラグ
+		L_TMP = LINECOUNT
+		;ある程度顔見知りじゃないと挨拶しない
+		IF MAX(CFLAG:対象キャラ:好感度レベル, CFLAG:対象キャラ:恋慕レベル) > 関係閾値:1
+			PRINTFORML あなたを見かけた%CALLNAME:対象キャラ%\@ MAX(CFLAG:対象キャラ:好感度レベル, CFLAG:対象キャラ:恋慕レベル) > 関係閾値:3? は、駆け寄ってきて# が\@挨拶してきた
+			TRYCALLFORM KOJO_EVENT_挨拶_{NO:対象キャラ}(対象キャラ)
+		ENDIF
+		TCVAR:対象キャラ:挨拶フラグ = 1
+	ENDIF
+ENDIF
+
+RETURN 0
+
+
+@MODE_BUTTON
+VARSET LOCAL
+;うふふ時のみ
+SIF !CFLAG:うふふ
+	RETURN 0
+SIF SAVESTR:ゲームフェイズ管理 == "むりやりうふふモード"
+	RETURN 0
+
+LOCAL = FLAG:モード管理
+
+SIF LOCAL == 0
+	SETCOLOR カラーパレット("黄")
+;短冊or2人同時表示時に助手切り替えボタンと被るのを防ぐ
+SIF GETBIT(画像サイズ切り替えOPTION記憶, 4) || GETBIT(画像サイズ切り替えOPTION記憶, 0)
+	PRINTFORM %"　" * 12%
+PRINTBUTTON "[通常]", 9101
+RESETCOLOR
+PRINT  
+IF GETBIT(LOCAL, モードビット_指示)
+	SETCOLOR カラーパレット("黄")
+	PRINTBUTTON @"[指示(%CALLNAME:PLAYER%指示中)]", 9102
+ELSE
+	PRINTBUTTON "[指示]", 9102
+ENDIF
+RESETCOLOR
+IF GET_TARGETNUM() > 1
+	PRINT  
+	IF GETBIT(LOCAL, モードビット_同時)
+		SETCOLOR カラーパレット("黄")
+		LOCALS = [同時(
+		FOR LOCAL, 0, 同時モード_選択数
+			SIF LOCAL > 0
+				LOCALS += "、"
+			LOCALS += @"%CALLNAME:(同時モード_選択キャラ:LOCAL)%"
+		NEXT
+		LOCALS += ")]"
+		PRINTBUTTON @"%LOCALS%", 9103
+		RESETCOLOR
+	ELSE
+		PRINTBUTTON "[同時]", 9103
+	ENDIF
+ENDIF
+PRINT  
+LOCALS = [AUTO設定:
+SELECTCASE FLAG:オートコマンド切り替えオプション
+	CASE 0
+		LOCALS += "全許可"
+	CASEELSE
+		LOCAL:1 = 0
+		IF GETBIT(FLAG:オートコマンド切り替えオプション, 0)
+			LOCALS += "AUTO"
+			LOCAL:1 += 1
+		ENDIF
+		IF GETBIT(FLAG:オートコマンド切り替えオプション, 1)
+			SIF LOCAL:1
+				LOCALS += "/"
+			LOCALS += "一般"
+			LOCAL:1 += 1
+		ENDIF
+		IF GETBIT(FLAG:オートコマンド切り替えオプション, 2)
+			SIF LOCAL:1
+				LOCALS += "/"
+			LOCALS += "自慰"
+			LOCAL:1 += 1
+		ENDIF
+		IF GETBIT(FLAG:オートコマンド切り替えオプション, 3)
+			SIF LOCAL:1
+				LOCALS += "/"
+			LOCALS += "許可系"
+			LOCAL:1 += 1
+		ENDIF
+		LOCALS += "禁止"
+		SIF LOCAL:1 == 15
+			LOCALS = [AUTO設定:全禁止
+ENDSELECT
+
+
+LOCALS += "]"
+PRINTBUTTON @"%LOCALS%", 9104
+
+PRINTL 
+
+;-------------------------------------------------
+;	時計画像を表示
+;
+;	ARG		：時刻
+;	iSize	：フォントに対するサイズ％数値　縦基準　縦横比維持　省略で500(5倍)
+;	sAlign	：align属性　省略で左寄せ　left, center, rightの三種が指定できます
+;-------------------------------------------------
+@INFO_CLOCK_IMAGE(ARG, iSize=500,sAlign="right")
+#DIM iSize
+#DIMS sAlign
+#DIMS sPrint_Text
+#DIM iEnter_Con
+#DIM iFont_Hei_mag
+#DIM i_height
+#DIM i_Width
+
+iEnter_Con = 0
+iFont_Hei_mag = GETCONFIG("一行の高さ") * iSize*10 / GETCONFIG("フォントサイズ")
+iFont_Hei_mag = (iFont_Hei_mag/10) + (iFont_Hei_mag%10 >= 5?1#0)
+
+LOCALS '= GET_CLOCK_IMAGE_NAME(ARG)
+i_height = SPRITEHEIGHT(LOCALS)
+i_width = SPRITEWIDTH(LOCALS)
+IF i_height >= i_width
+	;正方形～縦長の場合、縦幅を描画領域いっぱいにする
+	i_height = iFont_Hei_mag
+ELSE
+	;横長の場合、縦幅を縮小する
+	i_height = iFont_Hei_mag * i_height / i_width
+ENDIF
+
+sPrint_Text = <div size='{iFont_Hei_mag}, {iFont_Hei_mag}' xpos='{5500 - iFont_Hei_mag}'>
+sPrint_Text += @"<p align='%sAlign%'><nobr>"
+sPrint_Text += @"<img src='%LOCALS%' height='{i_height}'"
+sPrint_Text += @"ypos='{iEnter_Con * iFont_Hei_mag / 10+1}'>"
+sPrint_Text += @"</p></div>"
+
+;PRINTFORM %sPrint_Text%
+HTML_PRINT sPrint_Text, 1
+;-------------------------------------------------
+;	時計画像名を取得
+;
+;	ARG	：時刻
+;-------------------------------------------------
+@GET_CLOCK_IMAGE_NAME(ARG)
+#FUNCTIONS
+#DIM HOUR
+#DIM MINUTE
+#DIMS IMAGE_NAME
+HOUR   = ARG / 60 % 12
+MINUTE = ARG % 60 / 5 * 5
+IMAGE_NAME = 時計_%TOSTR(HOUR,"00")%_%TOSTR(MINUTE,"00")%
+RETURNF IMAGE_NAME
+
+
+@通常時体力ゲージ表示(キャラ番号)
+#DIM キャラ番号
+#DIMS ゲージ表示文
+#DIM ゲージ幅
+
+LOCALS = 体力: 
+ゲージ表示文 = <div rect='62,0,3125,250'>
+;ゲージ幅決定（1000の時450、最大1800）
+ゲージ幅 = MIN(350 + MAX(MAXBASE:キャラ番号:体力 - 700, 0) / 3, 1800)
+IF BASE:キャラ番号:体力 > 0
+	ゲージ表示文 += @"<shape type='rect' param='0,70,{MAX(1, BASE:キャラ番号:体力 * ゲージ幅 / MAXBASE:キャラ番号:体力)},30' color='#50B050'>"
+ENDIF
+IF MAXBASE:キャラ番号:体力 - BASE:キャラ番号:体力 > 0
+	ゲージ表示文 += @"<shape type='rect' param='0,70,{ゲージ幅 - (MAX(1, BASE:キャラ番号:体力 * ゲージ幅 / MAXBASE:キャラ番号:体力))},30' color='#205020'>"
+ENDIF
+ゲージ表示文 += "</div>"
+
+LOCALS:1 = {BASE:キャラ番号:体力,4}/{MAXBASE:キャラ番号:体力,4}
+LOCALS += @"%ゲージ表示文%<div rect='62,0,3125,250'>%LOCALS:1, ゲージ幅 / 50%</div>"
+HTML_PRINT LOCALS, 1
+
+@通常時性欲ゲージ表示(キャラ番号, ゲージのみ)
+#DIM キャラ番号
+#DIM ゲージのみ
+#DIMS ゲージ表示文
+#DIM ゲージ幅
+
+LOCALS = 性欲: 
+ゲージ表示文 = <div rect='62,0,3125,250'>
+;ゲージ幅決定（1000の時450、最大1800）
+ゲージ幅 = MIN(350 + MAX(MAXBASE:キャラ番号:性欲 - 700, 0) / 3, 1800)
+IF BASE:キャラ番号:性欲 > 0
+	ゲージ表示文 += @"<shape type='rect' param='0,70,{MAX(1, BASE:キャラ番号:性欲 * ゲージ幅 / MAXBASE:キャラ番号:性欲)},30' color='#%カラーパレット_HTML("えっちなゲージ有")%'>"
+ENDIF
+IF MAXBASE:キャラ番号:性欲 - BASE:キャラ番号:性欲 > 0
+	ゲージ表示文 += @"<shape type='rect' param='0,70,{ゲージ幅 - MAX(1, BASE:キャラ番号:性欲 * ゲージ幅 / MAXBASE:キャラ番号:性欲)},30' color='#%カラーパレット_HTML("えっちなゲージ無")%'>"
+ENDIF
+ゲージ表示文 += "</div>"
+
+LOCALS:1 = {BASE:キャラ番号:性欲,4}/{MAXBASE:キャラ番号:性欲,4}
+
+IF CFLAG:キャラ番号:うふふ && !ゲージのみ
+	ゲージ表示文 += "<div rect='62,0,3125,250'>"
+	;ゲージ幅決定（1000の時450、最大1800）
+	ゲージ幅 = MIN(350 + MAX(MAXBASE:キャラ番号:満足 - 700, 0) / 3, 1800)
+	IF BASE:キャラ番号:満足 > 0
+		ゲージ表示文 += @"<shape type='rect' param='0,70,{MAX(1, BASE:キャラ番号:満足 * ゲージ幅 / MAXBASE:キャラ番号:満足)},30' color='#%カラーパレット_HTML("黄")%'>"
+	ENDIF
+	; IF MAXBASE:キャラ番号:満足 - BASE:キャラ番号:満足 > 0
+	; 	ゲージ表示文 += @"<shape type='rect' param='0,70,{ゲージ幅 - MAX(1, BASE:キャラ番号:満足 * ゲージ幅 / MAXBASE:キャラ番号:満足)},30' color='#%カラーパレット_HTML("えっちなゲージ無")%'>"
+	; ENDIF
+	ゲージ表示文 += "</div>"
+	ゲージ表示文 += @"<div rect='{MAX(1, BASE:キャラ番号:満足 * ゲージ幅 / MAXBASE:キャラ番号:満足) + 20},65,100,250'>▴</div>"
+	LOCALS:2 = 満足度{BASE:キャラ番号:満足 * 100 / MAX(BASE:キャラ番号:性欲, 1), 3}\%
+	IF 連れ込みパターン != ""
+		LOCALS:2 = <img src='えっちハート'>欲求不満<img src='えっちハート'>：%連れ込みパターン%
+	ELSEIF BASE:キャラ番号:満足 * 100 / MAX(BASE:キャラ番号:性欲, 1) > 999
+		;4桁満足度の場合は表示を変更
+		LOCALS:2 = <img src='えっちハート'>大満足<img src='えっちハート'>
+	ENDIF
+	ゲージ表示文 += @"<div rect='{LIMIT((BASE:キャラ番号:満足 * ゲージ幅 / MAXBASE:キャラ番号:満足) - 80, 1, 1350)},145,3000,250'>%LOCALS:2%</div>"
+
+ENDIF
+
+LOCALS += @"%ゲージ表示文%<div rect='62,0,3125,250'>%LOCALS:1, ゲージ幅 / 50%</div>"
+HTML_PRINT LOCALS, 1
+
+;-------------------------------------------------
+; 意識状態の表示
+;-------------------------------------------------
+@意識状態表示(対象キャラ)
+#DIM  対象キャラ
+#DIM  起床予定時刻
+#DIM  残り時間
+#DIM  時間表示判定
+#DIMS 意識状態
+#DIMS 表示テキスト
+
+#DIM CONST 表示開始時刻 = 300 ; 残り時間の表示を開始する時刻(300分 = 5:00)
+
+;- 意識状態の判定
+IF CFLAG:対象キャラ:睡眠
+	意識状態 '= "睡眠"
+ELSEIF TCVAR:TARGET:トランス残り時間 > 0
+	意識状態 '= "トランス"
+ELSE
+	; 意識状態が通常の場合は表示なしで終了
+	RETURN
+ENDIF
+
+;- 残り時間の計算と表示判定
+時間表示判定 = 0
+残り時間     = 0
+SELECTCASE 意識状態
+	CASE "睡眠"
+		;- 睡眠残り時間計算(要:睡眠診断)
+		IF あなた特殊能力:睡眠診断
+			;- 起床までの残り時間を算出
+			CALL CHARA_ROUTINE_STATUS(対象キャラ, "起床時刻")
+			起床予定時刻 = RESULT + TCVAR:対象キャラ:行動時間ゆらぎ
+			残り時間 = MAX(起床予定時刻 - TIME, 0)
+			
+			;- 時間帯による表示判定
+			; ・就寝後は起きないのが明確なので残り時間を表示しない
+			; ・徹夜して起床時間が近づいた場合は表示を再開する
+			SELECTCASE TIME
+				; 0時～早朝
+				CASE 0 TO 表示開始時刻 - 1
+					時間表示判定 = 0
+				; 早朝～起床
+				CASE 表示開始時刻 TO 起床予定時刻
+					時間表示判定 = 1
+				; 起床～就寝
+				; ・睡眠状態にならないので省略
+				; 就寝～0時
+				CASEELSE
+					時間表示判定 = 0
+			ENDSELECT
+		ENDIF
+
+	CASE "トランス"
+		;- トランス(残り時間表示なし)
+		時間表示判定 = 0
+		残り時間 = TCVAR:TARGET:トランス残り時間
+ENDSELECT
+
+IF 時間表示判定
+	; 残り時間表示あり
+	表示テキスト '= 意識状態
+	表示テキスト += "/あと"
+	SIF 残り時間 / 60
+		表示テキスト += @"{残り時間 / 60}時間"
+	表示テキスト += @"{残り時間 % 60}分"
+ELSE
+	; 残り時間表示なし
+	表示テキスト '= 意識状態
+ENDIF
+PRINTFORM （%表示テキスト%）
+
+
+;-------------------------------------------------
+; 全裸かチェック。全裸なら1、ピアス名札のみだったら2を返す
+;-------------------------------------------------
+@全裸チェック(ARG)
+#FUNCTION
+#DIM  ピアス名札あり,1
+
+ピアス名札あり = 0
+FOR LOCAL, 150, 172
+	SIF TEQUIP:ARG:LOCAL && TEQUIP:ARG:LOCAL > -2
+		RETURNF 0
+	SIF TEQUIP:ARG:LOCAL < -1
+		ピアス名札あり = 1
+NEXT
+SIF ピアス名札あり
+	RETURNF 2
+RETURNF 1
+
+
+;-------------------------------------------------
+; 全裸かチェック。全裸なら1、ピアス名札のみだったら2を返す
+;-------------------------------------------------
+@追加アイコン表示処理(対象キャラ, 表示文字列)
+#DIM 対象キャラ
+#DIMS 表示文字列
+
+;キャラ固有の表示を呼ぶ前に、素質や出典作品などで一括表示をする処理を噛ませる
+;結果はRESULTSで返すかPRINTで表示する
+
+;デレマス処理
+IF CSTR:対象キャラ:出演作品 == "アイドルマスターシンデレラガールズ"
+	IF 特定状況口上用フラグ:対象キャラ:0
+		IF 表示文字列 == "PRINT"
+			PRINT_IMG "デレマス_マーク"
+		ELSE
+			RESULTS += "<img src='デレマス_マーク'>"
+		ENDIF
+	ENDIF
+ENDIF
+
+;その他固有処理
+TRYCALLFORM キャラ固有_名前横アイコン表示_{NO:対象キャラ}(対象キャラ, 表示文字列)

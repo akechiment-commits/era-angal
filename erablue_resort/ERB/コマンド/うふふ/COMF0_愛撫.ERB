@@ -1,0 +1,186 @@
+﻿;-------------------------------------------------
+;愛撫
+;愛撫系コマンド　レベル2
+;-------------------------------------------------
+@COMNAME0
+#FUNCTIONS
+TSTR:コマンド名受渡 = 愛撫
+
+SIF GETBIT(FLAG:モード管理, モードビット_同時)
+	TSTR:コマンド名受渡 = 同時に愛撫
+
+
+
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_0
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("うふふ")
+弱点コマンドカテゴリ = CB
+;同時モード許可：同時モードで◯人まで同時に実行可能
+;同時モード拡張許可：１にするとあなた特殊能力やその他の効果で同時モードが実行可能な最大人数を増加させることができる
+;オートコマンド許可：相手がオートコマンドで実行してくる。１は通常、２は自慰系、３は許可必須
+;連続オート許可：１にすると過去５回にオート実行してても実行可能になる
+同時モード許可 = 2
+同時モード拡張許可 = 1
+オートコマンド許可 = 1
+連続オート許可 = 1
+ダウン中許可 = 1
+
+@COM_TOOLTIP_0
+LOCALS = <br>■愛撫<br>
+LOCALS += "相手へ軽い愛撫を行うコマンド。<br>実行者が[舌使い][器用な指][猫舌]を持っている場合、効果が増減する。"
+LOCALS += "<br>COMタイプ：うふふ<br>取得ソース：快Ｃ・快Ｂ・快Ｓ・露出・接触"
+LOCALS += "<br>固有の取得経験：なし<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@COM0
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+
+;舌を使う調教では、舌使い,猫舌によって、快感のソース増減
+LOCAL = 80
+SIF TALENT:PLAYER:舌使い
+	TIMES LOCAL , 1.50
+SIF TALENT:PLAYER:器用な指
+	TIMES LOCAL , 1.50
+SIF TALENT:PLAYER:猫舌
+	TIMES LOCAL , 0.75
+
+CALL SOURCE_CALC_快Ｃ(TARGET, PLAYER, LOCAL)
+CALL SOURCE_CALC_快Ｂ(TARGET, PLAYER, LOCAL)
+CALL SOURCE_CALC_快Ｓ(TARGET, PLAYER, LOCAL / 2)
+CALL SOURCE_CALC_露出(TARGET, PLAYER, 100)
+
+CALL SOURCE_CALC_接触(TARGET, PLAYER, 80)
+
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;同性愛
+SIF 同性愛性癖判定(TARGET,PLAYER)
+	EXP:TARGET:同性愛経験 += 5
+SIF 同性愛性癖判定(PLAYER,TARGET)
+	EXP:PLAYER:同性愛経験 += 5
+	
+;手淫経験
+EXP:PLAYER:手淫経験 += 1
+
+;調教者が猫舌持ちの場合は、調教者に嗜虐快楽経験を追加
+SIF TALENT:PLAYER:猫舌
+	EXP:PLAYER:嗜虐快楽経験 += 1
+
+RETURN 1
+
+;-------------------------------------------------
+;愛撫実行判定
+;-------------------------------------------------
+@COM_ABLE0
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+
+;上か下に鎧があると無理
+SIF TEQUIP:TARGET:上半身鎧あり
+	RETURN 0
+SIF TEQUIP:TARGET:下腹部前鎧あり
+	RETURN 0
+
+;一括管理
+SIF GLOBAL_COMABLE(0)
+	RETURN RESULT
+;指を何かに使ってるなら無理
+SIF TEQUIP:PLAYER:指
+	RETURN 0
+IF !MODE_シックスナイン中_完全一致(TARGET, PLAYER)
+	;口戯系、パイズリ系は体勢的に無理
+	SIF MODE_存在判定_完全一致("口戯系", TARGET, PLAYER)
+		RETURN 0
+	SIF MODE_存在判定_完全一致("パイズリ系", TARGET, PLAYER)
+		RETURN 0
+ENDIF
+;足コキは体勢的に無理
+SIF MODE_存在判定_完全一致("足コキ", TARGET, PLAYER)
+	RETURN 0
+	
+;オートコマンド中の制限
+SIF FLAG:オートコマンド判定中フラグ && TALENT:TARGET:性別 == 2 &&  OPTION変数:男性への愛撫禁止
+	RETURN 0	
+	
+RETURN 1
+
+
+
+
+;-------------------------------------------------
+;愛撫時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM0
+#DIM 同時キャラ番号
+
+PRINTFORM %CALLNAME:PLAYER%は
+IF GETBIT(FLAG:モード管理, 1)
+	LOCAL = -1
+	IF MODE_存在判定_プレイヤー側("Ｖ挿入系", PLAYER)
+		LOCAL = DT_CELL_GET("体位モードデータベース", モードID受渡し, "対象キャラ", 1)
+	ELSEIF MODE_存在判定_プレイヤー側("Ａ挿入系", PLAYER)
+		LOCAL = DT_CELL_GET("体位モードデータベース", モードID受渡し, "対象キャラ", 1)
+	ELSEIF MODE_存在判定_ターゲット側("Ｖ挿入系", PLAYER)
+		LOCAL = DT_CELL_GET("体位モードデータベース", モードID受渡し, "実行キャラ", 1)
+	ELSEIF MODE_存在判定_ターゲット側("Ａ挿入系", PLAYER)
+		LOCAL = DT_CELL_GET("体位モードデータベース", モードID受渡し, "実行キャラ", 1)
+	ENDIF
+	IF LOCAL >= 0
+		PRINTFORM %CALLNAME:LOCAL%とつながったまま
+	ENDIF
+	FOR 同時キャラ番号, 0, 同時モード_選択数
+		SIF 同時キャラ番号 > 0
+			PRINT 、
+		PRINTFORM %CALLNAME:(同時モード_選択キャラ:同時キャラ番号)%
+	NEXT
+	PRINTL の体を丹念に愛撫した…
+ELSE
+	;膣とアナルに入れてるのがあれば持ち主を特定
+	SIF MODE_存在判定_順不同("ＶＡ挿入系", PLAYER, TARGET)
+		PRINTFORM %CALLNAME:TARGET%とつながったまま
+	PRINTFORM %CALLNAME:TARGET%の
+	;小柄体型
+	SIF TALENT:種族 == 4
+		PRINT 小柄な
+	PRINTL 体を丹念に愛撫した…
+ENDIF
+
+
+
+
+@MESSAGE_COM0_非口上時
+
+IF NOWEX:Ｃ絶頂 || NOWEX:Ｖ絶頂 || NOWEX:Ａ絶頂 || NOWEX:Ｂ絶頂
+	IF MODE_存在判定_完全一致("Ｖ挿入系", PLAYER, TARGET)
+		PRINTFORML %CALLNAME:TARGET%の膣は%CALLNAME:PLAYER%が体に触れるたびにびくびくと収縮し
+	ELSEIF MODE_存在判定_完全一致("Ａ挿入系", PLAYER, TARGET)
+		PRINTFORML %CALLNAME:TARGET%のアヌスは%CALLNAME:PLAYER%が体に触れるたびにびくびくと収縮し
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%が体に触れるたびにびくびくと震え
+	ENDIF
+	IF EXP_UP(27,TARGET)
+		PRINTFORML 快楽にとろけた顔で%CALLNAME:PLAYER%の唇を求めてきた…
+	ELSE
+		PRINTFORML 与えられる快楽にあえいでいる…
+	ENDIF
+ELSE
+	IF MODE_存在判定_完全一致("ＶＡ挿入系", PLAYER, TARGET)
+		PRINTFORM %CALLNAME:TARGET%はくわえ込んだペニスを締め付けながら
+	ELSE
+		PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%にぴったりと寄り添いながら
+	ENDIF
+	IF EXP_UP(27,TARGET)
+		PRINTFORML %CALLNAME:PLAYER%の唇を求めてきた…
+	ELSE
+		PRINTFORML 与えられる快楽に体を震わせて反応している…
+	ENDIF
+ENDIF

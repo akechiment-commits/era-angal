@@ -1,0 +1,561 @@
+﻿;関数置き場
+;売却可、助手可の奴隷がいるかどうか
+@ISSALE(ARG)
+#FUNCTION
+FOR LOCAL,0,CHARANUM
+	SIF GETBIT(CFLAG:LOCAL:1,ARG)
+		RETURNF 1
+NEXT
+;-------------------------------------------------
+;アイテム販売状況@ITEMSTOCK
+;戻り値1 アイテムが存在しない
+;戻り値2 売切
+;戻り値3 お金が足りない
+;戻り値4 条件を満たしていない
+;戻り値5 すでに99個所持している
+;-------------------------------------------------
+@ITEMSTOCK(ARG)
+#FUNCTION
+SIF !STRLENS(ITEMNAME:ARG)
+	RETURNF 1
+SIF ITEMSALES:ARG == -2
+	RETURNF 4
+SIF ITEMSALES:ARG == -1
+	RETURNF 2
+SIF MONEY < ITEMPRICE:ARG
+	RETURNF 3
+SIF ITEM:ARG >= 99
+	RETURNF 5
+RETURNF 0
+
+;-------------------------------------------------
+;関数名:CHOICE
+;概　要:２～４択関数
+;引　数:ARGS:0…質問内容
+;      :ARGS:1～4…選択肢の文字列(3,4は省略可)
+;戻り値:ユーザ入力結果(0～3)
+;選択条件の無い、シンプルな選択肢作成関数
+;口上とかでも使えるかもしれない
+;とりあえず4択まで。増やしてもいいけど
+;-------------------------------------------------
+@CHOICE(ARGS:0, ARGS:1, ARGS:2, ARGS:3, ARGS:4)
+PRINTSL ARGS:0
+FOR LOCAL, 0, 4
+	PRINTFORML [{LOCAL}] - %ARGS:(1 + LOCAL)%
+	SIF LOCAL && !STRLENS(ARGS:(2 + LOCAL))
+		BREAK
+NEXT
+$INPUT_LOOP
+INPUT
+SELECTCASE RESULT
+	CASE 0 TO LOCAL - 1
+	CASEELSE
+		CLEARLINE 1
+		GOTO INPUT_LOOP
+ENDSELECT
+RETURN RESULT
+
+;-------------------------------------------------
+;関数名:GET_REVISION
+;概　要:汎用補正値取得関数
+;引　数:ARG:0…参照する数値
+;       ARG:1…上限
+;       ARG:2…上昇率
+;戻り値:補正後の値
+;備　考:式中関数
+;ある数値を、上限値に漸近していく数値に変換したいときに
+;ARG:2が小さいとすぐに上限に達する、大きいと逆になかなか上限まで近づかない
+;-------------------------------------------------
+@GET_REVISION(ARG:0, ARG:1, ARG:2)
+#FUNCTION
+RETURNF ARG:1 - ARG:2 * ARG:1 / (ARG:2 + ARG:0)
+
+@GET_REVISION2(ARG:0, ARG:1, ARG:2)
+#FUNCTION
+RETURNF ARG:1 * (ARG:0 + 1) / (ARG:2 + ARG:0 + 1)
+
+;-------------------------------------------------
+;関数名:GET_汎用好感補正曲線
+;概　要:汎用成長補正値取得関数
+;引　数:ARG:0…参照する数値
+;       ARG:1…最大値
+;戻り値:補正後の値
+;備　考:式中関数
+;最初は上昇値が緩やかで中盤に急激に伸び、終盤はまた緩やかになる曲線を描く
+;本当は計算で汎用化したかったが、ネイピア数がめんどくさかったので好感度レベル専用に
+;-------------------------------------------------
+@GET_汎用好感補正曲線(ARG:0, ARG:1)
+#FUNCTION
+
+SELECTCASE ARG:0
+	CASE 関係閾値:0 TO 関係閾値:2
+		;他人～顔見知り間
+		RETURNF ARG:0 * ARG:1 / 300
+	CASE 関係閾値:2 TO 関係閾値:3
+		;友人間
+		RETURNF (ARG:0 - 関係閾値:2) * ARG:1 / 90 + ARG:1 / 15
+	CASE 関係閾値:3 TO 関係閾値:4
+		;親友間
+		RETURNF (ARG:0 - 関係閾値:3) * ARG:1  * 7 / 450 + ARG:1 * 6 / 15
+	CASE 関係閾値:4 TO 関係閾値:5
+		;無二の友間
+		RETURNF (ARG:0 - 関係閾値:4) * ARG:1 / 150 + ARG:1 * 13 / 15
+ENDSELECT
+
+
+RETURNF 0
+
+
+
+;-------------------------------------------------
+;関数名:PRINT_BASE
+;概　要:汎用補正値取得関数
+;引　数:ARGS バーの名前
+;		ARG:0…参照するキャラ番号
+;       ARG:1…ベースの番号
+;       ARG:2…バーの長さ
+;BARを表示させたいときに
+;-------------------------------------------------
+@PRINT_BASE(ARGS,ARG:0,ARG:1,ARG:2)
+PRINTFORM %ARGS,%
+BAR BASE:ARG:(ARG:1),MAXBASE:ARG:(ARG:1),ARG:2
+PRINTFORML ({BASE:ARG:(ARG:1)}/{MAXBASE:ARG:(ARG:1)})
+;-------------------------------------------------
+;未読判定関数@ONCE
+;式中で使用する関数です
+;ARGSはイベント番号、ARGは真だと初回判定を更新しない、ARG:1はキャラ登録番号（省略するとTARGET,-1ならMASTER）
+;{イベント番号}/　という文字列をCSTR:1にぶっこんでいきます
+;-------------------------------------------------
+@ONCE(ARGS,ARG, ARG:1)
+#FUNCTION
+;ARG:2の変換
+ARG:1 = ARG:1 ? ARG:1 # TARGET
+ARG:1 = ARG:1 == -1 ? MASTER # ARG:1
+
+SIF CSTR:(ARG:1):1 == ""
+	CSTR:(ARG:1):1 = /
+
+LOCALS = /%ARGS%/
+IF STRCOUNT(CSTR:(ARG:1):1,LOCALS)
+	RETURNF 0
+ELSEIF ARG
+	RETURNF 1
+ENDIF
+;初回判定更新
+CSTR:(ARG:1):1 = %CSTR:(ARG:1):1%%ARGS%/
+RETURNF 1
+;フラグリセット処理
+@EVENTTRAIN
+FOR LOCAL,0,CHARANUM
+	CSTR:LOCAL:1 = 
+NEXT
+
+;-------------------------------------------------
+;未読判定関数@FIRSTTIME
+;式中で使用する関数です。
+;ARGSはイベント番号、ARGは真だと初回判定を更新しない、ARG:1はキャラ登録番号（省略するとTARGET,-1ならMASTER）
+;{イベント番号}/　という文字列をCSTR:0にぶっこんでいきます
+;-------------------------------------------------
+@FIRSTTIME(ARGS,ARG, ARG:1)
+#FUNCTION
+;ARG:1の変換
+ARG:1 = ARG:1 ? ARG:1 # TARGET
+ARG:1 = ARG:1 == -1 ? MASTER # ARG:1
+SIF CSTR:(ARG:1):0 == ""
+	CSTR:(ARG:1):0 = /
+
+LOCALS = /%ARGS%/
+IF STRCOUNT(CSTR:(ARG:1):0,LOCALS)
+	RETURNF 0
+ELSEIF ARG
+	RETURNF 1
+ENDIF
+;初回判定更新
+CSTR:(ARG:1):0 = %CSTR:(ARG:1):0%%ARGS%/
+RETURNF 1
+
+;-------------------------------------------------
+;関数名:EXP_UP
+;概　要:経験値変動チェック
+;引　数:ARG:0…参照するEXP
+;       ARG:1…参照するキャラ番号
+;-------------------------------------------------
+@EXP_UP(ARG,ARG:1)
+#FUNCTION
+RETURNF EXP:(ARG:1):ARG - TCVAR:(ARG:1):(400 + ARG)
+
+;-------------------------------------------------
+;関数名:HETEROSEX
+;ARGとARG:1の性別が同じかどうかを返すほんとはHOMOSEXだけど語感が悪いので
+;女性器を持つものは女、持たないものを男とする
+;戻り値0=異性
+;戻り値1=同性(レズ)
+;戻り値2=同性(ゲイ)
+;ふたなり絡みは同性愛にならない、その他性別も同性愛にならない
+;-------------------------------------------------
+@HETEROSEX(ARG,ARG:1)
+#FUNCTION
+IF TALENT:ARG:性別 == 2 && TALENT:(ARG:1):性別 == 2
+	RETURNF 2
+ELSEIF TALENT:ARG:性別 == 1 && TALENT:(ARG:1):性別 == 1
+	RETURNF 1
+ELSE
+	RETURNF 0
+ENDIF
+
+@同性愛性癖判定(判定キャラ, 相手キャラ)
+#FUNCTION
+#DIM 判定キャラ
+#DIM 相手キャラ
+
+IF TALENT:判定キャラ:性愛傾向 == 3
+	;両刀はスルー
+ELSEIF TALENT:判定キャラ:性別 == 3 || TALENT:相手キャラ:性別 == 3
+	;どっちかがふたなりならスルー
+ELSEIF TALENT:判定キャラ:性別 == 0 || TALENT:相手キャラ:性別 == 0
+	;無性もスルー
+ELSE
+	;それ以外のパターン
+	SELECTCASE TALENT:判定キャラ:性愛傾向
+		CASE 1
+			SIF TALENT:相手キャラ:性別 != 1
+				RETURNF 1
+		CASE 2
+			SIF TALENT:相手キャラ:性別 != 2
+				RETURNF 1
+		CASEELSE
+			;同性時は基本対象外
+			SIF TALENT:判定キャラ:性別 == TALENT:相手キャラ:性別
+				RETURNF 1
+	ENDSELECT
+ENDIF
+
+RETURNF 0
+
+;-------------------------------------------------
+;関数名:SOURCE_REVISION1
+;快楽系SOURCEの快楽系ABLによる補正
+;1/10される
+;-------------------------------------------------
+@SOURCE_REVISION1(ARG)
+#FUNCTION
+SELECTCASE ARG
+	CASE 0
+		RETURNF 5
+	CASE 1 TO 3
+		RETURNF 10 * ARG
+	CASE 4 TO 9
+		RETURNF 20 * ARG - 30
+	CASEELSE
+		RETURNF 150
+ENDSELECT
+;-------------------------------------------------
+;関数名:SOURCE_REVISION2
+;快楽系SOURCEに依存するUP:欲望のABL:欲望による補正
+;1/100される
+;-------------------------------------------------
+@SOURCE_REVISION2(ARG)
+#FUNCTION
+SELECTCASE ARG
+	CASE 0 TO 5
+		RETURNF 50 + 10 * ARG
+	CASE 6 TO 9
+		RETURNF 75 + 5 * ARG
+	CASEELSE
+		RETURNF 140
+ENDSELECT
+
+;-------------------------------------------------
+;関数名:GET_TARGETNUM
+;同室中のTARGETの数を返す
+;-------------------------------------------------
+@GET_TARGETNUM
+#FUNCTION
+VARSET LOCAL
+FOR LOCAL,1,CHARANUM
+	SIF TARGET:LOCAL <= 0
+		BREAK
+	SIF TARGET:LOCAL > 0
+		LOCAL:1 ++
+NEXT
+RETURNF LOCAL:1
+
+;-------------------------------------------------
+;関数名:GET_陥落TARGETNUM
+;同室中の陥落済みTARGETの数を返す
+;-------------------------------------------------
+@GET_陥落TARGETNUM
+#FUNCTION
+VARSET LOCAL
+FOR LOCAL,1,CHARANUM
+	SIF TARGET:LOCAL <= 0
+		BREAK
+	SIF 陥落チェック_性的(TARGET:LOCAL)
+		LOCAL:1 ++
+NEXT
+RETURNF LOCAL:1
+
+;-------------------------------------------------
+;関数名:GET_飲み会TARGETNUM
+;同室中の飲み会TARGETの数を返す
+;-------------------------------------------------
+@GET_飲み会TARGETNUM
+#FUNCTION
+VARSET LOCAL
+FOR LOCAL,1,CHARANUM
+	SIF 飲み会TARGET:LOCAL <= 0
+		BREAK
+	SIF 飲み会TARGET:LOCAL > 0
+		LOCAL:1 ++
+NEXT
+RETURNF LOCAL:1
+
+;-------------------------------------------------
+;関数名:GET_うふふTARGETNUM
+;同室中のTARGETでうふふ中の数を返す
+;-------------------------------------------------
+@GET_うふふTARGETNUM
+#FUNCTION
+VARSET LOCAL
+FOR LOCAL,1,CHARANUM
+	SIF TARGET:LOCAL <= 0
+		BREAK
+	SIF CFLAG:(TARGET:LOCAL):うふふ
+		LOCAL:1 ++
+NEXT
+RETURNF LOCAL:1
+
+;-------------------------------------------------
+;関数名:GET_ダウンTARGETNUM
+;同室中のTARGETでダウン中の数を返す
+;-------------------------------------------------
+@GET_ダウンTARGETNUM
+#FUNCTION
+VARSET LOCAL
+FOR LOCAL,1,CHARANUM
+	SIF TARGET:LOCAL <= 0
+		BREAK
+	SIF CFLAG:(TARGET:LOCAL):体力限界
+		LOCAL:1 ++
+NEXT
+RETURNF LOCAL:1
+
+;-------------------------------------------------
+;関数名:GET_DAY
+;概　要:曜日を表す文字列を取得する関数
+;引　数:なし
+;戻り値:曜日を表す文字列(日/月/火/水/木/金/土)
+;備　考:文中関数
+;-------------------------------------------------
+@GET_DAY
+#FUNCTIONS
+;月の何週目？
+RETURNF 曜日登録:(DAY % 7)
+
+@月算出
+#FUNCTIONS
+;何月？
+RESULT = DAY / 120 + 1
+RETURNF 月登録:((DAY / 30) % 4)
+
+@GETDISHNAME(ARG)
+#FUNCTIONS
+SELECTCASE ARG
+	CASE 1
+		RETURNF "サンドイッチ"
+	CASE 2
+		RETURNF "おにぎり"
+	CASE 10
+		RETURNF "ヲムレツ"
+	CASE 11
+		RETURNF "シチュー"
+	CASE 12
+		RETURNF "ハンバーグ"
+	CASE 13
+		RETURNF "グラタン"
+	CASE 14
+		RETURNF "カレーライス"
+	CASE 15
+		RETURNF "ステーキ"
+	CASE 16
+		RETURNF "ラーメン"
+	CASE 17
+		RETURNF "うどん"
+	CASE 18
+		RETURNF "素麺"
+	CASE 19
+		RETURNF "蕎麦"
+	CASE 50
+		RETURNF "プリン"
+	CASE 51
+		RETURNF "ケーキ"
+	CASE 52
+		RETURNF "ゼリー"
+	CASE 53
+		RETURNF "タルト"
+	CASE 54
+		RETURNF "クッキー"
+	CASE 55
+		RETURNF "パイ"
+	CASE 56
+		RETURNF "羊羹"
+	CASE 57
+		RETURNF "大福"
+	CASE 58
+		RETURNF "カステラ"
+	CASE 59
+		RETURNF "団子"
+ENDSELECT
+
+;-------------------------------------------------
+;関数名:二人目画像表示用
+;概　要:複数人プレイ時に二人目以降のランダムなキャラ番号を返す
+;引　数:ARG
+;戻り値:ARG=0ならランダムな同室者キャラ番号。該当者がいない場合0を返す
+;      :ARG<0なら候補人数を返す。ARG>0なら候補配列のARG人目のキャラ番号を返す。該当者が居ない場合0を返す
+;-------------------------------------------------
+@二人目画像表示用(ARG=0, 非うふふフラグ = 0)
+#FUNCTION
+#DIM 非うふふフラグ
+#DIM 候補配列, VARSIZE("TARGET")
+
+VARSET LOCAL
+FOR LOCAL, 0, CHARANUM
+	;該当者がいないなら0を返す
+	SIF TARGET:LOCAL < 1
+		BREAK
+	;現在の調教対象と違っていて、かつうふふならその番号を返す
+	IF TARGET:LOCAL == TARGET
+	ELSEIF 非うふふフラグ
+		候補配列:(LOCAL:1) = TARGET:LOCAL
+		LOCAL:1 ++
+	ELSEIF CFLAG:(TARGET:LOCAL):うふふ
+		候補配列:(LOCAL:1) = TARGET:LOCAL
+		LOCAL:1 ++
+	ENDIF
+NEXT
+
+IF LOCAL:1 == 0 || ARG > LOCAL:1
+	RETURNF 0
+ELSEIF ARG < 0
+	RETURNF LOCAL:1
+ELSEIF ARG > 0
+	RETURNF 候補配列:(ARG - 1)
+ELSE
+	RETURNF 候補配列:(RAND:(LOCAL:1))
+ENDIF
+
+;-------------------------------------------------
+;リゾート人気度を小数点以下付きの文字列で返す関数
+;小数点以下は3桁
+;-------------------------------------------------
+@リゾート人気度全文字列()
+#FUNCTIONS
+RETURNF TOSTR(リゾート人気度*1000 + リゾート人気度小数点以下, "#,##0,.000")
+
+;-------------------------------------------------
+;ZPを小数点以下付きの文字列で返す関数
+;小数点以下は3桁
+;-------------------------------------------------
+@ZP所持量全文字列()
+#FUNCTIONS
+RETURNF TOSTR(FLAG:ZP所持量*1000 + ZP小数点以下所持量, "#,##0,.000")
+
+;-------------------------------------------------
+;数字を文字列化し３桁カンマをつける式中関数
+;使用例 %NUM_FORMAT(MONEY)%
+;-------------------------------------------------
+@NUM_FORMAT(ARG)
+#FUNCTIONS
+RETURNF TOSTR(ARG:0, "N0")
+
+;-------------------------------------------------
+;金額数値を３桁カンマと通貨単位をつけた文字列にする式中関数
+;使用例 %MON_FORMAT(MONEY)%
+;_Replace.csvで通貨単位と単位位置を指定
+;-------------------------------------------------
+@MON_FORMAT(ARG)
+#FUNCTIONS
+RETURNF MONEYSTR(ARG, "N0")
+
+;-------------------------------------------------
+;eraTWから流用させていただきました。
+;-------------------------------------------------
+;単語1/単語2/…/単語n の書式で書かれたARGS:0～の単語のどれかを等確率で返す
+;(ARGSが複数あるのは関数などが突っ込まれることを想定しているため)
+;＿は何も出力しない選択とする
+;選択肢の数を100まで拡張、RESULT退避処理追加
+;抽選処理が等確率ならFOR-NEXT使わなくてよいと思ったのでRANDで済ませる
+;-------------------------------------------------
+@TEXTR(ARGS, ARGS:1, ARGS:2, ARGS:3, ARGS:4, ARGS:5, ARGS:6)
+#FUNCTIONS
+#DIM  L_RESULT               ;RESULT退避用
+#DIMS DYNAMIC CHOICES        ;結果
+#DIMS DYNAMIC STR_ARRAY, 100 ;選択肢格納用の一時変数
+L_RESULT = RESULT
+;まず一つにまとめる
+ARGS = %ARGS%\/%ARGS:1%\/%ARGS:2%\/%ARGS:3%\/%ARGS:4%\/%ARGS:5%\/%ARGS:6%
+;不要な"/"を削る作業
+;空のARGSがあると//がたくさん出来て判定の邪魔になるので
+;1.//は置換で削る
+;2.最末尾が/なら削る（SPLITとRANDをそのまま使う都合上）
+ARGS '= REPLACE(ARGS, "\/+", "/")
+SIF CHARATU(ARGS, STRLENSU(ARGS) - 1) == "/"
+	ARGS '= SUBSTRINGU(ARGS, 0, STRLENSU(ARGS) - 1)
+SPLIT ARGS, "/", STR_ARRAY
+CHOICES '= STR_ARRAY:(RAND:RESULT)
+SIF CHOICES == "＿"
+	CHOICES =
+RESULT = L_RESULT
+RETURNF CHOICES
+
+
+@十六進数文字列化(元数値)
+#FUNCTIONS
+#DIM 元数値
+#DIM 補正値, 2
+#DIMS 返り文字列
+;数値を十六進数の文字列にして返す
+;基本的にHTML_PRINTのカラー変更用
+
+返り文字列 = 
+
+FOR LOCAL, 5, -1, -1
+	補正値:0 = POWER(16, LOCAL)
+	補正値:1 = POWER(16, LOCAL + 1)
+	SELECTCASE 元数値 % 補正値:1 / 補正値:0
+		CASE 0 TO 9
+			返り文字列 += @"{元数値 % 補正値:1 / 補正値:0}"
+		CASE 10
+			返り文字列 += "A"
+		CASE 11
+			返り文字列 += "B"
+		CASE 12
+			返り文字列 += "C"
+		CASE 13
+			返り文字列 += "D"
+		CASE 14
+			返り文字列 += "E"
+		CASE 15
+			返り文字列 += "F"
+	ENDSELECT
+NEXT
+
+RETURNF 返り文字列
+
+@任意日付表示 (時間数値, 日付のみフラグ)
+#DIM 時間数値
+#DIM 日付保存
+#DIM 時間保存
+#DIM 日付のみフラグ
+
+日付保存 = 時間数値 / 1440
+時間保存 = 時間数値 % 1440
+
+IF 日付のみフラグ
+	PRINTFORM %@"{日付保存 / 120 + 1}年目 %月登録:((日付保存 / 30) % 4)% {日付保存 % 30 + 1}日(%曜日登録:(日付保存 % 7)%)", 22, LEFT%
+ELSE
+	PRINTFORM %@"{日付保存 / 120 + 1}年目 %月登録:((日付保存 / 30) % 4)% {日付保存 % 30 + 1}日(%曜日登録:(日付保存 % 7)%){時間保存 / 60}時{時間保存 % 60}分", 30, LEFT%
+ENDIF
+
+

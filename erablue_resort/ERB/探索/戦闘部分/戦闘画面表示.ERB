@@ -1,0 +1,359 @@
+﻿
+@BATTLE_エネミー描画
+#DIM バフ数
+#DIM デバフ数
+#DIM バフ・デバフ番号
+#DIM レイヤー番号
+#DIM 表示位置
+#DIM 描画開始位置
+#DIM 描画幅
+#DIM 潜伏フラグ
+レイヤー番号 = 10
+
+FOR LOCAL, 0, 10
+	GDISPOSE LOCAL + 10
+	GDISPOSE LOCAL + 30
+	SPRITEDISPOSE (@"エネミー_{LOCAL}")
+	SPRITEDISPOSE (@"エネミー_{LOCAL}_ボタン")
+NEXT
+
+;ステータス
+FOR LOCAL, 0, 10
+	SIF 敵BATTLE_STATE_STR:LOCAL:エネミー名 == ""
+		CONTINUE
+
+	;潜伏バフ時に選択出来なくする場面の場合、フラグをONにしとく
+	潜伏フラグ = 0
+	IF GETBIT(エネミー画像ボタン化フラグ, 1) && バフ存在判定("潜伏", LOCAL + 10)
+		潜伏フラグ = 1
+	ENDIF
+
+	IF 敵BATTLE_STATE:LOCAL:ボスフラグ
+		GCREATE レイヤー番号, 470, 184
+		GCREATE レイヤー番号 + 20, 470, 184
+	ELSE
+		GCREATE レイヤー番号, 235, 92
+		GCREATE レイヤー番号 + 20, 235, 92
+	ENDIF
+	GSETFONT レイヤー番号, GETFONT(), 18
+	GSETPEN レイヤー番号, 0x00FFFFFF, -1
+	LOCAL:2 = 敵BATTLE_STATE:LOCAL:ＨＰ
+	LOCAL:3 = 敵BATTLE_STATE:LOCAL:最大ＨＰ
+	GSETBRUSH レイヤー番号, 属性数値文字色変換_透明度込(敵BATTLE_STATE:LOCAL:属性)
+	IF LOCAL:2 <= 0 || 潜伏フラグ
+		GSETBRUSH レイヤー番号, カラーパレット_透明度込("戦闘不能")
+	ENDIF
+	IF 敵BATTLE_STATE:LOCAL:ボスフラグ
+		GFILLRECTANGLE レイヤー番号, 0 , 0, 470, 184
+		GSETBRUSH レイヤー番号, 0xFF101010
+		GFILLRECTANGLE レイヤー番号, 5, 5, 460, 174
+	ELSE
+		GFILLRECTANGLE レイヤー番号, 0 , 0, 235, 92
+		GSETBRUSH レイヤー番号, 0xFF101010
+		GFILLRECTANGLE レイヤー番号, 5, 5, 225, 82
+	ENDIF
+	GSETBRUSH レイヤー番号, 0xFFC0C0C0
+	IF LOCAL:2 <= 0 || 潜伏フラグ
+		GSETBRUSH レイヤー番号, カラーパレット_透明度込("戦闘不能")
+	ENDIF
+	GDRAWTEXT レイヤー番号, @"%敵BATTLE_STATE_STR:LOCAL:エネミー名%", 10, 10
+	IF 敵BATTLE_STATE:LOCAL:ボスフラグ
+		GDISPOSE レイヤー番号 + 70
+		IF 敵BATTLE_STATE_STR:LOCAL:ボス画像 != ""
+			CALLF GCREATE_拡張子F(レイヤー番号 + 70, 敵BATTLE_STATE_STR:LOCAL:ボス画像)
+		ENDIF
+		IF GCREATED(レイヤー番号 + 70)
+			GDRAWG レイヤー番号, レイヤー番号 + 70, 10, 30, 140, 140, 0, 0, 180, 180
+			GDRAWTEXT レイヤー番号, @"HP:", 155, 30
+			描画開始位置 = 188
+			描画幅 = 180
+		ELSE
+			GDRAWTEXT レイヤー番号, @"HP:", 10, 30
+			描画開始位置 = 43
+			描画幅 = 325
+		ENDIF
+		GSETBRUSH レイヤー番号, 0xFF808080
+		GFILLRECTANGLE レイヤー番号, 描画開始位置 - 2, 42, MAX(描画幅 + 4, 1), 6
+		IF LOCAL:2 < LOCAL:3 / 3
+			IF LOCAL:2 > 0
+				GSETBRUSH レイヤー番号, 0xFFE60033
+				GFILLRECTANGLE レイヤー番号, 描画開始位置, 43, MAX(描画幅 * LOCAL:2 / LOCAL:3, 5), 4
+				IF LOCAL:2 != LOCAL:3
+					GSETBRUSH レイヤー番号, 0xFF80001C
+					GFILLRECTANGLE レイヤー番号, 描画開始位置 + MAX(描画幅 * LOCAL:2 / LOCAL:3, 5), 43, MAX(描画幅 - (描画幅 * LOCAL:2 / LOCAL:3), 1), 4
+				ENDIF
+			ELSE
+				GSETBRUSH レイヤー番号, 0xFF404040
+				GFILLRECTANGLE レイヤー番号, 描画開始位置 - 2, 42, MAX(描画幅 + 4, 1), 6
+				GSETBRUSH レイヤー番号, 0xFF80001C
+				GFILLRECTANGLE レイヤー番号, 描画開始位置, 43, 描画幅, 4
+			ENDIF
+		ELSE
+			IF LOCAL:2 > 0
+				GSETBRUSH レイヤー番号, 0xFF00E000
+				GFILLRECTANGLE レイヤー番号, 描画開始位置, 43, MAX(描画幅 * LOCAL:2 / LOCAL:3, 1), 4
+			ENDIF
+			IF LOCAL:2 != LOCAL:3
+				GSETBRUSH レイヤー番号, 0xFF006000
+				GFILLRECTANGLE レイヤー番号, 描画開始位置 + (描画幅 * LOCAL:2 / LOCAL:3), 43, MAX(描画幅 - (描画幅 * LOCAL:2 / LOCAL:3), 1), 4
+			ENDIF
+		ENDIF
+		GSETBRUSH レイヤー番号, 属性数値文字色変換_透明度込(敵BATTLE_STATE:LOCAL:属性)
+		GDRAWTEXT レイヤー番号, @"属性:%属性数値文字列変換(敵BATTLE_STATE:LOCAL:属性)%", 397, 30
+	ELSE
+		描画開始位置 = 43
+		GDRAWTEXT レイヤー番号, @"HP:", 描画開始位置 - 33, 30
+		GSETBRUSH レイヤー番号, 0xFF808080
+		GFILLRECTANGLE レイヤー番号, 描画開始位置 - 2, 42, MAX(90 + 4, 1), 6
+		IF LOCAL:2 < LOCAL:3 / 3
+			IF LOCAL:2 > 0
+				GSETBRUSH レイヤー番号, 0xFFE60033
+				GFILLRECTANGLE レイヤー番号, 描画開始位置, 43, MAX(90 * LOCAL:2 / LOCAL:3, 5), 4
+				IF LOCAL:2 != LOCAL:3
+					GSETBRUSH レイヤー番号, 0xFF80001C
+					GFILLRECTANGLE レイヤー番号, 描画開始位置 + MAX(90 * LOCAL:2 / LOCAL:3, 5), 43, MIN(90 - (90 * LOCAL:2 / LOCAL:3), 85), 4
+				ENDIF
+			ELSE
+				GSETBRUSH レイヤー番号, 0xFF404040
+				GFILLRECTANGLE レイヤー番号, 描画開始位置 - 2, 42, MAX(90 + 4, 1), 6
+				GSETBRUSH レイヤー番号, 0xFF80001C
+				GFILLRECTANGLE レイヤー番号, 描画開始位置, 43, 88, 4
+			ENDIF
+		ELSE
+			IF LOCAL:2 > 0
+				GSETBRUSH レイヤー番号, 0xFF00E000
+				GFILLRECTANGLE レイヤー番号, 描画開始位置, 43, MAX(90 * LOCAL:2 / LOCAL:3, 1), 4
+			ENDIF
+			IF LOCAL:2 != LOCAL:3
+				GSETBRUSH レイヤー番号, 0xFF006000
+				GFILLRECTANGLE レイヤー番号, 描画開始位置 + (90 * LOCAL:2 / LOCAL:3), 43, MAX(90 - (90 * LOCAL:2 / LOCAL:3), 1), 4
+			ENDIF
+		ENDIF
+		GSETBRUSH レイヤー番号, 属性数値文字色変換_透明度込(敵BATTLE_STATE:LOCAL:属性)
+		GDRAWTEXT レイヤー番号, @"属性:%属性数値文字列変換(敵BATTLE_STATE:LOCAL:属性)%", 162, 30
+	ENDIF
+	GSETBRUSH レイヤー番号, 0xFFC0C0C0
+	LOCAL:2 = 敵BATTLE_STATE:LOCAL:チャージターン
+	LOCAL:3 = 敵BATTLE_STATE:LOCAL:最大チャージターン
+	CALL バフ・デバフ測定(LOCAL + 10, "最大ＣＴ増加")
+	LOCAL:3 += RESULT
+	GDRAWTEXT レイヤー番号, @"CT:", 描画開始位置 - 33, 50
+	FOR LOCAL:10, 0, LOCAL:3
+		IF LOCAL:10 < LOCAL:2
+			GSETBRUSH レイヤー番号, 0xFFDD0000
+		ELSE
+			GSETBRUSH レイヤー番号, 0xFF444444
+		ENDIF
+		GFILLRECTANGLE レイヤー番号, 描画開始位置 - 1 + (15 * LOCAL:10), 50, 10, 18
+	NEXT
+	
+	GSETBRUSH レイヤー番号, 0xFFC0C0C0
+	TRYCALLFORM 戦闘画面表示_%敵BATTLE_STATE_STR:LOCAL:エネミー関数キー%(レイヤー番号, LOCAL + 10)
+	GSETBRUSH レイヤー番号, 0xFFC0C0C0
+	
+	;バフ・デバフマーク表示
+	表示位置 = 0
+	FOR バフ・デバフ番号, 0, DT_ROW_LENGTH("戦闘効果データベース")
+		SIF DT_CELL_GET("戦闘効果データベース", バフ・デバフ番号, "特殊表示オプション") == -1
+			CONTINUE
+		SIF DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ") != "バフ"
+			CONTINUE
+		SIF DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "適用範囲") != @"{LOCAL + 10}"
+			CONTINUE
+		GDRAWSPRITE レイヤー番号, 状態変化アイコン文字列算出(バフ・デバフ番号), 表示位置 * 15, 0,  15, 15
+		表示位置 ++
+	NEXT
+	FOR バフ・デバフ番号, 0, DT_ROW_LENGTH("戦闘効果データベース")
+		SIF DT_CELL_GET("戦闘効果データベース", バフ・デバフ番号, "特殊表示オプション") == -1
+			CONTINUE
+		SIF DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ") != "デバフ"
+			CONTINUE
+		SIF DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "適用範囲") != @"{LOCAL + 10}"
+			CONTINUE
+		GDRAWSPRITE レイヤー番号, 状態変化アイコン文字列算出(バフ・デバフ番号), 表示位置 * 15, 0,  15, 15
+		表示位置 ++
+	NEXT
+
+	CALL リソース登録(@"エネミー_{LOCAL}", レイヤー番号)
+	IF 敵BATTLE_STATE:(LOCAL):ボスフラグ
+		GDRAWG レイヤー番号 + 20, レイヤー番号, 0 , 0, 470, 184, 0 , 0, 470, 184, ボタン化用カラーマトリクス:0:0
+		CALL リソース登録(@"エネミー_{LOCAL}_ボタン", レイヤー番号 + 20)
+		LOCAL += 3
+		レイヤー番号 += 3
+	ELSE
+		GDRAWG レイヤー番号 + 20, レイヤー番号, 0 , 0, 235, 92, 0 , 0, 235, 92, ボタン化用カラーマトリクス:0:0
+		CALL リソース登録(@"エネミー_{LOCAL}_ボタン", レイヤー番号 + 20)
+		レイヤー番号 += 1
+	ENDIF
+NEXT
+
+
+@戦闘画像表示部分
+#DIM 潜伏フラグ
+
+;表示部分
+VARSET LOCALS
+VARSET LOCAL
+LOCALS = 
+IF 戦闘背景画像 != ""
+	LOCALS += @"<div rect='125, 987, 3125, 3125'><img src='%戦闘背景画像%' height='3125'></div>"
+ENDIF
+FOR LOCAL, 0, 4
+	SIF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	LOCAL:1 = 3375
+	SIF LOCAL == 戦闘行動キャラ
+		LOCAL:1 = 3175
+	LOCALS += @"<div rect='{LOCAL:1},{LOCAL * 800 + 987},2500,5000'>"
+	IF キャラ画像ボタン化フラグ
+		LOCALS += @"<button value='{LOCAL}' ><img src='キャラ_{LOCAL}' srcb='キャラ_{LOCAL}_ボタン' height='750' width='2462' ypos='0'></button>"
+	ELSE
+		LOCALS += @"<nonbutton><img src='キャラ_{LOCAL}' height='750' width='2462' ypos='0'></nonbutton>"
+	ENDIF
+	LOCALS += "</div>"
+NEXT
+FOR LOCAL, 0, 10
+	LOCAL:1 = 262
+	SIF LOCAL == 戦闘行動キャラ - 10
+		LOCAL:1 = 362
+	SIF 敵BATTLE_STATE_STR:LOCAL:エネミー名 == ""
+		CONTINUE
+
+	;潜伏バフ時に選択出来なくする場面の場合、フラグをONにしとく
+	潜伏フラグ = 0
+	IF GETBIT(エネミー画像ボタン化フラグ, 1) && バフ存在判定("潜伏", LOCAL + 10)
+		潜伏フラグ = 1
+	ENDIF
+
+	LOCAL:2 = 敵BATTLE_STATE:LOCAL:ＨＰ
+	IF 敵BATTLE_STATE:(LOCAL):ボスフラグ
+		LOCALS += @"<div rect='{LOCAL:1},{1125 + (LOCAL / 2) * 575},3125,1250'>"
+		IF エネミー画像ボタン化フラグ && LOCAL:2 > 0 && 潜伏フラグ == 0
+			LOCALS += @"<button value='{LOCAL + 10}' ><img src='エネミー_{LOCAL}' srcb='エネミー_{LOCAL}_ボタン' height='1037' width='2650'></button>"
+		ELSE
+			LOCALS += @"<nonbutton><img src='エネミー_{LOCAL}' height='1037' width='2650'></nonbutton>"
+		ENDIF
+		LOCALS += "</div>"
+		LOCAL += 3
+	ELSE
+	LOCALS += @"<div rect='{LOCAL:1 + (LOCAL % 2) * 1469},{1125 + (LOCAL / 2) * 575},1462,510'>"
+		IF エネミー画像ボタン化フラグ && LOCAL:2 > 0 && 潜伏フラグ == 0
+			LOCALS += @"<button value='{LOCAL + 10}' ><img src='エネミー_{LOCAL}' srcb='エネミー_{LOCAL}_ボタン' height='511' width='1305'></button>"
+		ELSE
+			LOCALS += @"<nonbutton><img src='エネミー_{LOCAL}' height='511' width='1305'></nonbutton>"
+		ENDIF
+		LOCALS += "</div>"
+	ENDIF
+NEXT
+;LOCALS += "<div rect='200,4250,5662,1687'><nonbutton><img src='メッセージ欄' height='933' width='5635' ypos='0'></nonbutton></div>"
+LOCALS += "<div rect='200,0,5662,1687'><nonbutton><img src='上メッセージ欄' height='933' width='5635' ypos='0'></nonbutton></div>"
+LOCALS += @"%TSTR:メッセージ欄文字列受け渡し_上側%"
+LOCALS += @"%TSTR:メッセージ欄文字列受け渡し_下側%"
+HTML_PRINT LOCALS, 1
+
+RETURN 46
+
+
+@状態変化アイコン文字列算出(バフ・デバフ番号, 表示キャラキー)
+#FUNCTIONS
+#DIM バフ・デバフ番号
+#DIMS DYNAMIC アイコン名
+#DIMS 表示キャラキー
+
+
+IF 表示キャラキー != ""
+	RSTR:リソース名受け渡し = 
+	IF ISNUMERIC(表示キャラキー)
+		;味方キャラの場合、NOが入ってくる
+		TRYCALLFORMF 固有状態変化アイコン_{NO:(TOINT(表示キャラキー))}(TOINT(表示キャラキー), DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "効果枠"), DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ"))
+	ELSE
+		;敵キャラの場合、名前が入ってくる
+		TRYCALLFORMF 固有状態変化アイコン_%表示キャラキー%(DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "効果枠"), DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ"))
+	ENDIF
+	DEBUGPRINTFORML %RSTR:リソース名受け渡し%
+	IF RSTR:リソース名受け渡し != ""
+		;スプライトの生成
+		;何番でもいいけどとりあえず口上に合わせて20000以降を使用
+		アイコン名 = 口上用画像{20000 + TFLAG:口上用画像表示番号}
+		GDISPOSE 20000 + TFLAG:口上用画像表示番号
+		SPRITEDISPOSE アイコン名
+		GCREATEFROMFILE 20000 + TFLAG:口上用画像表示番号, RSTR:リソース名受け渡し
+		SPRITECREATE アイコン名, 20000 + TFLAG:口上用画像表示番号
+		TFLAG:口上用画像表示番号 ++
+		IF SPRITECREATED(アイコン名)
+			RETURNF アイコン名
+		ENDIF
+	ENDIF
+ENDIF
+
+RSTR:リソース名受け渡し = 
+TRYCALLFORMF 固有状態変化アイコン_%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "効果枠")%(DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ"))
+IF RSTR:リソース名受け渡し != ""
+	;スプライトの生成
+	;何番でもいいけどとりあえず口上に合わせて20000以降を使用
+	アイコン名 = 口上用画像{20000 + TFLAG:口上用画像表示番号}
+	GDISPOSE 20000 + TFLAG:口上用画像表示番号
+	SPRITEDISPOSE アイコン名
+	GCREATEFROMFILE 20000 + TFLAG:口上用画像表示番号, RSTR:リソース名受け渡し
+	SPRITECREATE アイコン名, 20000 + TFLAG:口上用画像表示番号
+	TFLAG:口上用画像表示番号 ++
+	IF SPRITECREATED(アイコン名)
+		RETURNF アイコン名
+	ENDIF
+ENDIF
+
+アイコン名 '= DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "アイコン")
+IF アイコン名 != ""
+	;何もしない
+ELSEIF GETNUM(BATTLE_STATE, DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力"), 2) > 0
+	;ステータス系
+	SIF STRFIND(DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "効果枠"), "累積") >= 0
+		アイコン名 = %DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ")%_%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力")%_累積
+	;累積バフ、かつ累積アイコンがない時、通常アイコンがあるならそっちを表示
+	SIF アイコン名 == "" || !SPRITECREATED(アイコン名)
+		アイコン名 = %DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ")%_%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力")%
+ELSEIF SPRITECREATED(@"%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ")%_%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力")%")
+	;まず累積
+	SIF STRFIND(DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "効果枠"), "累積") >= 0
+		アイコン名 = %DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ")%_%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力")%_累積
+	;累積バフ、かつ累積アイコンがない時、通常アイコンがあるならそっちを表示
+	SIF アイコン名 == ""
+		アイコン名 = %DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ")%_%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力")%
+ELSE
+	;例外処理をずらずらと列記
+	IF STRFIND(DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力"), "ダメージ補正_") >= 0 && DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ") == "バフ"
+		アイコン名 = バフ_与ダメージ上昇
+	ENDIF
+	IF DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力") == "与ダメージ" && DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ") == "バフ"
+		アイコン名 = バフ_与ダメージ上昇
+	ENDIF
+	SELECTCASE DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "対象能力")
+		CASE "与回復量", "被回復量"
+			IF DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ") == "バフ"
+				アイコン名 = バフ_回復量
+			ENDIF
+		CASE "テンション"
+			アイコン名 = バフ_テンション{DT_CELL_GET("戦闘効果データベース", バフ・デバフ番号, "効果量_固定値")}
+		CASE "被ダメージ"
+			;バフのみ専用アイコン
+			IF DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ") == "バフ"
+				IF DT_CELL_GET("戦闘効果データベース", バフ・デバフ番号, "効果量_割合") % 10 == 0
+					;10の倍数割合なら専用アイコン
+					アイコン名 = バフ_被ダメージ_{DT_CELL_GET("戦闘効果データベース", バフ・デバフ番号, "効果量_割合")}
+				ELSE
+					;それ以外なら汎用
+					アイコン名 = バフ_被ダメージ_他
+				ENDIF
+			ENDIF
+	ENDSELECT
+	;累積かつ累積アイコンがあるならそれを使用
+	IF STRFIND(DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "効果枠"), "累積") >= 0 && SPRITECREATED(@"%アイコン名%_累積")
+		アイコン名 += "_累積"
+	ENDIF
+ENDIF
+
+IF SPRITECREATED(アイコン名)
+	RETURNF アイコン名
+ELSE
+	RETURNF @"%DT_CELL_GETS("戦闘効果データベース", バフ・デバフ番号, "バフ・デバフフラグ")%アイコン"
+ENDIF

@@ -1,0 +1,957 @@
+﻿@EVENTTRAIN0
+#DIM 定住フラグ
+#DIM 同行配列番号
+#DIM デート件数
+#DIM 判定値
+#DIM 店増加数
+#DIMS 属性登録
+#DIM 知識番号
+#DIM 候補配列, 50
+
+
+VARSET TARGET
+DRAWLINE
+CALL 招待キャラ来訪処理
+CALL 常連キャラ来訪処理
+WAIT
+DRAWLINE
+;１００以上になった関係を完了させる
+CALL 縁結び完了処理()
+DAY_RAND = RAND:1000
+
+;初期化・滞在期間処理
+FOR LOCAL,0,CHARANUM
+	;危険日などを設定する
+	CALL SET_PREGNANCY_PALAM(LOCAL)
+
+	;乱数のセット
+	CFLAG:LOCAL:C_DAY_RAND = RAND:1000
+
+	;同棲処理
+	IF TALENT:LOCAL:定住者 == 1 && RAND:10 == 0
+		;同棲を言い出す処理、確率は条件満たしてから１０％
+		;今現在同棲していないこと
+		IF キャラクター部屋検索(LOCAL) >= 1000 && STRCOUNT(定住者部屋割り配列:(キャラクター部屋検索(LOCAL) - 1000), "_") < 2
+			;同行確率を見て一定値以上の相手が定住しているかどうかを見る
+			FOR 同行配列番号, 0, 100
+				SIF 同行候補キャラ番号:LOCAL:同行配列番号 < 1
+					CONTINUE
+				SIF 同行候補キャラ番号:LOCAL:同行配列番号 == LOCAL
+					CONTINUE
+				;相手が定住してないならダメ
+				SIF TALENT:(同行候補キャラ番号:LOCAL:同行配列番号):定住者 != 1
+					CONTINUE
+				;相手の部屋が既に５人いたらダメ
+				SIF STRCOUNT(定住者部屋割り配列:(キャラクター部屋検索(同行候補キャラ番号:LOCAL:同行配列番号) - 1000), "_") > 4
+					CONTINUE
+				;男女の組み合わせなら90以上、そうでないなら50以上が条件
+				IF TALENT:LOCAL:性別 == 2 && TALENT:(同行候補キャラ番号:LOCAL:同行配列番号):性別 == 1 || TALENT:LOCAL:性別 == 1 && TALENT:(同行候補キャラ番号:LOCAL:同行配列番号):性別 == 2
+					判定値 = 90
+				ELSE
+					判定値 = 50
+				ENDIF
+				;恋人同士だと判定値を50に
+				SIF DT_SELECT("関係性データベース", @"(対象キャラ１ = {CFLAG:LOCAL:人物番号} Or 対象キャラ２ = {CFLAG:LOCAL:人物番号}) And (対象キャラ１ = {CFLAG:(同行候補キャラ番号:LOCAL:同行配列番号):人物番号} Or 対象キャラ２ = {CFLAG:(同行候補キャラ番号:LOCAL:同行配列番号):人物番号}) And (関係性種別 = '恋慕' Or 関係性種別 = 'セフレ')")
+					判定値 = 50
+				SIF 同行候補キャラ確率:LOCAL:同行配列番号 < 判定値
+					CONTINUE
+				;素質とかで確率を変動させたいけど、とりあえずは25％くらいで
+				IF RAND:4 == 0
+					$引っ越し希望
+					PRINTFORML %CALLNAME:LOCAL%は今の部屋を引き払い、%CALLNAME:(同行候補キャラ番号:LOCAL:同行配列番号)%と同じ部屋に移ることを希望しているようだ。
+					PRINTL 引っ越しを許可しますか？
+					PRINTBUTTON "[0] はい", 0
+					PRINTL
+					PRINTBUTTON "[1] いいえ", 1
+					PRINTL
+					PRINTBUTTON @"[2] %CALLNAME:LOCAL%の情報を見る", 2
+					PRINTL
+					PRINTBUTTON @"[3] %CALLNAME:(同行候補キャラ番号:LOCAL:同行配列番号)%の情報を見る", 3
+					PRINTL
+					BINPUT
+					IF RESULT == 0
+						PRINTFORML %CALLNAME:LOCAL%の引っ越しを許可しました！
+						PRINTFORMW %CALLNAME:LOCAL%は%CALLNAME:(同行候補キャラ番号:LOCAL:同行配列番号)%と同じ部屋で暮らし始めました
+						;部屋から削除
+						RESULT = キャラクター部屋検索(LOCAL)
+						IF STRFIND(定住者部屋割り配列:(RESULT - 1000), @"_{LOCAL}_") > -1
+							定住者部屋割り配列:(RESULT - 1000) = %REPLACE(定住者部屋割り配列:(RESULT - 1000), @"_{LOCAL}_", "_")%
+						ELSE
+							定住者部屋割り配列:(RESULT - 1000) = %SUBSTRING(定住者部屋割り配列:(RESULT - 1000), STRLENS(@"{LOCAL}_"), -1)%
+						ENDIF
+						;部屋に追加
+						RESULT = キャラクター部屋検索(同行候補キャラ番号:LOCAL:同行配列番号)
+						定住者部屋割り配列:(RESULT - 1000) += @"{LOCAL}_"
+					ELSEIF RESULT == 2
+						CALL キャラ簡易紹介(LOCAL)
+						WAIT
+						GOTO 引っ越し希望
+					ELSEIF RESULT == 3
+						CALL キャラ簡易紹介(同行候補キャラ番号:LOCAL:同行配列番号)
+						WAIT
+						GOTO 引っ越し希望
+					ELSE
+						PRINTFORMW %CALLNAME:LOCAL%の引っ越しを断りました
+					ENDIF
+					BREAK
+				ENDIF
+			NEXT
+		ENDIF
+	ENDIF
+	;一日期間を減らす
+	IF CFLAG:LOCAL:滞在期間 > 0 && CFLAG:LOCAL:滞在期間 < 999  && !CFLAG:LOCAL:長期雇用
+		CFLAG:LOCAL:滞在期間 -= 1
+		IF CFLAG:LOCAL:滞在期間 == 0
+			定住フラグ = 0
+			IF MATCH(開拓エリア開発番号, 大規模番号_居住区エリア) > 0
+				IF TALENT:LOCAL:常連 && TALENT:LOCAL:定住者 == 0 && 定住エリア満杯() == 0
+					;常連かつ定住者じゃない時、一定確率で定住を申し出る
+					;素質とかで確率を変動させたいけど、とりあえずは25％くらいで
+					IF OPTION変数:キャラ自動移住 == 2
+						;申し出てこない
+					ELSEIF OPTION変数:キャラ自動移住 == 1 && 陥落チェック(LOCAL) == 0
+						;陥落以外申し出てこない
+					ELSEIF RAND:4 == 0
+						$定住希望
+						PRINTFORML %CALLNAME:LOCAL%はこのリゾート島に定住を希望しているようだ。
+						IF OPTION変数:キャラ自動移住 == 3
+							;申し出スキップ
+							RESULT = 0
+						ELSE
+							PRINTL 定住を許可しますか？
+							PRINTFORML 残り部屋数：{RFLAG:定住枠残りカウント, 3}部屋
+							DRAWLINE
+							PRINTBUTTON "[0] はい", 0
+							PRINTL
+							PRINTBUTTON "[1] いいえ", 1
+							PRINTL
+							PRINTBUTTON @"[2] %CALLNAME:LOCAL%の情報を見る", 2
+							PRINTL
+							BINPUT
+						ENDIF
+						IF RESULT == 0
+							PRINTFORML %CALLNAME:LOCAL%の定住を許可しました！
+							PRINTFORMW %CALLNAME:LOCAL%は居住区エリアの住宅街で暮らし始めました
+							CALL 滞在者部屋割り配列削除処理(LOCAL)
+							TALENT:LOCAL:定住者 = 1
+							CFLAG:LOCAL:滞在期間 = 999
+							FOR LOCAL:1, 0, 住宅街広さ()
+								IF 定住者部屋割り配列:(LOCAL:1) == ""
+									定住者部屋割り配列:(LOCAL:1) = {LOCAL}_
+									BREAK
+								ENDIF
+							NEXT
+							定住フラグ = 1
+						ELSEIF RESULT == 2
+							CALL キャラ簡易紹介(LOCAL)
+							WAIT
+							GOTO 定住希望
+						ELSE
+							PRINTFORMW %CALLNAME:LOCAL%の定住を断りました
+						ENDIF
+					ENDIF
+				ENDIF
+			ENDIF
+			IF 定住フラグ == 0
+				;0になったら帰宅し滞在期間をマイナスに
+				PRINTFORML %CALLNAME:LOCAL%は滞在を終え、帰っていった
+				IF CFLAG:LOCAL:リゾート来訪回数 >= 3 && TALENT:LOCAL:常連 == 0
+					PRINTFORMW %CALLNAME:LOCAL%はリゾートへの来訪を重ね、［常連］になった！
+					TALENT:LOCAL:常連 = 1
+				ENDIF
+				CALL 滞在終了時初期化(LOCAL)
+				CFLAG:LOCAL:滞在期間 = -1
+			ENDIF
+		ENDIF
+	ENDIF
+
+	;キャラ個別処理があれば呼び出す
+	TRYCALLFORM DAYFIRST_CHARAEVENT_{NO:LOCAL}
+	;その他の固有処理を呼び出す
+	TRYCALLFORM DAYFIRST_CHARAEVENT_ETC(LOCAL)
+	;滞在してないキャラはスルー
+	IF CFLAG:LOCAL:滞在期間 == -1
+		RCVAR:LOCAL:表示カット = 1
+		CONTINUE
+	ENDIF
+	;AUTOCOM変数のリセット
+	CALL AUTOCOM用変数リセット()
+	;衣装設定
+	CALL CLOTHES_TODAY(LOCAL)
+	CALL CLOTHES_RESET(LOCAL)
+	CALL CLOTHES_RESET_TRAIN(LOCAL)
+	;勃起、ムード、理性、怒り
+	BASE:LOCAL:勃起 = 0
+	BASE:LOCAL:ムード = 0
+	BASE:LOCAL:理性 = MAXBASE:LOCAL:11
+	BASE:LOCAL:怒り = 0
+	CFLAG:LOCAL:勃起度 = 0
+	CFLAG:LOCAL:同行 = 0
+	CFLAG:LOCAL:酔いすぎ = 0
+	;経験表示用
+	CALL EXP変動記録処理(LOCAL)
+	;お祭り参加履歴
+	IF 開催予定日取り == DAY
+		IF LOCAL
+			TRYCALLFORM MOVE_ROUTINE_%開催予定祭り名%(LOCAL, "参加判定")
+			IF RESULT
+				SPLIT 開催予定祭り名, "_", LOCALS
+				CALL 履歴データベース登録(CFLAG:LOCAL:人物番号, "ーーーーー" + LOCALS:1 + "に参加したーーーーー","日常リゾート")
+			ENDIF
+		ELSE  ;あなたは主催者
+			SPLIT 開催予定祭り名, "_", LOCALS
+			CALL 履歴データベース登録(CFLAG:LOCAL:人物番号, "ーーーーー" + LOCALS:1 + "を開催したーーーーー","日常リゾート")
+		ENDIF
+	ENDIF
+	;デートお誘い用の判定を設定
+	;平凡以上のデートを経験した事があるキャラは、最大スコアに応じて確率UP
+	デート件数 = DT_SELECT("デートスコアデータベース", @"デート相手人物番号 = {CFLAG:LOCAL:人物番号}", "デートスコア DESC")
+	IF デート件数
+		;デートスコア降順で並んでるはずなので、一個目のスコアを見る
+		SELECTCASE DT_CELL_GET("デートスコアデータベース", RESULT:1, "デートスコア", 1)
+			CASE IS < 7500
+				;失敗のみの場合は来ない
+				TCVAR:LOCAL:キャラからデート誘いフラグ = -1
+			CASE IS < 15000
+				;平凡時10％
+				SIF RAND:10
+					TCVAR:LOCAL:キャラからデート誘いフラグ = -1
+			CASE IS < 30000
+				;成功時20％
+				SIF RAND:5
+					TCVAR:LOCAL:キャラからデート誘いフラグ = -1
+			CASE IS < 60000
+				;大成功時40％
+				SIF RAND:5 > 1
+					TCVAR:LOCAL:キャラからデート誘いフラグ = -1
+			CASEELSE
+				;それ以外は60％
+				SIF RAND:5 > 2
+					TCVAR:LOCAL:キャラからデート誘いフラグ = -1
+		ENDSELECT
+	ELSE
+		;デートがない場合はデート誘いを封印するためフラグに代入
+		TCVAR:LOCAL:キャラからデート誘いフラグ = -1
+	ENDIF
+NEXT
+
+IF 港改造度:0:0
+	;店を持つかどうかは個別に判定
+	店増加数 = 0
+	FOR LOCAL,1,CHARANUM
+		VARSET RESULTS
+		属性登録 = 
+		;定住してること
+		SIF TALENT:LOCAL:定住者 < 1
+			CONTINUE
+		;従業員はダメ
+		IF TALENT:LOCAL:従業員 > 0
+			;仕事が商店経営ならヨシ！
+			SIF 現在仕事:LOCAL:0 != -1
+				CONTINUE
+		ENDIF
+		;もう店持ってるならダメ
+		SIF TALENT:LOCAL:店持ち > 0
+			CONTINUE
+		;条件達成していること
+		VARSET RESULTS
+		RESULT = 0
+		;特殊条件
+		TRYCALLFORM 特殊店舗_建設条件_{NO:LOCAL}(LOCAL)
+		属性登録 '= RESULTS:1
+		;特殊店舗がまだ条件満たしてないけど汎用建てさせたくない時は-1を返す
+		SIF RESULT == -1
+			CONTINUE
+		IF RESULTS == ""
+			;通常条件
+			;汎用の店持つ確率は１０％
+			SIF RAND:10
+				CONTINUE
+			VARSET 候補配列
+			LOCAL:1 = 0
+			FOR 知識番号, 1, 12
+				SIF GROUPMATCH(知識番号, GETNUM(知識素質, "魔物知識"), GETNUM(知識素質, "高貴"), GETNUM(知識素質, "踊り子"), GETNUM(知識素質, "歌唱技能"))
+					CONTINUE
+				IF 知識素質:LOCAL:知識番号 >= 2
+					候補配列:(LOCAL:1) = 知識番号
+					LOCAL:1 ++
+				ENDIF
+			NEXT
+			;候補がないなら飛ばす
+			SIF LOCAL:1 < 1
+				CONTINUE
+			;候補からランダム
+			SELECTCASE 候補配列:(RAND:(LOCAL:1))
+				CASE 1
+					STRDATA RESULTS
+						DATA 薬屋
+					ENDDATA
+					属性登録 = 薬屋
+				CASE 2
+					STRDATA RESULTS
+						DATA 魔道具店
+						DATA 魔導書屋
+					ENDDATA
+					属性登録 = 魔法店
+				CASE 3
+					STRDATA RESULTS
+						DATA 工房
+						DATA 玩具屋
+						DATA 武器屋
+					ENDDATA
+					属性登録 = 機械店
+				CASE 4
+					STRDATA RESULTS
+						DATA 錬金工房
+						DATA アトリエ
+					ENDDATA
+					属性登録 = 錬金店
+				CASE 6
+					STRDATA RESULTS
+						DATA アトリエ
+						DATA 画廊
+					ENDDATA
+					属性登録 = 絵師店
+				CASE 8
+					STRDATA RESULTS
+						DATA 釣具店
+					ENDDATA
+					属性登録 = 釣具店
+				CASE 11
+					STRDATA RESULTS
+						DATA 小料理屋
+						DATA レストラン
+						DATA 食堂
+					ENDDATA
+					属性登録 = 食事施設
+			ENDSELECT
+		ENDIF
+
+		;店を登録
+		CALL 商業区店登録処理(LOCAL, RESULTS, 属性登録)
+
+		;配列がいっぱいならこれ以上登録出来ないため外れる
+		IF RESULT == 0
+			BREAK
+		ELSE
+			TALENT:LOCAL:店持ち = 1
+			SIF 店増加数 == 0
+				DRAWLINE
+			PRINTFORML 商業区に%CALLNAME:LOCAL%が『%RESULTS%』を開いた！
+		ENDIF
+		
+		;一日に出来る店は３つまで
+		店増加数 ++ 
+		SIF 店増加数 >= 3
+			BREAK
+	NEXT
+
+	;モブ店舗は25%で発生
+	IF RAND:4 == 0
+		属性登録 = 
+		店増加数 ++ 
+		LOCAL = RAND(-4, -1)
+		STRDATA RESULTS
+			DATA 雑貨屋
+			DATA 食堂
+			DATA 道具屋
+		ENDDATA
+		IF RESULTS == "食堂"
+			属性登録 = 食事施設
+		ENDIF
+		CALL 商業区店登録処理(LOCAL, RESULTS, 属性登録)
+		IF RESULT
+			SELECTCASE LOCAL
+				CASE -1
+					LOCALS = モブおじ
+				CASE -2
+					LOCALS = モブおばさん
+				CASE -3
+					LOCALS = モブ青年
+				CASE -4
+					LOCALS = モブ女性
+			ENDSELECT
+			SIF 店増加数 == 0
+				DRAWLINE
+			PRINTFORML 商業区に%LOCALS%が『%RESULTS%』を開いた！
+		ENDIF
+	ENDIF
+	
+	SIF 店増加数
+		WAIT
+ENDIF
+
+SIF SAVESTR:10 == ""
+	SAVESTR:10 = /
+;部屋の並び順のために好感度レベルで降順に並び替え
+CALL SORT_CHARALIST()
+;一日の行動ルーチンの設定・モブ観光客来場
+CALL 起床時処理
+
+
+;15分毎に館内のキャラを移動させる
+LOCAL = 1
+WHILE LOCAL
+	IF TIME + 15 < CFLAG:MASTER:起床予定時刻
+		TFLAG:行動前時刻 = TIME + 1440 * DAY
+		TIME += 15
+		CALL CHARA_MOVEMENT
+	ELSE
+		FOR LOCAL:1,0,CHARANUM
+			;現在位置の保存
+			CFLAG:(LOCAL:1):前ターン位置 = CFLAG:(LOCAL:1):現在位置
+			CFLAG:(LOCAL:1):前マップ種別 = CFLAG:(LOCAL:1):現在マップ種別
+		NEXT
+		TIME = CFLAG:MASTER:起床予定時刻
+		;経過時間表示用
+		TIME:2 = TIME
+		TFLAG:行動前時刻 = TIME + 1440 * DAY
+		CALL CHARA_MOVEMENT
+		BREAK
+	ENDIF
+WEND
+PRINTW 
+CALL GOODMORNING
+
+;起床時刻の記録
+CFLAG:MASTER:起床時刻 = 1440 * DAY + TIME
+
+;調教者は誰か
+PLAYER = MASTER
+
+IF FLAG:お出かけ先フラグ > 0
+	CALL 外出共通初期処理()
+ENDIF
+
+
+@GOODMORNING
+#DIM 秘書一覧, 100
+#DIM 秘書人数
+#DIM 対象キャラ
+#DIM 告白キャラ
+#DIM 起こしに来る秘書
+#DIM レイヤー記録
+#DIM PLAYER記録
+
+VARSET LOCAL
+VARSET 秘書一覧
+TARGET = 0
+FOR LOCAL,1,CHARANUM
+	SIF CFLAG:MASTER:現在位置 == CFLAG:LOCAL:現在位置 && CFLAG:MASTER:現在マップ種別 == CFLAG:LOCAL:現在マップ種別
+		TARGET = LOCAL
+NEXT
+告白キャラ = 起床時告白キャラ判定()
+秘書人数 = 0
+FOR LOCAL, 1, CHARANUM
+	SIF TALENT:LOCAL:従業員 == 0
+		CONTINUE
+	SIF TCVAR:LOCAL:休暇中
+		CONTINUE
+	IF 現在仕事:LOCAL:0 == 3
+		;秘書に従事してるキャラを一覧化
+		秘書一覧:(秘書人数) = LOCAL
+		秘書人数 += 1
+	ENDIF
+NEXT
+;疑似恋慕の恋慕化は他のものにかかわらず全員発動する
+CALL 起床時_疑似恋慕成長処理()
+
+IF FLAG:挿入睡眠相手記録
+	TCVAR:(FLAG:挿入睡眠相手記録):挨拶フラグ = 1
+	;ハーヴィンオナホとか挿入歩きしたまま寝たパターン
+	PRINTFORMW %CALLNAME:MASTER%が眠っていると、なんだか股間が温かいような気がした。
+	IF STRFIND(SAVESTR:挿入睡眠モード記録, "ハーヴィン") > -1
+		;ハーヴィンオナホ、ディルドパターン
+		CALL PRINT_STRL(@"IMAGEPATH_%CSTR:(FLAG:挿入睡眠相手記録):画像フォルダ%/起床時_ハーヴィンオナホ系")
+		PRINTFORMW 布団をめくってみると、一晩中固定されたままだった%CALLNAME:(FLAG:挿入睡眠相手記録)%の姿が見える。
+		PRINTFORMW 幾度も絶頂し体力の尽きている%CALLNAME:(FLAG:挿入睡眠相手記録)%はまだ意識を失っているようだ…
+		PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:(FLAG:挿入睡眠相手記録)%の拘束を外し、自室まで運んであげた。
+
+		BASE:(FLAG:挿入睡眠相手記録):体力 = 0
+		CFLAG:(FLAG:挿入睡眠相手記録):体力限界 = 1
+		CFLAG:(FLAG:挿入睡眠相手記録):睡眠 = 1
+		EXP:(FLAG:挿入睡眠相手記録):ダウン経験 += 1
+		CFLAG:(FLAG:挿入睡眠相手記録):現在位置 = キャラクター部屋検索(FLAG:挿入睡眠相手記録)
+		CFLAG:(FLAG:挿入睡眠相手記録):現在マップ種別 = 部屋検索_マップ種別
+		;経験取得表示スキップ用
+		TCVAR:(FLAG:挿入睡眠相手記録):436 = EXP:(FLAG:挿入睡眠相手記録):ダウン経験
+	ELSE
+		;挿入歩きパターン
+		CALL PRINT_STRL(@"IMAGEPATH_%CSTR:(FLAG:挿入睡眠相手記録):画像フォルダ%/起床時_挿入歩き系")
+		PRINTFORMW 横を見ると、挿入されたままの%CALLNAME:(FLAG:挿入睡眠相手記録)%の姿が見えた。
+		PRINTFORM 先に起きていた%CALLNAME:(FLAG:挿入睡眠相手記録)%はゆっくりと
+		IF STRFIND(SAVESTR:挿入睡眠モード記録, "Ｖ") > -1
+			PRINT 膣内から
+		ELSE
+			PRINT 尻穴から
+		ENDIF
+		PRINTFORMW %CALLNAME:MASTER%のものを引き抜き、布団から起き上がる。
+		PRINTFORMW そのまま%CALLNAME:(FLAG:挿入睡眠相手記録)%は服を着直して先に部屋を出ていった…
+	ENDIF
+	FLAG:挿入睡眠相手記録 = 0
+	SAVESTR:挿入睡眠モード記録 = 
+ELSEIF TARGET
+	IF CFLAG:TARGET:睡眠
+		CALL PRINT_STRL(@"IMAGEPATH_%CSTR:TARGET:画像フォルダ%/起床時_睡眠")
+		PRINTFORMW %CALLNAME:MASTER%が目覚めると隣ではまだ%CALLNAME:TARGET%がすやすやと眠っていた
+		PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:TARGET%を起こさないように\@ BEDROOM(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) && !BATHROOM(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) ? ベッド # その横 \@を抜け出し一日の準備を始めた
+	ELSE
+		CALL PRINT_STRL(@"IMAGEPATH_%CSTR:TARGET:画像フォルダ%/起床時_同時起床")
+		IF 陥落チェック(TARGET)
+			PRINTFORMW %CALLNAME:MASTER%が目覚めると%CALLNAME:TARGET%と目があった
+			PRINTFORMW しばらく%CALLNAME:TARGET%と視線をかわしてから\@ BEDROOM(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) && !BATHROOM(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) ? ベッド # その横 \@を抜け出し一日の準備を始めた
+		ELSE
+			PRINTFORMW %CALLNAME:MASTER%が目覚めると%CALLNAME:TARGET%と目があった
+			PRINTFORMW なぜ%CALLNAME:TARGET%が\@ BEDROOM(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) && !BATHROOM(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置) ? 部屋にいるのだろうと不審に思いながらもベッド # 隣にいるのだろうと不審に思いながらもその横 \@を抜け出し一日の準備を始めた
+		ENDIF
+		TRYCALLFORM KOJO_EVENT_逆おはよう_{NO:TARGET}(TARGET)
+	ENDIF
+ELSEIF 告白キャラ > 0
+	CALL 起床時告白処理(告白キャラ)
+ELSEIF 秘書人数 > 0
+	起こしに来る秘書 = 秘書一覧:(RAND:秘書人数)
+	TCVAR:起こしに来る秘書:挨拶フラグ = 1
+	;秘書がいるなら起こしに来る、秘書業務なら先に起きてるはずなのでキャラの起床処理は入れない
+	CALL 口上変数初期化
+	TRYCALLFORM KOJO_EVENT_秘書業務_朝起こし_{NO:起こしに来る秘書}(起こしに来る秘書)
+	IF !口上有無確認(0, 1)
+		;朝起こしの口上が無い場合に汎用文章を出す
+		IF 陥落チェック_性的(起こしに来る秘書) && GETBIT(TALENT:起こしに来る秘書:性別, 0) && 射精可能(MASTER) && EXP:起こしに来る秘書:膣内射精絶頂経験 && EXP:起こしに来る秘書:Ｖ性交経験 > 10 && 初体験済みチェック("Ｖ挿入初体験", 起こしに来る秘書) && RAND:3 == 0
+			PRINTFORMW %CALLNAME:MASTER%が眠っていると、なんだか腰の辺りに重みを感じた。
+			レイヤー記録 = TFLAG:口上用画像表示番号
+			CALL 汎用一枚絵画像_名称算出(起こしに来る秘書, "秘書朝起こし_", "Ｖ挿入")
+			CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			IF レイヤー記録 == TFLAG:口上用画像表示番号
+				;専用画像が表示されてないということなので、現在の服のV挿入画像を見る
+				LOCALS '= CSTR:起こしに来る秘書:短冊グラ表示切り替え用文字列
+				IF LOCALS == ""
+					SIF CSTR:起こしに来る秘書:表示グラフィックカテゴリ == ""
+						CSTR:起こしに来る秘書:表示グラフィックカテゴリ = デフォルト
+					LOCALS = %"短冊_" + CSTR:起こしに来る秘書:表示グラフィックカテゴリ%
+				ENDIF
+				SIF 差分抽出(起こしに来る秘書, "短冊_", LOCALS, "騎乗位", "")
+					CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			ENDIF
+			PRINTFORM 目を覚ますと、%CALLNAME:起こしに来る秘書%が\@ PREGNANCY_SIZE(起こしに来る秘書) > 2 && CFLAG:起こしに来る秘書:妊娠発覚 ? 膨らんだお腹を揺らしながら # \@膣で%CALLNAME:MASTER%の
+			SELECTCASE TALENT:MASTER:男性器サイズ
+				CASE IS <= -1
+					PRINT 小さな
+				CASE 0
+				CASEELSE
+					PRINT 大きな
+			ENDSELECT
+			PRINTW ペニスを咥え込んでいた…
+			SIF TALENT:起こしに来る秘書:母乳体質
+				PRINTFORMW そのさらけ出した%OPPAI_DESCRIPTION(起こしに来る秘書)%の先端からは、母乳がゆっくりと垂れ落ちている。
+			PRINTFORMW これも秘書の務めと、朝騎乗位で起こしにきてくれたようだ。
+			IF TALENT:起こしに来る秘書:妊娠 && CFLAG:起こしに来る秘書:妊娠発覚 && CFLAG:起こしに来る秘書:子の父親 == MASTER
+				PRINTFORMW 朝から盛り上がっている%CALLNAME:起こしに来る秘書%に、身重の体を労るように伝えると、
+				PRINTFORMW %CALLNAME:起こしに来る秘書%は\@ TALENT:起こしに来る秘書:恋慕 ? 嬉しそうに微笑ながら、赤ちゃんもパパの愛 # 、赤ちゃんもパパのミルク \@が欲しいと呟き、前よりも激しく腰を動かしてきた…
+			ENDIF
+			PRINTFORMW %CALLNAME:MASTER%がそのまま射精すると、\@ TALENT:起こしに来る秘書:性転換 == 2 && !キャラ一致チェック(起こしに来る秘書, "[開闢の錬金術師]カリオストロ") ? 女性の体にもすっかり慣れた # \@%CALLNAME:起こしに来る秘書%は腰をより強く押し付けて、うっとりとした顔でその瞬間を待っている。
+			PRINTFORMW 子宮で子種の熱を感じながら、絶頂の余韻に浸る%CALLNAME:起こしに来る秘書%は嬉しそうに目を細め、%CALLNAME:MASTER%と繋がったまま今日のスケジュールを喘ぎ声まじりで報告させた。
+			PRINTFORML Ｃ経験 + 10（%CALLNAME:MASTER%）
+			PRINTFORML 絶頂経験 + 3（%CALLNAME:MASTER%）
+			PRINTFORML Ｃ絶頂経験 + 3（%CALLNAME:MASTER%）
+			PRINTFORML 射精経験 + 3（%CALLNAME:MASTER%）
+			PRINTFORML Ｖ経験 + 5（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML Ｖ絶頂経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 絶頂経験 + 3（%CALLNAME:起こしに来る秘書%）
+			IF TALENT:起こしに来る秘書:母乳体質
+				PRINTFORML 噴乳経験 + 3（%CALLNAME:起こしに来る秘書%）
+				EXP:起こしに来る秘書:噴乳経験 += 3
+			ENDIF
+			PRINTFORML 精液経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 膣内射精絶頂経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML Ｖ性交経験 + 5（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 奉仕快楽経験 + 3（%CALLNAME:起こしに来る秘書%）
+			WAIT
+			EXP:MASTER:Ｃ経験 += 5
+			EXP:MASTER:絶頂経験 += 3
+			EXP:MASTER:Ｃ絶頂経験 += 3
+			EXP:MASTER:射精経験 += 3
+			EXP:起こしに来る秘書:Ｖ経験 += 5
+			EXP:起こしに来る秘書:Ｖ絶頂経験 += 3
+			EXP:起こしに来る秘書:絶頂経験 += 3
+			EXP:起こしに来る秘書:精液経験 += 3
+			EXP:起こしに来る秘書:膣内射精絶頂経験 += 3
+			EXP:起こしに来る秘書:Ｖ性交経験 += 5
+			EXP:起こしに来る秘書:奉仕快楽経験 += 3
+			;履歴登録
+			RFLAG:履歴用数値保存 = 3
+			CALL 履歴登録チェック(起こしに来る秘書, "膣内射精回数")
+			履歴用実績:起こしに来る秘書:膣内射精回数 += 3
+			CALL TAKE_SPERM(起こしに来る秘書, MASTER, 最大射精量(MASTER) * 3)
+			CALL EXP変動記録処理(MASTER)
+			CALL EXP変動記録処理(起こしに来る秘書)
+		ELSEIF 陥落チェック_性的(起こしに来る秘書) && 射精可能(MASTER) && EXP:起こしに来る秘書:腸内射精絶頂経験 && EXP:起こしに来る秘書:Ａ性交経験 > 10 && 初体験済みチェック("Ａ挿入初体験", 起こしに来る秘書) && RAND:3 == 0
+			PRINTFORMW %CALLNAME:MASTER%が眠っていると、なんだか腰の辺りに重みを感じた。
+			レイヤー記録 = TFLAG:口上用画像表示番号
+			CALL 汎用一枚絵画像_名称算出(起こしに来る秘書, "秘書朝起こし_", "Ａ挿入")
+			CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			IF レイヤー記録 == TFLAG:口上用画像表示番号
+				;専用画像が表示されてないということなので、現在の服のV挿入画像を見る
+				LOCALS '= CSTR:起こしに来る秘書:短冊グラ表示切り替え用文字列
+				IF LOCALS == ""
+					SIF CSTR:起こしに来る秘書:表示グラフィックカテゴリ == ""
+						CSTR:起こしに来る秘書:表示グラフィックカテゴリ = デフォルト
+					LOCALS = %"短冊_" + CSTR:起こしに来る秘書:表示グラフィックカテゴリ%
+				ENDIF
+				SIF 差分抽出(起こしに来る秘書, "短冊_", LOCALS, "Ａ騎乗位", "")
+					CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			ENDIF
+			PRINTFORM 目を覚ますと、%CALLNAME:起こしに来る秘書%が尻穴で%CALLNAME:MASTER%の
+			SELECTCASE TALENT:MASTER:男性器サイズ
+				CASE IS <= -1
+					PRINT 小さな
+				CASE 0
+				CASEELSE
+					PRINT 大きな
+			ENDSELECT
+			PRINTW ペニスを咥え込んでいた…
+			SIF TALENT:起こしに来る秘書:母乳体質
+				PRINTFORMW そのさらけ出した%OPPAI_DESCRIPTION(起こしに来る秘書)%の先端からは、母乳がゆっくりと垂れ落ちている。
+			PRINTFORMW これも秘書の務めと、朝Ａ騎乗位で起こしにきてくれたようだ。
+			PRINTFORMW %CALLNAME:MASTER%がそのまま射精すると、%CALLNAME:起こしに来る秘書%は腰をより強く押し付けて、うっとりとした顔でその瞬間を待っている。
+			PRINTFORMW 腸内で子種の熱を感じながら、絶頂の余韻に浸る%CALLNAME:起こしに来る秘書%は嬉しそうに目を細め、%CALLNAME:MASTER%と繋がったまま今日のスケジュールを喘ぎ声まじりで報告させた。
+			PRINTFORML Ｃ経験 + 10（%CALLNAME:MASTER%）
+			PRINTFORML 絶頂経験 + 3（%CALLNAME:MASTER%）
+			PRINTFORML Ｃ絶頂経験 + 3（%CALLNAME:MASTER%）
+			PRINTFORML 射精経験 + 5（%CALLNAME:MASTER%）
+			PRINTFORML Ａ経験 + 5（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML Ａ絶頂経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 絶頂経験 + 3（%CALLNAME:起こしに来る秘書%）
+			IF TALENT:起こしに来る秘書:母乳体質
+				PRINTFORML 噴乳経験 + 3（%CALLNAME:起こしに来る秘書%）
+				EXP:起こしに来る秘書:噴乳経験 += 3
+			ENDIF
+			PRINTFORML 精液経験 + 5（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 腸内射精絶頂経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML Ａ性交経験 + 5（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 奉仕快楽経験 + 3（%CALLNAME:起こしに来る秘書%）
+			WAIT
+			EXP:MASTER:Ｃ経験 += 5
+			EXP:MASTER:絶頂経験 += 3
+			EXP:MASTER:Ｃ絶頂経験 += 3
+			EXP:MASTER:射精経験 += 5
+			EXP:起こしに来る秘書:Ａ経験 += 5
+			EXP:起こしに来る秘書:Ａ絶頂経験 += 3
+			EXP:起こしに来る秘書:絶頂経験 += 3
+			EXP:起こしに来る秘書:精液経験 += 5
+			EXP:起こしに来る秘書:腸内射精絶頂経験 += 3
+			EXP:起こしに来る秘書:Ａ性交経験 += 5
+			EXP:起こしに来る秘書:奉仕快楽経験 += 3
+			CALL EXP変動記録処理(MASTER)
+			CALL EXP変動記録処理(起こしに来る秘書)
+		ELSEIF 陥落チェック_性的(起こしに来る秘書) && TALENT:起こしに来る秘書:母乳体質 && EXP:起こしに来る秘書:噴乳経験 > 10 && RAND:3 == 0
+			PRINTFORMW %CALLNAME:MASTER%が眠っていると、なんだか口の中がミルクのような味がした。
+			レイヤー記録 = TFLAG:口上用画像表示番号
+			CALL 汎用一枚絵画像_名称算出(起こしに来る秘書, "秘書朝起こし_", "授乳")
+			CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			IF レイヤー記録 == TFLAG:口上用画像表示番号
+				;専用画像が表示されてないということなので、現在の服のV挿入画像を見る
+				LOCALS '= CSTR:起こしに来る秘書:短冊グラ表示切り替え用文字列
+				IF LOCALS == ""
+					SIF CSTR:起こしに来る秘書:表示グラフィックカテゴリ == ""
+						CSTR:起こしに来る秘書:表示グラフィックカテゴリ = デフォルト
+					LOCALS = %"短冊_" + CSTR:起こしに来る秘書:表示グラフィックカテゴリ%
+				ENDIF
+				SIF 差分抽出(起こしに来る秘書, "短冊_", LOCALS, "授乳手コキ", "")
+					CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			ENDIF
+			PRINTFORMW 目を開けてみると、%CALLNAME:起こしに来る秘書%が母乳の垂れる%OPPAI_DESCRIPTION(起こしに来る秘書)%の先端を%CALLNAME:MASTER%の口に押し付けていた。
+			PRINTFORMW これも秘書の務めと、朝授乳で起こしにきてくれたようだ。
+			PRINTFORMW %CALLNAME:MASTER%がそれに応えるように乳首を吸い上げると、%CALLNAME:起こしに来る秘書%は表情を蕩けさせ、母乳を飲む%CALLNAME:MASTER%の頭を優しく抱き締めた。
+			PRINTFORMW たっぷりと授乳プレイをした後、%CALLNAME:起こしに来る秘書%は微笑んで仕事に戻っていった。
+			EXP:起こしに来る秘書:Ｂ経験 += 5
+			EXP:起こしに来る秘書:Ｂ絶頂経験 += 3
+			EXP:起こしに来る秘書:噴乳経験 += 3
+			EXP:起こしに来る秘書:搾乳快楽経験 += 3
+			PRINTFORML Ｂ経験 + 5（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML Ｂ絶頂経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 噴乳経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 搾乳快楽経験 + 3（%CALLNAME:起こしに来る秘書%）
+			CALL EXP変動記録処理(起こしに来る秘書)
+		ELSEIF 陥落チェック_性的(起こしに来る秘書) && EXP:起こしに来る秘書:精飲経験 > 10 && 射精可能(MASTER) && RAND:3 == 0
+			レイヤー記録 = TFLAG:口上用画像表示番号
+			CALL 汎用一枚絵画像_名称算出(起こしに来る秘書, "秘書朝起こし_", "フェラチオ")
+			CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			IF レイヤー記録 == TFLAG:口上用画像表示番号
+				;専用画像が表示されてないということなので、現在の服のV挿入画像を見る
+				LOCALS '= CSTR:起こしに来る秘書:短冊グラ表示切り替え用文字列
+				IF LOCALS == ""
+					SIF CSTR:起こしに来る秘書:表示グラフィックカテゴリ == ""
+						CSTR:起こしに来る秘書:表示グラフィックカテゴリ = デフォルト
+					LOCALS = %"短冊_" + CSTR:起こしに来る秘書:表示グラフィックカテゴリ%
+				ENDIF
+				SIF 差分抽出(起こしに来る秘書, "短冊_", LOCALS, "フェラチオ", "")
+					CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			ENDIF
+			PRINTFORMW %CALLNAME:MASTER%が眠っていると、なんだか股間が温かいような気がした。
+			PRINTFORM 布団をめくってみると、%CALLNAME:起こしに来る秘書%が%CALLNAME:MASTER%の
+			SELECTCASE TALENT:MASTER:男性器サイズ
+				CASE IS <= -1
+					PRINTL 小さなペニスをすっかり咥えこんで舌で転がしている……
+				CASE 0
+					PRINTL ペニスをしゃぶり、舌で亀頭を舐めている……
+				CASEELSE
+					PRINTL 大きなペニスをなんとか口に収め、吸いたてている……
+			ENDSELECT
+			PRINTFORMW これも秘書の務めと、朝フェラで起こしにきてくれたようだ。
+			PRINTFORMW %CALLNAME:MASTER%がそのまま射精すると、%CALLNAME:起こしに来る秘書%はこぼさず飲み込んで仕事に戻っていった。
+			PRINTFORML Ｃ経験 + 10（%CALLNAME:MASTER%）
+			PRINTFORML 絶頂経験 + 1（%CALLNAME:MASTER%）
+			PRINTFORML Ｃ絶頂経験 + 1（%CALLNAME:MASTER%）
+			PRINTFORML 射精経験 + 1（%CALLNAME:MASTER%）
+			PRINTFORML 口淫経験 + 3（%CALLNAME:起こしに来る秘書%）
+			PRINTFORML 精飲経験 + 1（%CALLNAME:起こしに来る秘書%）
+			WAIT
+			EXP:MASTER:Ｃ経験 += 10
+			EXP:MASTER:絶頂経験 += 1
+			EXP:MASTER:Ｃ絶頂経験 += 1
+			EXP:起こしに来る秘書:口淫経験 += 3
+			EXP:起こしに来る秘書:精飲経験 += 1
+			CALL EXP変動記録処理(MASTER)
+			CALL EXP変動記録処理(起こしに来る秘書)
+		ELSEIF GETBIT(陥落チェック_性的(起こしに来る秘書), 1) && RAND:3 == 0
+			PRINTFORMW %CALLNAME:MASTER%が眠っていると、体全体が快楽に包まれているような感触がする……。
+			レイヤー記録 = TFLAG:口上用画像表示番号
+			CALL 汎用一枚絵画像_名称算出(起こしに来る秘書, "秘書朝起こし_", "ペッティング")
+			CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			IF レイヤー記録 == TFLAG:口上用画像表示番号
+				;専用画像が表示されてないということなので、現在の服のV挿入画像を見る
+				PLAYER記録 = PLAYER
+				PLAYER = 起こしに来る秘書
+				CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%コマンド実行時画像名称変換処理(起こしに来る秘書, "愛撫")%")
+				PLAYER = PLAYER記録
+			ENDIF
+			PRINTFORMW 目を開けてみると、%CALLNAME:起こしに来る秘書%が%CALLNAME:MASTER%の体を愛撫していた。
+			PRINTFORMW どうやら朝ペッティングで起こしにきてくれたようだ。
+			PRINTFORMW %CALLNAME:MASTER%が起きたことに気づくと、%CALLNAME:起こしに来る秘書%は愛撫の手を速めて%CALLNAME:MASTER%を絶頂させる。
+			PRINTFORMW これも秘書の務めと微笑んで、%CALLNAME:起こしに来る秘書%は仕事に戻っていった。
+			LOCAL = 1
+			PRINTFORML Ｃ経験 + 10（%CALLNAME:MASTER%）
+			PRINTFORML Ｃ絶頂経験 + 1（%CALLNAME:MASTER%）
+			EXP:MASTER:Ｃ経験 += 10
+			EXP:MASTER:Ｃ絶頂経験 += 1
+			IF 射精可能(MASTER)
+				PRINTFORML 射精経験 + 1（%CALLNAME:MASTER%）
+				EXP:MASTER:射精経験 += 1
+			ENDIF
+			IF GETBIT(TALENT:MASTER:性別, 0)
+				PRINTFORML Ｂ経験 + 10（%CALLNAME:MASTER%）
+				PRINTFORML Ｂ絶頂経験 + 1（%CALLNAME:MASTER%）
+				EXP:MASTER:Ｂ経験 += 10
+				EXP:MASTER:Ｂ絶頂経験 += 1
+				LOCAL += 1
+				IF EXP:MASTER:Ｖ経験 > 50
+					PRINTFORML Ｖ経験 + 10（%CALLNAME:MASTER%）
+					PRINTFORML Ｖ絶頂経験 + 1（%CALLNAME:MASTER%）
+					EXP:MASTER:Ｖ経験 += 10
+					EXP:MASTER:Ｖ絶頂経験 += 1
+					LOCAL += 1
+				ENDIF
+			ENDIF
+			IF EXP:MASTER:Ａ経験 > 50
+				PRINTFORML Ａ経験 + 10（%CALLNAME:MASTER%）
+				PRINTFORML Ａ絶頂経験 + 1（%CALLNAME:MASTER%）
+				EXP:MASTER:Ａ経験 += 10
+				EXP:MASTER:Ａ絶頂経験 += 1
+				LOCAL += 1
+			ENDIF
+			PRINTFORML 絶頂経験 + {LOCAL}（%CALLNAME:MASTER%）
+				EXP:MASTER:絶頂経験 += LOCAL
+			WAIT
+			CALL EXP変動記録処理(MASTER)
+		ELSEIF 陥落チェック_性的(起こしに来る秘書) && 初体験日取得("キス", MASTER, 起こしに来る秘書) && RAND:3 == 0
+			PRINTFORMW %CALLNAME:MASTER%が眠っていると、唇に柔らかい感触を感じた。
+			レイヤー記録 = TFLAG:口上用画像表示番号
+			CALL 汎用一枚絵画像_名称算出(起こしに来る秘書, "秘書朝起こし_", "キス")
+			CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			IF レイヤー記録 == TFLAG:口上用画像表示番号
+				;専用画像が表示されてないということなので、現在の服のV挿入画像を見る
+				CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%コマンド実行時画像名称変換処理(起こしに来る秘書, "キス")%")
+			ENDIF
+			PRINTFORMW 目を開けてみると、%CALLNAME:起こしに来る秘書%が%CALLNAME:MASTER%の唇にキスをしている。
+			PRINTFORMW これも秘書の務めと、朝キスで起こしにきてくれたようだ。
+			PRINTFORMW %CALLNAME:MASTER%が起きたことに気づくと、%CALLNAME:起こしに来る秘書%は微笑んで仕事に戻っていった。
+			PRINTFORML キス経験 + 2（%CALLNAME:MASTER%）
+			PRINTFORML キス経験 + 2（%CALLNAME:起こしに来る秘書%）
+			WAIT
+			EXP:MASTER:キス経験 += 2
+			EXP:起こしに来る秘書:キス経験 += 2
+			CALL EXP変動記録処理(MASTER)
+			CALL EXP変動記録処理(起こしに来る秘書)
+		ELSE
+			CALL 汎用一枚絵画像_名称算出(起こしに来る秘書, "秘書朝起こし_", "通常")
+			CALL PRINT_STRL(@"IMAGEPATH_%CSTR:起こしに来る秘書:画像フォルダ%/%RESULTS%")
+			PRINTFORMW %CALLNAME:MASTER%が眠っていると、名前を呼ぶ声がする。
+			PRINTFORMW %CALLNAME:起こしに来る秘書%が時間通りに起こしに来てくれたようだ。
+			PRINTFORMW %CALLNAME:MASTER%が体を起こして礼を言うと、%CALLNAME:起こしに来る秘書%は仕事へと戻っていった。
+		ENDIF
+	ENDIF
+ENDIF
+
+;起床後特殊イベ
+FOR 対象キャラ, 1, CHARANUM
+	;ついでにここで添い寝解除
+	CFLAG:対象キャラ:添い寝フラグ = 0
+	IF CFLAG:対象キャラ:滞在期間 < 0
+		CSTR:対象キャラ:特殊起床パターン記録 = 
+		CONTINUE
+	ENDIF
+	SIF CSTR:対象キャラ:特殊起床パターン記録 == ""
+		CONTINUE
+	TRYCALLFORM MORNINGEVENT_%CSTR:対象キャラ:特殊起床パターン記録%(対象キャラ)
+	CSTR:対象キャラ:特殊起床パターン記録 = 
+NEXT
+CALL 手紙お返事処理()
+CALL CLOTHES_CHECK(MASTER)
+
+
+@滞在終了時初期化(ARG)
+#DIM ループ用
+#DIM 編成番号
+
+CFLAG:ARG:オナニー覚えたて = 0
+CFLAG:ARG:現在マップ種別 = 0
+CFLAG:ARG:現在位置 = 999
+CFLAG:ARG:元気になる薬フラグ = 0
+BASE:ARG:体力 = MAXBASE:ARG:体力
+
+IF OPTION変数:編成解除時の装備解除
+	;装備解除
+	SIF CFLAG:ARG:ジョブ証変更禁止 == 0
+		装備ステータス補正保存:ARG:装備証番号 = 0
+	IF 装備ステータス補正保存:ARG:装備指輪番号 && CFLAG:ARG:指輪変更禁止 == 0
+		DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:ARG:装備指輪番号, "装備キャラ番号", 0, 1
+		装備ステータス補正保存:ARG:装備指輪番号 = 0
+	ENDIF
+	IF 装備ステータス補正保存:ARG:装備耳飾り番号 && CFLAG:ARG:耳飾り変更禁止 == 0
+		DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:ARG:装備耳飾り番号, "装備キャラ番号", 0, 1
+		装備ステータス補正保存:ARG:装備耳飾り番号 = 0
+	ENDIF
+	CALL 装備再計算処理(ARG)
+ENDIF
+
+FOR ループ用, 0, 14
+	SIF ループ用 > 3 && ループ用 < 10
+		CONTINUE
+	IF BATTLE_STATE:ループ用:キャラ登録番号 == ARG
+		BATTLE_STATE:ループ用:キャラ登録番号 = BATTLE_STATE:(ループ用 + 1):キャラ登録番号
+		BATTLE_STATE:(ループ用 + 1):キャラ登録番号 = BATTLE_STATE:(ループ用 + 2):キャラ登録番号
+		BATTLE_STATE:(ループ用 + 2):キャラ登録番号 = BATTLE_STATE:(ループ用 + 3):キャラ登録番号
+		BATTLE_STATE:(ループ用 + 3):キャラ登録番号 = 0
+		BREAK
+	ENDIF
+NEXT
+
+FOR 編成番号, 0, 編成セット最大数
+	FOR ループ用, 0, 14
+		SIF ループ用 > 3 && ループ用 < 10
+			CONTINUE
+		IF 編成セット記録配列:編成番号:(ループ用 * 10 + 100) == ARG
+			編成セット記録配列:編成番号:(ループ用 * 10 + 100) = 編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 100)
+			編成セット記録配列:編成番号:(ループ用 * 10 + 101) = 編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 101)
+			編成セット記録配列:編成番号:(ループ用 * 10 + 102) = 編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 102)
+			編成セット記録配列:編成番号:(ループ用 * 10 + 103) = 編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 103)
+			
+			編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 100) = 編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 100)
+			編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 101) = 編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 101)
+			編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 102) = 編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 102)
+			編成セット記録配列:編成番号:((ループ用 + 1) * 10 + 103) = 編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 103)
+			
+			編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 100) = 編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 100)
+			編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 101) = 編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 101)
+			編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 102) = 編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 102)
+			編成セット記録配列:編成番号:((ループ用 + 2) * 10 + 103) = 編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 103)
+			
+			編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 100) = 0
+			編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 101) = 0
+			編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 102) = 0
+			編成セット記録配列:編成番号:((ループ用 + 3) * 10 + 103) = 0
+			BREAK
+		ENDIF
+	NEXT
+NEXT
+
+CALL 滞在者部屋割り配列削除処理(ARG)
+VARSET TCVAR:ARG:0
+
+FOR LOCAL:1,0,200
+	TCVAR:ARG:(400 + LOCAL:1) = EXP:ARG:(LOCAL:1)
+NEXT
+
+
+@発情期存在判定(ARG)
+#FUNCTION
+SIF TALENT:ARG:性欲 == -2
+	RETURNF 0
+SIF TALENT:ARG:発情期あり < 0
+	RETURNF 0
+SELECTCASE TALENT:ARG:性別
+	CASE 0
+		RETURNF 0
+	CASE 1
+		SIF TALENT:ARG:妊娠不可 == 2
+			RETURNF 0
+	CASE 2
+		SIF TALENT:ARG:射精不可 == 2
+			RETURNF 0
+	CASE 3
+		SIF TALENT:ARG:妊娠不可 == 2 && TALENT:ARG:射精不可 == 2
+			RETURNF 0
+ENDSELECT
+
+;各種設定
+SIF TALENT:ARG:種族 == 2 && TALENT:ARG:性別 != 2 && GETBIT(OPTION変数:発情期切り替え, 0) == 0
+	RETURNF 1
+SIF TALENT:ARG:種族 == 2 && TALENT:ARG:性別 == 2 && GETBIT(OPTION変数:発情期切り替え, 1) == 0
+	RETURNF 1
+SIF (TALENT:ARG:種族 == 3 || キャラ一致チェック(ARG, "[六竜の『金』]ガレヲン")) && TALENT:ARG:性別 != 2 && GETBIT(OPTION変数:発情期切り替え, 2) == 0
+	RETURNF 1
+SIF (TALENT:ARG:種族 == 3 || キャラ一致チェック(ARG, "[六竜の『金』]ガレヲン")) && TALENT:ARG:性別 == 2 && GETBIT(OPTION変数:発情期切り替え, 3) == 0
+	RETURNF 1
+SIF TALENT:ARG:発情期あり > 0 && TALENT:ARG:性別 != 2 && GETBIT(OPTION変数:発情期切り替え, 4) == 0
+	RETURNF 1
+SIF TALENT:ARG:発情期あり > 0 && TALENT:ARG:性別 == 2 && GETBIT(OPTION変数:発情期切り替え, 5) == 0
+	RETURNF 1
+
+RETURNF 0
+
+
+@DAYFIRST_CHARAEVENT_ETC(対象キャラ)
+#DIM 対象キャラ
+
+;キャラ個別ではないが、特定の条件を満たしたキャラの処理を分ける場所
+;延々とループが長くなるのを防ぐ意図
+
+;デレマス処理
+IF CSTR:対象キャラ:出演作品 == "アイドルマスターシンデレラガールズ"
+	CALL 舞踏会イベ判定(対象キャラ)
+ENDIF
+
+
+@DAYEND_CHARAEVENT_ETC(対象キャラ)
+#DIM 対象キャラ
+
+;キャラ個別ではないが、特定の条件を満たしたキャラの処理を分ける場所
+;延々とループが長くなるのを防ぐ意図
+
+@LOCADEND_CHARAEVENT_ETC(対象キャラ)
+#DIM 対象キャラ
+
+;キャラ個別ではないが、特定の条件を満たしたキャラの処理を分ける場所
+;延々とループが長くなるのを防ぐ意図
+
+@舞踏会イベ判定(対象キャラ)
+#DIM 対象キャラ
+
+;個別口上の外でこれ使いたくないけど、CFLAGに新設するよりはマシなので……
+特定状況口上用フラグ:対象キャラ:0 = 0
+IF イベント完了フラグ確認("『シンデレラ』と『舞踏会』") > 0
+	IF CFLAG:対象キャラ:C_DAY_RAND % 33 == 0 || NAME:対象キャラ == "[アイドル事務所のアシスタント]千川ちひろ" || DAY_RAND % 192 == 0 || NAME:対象キャラ != "[346プロアイドル事業部統括]美城常務" || NAME:対象キャラ != "[佐々木千枝の母]佐々木百枝"
+		特定状況口上用フラグ:対象キャラ:0 = 1
+			TCVAR:対象キャラ:特殊言いなり = 1
+	ENDIF
+ENDIF

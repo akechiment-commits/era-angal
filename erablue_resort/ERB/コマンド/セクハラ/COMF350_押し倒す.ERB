@@ -1,0 +1,167 @@
+﻿
+@COMNAME350
+#FUNCTIONS
+#DIM 隠密数
+
+隠密数 = 0
+FOR LOCAL, 1, CHARANUM
+	SIF TARGET:LOCAL < 1 || !CFLAG:PLAYER:隠密
+		BREAK
+	SIF CFLAG:(TARGET:LOCAL):隠密
+		隠密数 ++
+NEXT
+
+TSTR:コマンド名受渡 = 押し倒す
+SIF !BEDROOM(CFLAG:PLAYER:現在マップ種別, CFLAG:PLAYER:現在位置)
+	TSTR:コマンド名受渡 = 抱き寄せる
+
+IF GET_TARGETNUM() > 1 && !CFLAG:PLAYER:隠密 && フィールド展開:うふふ目撃スルー == 0
+	TSTR:コマンド名受渡 = まとめて%TSTR:コマンド名受渡%
+ELSEIF CFLAG:PLAYER:隠密 && 隠密数 > 1
+	TSTR:コマンド名受渡 = まとめて%TSTR:コマンド名受渡%
+ENDIF
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_350
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("セクハラ")
+
+@COM_TOOLTIP_350
+LOCALS = <br>■押し倒す<br>
+LOCALS += "あるいは抱き寄せる。すでに合意を得ている相手と性交渉を行うコマンド。<br>同室者が全員陥落済みの時のみ可能だが、一緒に隠密時、あるいは強化露出フィールド展開時は同じ場所に非陥落キャラがいても可能。"
+LOCALS += "<br>COMタイプ：セクハラ<br>取得ソース：なし"
+LOCALS += "<br>固有の取得経験：なし<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@COM350
+;押し倒す
+IF フィールド展開:うふふ目撃スルー
+	CALL うふふ開始キャラ処理(TARGET, "押し倒す")
+ELSE
+	FOR LOCAL,1,CHARANUM
+		SIF TARGET:LOCAL <= 0
+			BREAK
+		SIF CFLAG:PLAYER:隠密 && !CFLAG:(TARGET:LOCAL):隠密
+			CONTINUE
+		CALL うふふ開始キャラ処理(TARGET:LOCAL, "押し倒す")
+	NEXT
+ENDIF
+
+CFLAG:PLAYER:うふふ = 1
+
+
+;3Pモード管理フラグを初期化
+FLAG:モード管理 = 0
+
+TIME += 5
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE350
+;押し倒す実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(350)
+	RETURN RESULT
+;飲み会時はだめ
+SIF TFLAG:調教モード == 3
+	RETURN 0
+;ハーヴィンオナホ中はだめ
+SIF MODE_存在判定_プレイヤー側("ハーヴィンオナホ系", PLAYER)
+	RETURN 0
+;全裸散歩中はだめ
+SIF MODE_存在判定_プレイヤー側("全裸散歩", PLAYER)
+	RETURN 0
+;他人とデート中はダメ
+SIF CFLAG:TARGET:デート && CFLAG:TARGET:デート != PLAYER + 100 && TCVAR:TARGET:デートちょっかい値 < 1
+	RETURN 0
+;馴れ合い強度2
+SIF TCVAR:PLAYER:馴れ合い強度 < 2 && TCVAR:TARGET:言いなり == 0 && TCVAR:TARGET:特殊言いなり == 0
+	RETURN 0
+;隠密中は一緒に隠密してるキャラを見る
+IF フィールド展開:うふふ目撃スルー == 0
+	IF CFLAG:PLAYER:隠密
+		FOR LOCAL, 1, CHARANUM
+			SIF TARGET:LOCAL < 1
+				BREAK
+			SIF CFLAG:(TARGET:LOCAL):隠密 && (陥落チェック_性的＋疑似恋慕(TARGET:LOCAL) == 0 && TCVAR:(TARGET:LOCAL):言いなり == 0 && TCVAR:(TARGET:LOCAL):特殊言いなり == 0)
+				RETURN 0
+		NEXT
+	ELSE
+		;非隠密時は全員陥落済みでないとだめ
+		FOR LOCAL,1,CHARANUM
+			SIF TARGET:LOCAL < 1
+				BREAK
+			SIF 陥落チェック_性的＋疑似恋慕(TARGET:LOCAL) == 0 && TCVAR:(TARGET:LOCAL):言いなり == 0 && TCVAR:(TARGET:LOCAL):特殊言いなり == 0
+				RETURN 0
+		NEXT
+	ENDIF
+ELSE
+	SIF 陥落チェック_性的＋疑似恋慕(TARGET) == 0 && TCVAR:TARGET:言いなり == 0 && TCVAR:TARGET:特殊言いなり == 0
+		RETURN 0
+ENDIF
+;睡眠中
+SIF CFLAG:睡眠
+	RETURN 0
+RETURN 1
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM350
+#DIM 隠密数
+
+
+IF CFLAG:TARGET:隠密 && CFLAG:PLAYER:隠密
+	PRINTFORM %CALLNAME:PLAYER%は上手く物陰に隠れられていることを確認すると
+	隠密数 = 0
+	FOR LOCAL, 1, CHARANUM
+		SIF TARGET:LOCAL < 1
+			BREAK
+		SIF CFLAG:(TARGET:LOCAL):隠密
+			隠密数 ++
+	NEXT
+	IF 隠密数 > 1
+		PRINTFORML %CALLNAME:TARGET%達を抱き寄せた…
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%を抱き寄せた…
+	ENDIF
+ELSEIF GET_TARGETNUM() > 1 && フィールド展開:うふふ目撃スルー == 0
+	PRINTFORM %CALLNAME:PLAYER%は
+	IF BEDROOM(CFLAG:PLAYER:現在マップ種別, CFLAG:PLAYER:現在位置) == 0
+		PRINT あたりに人がいないことを確認すると
+	ENDIF
+	PRINTFORML %CALLNAME:TARGET%達を抱き寄せた…
+ELSE
+	PRINTFORM %CALLNAME:PLAYER%は
+	IF BEDROOM(CFLAG:PLAYER:現在マップ種別, CFLAG:PLAYER:現在位置) == 0 && フィールド展開:うふふ目撃スルー == 0
+		PRINT あたりに人がいないことを確認すると、
+	ENDIF
+	IF TCVAR:TARGET:言いなり
+		PRINTFORM %CALLNAME:PLAYER%の言いなりになることしかできない
+	ELSEIF TCVAR:TARGET:特殊言いなり == 1
+	;シンデレラ
+		PRINTFORM 今日の『シンデレラ』に選ばれた
+	ELSEIF TCVAR:TARGET:特殊言いなり == 2
+	;アゼリューゼ
+		PRINTFORM 「服従させる魔法」で体の自由を奪われた
+	ELSEIF TCVAR:TARGET:特殊言いなり == 3
+	;アゼリューゼ
+		PRINTFORM 「星晶令呪」で言いなりになった
+	ENDIF
+	PRINTFORML %CALLNAME:TARGET%を抱き寄せた…
+ENDIF
+IF TCVAR:TARGET:初うふふフラグ
+	IF 知識素質:TARGET:性知識 < 0
+		PRINTFORML %CALLNAME:TARGET%は不思議そうな顔で%CALLNAME:PLAYER%を見つめている…
+	ELSEIF 陥落チェック_性的＋疑似恋慕(TARGET) == 0 && (TCVAR:TARGET:言いなり || TCVAR:TARGET:特殊言いなり)
+		PRINTFORML %CALLNAME:TARGET%はなにやらもの言いたげな目で%CALLNAME:PLAYER%を見つめている…
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%は覚悟を決めたような目で%CALLNAME:PLAYER%を見つめている…
+	ENDIF
+ENDIF

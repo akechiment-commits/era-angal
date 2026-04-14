@@ -1,0 +1,94 @@
+﻿
+;----------------------------------------------------
+;キャラ固有コマンド処理
+;----------------------------------------------------
+;コマンド名
+;----------------------------------------------------
+@CHARACOMNAME371_2
+#FUNCTIONS
+	TSTR:コマンド名受渡 = 身外身の法
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_371_2
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("うふふ")
+
+
+@COM_TOOLTIP_371_2
+LOCALS = <br>■身外身の法<br>
+LOCALS += "自身の分身を作りだし、個別に活動する術。<br>うふふ中のみ、複数人いるかのように振る舞うことが出来る。<br>分身が得た経験は本体に還元される。"
+LOCALS += "<br>COMタイプ：うふふ<br>取得ソース：なし"
+LOCALS += "<br>固有の取得経験：なし<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@CHARACOM371_2
+#DIM 分身番号
+
+ADDCOPYCHARA TARGET
+分身番号 = 2
+FOR LOCAL, 0, 分身最大数
+	IF 分身登録:LOCAL:0 < 1
+		分身登録:LOCAL:0 = CHARANUM - 1
+		分身登録:LOCAL:1 = TARGET
+		NAME:(分身登録:LOCAL:0) = %NAME表示((分身登録:LOCAL:0))%%TOFULL(TOSTR(分身番号))%
+		CALLNAME:(分身登録:LOCAL:0) = %CALLNAME:(分身登録:LOCAL:0)%%TOFULL(TOSTR(分身番号))%
+		TALENT:(分身登録:LOCAL:0):分身 = 1
+		CFLAG:(分身登録:LOCAL:0):人物番号 = -1
+		FOR LOCAL:1, 101, 111
+			;部位占有を解放
+			TEQUIP:(分身登録:LOCAL:0):(LOCAL:1) = 0
+		NEXT
+		FOR LOCAL:1, 0, 200
+			;分身時点でのEXPを保存
+			分身EXP保存:LOCAL:(LOCAL:1) = EXP:TARGET:(LOCAL:1)
+		NEXT
+		BREAK
+	ELSEIF 分身登録:LOCAL:1 == TARGET
+		分身番号 ++
+	ENDIF
+NEXT
+CALL SORT_CHARALIST()
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE371_2
+;実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(371)
+	RETURN RESULT
+
+;隠密時はバグるのでダメ
+SIF CFLAG:PLAYER:隠密
+	RETURN 0
+
+;分身は分身を出せない
+FOR LOCAL, 0, 分身最大数
+	IF 分身登録:LOCAL:0 == TARGET
+		RETURN 0
+	ENDIF
+NEXT
+
+;３体まで
+LOCAL:1 = 0
+FOR LOCAL, 0, 分身最大数
+	IF 分身登録:LOCAL:1 == TARGET
+		LOCAL:1 ++
+	ENDIF
+NEXT
+SIF LOCAL:1 >= 3
+	RETURN 0
+
+RETURN 1
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM371_2
+PRINTFORML アンチラは身外身の法で分身を作り出した。

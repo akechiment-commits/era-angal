@@ -1,0 +1,126 @@
+﻿@雇用レポート表示()
+;長期雇用、従業員の一覧を見せる
+#DIM 表示モード
+#DIM 対象キャラ
+#DIM 表示配列, 2000
+#DIM 表示数
+#DIM ページ数
+#DIM 次ページフラグ
+#DIM 入室禁止フラグ
+#DIM 表示マップ種別
+#DIM TARGET登録
+
+;表示キャラを登録
+VARSET 表示配列
+表示数 = 0
+FOR 対象キャラ, 1, CHARANUM
+	IF 表示モード == 0 && CFLAG:対象キャラ:長期雇用
+		表示配列:表示数 = 対象キャラ
+		表示数 ++
+	ELSEIF 表示モード && TALENT:対象キャラ:従業員
+		表示配列:表示数 = 対象キャラ
+		表示数 ++
+	ENDIF
+NEXT
+
+$表示LOOP
+
+DRAWLINE
+PRINTL 現在リゾートで雇用しているキャラを一覧で表示します。
+DRAWLINE
+PRINT 　
+IF 表示モード == 0
+	SETCOLOR カラーパレット("黄")
+	PRINTBUTTON "[長期雇用キャラ]", 9995
+	RESETCOLOR
+	PRINT  / 
+	PRINTBUTTON "[従業員キャラ]", 9996
+ELSE
+	PRINTBUTTON "[長期雇用キャラ]", 9995
+	PRINT  / 
+	SETCOLOR カラーパレット("黄")
+	PRINTBUTTON "[従業員キャラ]", 9996
+	RESETCOLOR
+ENDIF
+PRINTL
+DRAWLINE
+
+
+;順番に表示
+次ページフラグ = 0
+LOCALS = <div rect='30,0, 5900, 3000' border='31' bcolor='#C0C0C0' padding='50,25,50'><nobr>
+FOR LOCAL, 0, 表示数
+	SIF LOCAL < ページ数 * 20
+		CONTINUE
+	IF LOCAL >= ページ数 * 20 + 20
+		次ページフラグ = 1
+		BREAK
+	ENDIF
+	LOCALS += @"・%NAME表示(表示配列:LOCAL), 50, LEFT%"
+	LOCALS += @"好感度：{CFLAG:(表示配列:LOCAL):好感度レベル, 3}/100　"
+	IF TALENT:(表示配列:LOCAL):恋慕
+		LOCALS += @"<font color='#%カラーパレット_HTML("ピンク")%'>恋慕</font>　"
+	ELSE
+		LOCALS += "　　　"
+	ENDIF
+	IF TALENT:(表示配列:LOCAL):セフレ
+		LOCALS += @"<font color='#%カラーパレット_HTML("薄ピンク")%'>セフレ</font>　"
+	ELSE
+		LOCALS += "　　　　"
+	ENDIF
+
+	IF SAVESTR:ゲームフェイズ管理 == "通常モード" && TFLAG:調教モード <= 1 && あなた特殊能力:居場所感知
+		IF CFLAG:(表示配列:LOCAL):現在位置 == 998
+			LOCALS += @"現在位置：自動探索中"
+		ELSEIF CFLAG:(表示配列:LOCAL):現在位置 == 999
+			LOCALS += @"現在位置：島外"
+		ELSE
+			LOCALS += @"<button value='{LOCAL}'>現在位置：%GETPLACENAME(CFLAG:(表示配列:LOCAL):現在マップ種別, CFLAG:(表示配列:LOCAL):現在位置)%</button>"
+		ENDIF
+	ENDIF
+	LOCALS += "<br>"
+NEXT
+LOCALS += "</nobr></div>"
+IF ページ数 > 0
+	LOCALS += "<div rect='500,2800, 2000, 200'><button value='9997'>[9997] 前ページへ</button></div>"
+ENDIF
+IF 次ページフラグ
+	LOCALS += "<div rect='1500,2800, 2000, 200'><button value='9998'>[9998] 次ページへ</button></div>"
+ENDIF
+LOCALS += "<div rect='3600,2800, 2600, 200'><button value='9994'>[9994] システムの説明</button>　　　<button value='9999'>[9999] 戻る</button></div>"
+HTML_PRINT LOCALS, 1
+
+FOR LOCAL, 0, 30
+	PRINTL
+NEXT
+
+IF チュートリアルフラグ:雇用レポート == 0
+	RESULT = 9994
+ELSE
+	BINPUT
+ENDIF
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 9994
+		CALL 雇用レポートチュートリアル()
+	CASE 9995
+		表示モード = 0
+		RESTART
+	CASE 9996
+		表示モード = 1
+		RESTART
+	CASE 9997
+		ページ数 --
+	CASE 9998
+		ページ数 ++
+	CASE 9999
+		RETURN 1
+	CASEELSE
+		TFLAG:SELECTCOM受け渡し = 400
+		SELECTCOM = 400
+		TFLAG:エリア切り替え時_目的地格納 = CFLAG:(表示配列:LOCAL):現在マップ種別 + 100
+		TFLAG:コマンド外移動時_目的地格納 = CFLAG:(表示配列:LOCAL):現在位置
+		TFLAG:TARGET変更用 = 表示配列:LOCAL
+		RETURN 0
+ENDSELECT
+GOTO 表示LOOP

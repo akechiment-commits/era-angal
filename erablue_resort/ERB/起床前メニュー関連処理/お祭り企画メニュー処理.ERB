@@ -1,0 +1,110 @@
+﻿@お祭り企画メニュー処理
+#DIM ループ用
+#DIMS 企画候補文字列
+
+DRAWLINE
+PRINTL リゾートで開催するお祭りの企画を行います。
+PRINTL ※開発中のため、正しく挙動しないことがあります。
+DRAWLINE
+LOCALS = <div rect='81,0,1937,344' border='31' bcolor='#C0C0C0'></div>
+LOCALS += @"<div rect='156,62,1912,281'>所持ルピ：%NUM_FORMAT(MONEY)%<br>所持ZP　：%ZP所持量全文字列()%</div>"
+LOCALS += "<div rect='2050,0,3875,344' border='31' bcolor='#C0C0C0'></div>"
+LOCALS += "<div rect='2125,62,3812,281'>"
+IF 開催予定祭り名 != ""
+	LOCALS += @"現在のお祭り開催予定：「%SUBSTRING(開催予定祭り名, 9)%」　"
+	IF 開催予定日取り == DAY
+		LOCALS += "本日"
+	ELSE
+		LOCALS += "明日"
+	ENDIF
+ELSE
+	LOCALS += @"現在のお祭り開催予定：なし"
+ENDIF
+LOCALS += "</div>"
+LOCALS += "<div rect='81,375,1937,2812' border='31' bcolor='#C0C0C0'></div><div rect='2050,375,3875,2812' border='31' bcolor='#C0C0C0'></div>"
+LOCALS += "<div rect='156,500,1937,2812'>"
+
+;お祭り選択時、詳細を表示
+IF 企画候補文字列 != ""
+	TRYCALLFORM MOVE_ROUTINE_%企画候補文字列%(0, "お祭り説明")
+ENDIF
+
+
+;お祭り個別の出現条件を全部見てヒットしたものを全部表示
+VARSET RESULTS
+VARSET RESULT
+
+FOR ループ用, 0, ENUMFUNCBEGINSWITH("MOVE_ROUTINE_FESTIVAL_")
+	;既に予定に入ってたらアウト
+	IF 開催予定祭り名 == REPLACE(RESULTS:ループ用, "MOVE_ROUTINE_", "")
+		LOCALS += @"<nonbutton>[{100 + ループ用}] <font color='#808080'>%SUBSTRING(RESULTS:ループ用, 22)%</font>（予定済）"
+		LOCALS += "</nonbutton><br>"
+		CONTINUE
+	ENDIF
+	TRYCALLFORM %RESULTS:ループ用%(0, "出現条件")
+	;お祭りが開催できるならLOCALSにボタン挿入
+	IF RESULT == 1
+		LOCALS += @"<button value='{100 + ループ用}'>[{100 + ループ用}] %SUBSTRING(RESULTS:ループ用, 22)%</button>"
+		LOCALS += "<br>"
+	ELSEIF RESULT != 0
+		LOCALS += @"<nonbutton>[{100 + ループ用}] <font color='#808080'>%SUBSTRING(RESULTS:ループ用, 22)%</font>"
+		SELECTCASE RESULT
+			CASE -1
+				LOCALS += "（時期外）"
+		ENDSELECT
+		LOCALS += "</nonbutton><br>"
+	ENDIF
+NEXT
+
+LOCALS += "<br>"
+LOCALS += "<button value='998'>[998] システムの説明</button>"
+LOCALS += "<br>"
+LOCALS += "<button value='999'>[999] 戻る</button>"
+LOCALS += "<br>"
+LOCALS += "</div>"
+
+HTML_PRINT LOCALS, 1
+FOR LOCAL, 0, 29
+	PRINTL
+NEXT
+DRAWLINE
+
+IF チュートリアルフラグ:お祭り企画 == 0
+	RESULT = 998
+ELSE
+	BINPUT
+ENDIF
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 0
+		IF 開催予定日取り == DAY
+			PRINTL お祭り開催当日に次の予定を入れることは出来ません。
+			RETURN 0
+		ELSEIF 開催予定祭り名 != ""
+			PRINTFORML 現在、%SUBSTRING(開催予定祭り名, 9)%が開催予定に入っています。
+			PRINTFORML %SUBSTRING(企画候補文字列, 9)%に変更しますか？
+			PRINTBUTTONLC "[0]はい", 0
+			PRINTBUTTONLC "[1]いいえ", 1
+			BINPUT
+			SELECTCASE RESULT
+				CASE 1
+					RESTART
+			ENDSELECT
+		ENDIF
+		開催予定日取り = DAY + 1
+		開催予定祭り名 = %企画候補文字列%
+		PRINTFORMW 明日、お祭り「%SUBSTRING(企画候補文字列, 9)%」を開催します。
+		企画候補文字列 = 
+	CASE 100 TO 199
+		企画候補文字列 = %SUBSTRING(RESULTS:(LOCAL - 100), 13)%
+		RESTART
+	CASE 998
+		CALL お祭り企画チュートリアル()
+		RESTART
+	CASE 999
+		企画候補文字列 = 
+		RETURN 0
+	CASEELSE
+ENDSELECT
+
+

@@ -1,0 +1,109 @@
+﻿;------------------------------------------------------------------------------
+;合意済みの相手
+;ムード・性欲一定以上で二人きりだとうふふのお誘いが来る
+;------------------------------------------------------------------------------
+@AUTOCOMNAME8
+IF RFLAG:コマンド結果受渡し変数
+	;許可時
+	RESULTS = うふふお誘い
+ELSE
+	;拒否時
+	RESULTS = うふふお誘い拒否
+ENDIF
+
+@AUTOCOM8
+;チラ見せと時間共通
+DRAWLINE
+PRINTFORML %CALLNAME:AUTOCOM_実行番号保存%は%CALLNAME:PLAYER%に向けて、肌を重ねる誘いをしてきた……
+TRYCALLFORM KOJO_AUTOCOM_お誘い口上_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+PRINTL
+PRINTL 誘いを受けますか？
+PRINTBUTTON "[0] はい", 0
+PRINTL
+PRINTBUTTON "[1] いいえ", 1
+PRINTL
+TIME_うふふお誘い:AUTOCOM_実行番号保存:0 = TIME
+BINPUT
+IF RESULT == 0
+	;許可
+	RFLAG:コマンド結果受渡し変数 = 1
+	IF TFLAG:調教モード == 3
+		CALL 飲み会終了処理
+	ENDIF
+	IF !現在地自宅チェック(AUTOCOM_実行番号保存) && !現在地自宅チェック(PLAYER)
+		CFLAG:PLAYER:隠密 = 1
+		CFLAG:AUTOCOM_実行番号保存:隠密 = 1
+	ENDIF
+	CALL うふふ開始キャラ処理(AUTOCOM_実行番号保存, "キャラからお誘い")
+	CFLAG:MASTER:うふふ = 1
+
+	;管理フラグを初期化
+	FLAG:モード管理 = 0
+ELSE
+	;拒否
+	RFLAG:コマンド結果受渡し変数 = 0
+ENDIF
+
+RETURN 1
+
+@AUTOCOM_ABLE8(対象キャラ)
+#DIM 対象キャラ
+;あなたが必要
+SIF GETBIT(AUTOCOM_相手判別関数(対象キャラ), 0) == 0
+	RETURN 0
+;ターゲットが陥落済み
+SIF 陥落チェック_性的(対象キャラ) == 0
+	RETURN 0
+;初うふふ済
+SIF 初体験日取得("初うふふ", 対象キャラ, MASTER) == 0
+	RETURN 0
+;二人っきりのみ
+LOCAL = GET_TARGETNUM()
+SIF LOCAL > 1
+	RETURN 0
+IF CFLAG:MASTER:飲み会
+	SIF LOCAL + GET_飲み会TARGETNUM() > 1
+		RETURN 0
+ENDIF
+;特定モード中はダメ
+SIF MODE_存在判定_いずれか側("ハーヴィンオナホ系", MASTER)
+	RETURN 0
+SIF MODE_存在判定_いずれか側("ハーヴィンオナホ系", 対象キャラ)
+	RETURN 0
+;隠密一致
+SIF CFLAG:MASTER:隠密 != CFLAG:対象キャラ:隠密
+	RETURN 0
+;馴れ合い強度2
+SIF TCVAR:MASTER:馴れ合い強度 < 2
+	RETURN 0
+;うふふ中ではない
+SIF CFLAG:対象キャラ:うふふ
+	RETURN 0
+;２時間に１回のみ発動
+SIF TIME - TIME_うふふお誘い:対象キャラ:0 < 120
+	RETURN 0
+;性欲一定以上
+SIF BASE:対象キャラ:性欲 < 700
+	RETURN 0
+;無関心があるとアウト
+SIF TALENT:対象キャラ:無関心 > 0
+	RETURN 0
+;性知識-1必要
+SIF 知識素質:対象キャラ:性知識 < -1
+	RETURN 0
+RETURN 1
+
+@MESSAGE_AUTOCOM8
+
+IF RFLAG:コマンド結果受渡し変数
+	;許可時
+	PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:AUTOCOM_実行番号保存%の誘いに快く応じた
+	PRINTFORML %CALLNAME:AUTOCOM_実行番号保存%は%CALLNAME:PLAYER%の肩に手を回し、抱き寄せた……
+ELSE
+	;拒否時
+	PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:AUTOCOM_実行番号保存%の誘いを断った
+	PRINTFORML %CALLNAME:AUTOCOM_実行番号保存%は残念そうにしている……
+ENDIF
+
+
+

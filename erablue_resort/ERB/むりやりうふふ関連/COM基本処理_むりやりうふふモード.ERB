@@ -1,0 +1,990 @@
+﻿;========================================
+;@COMTYPE(ARGS)
+;指定した調教コマンドタイプ名に対応した数値を返す
+;========================================
+@RAPE_COMTYPE(ARGS)
+#FUNCTION
+TSTR:複合コマンドタイプ受け渡し = 
+IF STRFIND(ARGS, "&") >= 0
+	TSTR:複合コマンドタイプ受け渡し = %ARGS%
+	RETURNF 100
+ELSEIF STRFIND(ARGS, "_") >= 0
+	TSTR:複合コマンドタイプ受け渡し = %ARGS%
+	RETURNF 101
+ELSE
+	RETURNF FINDELEMENT(コマンドタイプ_むりやりうふふモード,ARGS,,,1)
+ENDIF
+
+;こっちは数字から文字列で返す
+@RAPE_COMTYPE_S(ARG)
+#FUNCTIONS
+SIF ARG >= 100
+	RETURNF ""
+RETURNF コマンドタイプ_むりやりうふふモード:ARG
+
+
+@SHOW_USERCOM_むりやりうふふモード
+#DIM コマンド数
+#DIM 同行者フラグ
+VARSET LOCAL
+
+;コマンド表示
+CALL SHOW_COMMAND_むりやりうふふモード
+IF OPTION変数:サイド領域非表示 == 0
+	CALL サイド領域_改行処理
+ENDIF
+DRAWLINE
+
+RESETCOLOR
+PRINTC 能力表示(マスター)[804]
+PRINTC 　　むりやりうふふを終える[999]
+SIF CSTR:TARGET:うふふシチュ記録 == "むりやりうふふごっこ"
+	PRINTC 　　通常うふふに戻る[998]
+
+PRINTL
+PRINTC OPTION[809]
+IF PLAYER == MASTER && ABL:PLAYER:腰使い > 4
+	IF あなた挿入最適化フラグ
+		SETCOLOR カラーパレット("黄")
+		PRINTBUTTONC "挿入最適化:ON[895]", 895
+		RESETCOLOR
+	ELSE
+		PRINTBUTTONC "挿入最適化:OFF[895]", 895
+	ENDIF
+ENDIF
+RESETCOLOR
+
+PRINTL 
+PRINT ＜コマンド履歴:
+FOR LOCAL, 0, 5
+	IF コマンド履歴:LOCAL >= 370 && コマンド履歴:LOCAL <= 374
+		SIF LOCAL > 0
+			PRINT  - 
+		;現在位置が同じかつCOMABLEが通るならボタン化
+		IF TARGET == コマンド履歴:(LOCAL + 5)
+			TRYCALLFORM COM_ABLE{コマンド履歴:LOCAL}
+			IF RESULT
+				PRINTBUTTON @"[%TRAIN_COMNAME(コマンド履歴:LOCAL)%]", コマンド履歴:LOCAL
+			ELSE
+				PRINTFORM [%TRAIN_COMNAME(コマンド履歴:LOCAL)%]
+			ENDIF
+		ELSE
+			;一旦TARGETが違うなら一旦相手を保存してから固有コマンド表示
+			SWAP TARGET, コマンド履歴:(LOCAL + 5)
+			PRINTFORM [%TRAIN_COMNAME(コマンド履歴:LOCAL)%]
+			SWAP TARGET, コマンド履歴:(LOCAL + 5)
+		ENDIF
+	ELSEIF コマンド履歴:LOCAL >= 380 && コマンド履歴:LOCAL <= 384
+		SIF LOCAL > 0
+			PRINT  - 
+		;現在位置が同じかつCOMABLEが通るならボタン化
+		IF CFLAG:MASTER:現在位置 == コマンド履歴:(LOCAL + 10) && CFLAG:MASTER:現在マップ種別 == コマンド履歴:(LOCAL + 15)
+			TRYCALLFORM COM_ABLE{コマンド履歴:LOCAL}
+			IF RESULT
+				PRINTBUTTON @"[%TRAIN_COMNAME(コマンド履歴:LOCAL)%]", コマンド履歴:LOCAL
+			ELSE
+				PRINTFORM [%TRAIN_COMNAME(コマンド履歴:LOCAL)%]
+			ENDIF
+		ELSE
+			;一旦現在位置が違うなら一旦位置を保存してから固有コマンド表示
+			LOCAL:1 = CFLAG:MASTER:現在位置
+			LOCAL:2 = CFLAG:MASTER:現在マップ種別
+			CFLAG:MASTER:現在位置 = コマンド履歴:(LOCAL + 10)
+			PRINTFORM [%TRAIN_COMNAME(コマンド履歴:LOCAL)%]
+			CFLAG:MASTER:現在位置 = LOCAL:1
+			CFLAG:MASTER:現在マップ種別 = LOCAL:2
+		ENDIF
+	ELSEIF コマンド履歴:LOCAL >= 0
+		SIF LOCAL > 0
+			PRINT  - 
+		;COMABLEが通るならボタン化
+		TRYCALLFORM COM_ABLE{コマンド履歴:LOCAL}
+		IF RESULT
+			PRINTBUTTON @"[%TRAIN_COMNAME(コマンド履歴:LOCAL)%]", コマンド履歴:LOCAL
+		ELSE
+			PRINTFORM [%TRAIN_COMNAME(コマンド履歴:LOCAL)%]
+		ENDIF
+	ELSEIF コマンド履歴:LOCAL == -1
+		SIF LOCAL > 0
+			PRINT  - 
+		;COMABLEが通るならボタン化
+		TRYCALLFORM COM_ABLE_S%派生コマンド履歴:LOCAL%
+		IF RESULT
+			PRINTBUTTON @"[%TRAIN_COMNAME_S(派生コマンド履歴:LOCAL)%]", @"%派生コマンド履歴:LOCAL%"
+		ELSE
+			PRINTFORM [%TRAIN_COMNAME_S(派生コマンド履歴:LOCAL)%]
+		ENDIF
+	ENDIF
+NEXT
+PRINTL ＞
+
+
+
+@SHOW_COMMAND_むりやりうふふモード
+
+CALL SHOW_MODE()
+
+SETCOLOR 0xC0C0C0
+SIF 簡易コマンドフィルタ:0
+	SETCOLOR 0x666666
+文字色保存 = GETCOLOR()
+PRINT -----
+PRINTBUTTON "[通常]", 9000
+PRINTL -------------------------------------------------------------------------------------------------
+SIF !簡易コマンドフィルタ:0
+	CALL SHOW_COMMAND_むりやりうふふモード_実処理("その他")
+PRINTL
+SETCOLOR 0xFF66CC
+SIF 簡易コマンドフィルタ:6
+	SETCOLOR 0x666666
+文字色保存 = GETCOLOR()
+PRINT -----
+PRINTBUTTON "[Ｖ系]", 9006
+PRINTL -------------------------------------------------------------------------------------------------
+SIF !簡易コマンドフィルタ:6
+	CALL SHOW_COMMAND_むりやりうふふモード_実処理("Ｖ系")
+PRINTL
+SETCOLOR 0xDDFFDD
+SIF 簡易コマンドフィルタ:7
+	SETCOLOR 0x666666
+文字色保存 = GETCOLOR()
+PRINT -----
+PRINTBUTTON "[Ａ系]", 9007
+PRINTL -------------------------------------------------------------------------------------------------
+SIF !簡易コマンドフィルタ:7
+	CALL SHOW_COMMAND_むりやりうふふモード_実処理("Ａ系")
+
+PRINTL
+RESETCOLOR
+PRINTL
+文字色保存 = 0
+
+@SHOW_COMMAND_むりやりうふふモード_実処理(コマンドカテゴリ)
+#DIMS 複合条件保存, 10
+#DIM スキップフラグ
+#DIM 配列番号
+#DIMS コマンドキー
+#DIM 派生カテゴリ表示フラグ
+#DIMS コマンドカテゴリ
+#DIM 文字横幅保存
+#DIMS COM文字列保存
+
+TOOLTIP_CUSTOM 1
+TOOLTIP_SETFONTSIZE 12
+TOOLTIP_SETDURATION 100000
+
+VARSET LOCALS
+LOCAL:1 = 0
+LOCAL:2 = 0
+LOCAL:3 = RAPE_COMTYPE(コマンドカテゴリ)
+SIF コマンドカテゴリ == "その他"
+	LOCAL:3 = 49
+
+FOR LOCAL, 0, 700
+	TRYCCALLFORM RAPE_COM_ABLE{LOCAL}
+		SIF RESULT == 0
+			CONTINUE
+	CATCH
+		CONTINUE
+	ENDCATCH
+	弱点コマンドカテゴリ = 
+	TFLAG:派生コマンド指定 = -1
+	TRYCALLFORMF RAPE_COMTYPE_{LOCAL}
+	SIF TFLAG:派生コマンド指定 > -1
+		CONTINUE
+	;指定カテゴリと同じコマンドだけ表示
+	SELECTCASE LOCAL:3
+		CASE 0 TO 48
+			SIF TFLAG:コマンドタイプ受渡 != LOCAL:3
+				CONTINUE
+		CASE 49
+			;通常枠
+			SIF GROUPMATCH(TFLAG:コマンドタイプ受渡, 6, 7)
+				CONTINUE
+	ENDSELECT
+	LOCALS:1 = {LOCAL}
+	IF STRFIND(弱点コマンドカテゴリ, "リダイレクト") >= 0
+		LOCALS:1 = %SUBSTRING(弱点コマンドカテゴリ, 12)%
+	ENDIF
+	CALLFORMF TRAIN_COMNAME(LOCAL)
+	IF TSTR:コマンドカラー受渡 == ""
+		IF 判明済み弱点チェック(TARGET, @"RAPE_%LOCALS:1%")
+			LOCALS += "<font color='#FF3399'>"
+			LOCAL:4 = 1
+		ENDIF
+		IF 判明済み弱点チェック(PLAYER, @"RAPE_%LOCALS:1%_PLAYER側")
+			LOCALS += "<font color='#FF3399'>"
+			LOCAL:4 = 1
+		ENDIF
+	ELSE
+		LOCALS += @"<font color='#%TSTR:コマンドカラー受渡%'>"
+		LOCAL:4 = 1
+	ENDIF
+	IF STRLENS(TRAIN_COMNAME(LOCAL))
+		LOCALS += @"<button value = '{LOCAL}'"
+		TRYCCALLFORM RAPE_COM_TOOLTIP_{LOCAL}
+			IF OPTION変数:ツールチップ切り替え == 0
+				LOCALS += @" title = '%TSTR:ツールチップ受渡%'>"
+			ELSE
+				LOCALS += @">"
+			ENDIF
+		CATCH
+			LOCALS += @">"
+		ENDCATCH
+		COM文字列保存 = %TRAIN_COMNAME(LOCAL)%
+		文字横幅保存 = STRLENS(COM文字列保存) - HTML_STRINGLEN(COM文字列保存)
+		LOCALS += @"%COM文字列保存, 30 + 文字横幅保存%[{LOCAL, 3}]</button>　"
+		IF LOCAL:4
+			LOCALS += "</font>"
+			LOCAL:4 = 0
+		ENDIF
+		LOCAL:2 += 1
+	ENDIF
+	IF LOCAL:2 >= 3
+		LOCAL:2 = 0
+		HTML_PRINT LOCALS
+		LOCALS = 
+	ENDIF
+NEXT
+IF LOCALS != ""
+	LOCAL:2 = 0
+	HTML_PRINT LOCALS
+	LOCALS = 
+ENDIF
+
+FOR LOCAL, 0, 500
+	LOCAL:2 = 0
+	派生カテゴリ表示フラグ = 0
+	;派生コマンドを見る
+	FOR LOCAL:1, 1, 50
+		TRYCCALLFORM RAPE_COM_ABLE_S{LOCAL}_{LOCAL:1}
+			SIF RESULT == 0
+				CONTINUE
+		CATCH
+			CONTINUE
+		ENDCATCH
+		RESULT = 0
+		弱点コマンドカテゴリ = 
+		TRYCALLFORMF RAPE_COMTYPE_S_{LOCAL}_{LOCAL:1}
+		;指定カテゴリと同じコマンドだけ表示
+		SELECTCASE LOCAL:3
+			CASE 0 TO 48
+				SIF TFLAG:コマンドタイプ受渡 != LOCAL:3
+					CONTINUE
+			CASE 49
+				;通常枠
+				SIF GROUPMATCH(TFLAG:コマンドタイプ受渡, 6, 7)
+					CONTINUE
+		ENDSELECT
+		IF 派生カテゴリ表示フラグ == 0
+			PRINTL
+			派生名フラグ = 1
+			PRINTFORML ▼%TRAIN_COMNAME(LOCAL)%派生
+			派生名フラグ = 0
+			派生カテゴリ表示フラグ = 1
+		ENDIF
+		コマンドキー = {LOCAL}_{LOCAL:1}
+		IF STRFIND(弱点コマンドカテゴリ, "リダイレクト") >= 0
+			コマンドキー = %SUBSTRING(弱点コマンドカテゴリ, 12)%
+		ENDIF
+		CALLFORMF TRAIN_COMNAME_S(コマンドキー)
+		IF TSTR:コマンドカラー受渡 == ""
+			IF 判明済み弱点チェック(TARGET, @"RAPE_%コマンドキー%")
+				LOCALS += "<font color='#FF3399'>"
+				LOCAL:4 = 1
+			ENDIF
+			IF 判明済み弱点チェック(PLAYER, @"RAPE_%コマンドキー%_PLAYER側")
+				LOCALS += "<font color='#FF3399'>"
+				LOCAL:4 = 1
+			ENDIF
+		ELSE
+			LOCALS += @"<font color='#%TSTR:コマンドカラー受渡%'>"
+			LOCAL:4 = 1
+		ENDIF
+		LOCALS += @"<button value = '%コマンドキー%'"
+		TRYCCALLFORM RAPE_COM_TOOLTIP_S%コマンドキー%
+			IF OPTION変数:ツールチップ切り替え == 0
+				LOCALS += @" title = '%TSTR:ツールチップ受渡%'>"
+			ELSE
+				LOCALS += @">"
+			ENDIF
+		CATCH
+			LOCALS += @">"
+		ENDCATCH
+		COM文字列保存 = %TRAIN_COMNAME_S(コマンドキー)%
+		文字横幅保存 = STRLENS(COM文字列保存) - HTML_STRINGLEN(COM文字列保存)
+		LOCALS += @"%COM文字列保存, 30 + 文字横幅保存%[%コマンドキー,5%]</button>　"
+		IF LOCAL:4
+			LOCALS += "</font>"
+			LOCAL:4 = 0
+		ENDIF
+		LOCAL:2 += 1
+		SETCOLOR 文字色保存
+		IF LOCAL:2 >= 3
+			LOCAL:2 = 0
+			HTML_PRINT LOCALS
+			LOCALS = 
+		ENDIF
+	NEXT
+
+	IF LOCALS != ""
+		LOCAL:2 = 0
+		HTML_PRINT LOCALS
+		LOCALS = 
+	ENDIF
+NEXT
+
+@USERCOM_むりやりうふふモード
+;#DIM ページ番号
+#DIM 数値変換用
+#DIM TARGET何人目？
+#DIM TARGET保存
+#DIM COM保存
+
+;ページ番号 = 0
+;RETURN 0でSOURCE_CHECK以降に進む
+;NEXTCOMを仕込む
+IF NEXTCOM >= 0
+	RESULT = NEXTCOM
+	NEXTCOM = -1
+ENDIF
+
+IF RSTR:SELECTCOM_S受け渡し != ""
+	;受け渡しがある場合はMODE設定の変更かどうか確認
+	CALL MODE設定変更処理(RSTR:SELECTCOM_S受け渡し)
+	SIF RESULT
+		RETURN 1
+
+	;それ以外の場合はRSTR:SELECTCOM_S受け渡しに派生コマンドが入っているはず
+	SELECTCOM = -1
+	SELECTCOM_S = %RSTR:SELECTCOM_S受け渡し%
+	SIF TRAIN_COMNAME_S(SELECTCOM_S) == ""
+		RETURN 1
+	RSTR:SELECTCOM_S受け渡し = %SELECTCOM_S%
+	RESULT = 1
+	TRYCALLFORM RAPE_COM_ABLE_S%SELECTCOM_S%
+	SIF RESULT == 0 || RESULT == -1
+		RETURN 1
+	IF TCVAR:TARGET:食いしばりフラグ
+	ELSE
+		TRYCALLFORM RAPE_CAN_COM_S%SELECTCOM_S%(1)
+		IF !RESULT
+			TRYCALLFORM RAPE_CAN_COM_S%SELECTCOM_S%
+			RETURN 1
+		ENDIF
+	ENDIF
+ELSEIF RESULT == 9104
+	;オートコマンドオプション
+	FLAG:オートコマンド切り替えオプション += 1
+	SIF FLAG:オートコマンド切り替えオプション > 15
+		FLAG:オートコマンド切り替えオプション = 0
+	RETURN 1
+ELSEIF RESULT == 9100
+;9100でINFO格納フィルタ
+	INVERTBIT INFO格納フィルタ:(RESULT - 9100), 0
+	RETURN 1
+ELSEIF RESULT >=9000
+;9000番代は簡易コマンドフィルタに使う
+	INVERTBIT 簡易コマンドフィルタ:(RESULT - 9000), 0
+	RETURN 1
+ELSEIF RESULT > 2000
+;2000番以降は相手変えのショートカットに使う
+	数値変換用 = RESULT - 2000
+	IF 数値変換用 <= 0 || 数値変換用 >= CHARANUM
+		RETURN 1
+	ELSEIF CFLAG:数値変換用:同室
+		IF GETBIT(FLAG:モード管理, モードビット_同時) && !MATCH(同時モード_選択キャラ, 数値変換用)
+			FLAG:モード管理 = 0
+			VARSET 同時モード_選択キャラ, -1
+			同時モード_選択数 = 0
+		ENDIF
+		TFLAG:TARGET変更用 = 数値変換用
+		TFLAG:あなたターゲット用 = 0
+		PREVCOM = RESULT
+	ENDIF
+	RETURN 1
+ELSEIF RESULT >= 0 && RESULT <= 700
+	SELECTCOM = RESULT
+	SIF TRAIN_COMNAME(SELECTCOM) == ""
+		RETURN 1
+	RESULT = 0
+	TRYCALLFORM RAPE_COM_ABLE{SELECTCOM}
+	SIF RESULT == 0
+		RETURN 1
+	TFLAG:SELECTCOM受け渡し = SELECTCOM
+	RESULT = 1
+	IF TCVAR:TARGET:食いしばりフラグ
+	ELSE
+		TRYCALLFORM RAPE_CAN_COM{SELECTCOM}(1)
+		IF !RESULT
+			TRYCALLFORM RAPE_CAN_COM{SELECTCOM}
+			RETURN 1
+		ENDIF
+	ENDIF
+ELSEIF RESULT == 803
+	FOR LOCAL, 1, CHARANUM
+		IF TARGET:LOCAL == TARGET
+			TARGET何人目？ = LOCAL
+			BREAK
+		ENDIF
+	NEXT
+	$能力表示_LOOP
+	LOCAL:1 = 0
+	SIF TARGET何人目？ != 1
+		SETBIT LOCAL:1, 0
+	SIF TARGET:(TARGET何人目？ + 1) > 0
+		SETBIT LOCAL:1, 1
+	CALL PRINT_STATE(TARGET:TARGET何人目？, LOCAL:1)
+	IF RESULT == 100
+		TARGET何人目？ -= 1
+		GOTO 能力表示_LOOP
+	ELSEIF RESULT == 101
+		TARGET何人目？ += 1
+		GOTO 能力表示_LOOP
+	ENDIF
+	RETURN 1
+ELSEIF RESULT == 804
+	CALL PRINT_STATE(MASTER)
+	RETURN 1
+ELSEIF RESULT == 809
+	CALL OPTION
+	RETURN 1
+ELSEIF RESULT == 890
+	INVERTBIT あなた射精我慢フラグ, 0
+	RETURN 1
+ELSEIF RESULT == 891
+	CALL オート射精先設定
+	RETURN 1
+ELSEIF RESULT == 892
+	INVERTBIT OPTION変数:連れ込み制御, 0
+	RETURN 1
+ELSEIF RESULT == 895
+	INVERTBIT あなた挿入最適化フラグ, 0
+	RETURN 1
+ELSEIF RESULT == 999
+	CALL ゲームフェイズ変更("通常モード")
+	SIF FLAG:イベントうふふ中フラグ
+		FLAG:イベントうふふ終了 = 1
+	RETURN 1
+ELSEIF RESULT == 998
+	;通常に戻る
+	LOCALS '= CSTR:TARGET:コスプレ前の服
+	LOCALS:1 '= CSTR:TARGET:着せ替え服
+	TARGET保存 = TARGET
+	;ゲームフェイズ変更でリセットされるのでSELECTCOM保存
+	COM保存 = SELECTCOM
+	CALL ゲームフェイズ変更("通常モード")
+	;SELECTCOM復帰
+	SWAP SELECTCOM, COM保存
+	TARGET = TARGET保存
+	CSTR:TARGET:コスプレ前の服 '= LOCALS
+	CALL CLOTHES_CHANGE(TARGET, LOCALS:1)
+	;うふふに移行
+	CALL うふふ開始キャラ処理(TARGET, TSTR:むりやりごっこ時シチュ保存)
+	CFLAG:PLAYER:うふふ = 1
+	RETURN 1
+ELSE
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+@RAPE_CALL_COM(対象キャラ)
+#DIM 対象キャラ
+#DIMS DYNAMIC コマンド番号保存
+
+RESULT = 0
+IF RSTR:SELECTCOM_S受け渡し != ""
+	IF TCVAR:TARGET:食いしばりフラグ
+	ELSE
+		TRYCALLFORM RAPE_CAN_COM_S%RSTR:SELECTCOM_S受け渡し%
+	ENDIF
+	CALLFORMF RAPE_COMNAME_S%RSTR:SELECTCOM_S受け渡し%
+	SELECTCOM_NAME '= TSTR:コマンド名受渡
+	TRYCALLFORMF RAPE_COMTYPE_S_%RSTR:SELECTCOM_S受け渡し%
+	コマンド番号保存 = %RSTR:SELECTCOM_S受け渡し%
+	SIF 弱点チェック(対象キャラ, @"RAPE_%コマンド番号保存%")
+		TCVAR:対象キャラ:弱点コマンドフラグ = 1
+	SIF 弱点チェック(PLAYER, @"RAPE_%コマンド番号保存%_PLAYER側")
+		TCVAR:PLAYER:弱点コマンドフラグ = 1
+	TRYCALLFORM RAPE_COM_S%RSTR:SELECTCOM_S受け渡し%
+	LOCAL:1 = RESULT
+	IF LOCAL:1 >= 0
+		IF STRFIND(コマンド初回フラグ:対象キャラ:0, @"-RAPE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_一時保存:対象キャラ:0 += @"-RAPE_%コマンド番号保存%-"
+		ENDIF
+		IF STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-RAPE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_PLAYER_一時保存:PLAYER:0 += @"-RAPE_%コマンド番号保存%-"
+		ENDIF
+		CALL 弱点看破処理(対象キャラ, @"RAPE_%コマンド番号保存%")
+		CALL 弱点看破処理(PLAYER, @"RAPE_%コマンド番号保存%_PLAYER側")
+	ELSE
+		TCVAR:対象キャラ:弱点コマンドフラグ = 0
+	ENDIF
+	SPLIT RSTR:SELECTCOM_S受け渡し, "_", RESULTS
+	RETURN LOCAL:1
+ELSE
+	IF TCVAR:TARGET:食いしばりフラグ
+	ELSE
+		TRYCALLFORM RAPE_CAN_COM{SELECTCOM}
+	ENDIF
+	CALLFORMF RAPE_COMNAME{SELECTCOM}
+	SELECTCOM_NAME '= TSTR:コマンド名受渡
+	TRYCALLFORMF RAPE_COMTYPE_{SELECTCOM}
+	コマンド番号保存 = {SELECTCOM}
+	SIF 弱点チェック(対象キャラ, @"RAPE_%コマンド番号保存%")
+		TCVAR:対象キャラ:弱点コマンドフラグ = 1
+	SIF 弱点チェック(PLAYER, @"RAPE_%コマンド番号保存%_PLAYER側")
+		TCVAR:PLAYER:弱点コマンドフラグ = 1
+	TRYCALLFORM RAPE_COM{SELECTCOM}
+	LOCAL:1 = RESULT
+	IF LOCAL:1 >= 0
+		コマンド番号保存 = {SELECTCOM}
+		IF STRFIND(コマンド初回フラグ:対象キャラ:0, @"-RAPE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_一時保存:対象キャラ:0 += @"-RAPE_%コマンド番号保存%-"
+		ENDIF
+		IF STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-RAPE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_PLAYER_一時保存:PLAYER:0 += @"-RAPE_%コマンド番号保存%-"
+		ENDIF
+		CALL 弱点看破処理(対象キャラ, @"RAPE_%コマンド番号保存%")
+		CALL 弱点看破処理(PLAYER, @"RAPE_%コマンド番号保存%_PLAYER側")
+	ELSE
+		TCVAR:対象キャラ:弱点コマンドフラグ = 0
+	ENDIF
+	RETURN LOCAL:1
+ENDIF
+
+
+
+@KOJO_MESSAGE_COM_むりやりうふふモード
+#DIMS 呼び出し文字列
+#DIM 対象キャラ
+
+VARSET LOCAL
+TFLAG:コマンドタイプ受渡 = 0
+
+IF FLAG:汎用文章表示切り替えオプション > 0
+	IF PLAYER == MASTER
+		IF TCVAR:PLAYER:弱点コマンドフラグ
+			DRAWLINE
+			SETCOLOR カラーパレット("えっちな色")
+			PRINTFORMW <<<弱点コマンド！！（%CALLNAME:PLAYER%）>>>
+			RESETCOLOR
+		ELSEIF TCVAR:PLAYER:弱点シチュフラグ
+			SETCOLOR カラーパレット("えっちな色")
+			PRINT <<<弱点シチュエーション
+			PRINT_IMG "えっちハート"
+			PRINTFORML （%CALLNAME:PLAYER%）>>>
+			RESETCOLOR
+		ENDIF
+	ENDIF
+	FOR LOCAL, 1, CHARANUM
+		SIF TARGET:LOCAL < 1
+			BREAK
+		IF TCVAR:(TARGET:LOCAL):弱点コマンドフラグ
+			DRAWLINE
+			SETCOLOR カラーパレット("えっちな色")
+			PRINTFORMW <<<弱点コマンド！！（%CALLNAME:(TARGET:LOCAL)%）>>>
+			RESETCOLOR
+		ELSEIF TCVAR:(TARGET:LOCAL):弱点シチュフラグ
+			SETCOLOR カラーパレット("えっちな色")
+			PRINT <<<弱点シチュエーション
+			PRINT_IMG "えっちハート"
+			PRINTFORML （%CALLNAME:(TARGET:LOCAL)%）>>>
+			RESETCOLOR
+		ENDIF
+	NEXT
+	DRAWLINE
+	IF SELECTCOM_S != ""
+		地の文MOD_関数名 = %SELECTCOM_S%
+		SIF EXISTFUNCTION(@"RAPE_MESSAGE_COM_S%地の文MOD_関数名%_MOD") > 0
+			地の文MOD_関数名 '= 地の文MOD_関数名 + "_MOD"
+		TRYCCALLFORM RAPE_MESSAGE_COM_S%地の文MOD_関数名%
+			PRINTW
+		CATCH
+		ENDCATCH
+		TRYCALLFORMF RAPE_COMTYPE_S_%SELECTCOM_S%
+	ELSE
+		地の文MOD_関数名 = {SELECTCOM}
+		SIF EXISTFUNCTION(@"RAPE_MESSAGE_COM%地の文MOD_関数名%_MOD") > 0
+			地の文MOD_関数名 '= 地の文MOD_関数名 + "_MOD"
+		TRYCCALLFORM RAPE_MESSAGE_COM%地の文MOD_関数名%
+			PRINTW
+		CATCH
+		ENDCATCH
+		TRYCALLFORMF RAPE_COMTYPE_{SELECTCOM}
+	ENDIF
+	PRINTL
+ENDIF
+IF FLAG:口上表示切り替えオプション <= 0
+	RETURN 0
+ENDIF
+
+CALL 口上変数初期化
+RESULT = 0
+
+;口上ありでも汎用喘ぎを使うならここで表示
+
+対象キャラ = TARGET
+
+IF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == -1
+	CALL 汎用喘ぎ処理(対象キャラ)
+ELSEIF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == 1
+	;禁止時はなにもしない
+ELSE
+	IF TALENT:対象キャラ:性別 == 2
+		SIF GETBIT(OPTION変数:汎用喘ぎ使用_男, 0) && GETBIT(OPTION変数:汎用喘ぎ使用_男, 1)
+			CALL 汎用喘ぎ処理(対象キャラ)
+	ELSE
+		SIF GETBIT(OPTION変数:汎用喘ぎ使用, 0) && GETBIT(OPTION変数:汎用喘ぎ使用, 1)
+			CALL 汎用喘ぎ処理(対象キャラ)
+	ENDIF
+ENDIF
+
+SIF TCVAR:TARGET:食いしばりフラグ
+	SKIPDISP 1
+
+;コマンドごとの画像をここで表示
+CALL コマンド実行時画像表示処理(TARGET, SELECTCOM_NAME)
+
+RESULT = 0
+
+IF RSTR:SELECTCOM_S受け渡し != ""
+	TRYCALLFORM KOJO_RAPE_COM_{NO:TARGET}_%RSTR:SELECTCOM_S受け渡し%(TARGET)
+	IF GETBIT(FLAG:モード管理, モードビット_同時)
+		呼び出し文字列 = %RSTR:SELECTCOM_S受け渡し%
+	ENDIF
+ELSE
+	TRYCALLFORM KOJO_RAPE_COM_{NO:TARGET}_{SELECTCOM}(TARGET)
+	IF GETBIT(FLAG:モード管理, モードビット_同時)
+		呼び出し文字列 = {SELECTCOM}
+	ENDIF
+ENDIF
+
+SKIPDISP 0
+SIF K < 1
+	LOCAL:1 = 1
+
+IF K < 1 && LOCAL:1 == 1
+	;通常口上も複数人プレイ口上も無かった場合、非口上メッセージを出す
+	;口上なしで汎用喘ぎを使うならここで表示
+	対象キャラ = TARGET
+	IF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == 1
+		;禁止時はなにもしない
+	ELSEIF TFLAG:オートコマンドフラグ == 0
+		IF TALENT:対象キャラ:性別 == 2
+			SIF GETBIT(OPTION変数:汎用喘ぎ使用_男, 0) && GETBIT(OPTION変数:汎用喘ぎ使用_男, 1) == 0
+				CALL 汎用喘ぎ処理(対象キャラ)
+		ELSE
+			SIF GETBIT(OPTION変数:汎用喘ぎ使用, 0) && GETBIT(OPTION変数:汎用喘ぎ使用, 1) == 0
+				CALL 汎用喘ぎ処理(対象キャラ)
+		ENDIF
+	ENDIF
+	IF TCVAR:対象キャラ:食いしばりフラグ == 0
+		IF SELECTCOM_S != ""
+			地の文MOD_関数名 = %SELECTCOM_S%_非口上時
+			SIF EXISTFUNCTION(@"RAPE_MESSAGE_COM_S%地の文MOD_関数名%_MOD") > 0
+				地の文MOD_関数名 '= 地の文MOD_関数名 + "_MOD"
+			TRYCALLFORM RAPE_MESSAGE_COM_S%地の文MOD_関数名%
+		ELSE
+			地の文MOD_関数名 = {SELECTCOM}_非口上時
+			SIF EXISTFUNCTION(@"RAPE_MESSAGE_COM%地の文MOD_関数名%_MOD") > 0
+				地の文MOD_関数名 '= 地の文MOD_関数名 + "_MOD"
+			TRYCALLFORM RAPE_MESSAGE_COM%地の文MOD_関数名%
+		ENDIF
+	ENDIF
+ENDIF
+
+
+
+@EVENTCOMEND0_むりやりうふふモード
+#DIM TARGET保存
+#DIM 食事回復量
+#DIM 料理ランク一時保存
+#DIM 料理属性一時保存, 10
+#DIM モード中キャラカウント
+#DIM FLAG保存
+#DIM 時間保存
+#DIM 回数保存
+#DIM 表示候補, 1000
+#DIM わからせフラグ
+
+IF TFLAG:オートコマンドフラグ || TFLAG:オートコマンド連続発動
+ELSE
+	;コマンド履歴の保存
+	コマンド履歴:19 = コマンド履歴:18
+	コマンド履歴:18 = コマンド履歴:17
+	コマンド履歴:17 = コマンド履歴:16
+	コマンド履歴:16 = コマンド履歴:15
+	コマンド履歴:15 = CFLAG:MASTER:現在マップ種別
+	コマンド履歴:14 = コマンド履歴:13
+	コマンド履歴:13 = コマンド履歴:12
+	コマンド履歴:12 = コマンド履歴:11
+	コマンド履歴:11 = コマンド履歴:10
+	コマンド履歴:10 = CFLAG:MASTER:現在位置
+	コマンド履歴:9 = コマンド履歴:8
+	コマンド履歴:8 = コマンド履歴:7
+	コマンド履歴:7 = コマンド履歴:6
+	コマンド履歴:6 = コマンド履歴:5
+	コマンド履歴:5 = TARGET
+	コマンド履歴:4 = コマンド履歴:3
+	コマンド履歴:3 = コマンド履歴:2
+	コマンド履歴:2 = コマンド履歴:1
+	コマンド履歴:1 = コマンド履歴:0
+	IF RSTR:SELECTCOM_S受け渡し == ""
+		コマンド履歴:0 = SELECTCOM
+	ELSE
+		コマンド履歴:0 = -1
+	ENDIF
+	派生コマンド履歴:4 = %派生コマンド履歴:3%
+	派生コマンド履歴:3 = %派生コマンド履歴:2%
+	派生コマンド履歴:2 = %派生コマンド履歴:1%
+	派生コマンド履歴:1 = %派生コマンド履歴:0%
+	派生コマンド履歴:0 = %RSTR:SELECTCOM_S受け渡し%
+	;TARGET回数記録
+
+	回数保存 = 0
+	IF TARGET > 0
+		;基本TARGETありのはずだが、一応分岐を付けておく
+		回数保存 = CFLAG:TARGET:コマンドタゲ回数記録
+		CFLAG:TARGET:コマンドタゲ回数記録 ++
+		CALL コマンド回数履歴記録(TARGET, 回数保存)
+	ENDIF
+ENDIF
+
+;キャラごとの特殊処理を呼び出す
+TRYCALLFORM RAPE_TURNEND_CHARAEVENT_{NO:TARGET}
+
+わからせフラグ = 0
+IF RSTR:SELECTCOM_S受け渡し == "20_6" && RFLAG:コマンド結果受渡し変数４
+	;処理のためフラグ保存
+	わからせフラグ = 1
+ENDIF
+
+;諸々リセット
+CALL TURN_RESET
+COM_RAND = RAND:1000
+
+;泥酔眠姦中一定確率で目覚める
+IF TCVAR:TARGET:泥酔眠姦 == 1 && TCVAR:TARGET:言いなり == 1 && CFLAG:TARGET:睡眠 >= 1 && RAND:20 == 0
+	CFLAG:TARGET:睡眠 = 0
+	PRINTFORMW %CALLNAME:TARGET%が目を覚ましたようだ。
+	PRINTL
+	PRINTFORMW ……が、酔いから抜けだせていない%CALLNAME:TARGET%は何をされているかもわかっていない様子でされるがままになっている……。
+ENDIF
+
+;脱衣コマンド
+SELECTCASE SELECTCOM
+	;全裸にする
+	CASE 208
+		TEQUIP:TARGET:上半身鎧あり = 0
+		TEQUIP:TARGET:上半身服あり = 0
+		TEQUIP:TARGET:脇出し = 0
+		TEQUIP:TARGET:へそ出し = 0
+		TEQUIP:TARGET:はだけ可 = 0
+		TEQUIP:TARGET:手差し込み可 = 0
+		TEQUIP:TARGET:パイズリ可 = 0
+		TEQUIP:TARGET:上タイツあり = 0
+		TEQUIP:TARGET:上半身下着あり = 0
+		TEQUIP:TARGET:上半身下着抜き取り可 = 0
+		TEQUIP:TARGET:下腹部後鎧あり = 0
+		TEQUIP:TARGET:下腹部前鎧あり = 0
+		TEQUIP:TARGET:下半身服あり = 0
+		TEQUIP:TARGET:スカートめくり可 = 0
+		TEQUIP:TARGET:ずらし可 = 0
+		TEQUIP:TARGET:下タイツあり = 0
+		TEQUIP:TARGET:下半身下着あり = 0
+		TEQUIP:TARGET:下半身下着抜き取り可 = 0
+		TEQUIP:TARGET:上下一体服 = 0
+		TEQUIP:TARGET:上下一体タイツ = 0
+		TEQUIP:TARGET:上タイツ破れ = 0
+		TEQUIP:TARGET:下タイツ破れ = 0
+	CASE 209
+		TEQUIP:TARGET:上半身鎧あり = 0
+		TEQUIP:TARGET:上半身服あり = 0
+		TEQUIP:TARGET:脇出し = 0
+		TEQUIP:TARGET:へそ出し = 0
+		TEQUIP:TARGET:はだけ可 = 0
+		TEQUIP:TARGET:手差し込み可 = 0
+		TEQUIP:TARGET:パイズリ可 = 0
+		TEQUIP:TARGET:上タイツあり = 0
+		TEQUIP:TARGET:上タイツ破れ = 0
+		TEQUIP:TARGET:上半身下着あり = 0
+		TEQUIP:TARGET:上半身下着抜き取り可 = 0
+		IF TEQUIP:TARGET:上下一体服
+			TEQUIP:TARGET:下腹部後鎧あり = 0
+			TEQUIP:TARGET:下腹部前鎧あり = 0
+			TEQUIP:TARGET:下半身服あり = 0
+			TEQUIP:TARGET:スカートめくり可 = 0
+			TEQUIP:TARGET:ずらし可 = 0
+			TEQUIP:TARGET:下半身下着抜き取り可 = 0
+			TEQUIP:TARGET:上下一体服 = 0
+		ENDIF
+		IF TEQUIP:TARGET:上下一体タイツ
+			TEQUIP:TARGET:上下一体タイツ = 0
+			TEQUIP:TARGET:下タイツあり = 0
+			TEQUIP:TARGET:下タイツ破れ = 0
+		ENDIF
+	CASE 210
+		TEQUIP:TARGET:下腹部後鎧あり = 0
+		TEQUIP:TARGET:下腹部前鎧あり = 0
+		TEQUIP:TARGET:下半身服あり = 0
+		TEQUIP:TARGET:スカートめくり可 = 0
+		TEQUIP:TARGET:ずらし可 = 0
+		TEQUIP:TARGET:下タイツあり = 0
+		TEQUIP:TARGET:下半身下着あり = 0
+		TEQUIP:TARGET:下半身下着抜き取り可 = 0
+		TEQUIP:TARGET:下タイツ破れ = 0
+		IF TEQUIP:TARGET:上下一体服
+			TEQUIP:TARGET:上半身鎧あり = 0
+			TEQUIP:TARGET:上半身服あり = 0
+			TEQUIP:TARGET:脇出し = 0
+			TEQUIP:TARGET:へそ出し = 0
+			TEQUIP:TARGET:はだけ可 = 0
+			TEQUIP:TARGET:手差し込み可 = 0
+			TEQUIP:TARGET:パイズリ可 = 0
+			TEQUIP:TARGET:上下一体服 = 0
+			TEQUIP:TARGET:上半身下着抜き取り可 = 0
+		ENDIF
+		IF TEQUIP:TARGET:上下一体タイツ
+			TEQUIP:TARGET:上下一体タイツ = 0
+			TEQUIP:TARGET:下タイツあり = 0
+			TEQUIP:TARGET:上タイツ破れ = 0
+		ENDIF
+ENDSELECT
+
+;わからせ交尾
+IF わからせフラグ
+	;色々リセットしてフェイズ変更
+	VARSET PREVCOM, 0
+	VARSET コマンド履歴, -2
+	VARSET 派生コマンド履歴, 
+	VARSET NEXTCOM, -1
+	VARSET SELECTCOM, 0
+	
+	SAVESTR:ゲームフェイズ管理 = 通常モード
+
+	;言いなり付与
+	TCVAR:TARGET:言いなり = 1
+ENDIF
+
+;設定している食事メニューによって回復量設定
+食事回復量 = 400
+料理ランク一時保存 = 0
+VARSET 料理属性一時保存
+FOR LOCAL, 1, 6
+	IF 現在設定メニュー:LOCAL
+		料理ランク一時保存 += DT_CELL_GET("料理メニューデータベース", 現在設定メニュー:LOCAL, "料理ランク", 1)
+		料理属性一時保存:LOCAL = DT_CELL_GET("料理メニューデータベース", 現在設定メニュー:LOCAL, "料理属性", 1) + 100
+	ENDIF
+NEXT
+食事回復量 += 料理ランク一時保存 * 10
+
+
+FOR LOCAL, 0, CHARANUM
+	SIF CFLAG:LOCAL:滞在期間 < 0
+		CONTINUE
+	;知識系素質の取得処理
+	CALL 知識系素質の取得(LOCAL)
+NEXT
+
+;寝落ち
+IF FLAG:お出かけ先フラグ > 0 && TIME > 1260
+	TFLAG:オートコマンドフラグ = 0
+
+	PRINTW （そろそろ帰宅する時間だ…　一日を終了します）
+	;二日酔い処理のため、酩酊が残ってたら絶対値を負に
+	BASE:MASTER:酩酊 = BASE:MASTER:酩酊 * -1
+
+	CFLAG:MASTER:睡眠 = 1
+	CFLAG:MASTER:就寝時刻 = DAY * 1440 + TIME
+	CFLAG:MASTER:現在位置 = CFLAG:MASTER:自室位置
+	CFLAG:MASTER:現在マップ種別 = 0
+	CALL ゲームフェイズ変更("通常モード")
+	FLAG:一日終了 = 1
+ELSEIF CFLAG:MASTER:起床予定時刻 > TIME && CFLAG:MASTER:起床予定時刻 - 120 < TIME
+	TFLAG:オートコマンドフラグ = 0
+
+	PRINTW （眠気が限界だ…　一日を終了します）
+	;二日酔い処理のため、酩酊が残ってたら絶対値を負に
+	BASE:MASTER:酩酊 = BASE:MASTER:酩酊 * -1
+
+	CFLAG:MASTER:睡眠 = 1
+	CFLAG:MASTER:就寝時刻 = DAY * 1440 + TIME
+	CALL ゲームフェイズ変更("通常モード")
+	FLAG:一日終了 = 1
+ENDIF
+
+モード中キャラカウント = 0
+FOR LOCAL, 1, CHARANUM
+	SIF TARGET:LOCAL < 1
+		BREAK
+	IF BASE:(TARGET:LOCAL):体力 < 1 && TCVAR:(TARGET:LOCAL):食いしばりフラグ > 1
+		BASE:(TARGET:LOCAL):体力 = 1
+		TCVAR:(TARGET:LOCAL):食いしばりフラグ --
+	ELSEIF BASE:(TARGET:LOCAL):体力 < 1 && !CFLAG:(TARGET:LOCAL):体力限界
+		PRINTFORML （%CALLNAME:(TARGET:LOCAL)%の体力が限界に来ています）
+		TRYCALLFORM KOJO_EVENT_むりやりうふふ体力限界_{NO:(TARGET:LOCAL)}(TARGET:LOCAL)
+		FORCEWAIT
+		IF CFLAG:(TARGET:LOCAL):デート == MASTER + 100
+			CALL デート採点処理(TARGET:LOCAL)
+		ENDIF
+		TCVAR:(TARGET:LOCAL):食いしばりフラグ = 0
+		CFLAG:(TARGET:LOCAL):体力限界 = 1
+		EXP:(TARGET:LOCAL):ダウン経験 += 1
+		;経験取得表示スキップ用
+		TCVAR:(TARGET:LOCAL):436 = EXP:(TARGET:LOCAL):ダウン経験
+		;モードもリセット
+		CALL 特定キャラモードリセット(TARGET:LOCAL)
+	ENDIF
+	SIF !CFLAG:(TARGET:LOCAL):体力限界
+		モード中キャラカウント += 1
+NEXT
+IF モード中キャラカウント == 0
+	CALL ゲームフェイズ変更("通常モード")
+ENDIF
+;非同室キャラのダウンを判定
+FOR LOCAL, 1, CHARANUM
+	SIF MATCH(TARGET, LOCAL) > 0
+		CONTINUE
+	SIF MATCH(飲み会TARGET, LOCAL) > 0
+		CONTINUE
+	SIF CFLAG:LOCAL:滞在期間 < 1
+		CONTINUE
+	IF BASE:LOCAL:体力 < 1 && TCVAR:LOCAL:食いしばりフラグ > 1
+		BASE:LOCAL:体力 = 1
+		TCVAR:LOCAL:食いしばりフラグ --
+	ELSEIF BASE:LOCAL:体力 < 1 && !CFLAG:LOCAL:体力限界
+		TCVAR:LOCAL:食いしばりフラグ = 0
+		CFLAG:LOCAL:体力限界 = 1
+		IF CFLAG:LOCAL:うふふ == 0 && CFLAG:LOCAL:飲み会 == 0
+			CFLAG:LOCAL:一緒に遊ぶ = 0
+			CFLAG:LOCAL:同行 = 0
+			CFLAG:LOCAL:デート = 0
+			CFLAG:LOCAL:隠密 = 0
+		ENDIF
+		EXP:LOCAL:ダウン経験 += 1
+		CFLAG:LOCAL:うふふ開始時間記録 = 0
+		;経験取得表示スキップ用
+		TCVAR:LOCAL:436 = EXP:LOCAL:ダウン経験
+		SIF AUTOCOM_実行番号保存 == LOCAL
+			TFLAG:オートコマンドフラグ = 0
+		;モードもリセット
+		CALL 特定キャラモードリセット(LOCAL)
+	ENDIF
+NEXT
+
+
+LOCAL = TIME - TIME:2
+IF LOCAL > 0
+	PRINTL
+	PRINTFORML \@ LOCAL / 60 > 0?{LOCAL / 60}時間# \@{LOCAL % 60}分 経過
+ENDIF
+TIME:2 = TIME > 1440 ? TIME - 1440 # TIME
+
+WAIT
+
+
+
+
+

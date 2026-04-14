@@ -1,0 +1,62 @@
+﻿;------------------------------------------------------------------------------
+;V挿入時、快楽で腰が浮いちゃう
+;------------------------------------------------------------------------------
+@AUTOCOMNAME30
+RESULTS = V挿入モード反応_腰が浮く
+
+@AUTOCOM30
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+
+CALL SOURCE_CALC_快Ｖ(AUTOCOM_実行番号保存, PLAYER, 500)
+CALL SOURCE_CALC_露出_反感無し(AUTOCOM_実行番号保存, PLAYER, 30)
+CALL SOURCE_CALC_接触_不快無し(AUTOCOM_実行番号保存, PLAYER, 150)
+CALL SOURCE_CALC_快Ｃ(PLAYER, AUTOCOM_実行番号保存, 300)
+
+TIME_挿入時反応:AUTOCOM_実行番号保存:0 = TIME
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+EXP:AUTOCOM_実行番号保存:Ｖ性交経験 ++
+
+;同性愛
+SIF 同性愛性癖判定(AUTOCOM_実行番号保存,PLAYER)
+	EXP:AUTOCOM_実行番号保存:同性愛経験 += 4
+SIF 同性愛性癖判定(PLAYER,AUTOCOM_実行番号保存)
+	EXP:PLAYER:同性愛経験 += 4
+
+EXP:AUTOCOM_実行番号保存:愛情経験 += TALENT:AUTOCOM_実行番号保存:恋慕 * 2
+
+RETURN 1
+
+@AUTOCOM_ABLE30(キャラ番号)
+#DIM キャラ番号
+;対象がTARGETである
+SIF TARGET != キャラ番号
+	RETURN 0
+;正常位、後背位、寝バックで発生
+SIF !MODE_存在判定_完全一致("正常位", PLAYER, キャラ番号) && !MODE_存在判定_完全一致("後背位", PLAYER, キャラ番号) && !MODE_存在判定_完全一致("寝バック", PLAYER, キャラ番号)
+	RETURN 0
+;30分に１回のみ発動
+SIF TIME - TIME_挿入時反応:キャラ番号:0 < 31
+	RETURN 0
+;欲情PALAMLv4必要
+SIF PALAM:キャラ番号:欲情 < PALAMLV:4
+	RETURN 0
+;V挿入派生スキル使用時に確率発生
+SIF コマンド履歴:0 != -1
+	RETURN 0
+SIF STRCOUNT(派生コマンド履歴:0, "60_") == 0
+	RETURN 0
+;快Vが7000以上である
+SIF PALAM:キャラ番号:快Ｖ < 7000
+	RETURN 0
+RETURN 1
+
+@MESSAGE_AUTOCOM30
+PRINTFORM %CALLNAME:AUTOCOM_実行番号保存%は無意識に腰を浮かせ、性交の快楽に翻弄されている…
+
+
+

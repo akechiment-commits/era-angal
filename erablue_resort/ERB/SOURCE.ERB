@@ -1,0 +1,743 @@
+﻿@SOURCE_CHECK
+#DIM 対象キャラ
+#DIM FLAG保存
+#DIM フラグ保存
+#DIM TARGET保存
+#DIM 表示数
+
+SELECTCOM = TFLAG:SELECTCOM受け渡し
+TFLAG:SELECTCOM受け渡し = -1
+SELECTCOM_S = %RSTR:SELECTCOM_S受け渡し%
+
+;-------------------------------------------------
+;マップごとの特殊処理を呼び出す
+;-------------------------------------------------
+RESULT = 0
+TRYCALLFORM COM_END_PLACEEVENT_{CFLAG:MASTER:現在マップ種別}_{CFLAG:PLAYER:現在位置}
+SIF RESULT
+	RETURN -1
+
+;-------------------------------------------------
+;キャラごとの特殊処理を呼び出す
+;-------------------------------------------------
+RESULT = 0
+TRYCALLFORM COM_END_CHARAEVENT_{NO:TARGET}
+SIF RESULT
+	RETURN -1
+
+
+FOR 対象キャラ, 0, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	CFLAG:対象キャラ:勃起度 = BASE:対象キャラ:勃起
+NEXT
+
+FLAG保存 = FLAG:モード管理
+SIF TFLAG:オートコマンドフラグ > 0
+	FLAG:モード管理 = 0
+;-------------------------------------------------
+;@COMの呼び出し
+;-------------------------------------------------
+CALL CALL_COM振り分け()
+IF RESULT == -1
+	FLAG:モード管理 = FLAG保存
+	RETURN -1
+ELSEIF RESULT == -2
+	;あんまパターン増やしたくないけどしょうがないので分岐
+	RETURN -1
+ENDIF
+
+;スキップフラグを保存
+フラグ保存 = RESULT
+
+;調教SELECTCOMの時間経過
+CALL TRACHECK_TIME
+
+SIF !フラグ保存 && !MODE_存在判定_プレイヤー側("ALL", PLAYER)
+	GOTO SKIP
+	
+;-------------------------------------------------
+;モード持続時チェック
+;-------------------------------------------------
+CALL MODE_CHECK
+;-------------------------------------------------
+;キャラ個別チェック
+;-------------------------------------------------
+FOR 対象キャラ, 1, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+
+	;キャラ同士オート対応
+	IF 対象キャラ == AUTOCOM_実行番号保存
+		SIF AUTOCOM_対象番号保存 > -1
+			SWAP PLAYER, AUTOCOM_対象番号保存
+	ENDIF
+
+	;処女喪失口上
+	IF RCVAR:対象キャラ:破瓜
+		TARGET保存 = TARGET
+		TARGET = 対象キャラ
+		CALL メッセージ呼び出し用構文("処女喪失")
+		TARGET = TARGET保存
+	ENDIF
+
+	;野外オナニー絶頂判定
+	IF TCVAR:対象キャラ:野外オナニー_絶頂
+		CALL 野外オナニー実処理(対象キャラ, TCVAR:対象キャラ:野外オナニー_部位)
+		;相手を覗いている時以外（コマンドが覗きでない、対象がTARGETでない）は表示カット
+		SIF SELECTCOM != 404 || RFLAG:コマンド結果受渡し変数２ != 対象キャラ
+			RCVAR:対象キャラ:表示カット = 1
+		CFLAG:対象キャラ:隠密 = 0
+	ENDIF
+
+	; ;装着系は後で考える
+	; SIF 対象キャラ > 0 && !CFLAG:対象キャラ:同室
+	; 	CONTINUE
+	;-------------------------------------------------
+	;中毒充足のチェック
+	;-------------------------------------------------
+
+	;キャラ同士オート対応
+	IF 対象キャラ == AUTOCOM_実行番号保存
+		SIF AUTOCOM_対象番号保存 > -1
+			SWAP PLAYER, AUTOCOM_対象番号保存
+	ENDIF
+NEXT
+; ;童貞喪失
+; IF !TALENT:PLAYER:1 && TALENT:PLAYER:2 & 2
+; 	SELECTCASE SELECTCOM
+; 		CASE 60
+; 			PRINTFORMW 童貞喪失(%CALLNAME:PLAYER%)
+; 			SETBIT TALENT:PLAYER:非童貞, 0
+; 		CASE 62
+; 			SETBIT TALENT:PLAYER:非童貞, 1
+; 	ENDSELECT
+; ENDIF
+
+;-------------------------------------------------
+;射精我慢処理、実際には絶頂我慢
+;-------------------------------------------------
+IF あなた射精我慢フラグ
+	IF CUP:MASTER:快Ｃ + PALAM:MASTER:快Ｃ > 9999
+		CUP:MASTER:快Ｃ = 9999 - PALAM:MASTER:快Ｃ
+		TCVAR:MASTER:精液濃縮 = MIN(20, TCVAR:MASTER:精液濃縮 + 1)
+	ENDIF
+	IF CUP:MASTER:快Ｂ + PALAM:MASTER:快Ｂ > 9999
+		CUP:MASTER:快Ｂ = 9999 - PALAM:MASTER:快Ｂ
+		TCVAR:MASTER:精液濃縮 = MIN(20, TCVAR:MASTER:精液濃縮 + 1)
+	ENDIF
+	IF CUP:MASTER:快Ｖ + PALAM:MASTER:快Ｖ > 9999
+		CUP:MASTER:快Ｖ = 9999 - PALAM:MASTER:快Ｖ
+		TCVAR:MASTER:精液濃縮 = MIN(20, TCVAR:MASTER:精液濃縮 + 1)
+	ENDIF
+	IF CUP:MASTER:快Ａ + PALAM:MASTER:快Ａ > 9999
+		CUP:MASTER:快Ａ = 9999 - PALAM:MASTER:快Ａ
+		TCVAR:MASTER:精液濃縮 = MIN(20, TCVAR:MASTER:精液濃縮 + 1)
+	ENDIF
+	IF CUP:MASTER:快Ｓ + PALAM:MASTER:快Ｓ > 9999
+		CUP:MASTER:快Ｓ = 9999 - PALAM:MASTER:快Ｓ
+		TCVAR:MASTER:精液濃縮 = MIN(20, TCVAR:MASTER:精液濃縮 + 1)
+	ENDIF
+ENDIF
+
+
+FOR 対象キャラ, 0, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF 対象キャラ > 0 && !CFLAG:対象キャラ:同室 && !CFLAG:対象キャラ:快楽計算フラグ && !MODE_存在判定_ターゲット側("ALL", 対象キャラ)
+		CONTINUE
+
+	;キャラ同士オート対応
+	IF 対象キャラ == AUTOCOM_実行番号保存
+		SIF AUTOCOM_対象番号保存 > -1
+			SWAP PLAYER, AUTOCOM_対象番号保存
+	ENDIF
+
+	CALL SOURCE_補正処理(対象キャラ)
+
+	;キャラ同士オート対応
+	IF 対象キャラ == AUTOCOM_実行番号保存
+		SIF AUTOCOM_対象番号保存 > -1
+			SWAP PLAYER, AUTOCOM_対象番号保存
+	ENDIF
+NEXT
+
+$SKIP
+
+;-------------------------------------------------
+;調教口上
+;-------------------------------------------------
+
+;キャラ同士オート対応
+IF 対象キャラ == AUTOCOM_実行番号保存
+	SIF AUTOCOM_対象番号保存 > -1
+		SWAP PLAYER, AUTOCOM_対象番号保存
+ENDIF
+
+TRYCALLFORM KOJO_MESSAGE_COM_%SAVESTR:ゲームフェイズ管理%()
+
+;オノマトペ
+IF !OPTION変数:オノマトペ表示
+	LOCALS '= MODE_取得_順不同(PLAYER, TARGET)
+	表示数 = 0
+	IF LOCALS != ""
+		VARSET RESULTS
+		SPLIT LOCALS, "_", RESULTS
+		FOR LOCAL, 0, RESULT
+			IF 系統リスト_Ｖ挿入系(RESULTS:LOCAL)
+				SIF 表示数 == 0
+					DRAWLINE
+				CALL TEXT_ONOMATOPE("Ｖ挿入系")
+				PRINTL
+				; SETCOLOR カラーパレット("えっちな色")
+				; PRINTFORML （%RESULTS:LOCAL%）
+				; RESETCOLOR
+				表示数 ++
+			ENDIF
+			IF 系統リスト_Ａ挿入系(RESULTS:LOCAL)
+				SIF 表示数 == 0
+					DRAWLINE
+				CALL TEXT_ONOMATOPE("Ａ挿入系")
+				PRINTL
+				; SETCOLOR カラーパレット("えっちな色")
+				; PRINTFORML （%RESULTS:LOCAL%）
+				; RESETCOLOR
+				表示数 ++
+			ENDIF
+			IF 系統リスト_Ｖ自慰系(RESULTS:LOCAL)
+				SIF 表示数 == 0
+					DRAWLINE
+				CALL TEXT_ONOMATOPE("Ｖ自慰系")
+				PRINTL
+				; SETCOLOR カラーパレット("えっちな色")
+				; PRINTFORML （%RESULTS:LOCAL%）
+				; RESETCOLOR
+				表示数 ++
+			ENDIF
+			IF 系統リスト_Ａ自慰系(RESULTS:LOCAL)
+				SIF 表示数 == 0
+					DRAWLINE
+				CALL TEXT_ONOMATOPE("Ａ自慰系")
+				PRINTL
+				; SETCOLOR カラーパレット("えっちな色")
+				; PRINTFORML （%RESULTS:LOCAL%）
+				; RESETCOLOR
+				表示数 ++
+			ENDIF
+			IF 系統リスト_フェラチオ系(RESULTS:LOCAL)
+				SIF 表示数 == 0
+					DRAWLINE
+				CALL TEXT_ONOMATOPE("フェラチオ系")
+				PRINTL
+				; SETCOLOR カラーパレット("えっちな色")
+				; PRINTFORML （%RESULTS:LOCAL%）
+				; RESETCOLOR
+				表示数 ++
+			ENDIF
+			IF RESULTS:LOCAL == "クンニ"
+				SIF 表示数 == 0
+					DRAWLINE
+				CALL TEXT_ONOMATOPE("クンニ")
+				PRINTL
+				; SETCOLOR カラーパレット("えっちな色")
+				; PRINTFORML （%RESULTS:LOCAL%）
+				; RESETCOLOR
+				表示数 ++
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+
+CALL 挿入アニメ表示(TARGET, "_挿入", FLAG_挿入アニメフィルタ)
+
+;キャラ同士オート対応
+IF 対象キャラ == AUTOCOM_実行番号保存
+	SIF AUTOCOM_対象番号保存 > -1
+		SWAP PLAYER, AUTOCOM_対象番号保存
+ENDIF
+;-------------------------------------------------
+;ABLUP
+;-------------------------------------------------
+CALL SOURCE_ABLUP(MASTER)
+FOR 対象キャラ, 1, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF RCVAR:対象キャラ:表示カット
+		CONTINUE
+	SIF !CFLAG:対象キャラ:同室
+		CONTINUE
+	CALL SOURCE_ABLUP(対象キャラ)
+NEXT
+;-------------------------------------------------
+;触手の射精時の口上
+;-------------------------------------------------
+;CALL KOJO_MESSAGE_PALAMCNG_E
+;触手射精未実装なので一旦コメントアウト
+FOR 対象キャラ, 1, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF RCVAR:対象キャラ:表示カット
+		CONTINUE
+	SIF !CFLAG:対象キャラ:同室 && !CFLAG:対象キャラ:快楽計算フラグ ;&& !MODE_存在判定_ターゲット側("ALL", 対象キャラ)
+		CONTINUE
+
+	;キャラ同士オート対応
+	IF 対象キャラ == AUTOCOM_実行番号保存
+		SIF AUTOCOM_対象番号保存 > -1
+			SWAP PLAYER, AUTOCOM_対象番号保存
+	ENDIF
+
+	;-------------------------------------------------
+	;奴隷の絶頂時の口上
+	;-------------------------------------------------
+	CALL MESSAGE_PALAMCNG_絶頂強度表示(対象キャラ)
+	IF NOWEX:対象キャラ:多重絶頂
+		CALL KOJO_ORGASM_絶頂(対象キャラ)
+		PRINTL
+	ELSEIF NOWEX:対象キャラ:噴乳
+		PRINTFORML %CALLNAME:対象キャラ%は乳首から\@ NOWEX:対象キャラ:噴乳 > 1 ? 大量の # \@母乳を噴出した
+		PRINTL 
+	ENDIF
+	;-------------------------------------------------
+	;奴隷射精時の口上
+	;-------------------------------------------------
+	IF NOWEX:対象キャラ:射精
+		SIF NOWEX:対象キャラ:射精 > 1
+			PRINT 大量
+		PRINTFORML 射精(%CALLNAME:対象キャラ%)
+		CALL EVENT_SHOOT_CHARA(対象キャラ)
+		CALL KOJO_ORGASM_射精(対象キャラ)
+		PRINTL
+	ENDIF
+
+	;キャラ同士オート対応
+	IF 対象キャラ == AUTOCOM_実行番号保存
+		SIF AUTOCOM_対象番号保存 > -1
+			SWAP PLAYER, AUTOCOM_対象番号保存
+	ENDIF
+NEXT
+;-------------------------------------------------
+;調教者射精時
+;-------------------------------------------------
+IF NOWEX:MASTER:射精
+	SIF NOWEX:MASTER:射精 > 1
+		PRINT 大量
+	PRINTFORML 射精(%CALLNAME:MASTER%)
+	PRINTL
+	CALL EVENT_SHOOT_MASTER
+	PRINTL
+ELSE
+	IF NOWEX:MASTER:多重絶頂
+		CALL MESSAGE_PALAMCNG_絶頂強度表示(MASTER)
+		PRINTL
+	ENDIF
+	RFLAG:フィニッシュフラグ = 0
+ENDIF
+;-------------------------------------------------
+;食いしばり発動のチェック
+;-------------------------------------------------
+LOCAL:1 = 0
+FOR 対象キャラ, 1, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF RCVAR:対象キャラ:表示カット
+		CONTINUE
+	SIF !CFLAG:対象キャラ:同室
+		CONTINUE
+	
+	;食いしばりフラグを口上で使うためここで先に処理
+	CALL 食いしばり発動処理(対象キャラ)
+	フラグ保存 = RESULT
+
+	;連れ込み満足をここでチェック
+	IF RCVAR:対象キャラ:連れ込み満足フラグ
+		CALL メッセージ呼び出し用構文("連れ込み満足")
+	ENDIF
+
+	;妊娠率補正時のメッセージをチェック
+	IF RCVAR:対象キャラ:妊娠率補正_加算値
+		CALL メッセージ呼び出し用構文("妊娠率補正")
+	ENDIF
+
+	IF フラグ保存
+		PRINTFORMW %CALLNAME:対象キャラ%は絶頂を繰り返し、一時的に抵抗する気力がなくなったようだ…
+		PRINTL 
+	ENDIF
+NEXT
+PRINTL
+;-------------------------------------------------
+;EXP取得表示
+;-------------------------------------------------
+SIF OPTION変数:数値変動省略
+	SKIPDISP 1
+CALL EXP取得表示_全キャラ()
+SKIPDISP 0
+;-------------------------------------------------
+;パラメータ変動とそれによる口上
+;-------------------------------------------------
+;CALL KOJO_MESSAGE_PALAMCNG_D
+FOR 対象キャラ, 0, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF RCVAR:対象キャラ:表示カット
+		CONTINUE
+	SIF !CFLAG:対象キャラ:同室 && 対象キャラ != MASTER
+		CONTINUE
+	CALL 技巧上昇判定(対象キャラ)
+	SIF RESULT
+		TRYCALLFORM KOJO_SKILLUP_技巧_{NO:対象キャラ}(対象キャラ)
+	CALL 性知識上昇判定(対象キャラ)
+	SIF RESULT
+		TRYCALLFORM KOJO_SKILLUP_性知識_{NO:対象キャラ}(対象キャラ)
+NEXT
+;-------------------------------------------------
+;刻印取得のチェック
+;-------------------------------------------------
+;CALL MARK_GOT_CHECK(TARGET)
+;-------------------------------------------------
+;刻印取得による口上
+;-------------------------------------------------
+;CALL KOJO_MESSAGE_MARKCNG
+;-------------------------------------------------
+;屈服・快楽堕ちの上昇による[抵抗]の消滅チェック
+;-------------------------------------------------
+CALL JUJUN_UP_CHECK(TARGET)
+;-------------------------------------------------
+;調教ソースの表示
+;-------------------------------------------------
+SIF OPTION変数:数値変動省略
+	SKIPDISP 1
+CALL SHOW_SOURCE(TARGET)
+;-------------------------------------------------
+;体力の消費＆表示（回復もここで）
+;-------------------------------------------------
+FOR 対象キャラ, 1, CHARANUM
+	LOCAL:1 = 0
+
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF RCVAR:対象キャラ:表示カット
+		SKIPDISP 1
+	SIF OPTION変数:数値変動省略
+		SKIPDISP 1
+
+	;非同室キャラはダウンさせない（100残る）
+	SIF RCVAR:対象キャラ:表示カット || !CFLAG:対象キャラ:同室
+		DOWNBASE:対象キャラ:体力 = MAX(MIN(BASE:対象キャラ:体力 - 100, DOWNBASE:対象キャラ:体力), 0)
+
+	;DOWNBASEの適用
+	IF DOWNBASE:対象キャラ:体力 > 0
+		PRINTFORM 体力-{DOWNBASE:対象キャラ:体力} 
+		LOCAL:1 = 1
+
+		;履歴登録
+		RFLAG:履歴用数値保存 = MIN(BASE:対象キャラ:体力, DOWNBASE:対象キャラ:体力)
+		CALL 履歴登録チェック(対象キャラ, "体力減少")
+		履歴用実績:対象キャラ:体力減少量累積 += RFLAG:履歴用数値保存
+		BASE:対象キャラ:体力 = MAX(0, BASE:対象キャラ:体力 - DOWNBASE:対象キャラ:体力)
+	ENDIF
+
+	;体力回復の適用
+	IF NOWEX:対象キャラ:多重絶頂
+		;絶頂時は回復しない
+	ELSEIF CFLAG:対象キャラ:体力限界 || TCVAR:対象キャラ:食いしばりフラグ
+		;体力限界時・食いしばりフラグ点灯時は回復しない
+	ELSEIF (TALENT:対象キャラ:種族 == 3 || GETBIT(TALENT:対象キャラ:発情期あり, 5) || キャラ一致チェック(対象キャラ, "[六竜の『金』]ガレヲン")) && CFLAG:対象キャラ:発情期フラグ < 0
+		;該当する発情期オプションを持つかドラフかガレヲンなら体力を自動回復
+		LOCAL:2 = REGENE_CALC(対象キャラ)
+		IF LOCAL:2 > 0
+			IF IS_SAME_ROOM(対象キャラ)
+				SETCOLOR カラーパレット("緑")
+				PRINTFORM 体力+{LOCAL:2} (発情期による自動回復)
+				RESETCOLOR
+				LOCAL:1 = 1
+			ENDIF
+
+			;休ませての無限スコア稼ぎは美しくない
+			TCVAR:対象キャラ:スコアペナルティ += EX:対象キャラ:スコア * LOCAL:2 / MAXBASE:対象キャラ:体力
+
+			BASE:対象キャラ:体力 += LOCAL:2
+		ENDIF
+	ENDIF
+	SIF LOCAL:1
+		PRINTFORML (%CALLNAME:対象キャラ%)
+
+	SKIPDISP 0
+NEXT
+PRINTL 
+;-------------------------------------------------
+;関係性ゲージ上昇
+;-------------------------------------------------
+;反感不快との相殺の関係で先に恋慕度から判定
+SIF OPTION変数:数値変動省略
+	SKIPDISP 1
+CALL Love_CALC(TARGET)
+CALL FAVOR_CALC(TARGET)
+
+;-------------------------------------------------
+;パラメータの上昇＆表示（DOWNもここで）
+;-------------------------------------------------
+VARSET LOCAL
+FOR 対象キャラ, 0, CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF RCVAR:対象キャラ:表示カット
+		SKIPDISP 1
+	SIF CFLAG:対象キャラ:キャラ同士うふふ && (CFLAG:対象キャラ:現在位置 != CFLAG:PLAYER:現在位置 || CFLAG:対象キャラ:現在マップ種別 != CFLAG:PLAYER:現在マップ種別)
+		SKIPDISP 1
+	SIF OPTION変数:数値変動省略
+		SKIPDISP 1
+	LOCAL:3 = 0
+	CALL 干渉強化関数_12("適用条件", 対象キャラ)
+	LOCAL:4 = RESULT
+	FOR LOCAL, 0, 100
+		;コマンド入力前のCUPを追加
+		CUP:対象キャラ:LOCAL += TCVAR:対象キャラ:(600 + LOCAL)
+		SIF PALAMNAME:LOCAL == ""
+			CONTINUE
+		SIF CUP:対象キャラ:LOCAL - CDOWN:対象キャラ:LOCAL == 0
+			CONTINUE
+		IF !LOCAL:3
+			PRINTL
+			PRINTFORML %CALLNAME:対象キャラ%
+		ENDIF
+		LOCAL:3 ++
+		LOCAL:2 = CUP:対象キャラ:LOCAL - CDOWN:対象キャラ:LOCAL + TCVAR:対象キャラ:(600 + LOCAL)
+		PRINTFORM %PALAMNAME:LOCAL,8,LEFT% {PALAM:対象キャラ:LOCAL,10,LEFT} + {CUP:対象キャラ:LOCAL,10,LEFT} =   {PALAM:対象キャラ:LOCAL + CUP:対象キャラ:LOCAL,10,LEFT}
+		IF 干渉強化変数:対象キャラ:干渉種類 - 5 == LOCAL && LOCAL < 5
+			SETCOLOR カラーパレット("黄")
+			PRINT 　干渉効果発動中！
+			RESETCOLOR
+		ELSEIF LOCAL:4 && LOCAL < 5
+			SETCOLOR カラーパレット("黄")
+			PRINT 　干渉効果発動中！
+			RESETCOLOR
+		ENDIF
+		PRINTL
+		PALAM:対象キャラ:LOCAL += CUP:対象キャラ:LOCAL - CDOWN:対象キャラ:LOCAL
+		PALAM:対象キャラ:LOCAL = MAX(0, PALAM:対象キャラ:LOCAL)
+		CUP:対象キャラ:LOCAL = 0
+		CDOWN:対象キャラ:LOCAL = 0
+	NEXT
+	;干渉ランク上昇判定
+	IF 干渉強化変数:対象キャラ:干渉ランク < 5
+		IF 干渉経験値テーブル:(干渉強化変数:対象キャラ:干渉ランク) <= 干渉強化変数:対象キャラ:干渉経験値
+			干渉強化変数:対象キャラ:干渉ランク += 1
+			PRINTFORMW %CALLNAME:対象キャラ%の干渉ランクが上昇した！
+		ENDIF
+	ENDIF
+	SKIPDISP 0
+	LOCALS '= CHECK_体位(対象キャラ)
+	SIF LOCALS != "" && GROUPMATCH(TCVAR:対象キャラ:被射精位置, 1, 2)
+		CALL アニメ表示_射精(LOCALS, PLAYER)
+
+	;警戒度表示
+	IF BASE:対象キャラ:警戒 != TCVAR:対象キャラ:前ターン警戒度
+		IF BASE:対象キャラ:警戒 > TCVAR:対象キャラ:前ターン警戒度
+			PRINTFORML 警戒度　 {TCVAR:対象キャラ:前ターン警戒度,10,LEFT} + {BASE:対象キャラ:警戒 - TCVAR:対象キャラ:前ターン警戒度,10,LEFT} =   {BASE:対象キャラ:警戒, 10, LEFT}
+		ELSE
+			PRINTFORML 警戒度　 {TCVAR:対象キャラ:前ターン警戒度,10,LEFT} - {TCVAR:対象キャラ:前ターン警戒度 - BASE:対象キャラ:警戒,10,LEFT} =   {BASE:対象キャラ:警戒, 10, LEFT}
+		ENDIF
+		TCVAR:対象キャラ:前ターン警戒度 = BASE:対象キャラ:警戒
+	ENDIF
+NEXT
+
+FOR LOCAL, 0, 100
+	CVARSET TCVAR, 600 + LOCAL, 0
+NEXT
+
+;-------------------------------------------------
+;ZPの取得量表示
+;-------------------------------------------------
+SIF OPTION変数:数値変動省略
+	SKIPDISP 1
+IF RFLAG:ZP取得量
+	PRINTL
+	PRINTFORM ZP:{FLAG:ZP所持量 - RFLAG:ZP取得量}
+	FOR LOCAL, 0, CHARANUM
+		IF RCVAR:LOCAL:ZP取得量
+			PRINTFORM  + {RCVAR:LOCAL:ZP取得量}(%CALLNAME:LOCAL%)
+		ENDIF
+	NEXT
+	PRINTFORML = {FLAG:ZP所持量}
+ENDIF
+SKIPDISP 0
+;-------------------------------------------------
+;性癖取得の判定
+;-------------------------------------------------
+;同室者のみ
+FOR LOCAL, 1, CHARANUM
+	SIF TARGET:LOCAL < 1
+		BREAK
+	CALL 性癖取得チェック(TARGET:LOCAL)
+	CALL 性癖成長チェック(TARGET:LOCAL)
+NEXT
+
+;非同室者含む
+FOR LOCAL, 1, CHARANUM
+	SIF CFLAG:LOCAL:滞在期間 < 1
+		CONTINUE
+	CALL 性癖非同室成長チェック(LOCAL)
+NEXT
+
+FLAG:モード管理 = FLAG保存
+
+;-------------------------------------------------
+;調教ソースの表示（DOWNもここで）
+;-------------------------------------------------
+@SHOW_SOURCE(ARG)
+SIF RCVAR:ARG:表示カット
+	RETURN 0
+;PRINTL 　
+SIF SOURCE:ARG:快Ｃ > 0
+	PRINTFORM 快Ｃ({SOURCE:ARG:快Ｃ})
+SIF SOURCE:ARG:快Ｖ > 0
+	PRINTFORM 快Ｖ({SOURCE:ARG:快Ｖ})
+SIF SOURCE:ARG:快Ａ > 0
+	PRINTFORM 快Ａ({SOURCE:ARG:快Ａ})
+SIF SOURCE:ARG:快Ｂ > 0
+	PRINTFORM 快Ｂ({SOURCE:ARG:快Ｂ})
+SIF SOURCE:ARG:快Ｓ > 0
+	PRINTFORM 快Ｓ({SOURCE:ARG:快Ｓ})
+
+IF ARG == PLAYER
+	PRINTL 　
+	RETURN 0
+ENDIF
+
+SIF SOURCE:ARG:情愛 > 0
+	PRINTFORM 情愛({SOURCE:ARG:情愛})
+SIF SOURCE:ARG:性行動 > 0
+	PRINTFORM 性行動({SOURCE:ARG:性行動})
+SIF SOURCE:ARG:達成 > 0
+	PRINTFORM 達成感({SOURCE:ARG:達成})
+SIF SOURCE:ARG:苦痛 > 0
+	PRINTFORM 痛み({SOURCE:ARG:苦痛})
+SIF SOURCE:ARG:恐怖 > 0
+	PRINTFORM 恐れ({SOURCE:ARG:恐怖})
+SIF SOURCE:ARG:液体 > 0
+	PRINTFORM 液体({SOURCE:ARG:液体})
+SIF SOURCE:ARG:欲情 > 0
+	PRINTFORM 欲情({SOURCE:ARG:欲情})
+SIF SOURCE:ARG:恭順 > 0
+	PRINTFORM 恭順({SOURCE:ARG:恭順})
+SIF SOURCE:ARG:露出 > 0
+	PRINTFORM 露出({SOURCE:ARG:露出})
+SIF SOURCE:ARG:屈従 > 0
+	PRINTFORM 屈服({SOURCE:ARG:屈従})
+SIF SOURCE:ARG:歓楽 > 0
+	PRINTFORM 歓楽({SOURCE:ARG:歓楽})
+SIF SOURCE:ARG:征服 > 0
+	PRINTFORM 征服({SOURCE:ARG:征服})
+SIF SOURCE:ARG:受動 > 0
+	PRINTFORM 受動({SOURCE:ARG:受動})
+SIF SOURCE:ARG:不潔 > 0
+	PRINTFORM 不潔({SOURCE:ARG:不潔})
+SIF SOURCE:ARG:鬱屈 > 0
+	PRINTFORM 鬱屈({SOURCE:ARG:鬱屈})
+SIF SOURCE:ARG:逸脱 > 0
+	PRINTFORM 逸脱({SOURCE:ARG:逸脱})
+SIF SOURCE:ARG:反感 > 0
+	PRINTFORM 反発({SOURCE:ARG:反感})
+PRINTL 　
+
+
+;-------------------------------------------------
+;SOURCE_補正処理、他の場所でも呼べるように分離
+;-------------------------------------------------
+@SOURCE_補正処理(対象キャラ)
+#DIM 対象キャラ
+
+;-------------------------------------------------
+;経験加算
+;-------------------------------------------------
+CALL SOURCE_EXP(対象キャラ)
+;-------------------------------------------------
+;干渉力による補正処理
+;-------------------------------------------------
+CALL 干渉補正実処理関数(対象キャラ, "快楽増加時")
+;-------------------------------------------------
+;サキュバスボディによる反射処理
+;-------------------------------------------------
+CALL サキュバスボディ適用(対象キャラ)
+;-------------------------------------------------
+;お祭りなどイベントによる補正処理
+;-------------------------------------------------
+IF 開催予定日取り == DAY
+	CALLFORM MOVE_ROUTINE_%開催予定祭り名%(対象キャラ, "お祭り補正条件")
+	IF RESULT
+		CALLFORM MOVE_ROUTINE_%開催予定祭り名%(対象キャラ, "お祭り補正内容")
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;絶頂処理
+;-------------------------------------------------
+CALL ORGASM_ADD(対象キャラ)
+;-------------------------------------------------
+;調教対象の噴乳チェック
+;-------------------------------------------------
+CALL TARGET_MILK_CHECK(対象キャラ)
+;-------------------------------------------------
+;中毒充足チェック
+;-------------------------------------------------
+;MADA
+;-------------------------------------------------
+;苦痛快楽経験、奉仕快楽経験のチェック
+;-------------------------------------------------
+CALL EXP_GOT_CHECK(対象キャラ)
+;-------------------------------------------------
+;絶頂時の性愛度上昇
+;-------------------------------------------------
+SIF CFLAG:対象キャラ:うふふ && 対象キャラ != MASTER
+	CALL SOURCE_CALC_好感度要素_性愛度UP(対象キャラ, PLAYER, RCVAR:対象キャラ:絶頂の強度 * 100)
+
+
+
+;-------------------------------------------------
+;EXP取得表示
+;-------------------------------------------------
+@EXP取得表示_全キャラ()
+#DIM 対象キャラ
+
+LOCAL = 0
+FOR 対象キャラ,0,CHARANUM
+	SIF CFLAG:対象キャラ:滞在期間 < 0
+		CONTINUE
+	SIF !IS_SAME_ROOM(対象キャラ)
+		CONTINUE
+	CALL EXP取得表示_指定キャラ(対象キャラ)
+	LOCAL += RESULT
+NEXT
+PRINTL
+SIF LOCAL
+	WAIT
+
+@EXP取得表示_指定キャラ(対象キャラ)
+#DIM 対象キャラ
+#DIM 改行フラグ
+#DIM 表示フラグ
+#DIM 経験番号
+
+改行フラグ = 0
+表示フラグ = 0
+FOR 経験番号, 0, 200
+	SIF RCVAR:対象キャラ:表示カット
+		CONTINUE
+	IF EXP_UP(経験番号,対象キャラ)
+		改行フラグ ++
+		表示フラグ ++
+		SIF 改行フラグ == 1
+			PRINTL
+		LOCALS = %GET_EXPNAME(経験番号, 対象キャラ)%
+		PRINTFORM %LOCALS,20,LEFT%
+		IF 経験番号 == 89
+			LOCALS = +{EXP_UP(経験番号,対象キャラ)}
+			PRINTFORML %LOCALS,4,LEFT%(%CALLNAME:PLAYER% > %CALLNAME:対象キャラ%)
+		ELSE
+			LOCALS = +{EXP_UP(経験番号,対象キャラ)}
+			PRINTFORML %LOCALS,4,LEFT%(%CALLNAME:対象キャラ%)
+		ENDIF
+	ENDIF
+NEXT
+
+RETURN 表示フラグ

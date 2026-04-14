@@ -1,0 +1,1393 @@
+﻿
+@探索系集約表示
+#DIM 終了フラグ
+
+DRAWLINE
+LOCALS = <div rect='200,0,5662,1250' border='31' bcolor='#C0C0C0'></div>
+LOCALS += "<div rect='262, 62, 5537, 1125'>"
+LOCALS += "探索系の情報を選択して見ることが出来ます。<br>"
+LOCALS += "装備変更は「■探索メンバー表示」から各キャラの画像or名前をクリックし、詳細画面に移動してください。<br>"
+LOCALS += "--------------------------------------------------------------------------------------------------------------<br>"
+IF 表示切り替え文字列 == "探索集約_探索メンバー"
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■探索メンバー表示</font>　　"
+ELSE
+	LOCALS += "<button value='探索集約_探索メンバー'>■探索メンバー表示</button>　　"
+ENDIF
+IF 表示切り替え文字列 == "探索集約_メンバー編成"
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■バトルメンバー編成画面</font>　　"
+ELSE
+	LOCALS += "<button value='探索集約_メンバー編成'>■バトルメンバー編成画面</button>　　"
+ENDIF
+IF 装備乗機ID > 0
+	IF 表示切り替え文字列 == "探索集約_サブメンバー編成"
+		LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■サブメンバー編成画面</font>　　"
+	ELSE
+		LOCALS += "<button value='探索集約_サブメンバー編成'>■サブメンバー編成画面</button>　　"
+	ENDIF
+ENDIF
+LOCALS += "<br>"
+IF 表示切り替え文字列 == "探索集約_指輪"
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■指輪一覧表示</font>　　"
+ELSE
+	LOCALS += "<button value='探索集約_指輪'>■指輪一覧表示</button>　　"
+ENDIF
+IF 表示切り替え文字列 == "探索集約_耳飾り"
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■耳飾り一覧表示</font>　　"
+ELSE
+	LOCALS += "<button value='探索集約_耳飾り'>■耳飾り一覧表示</button>　　"
+ENDIF
+IF 表示切り替え文字列 == "探索集約_証"
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■ジョブの証一覧表示</font>　　"
+ELSE
+	LOCALS += "<button value='探索集約_証'>■ジョブの証一覧表示</button>　　"
+ENDIF
+LOCALS += "<br>"
+IF 表示切り替え文字列 == "探索集約_アイテム"
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■探索アイテム一覧表示</font>　　"
+ELSE
+	LOCALS += "<button value='探索集約_アイテム'>■探索アイテム一覧表示</button>　　"
+ENDIF
+IF 表示切り替え文字列 == "探索集約_素材"
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■素材アイテム一覧表示</font>　　"
+ELSE
+	LOCALS += "<button value='探索集約_素材'>■素材アイテム一覧表示</button>　　"
+ENDIF
+LOCALS += "<br>"
+IF 鍛冶場作成許可フラグ
+	IF 表示切り替え文字列 == "探索集約_乗機"
+		LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■乗機一覧表示</font>　　"
+	ELSE
+		LOCALS += "<button value='探索集約_乗機'>■乗機一覧表示</button>　　"
+	ENDIF
+	IF 表示切り替え文字列 == "探索集約_搭載兵器"
+		LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>■搭載兵器一覧表示</font>　　"
+	ELSE
+		LOCALS += "<button value='探索集約_搭載兵器'>■搭載兵器一覧表示</button>　　"
+	ENDIF
+ENDIF
+LOCALS += "<br>"
+LOCALS += "</div>"
+LOCALS += ""
+LOCALS += "<div rect='2200, 900, 3700, 300'>"
+IF 表示切り替え文字列 == "探索集約_探索メンバー" || 表示切り替え文字列 == ""
+	LOCALS += "　　　　　　　　　　　　　　　　　　 　　　<button value='9998'>[9998]メンバーの装備全解除</button><br>"
+ELSE
+	LOCALS += "<br>"
+ENDIF
+LOCALS += "　　　　　<button value='temp'>[temp]装備テンプレート</button>　　<button value='set'>[set]編成セット切替</button>　　<button value='9999'>[9999]戻る</button>"
+LOCALS += "</div>"
+
+SELECTCASE 表示切り替え文字列
+	CASE "set"
+		CALL 編成セット切替()
+		表示切り替え文字列 = 
+		RESTART
+	CASE "temp"
+		CALL 装備テンプレート処理()
+		表示切り替え文字列 = 
+		RESTART
+ENDSELECT
+
+HTML_PRINT LOCALS, 1
+
+;★EDIT
+CALL 探索パーティ情報
+
+SELECTCASE 表示切り替え文字列
+	CASE "探索集約_指輪"
+		CALL 所持指輪リスト表示_USERCOM
+	CASE "探索集約_耳飾り"
+		CALL 所持耳飾りリスト表示_USERCOM
+	CASE "探索集約_証"
+		CALL 所持証リスト表示_USERCOM
+	CASE "探索集約_アイテム"
+		CALL ダンジョンアイテム画面表示_USERCOM(1300)
+	CASE "探索集約_素材"
+		CALL 素材アイテム一覧表示_USERCOM(1300)
+	CASE "探索集約_メンバー編成"
+		CALL メンバー編成画面(0, 1300)
+	CASE "探索集約_サブメンバー編成"
+		CALL メンバー編成画面(1, 1300)
+	CASE "探索集約_乗機"
+		CALL 所持乗機リスト表示_USERCOM(1300)
+	CASE "探索集約_搭載兵器"
+		CALL 所持兵器リスト表示_USERCOM(1300)
+	CASEELSE
+		CALL SHOW_PARTYMEMBER(1300)
+ENDSELECT
+終了フラグ = RESULT
+
+;再計算
+CALL 戦闘初期処理_味方(1)
+FOR LOCAL, 0, 14
+	SIF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	SIF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+NEXT
+CALL 戦闘初期処理_味方(0)
+
+IF 終了フラグ == -1
+	表示切り替え文字列 = 
+	RETURN 0
+ENDIF
+RESTART
+
+@SHOW_PARTYMEMBER(y軸位置 = 0)
+#DIM y軸位置
+#DIM ループ用
+#DIM ループ用２
+#DIM 縦幅
+#DIM 横幅
+#DIM 属性一時保存
+#DIM 横始点
+#DIM 表示位置調整用
+#DIM 表示アビ番号
+#DIM 表示id
+#DIM 兵器id
+
+CALL 画像描画終了
+
+縦幅 = 2250
+横幅 = 1125
+
+LOCALS = 
+FOR ループ用, 0, 4
+	IF BATTLE_STATE:ループ用:キャラ登録番号 > 0
+		IF 装備ステータス補正保存:(BATTLE_STATE:ループ用:キャラ登録番号):属性
+			;0を火属性にしちゃったので数値そのままだと属性変更してるかどうか判別がつかないため、装備による属性変更は属性番号+10で保存している
+			属性一時保存 = 装備ステータス補正保存:(BATTLE_STATE:ループ用:キャラ登録番号):属性 - 10
+		ELSE
+			属性一時保存 = 基礎BATTLE_STATE:(BATTLE_STATE:ループ用:キャラ登録番号):属性
+		ENDIF
+		LOCALS += @"<div rect='{550 + ループ用 * 1250}, {y軸位置}, {横幅 + 100}, {縦幅 + 100}' border='31' bcolor='#%属性数値文字色変換_HTML(属性一時保存)%'></div>"
+	ELSE
+		LOCALS += @"<div rect='{550 + ループ用 * 1250}, {y軸位置}, {横幅 + 100}, {縦幅 + 100}' border='31' bcolor='#C0C0C0'></div>"
+	ENDIF
+	LOCALS:1 = {600 + ループ用 * 1250}, {y軸位置 + 50}, {横幅}, {縦幅}
+	IF BATTLE_STATE:ループ用:キャラ登録番号 > 0
+		LOCALS:2 '= 短冊グラ表示用文字列関数((BATTLE_STATE:ループ用:キャラ登録番号), ループ用)
+		LOCALS += @"<div rect='%LOCALS:1%'><button value='{ループ用}' title='%RESULTS:(2 + ループ用)%'>%LOCALS:2%</button></div>"
+		LOCALS += @"<div rect='{550 + ループ用 * 1250}, {縦幅 + y軸位置 + 120}, {横幅 + 100}, 200' border='31' bcolor='#%属性数値文字色変換_HTML(属性一時保存)%'></div>"
+		RESULTS:(2 + ループ用) '= ""
+	ELSE
+		LOCALS += @"<div rect='%LOCALS:1%'><button value='{ループ用}'><shape type='rect' param='%LOCALS:1%' color='#%TOSTR(GETBGCOLOR(), "X")%'></button></div>"
+		LOCALS += @"<div rect='{550 + ループ用 * 1250}, {縦幅 + y軸位置 + 120}, {横幅 + 100}, 200' border='31' bcolor='#C0C0C0'></div>"
+	ENDIF
+	LOCALS:1 = {600 + ループ用 * 1250}, {縦幅 + y軸位置 + 170}, {横幅}, 200
+	IF BATTLE_STATE:ループ用:キャラ登録番号
+		LOCALS += @"<div rect='%LOCALS:1%'><button value='{ループ用}'>■%CALLNAME:(BATTLE_STATE:ループ用:キャラ登録番号)%</button></div>"
+	ELSE
+		LOCALS += @"<div rect='%LOCALS:1%'><button value='{ループ用}'>ENPTY</button></div>"
+	ENDIF
+NEXT
+
+;乗機枠サブメンバー
+LOCALS += @"<div rect='194, {縦幅 + y軸位置 + 370}, 2831, 1000' padding='50,25,50' border='31' bcolor='#C0C0C0'>"
+IF 鍛冶場作成許可フラグ == 0
+	LOCALS += "■乗機：システム未開放"
+ELSEIF 装備乗機ID == 0
+	LOCALS += "<button value='探索集約_乗機'>■乗機：未設定</button>"
+ELSE
+	LOCALS += @"<button value='探索集約_乗機'>■乗機：%DT_CELL_GETS("所持乗機データベース", 装備乗機ID, "乗機名", 1)%</button><br>"
+	LOCALS += @"・使用可能武装<br>"
+	FOR 表示アビ番号, 0, 6
+		表示id = 装備乗機ID
+		TSTR:コマンド名受渡 = 
+		SIF DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{表示アビ番号}", 1) == "不可"
+			CONTINUE
+		IF DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{表示アビ番号}", 1) == "固有"
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{表示アビ番号}("アビ名")
+			LOCALS += @"　<button value='{表示アビ番号 + 10}'>[%TSTR:コマンド名受渡%]（固有武装）</button><br>"
+		ELSEIF ISNUMERIC(DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{表示アビ番号}", 1))
+			兵器id = TOINT(DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{表示アビ番号}", 1))
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{表示アビ番号}("アビ名", 兵器id)
+			LOCALS += @"　<button value='{表示アビ番号 + 10}'>[%TSTR:コマンド名受渡%]</button><br>"
+		ELSE
+			LOCALS += @"　<button value='{表示アビ番号 + 10}'>[未装備]</button><br>"
+		ENDIF
+	NEXT
+	LOCALS += "</div>"
+	LOCALS += @"<div rect='3056, {縦幅 + y軸位置 + 370}, 2800, 1000' padding='50,25,50' border='31' bcolor='#C0C0C0'>"
+	LOCALS += @"搭載可能人数：{DT_CELL_GET("所持乗機データベース", 装備乗機ID, "サブ搭乗数_強化後", 1), 2}人<br>"
+	IF DT_CELL_GET("所持乗機データベース", 装備乗機ID, "サブ搭乗数_強化後", 1) > 0
+		FOR LOCAL, 0, DT_CELL_GET("所持乗機データベース", 装備乗機ID, "サブ搭乗数_強化後", 1)
+			IF BATTLE_STATE:(LOCAL + 10):キャラ登録番号 < 1
+				LOCALS += @"<button value='{LOCAL + 100}'>[サブパイロット{LOCAL + 1}："
+				LOCALS += "未設定]</button><br>"
+			ELSE
+				LOCALS += @"<button value='{LOCAL + 110}'>[能力]</button> <button value='{LOCAL + 100}'>[サブパイロット{LOCAL + 1}："
+				LOCALS += @"%NAME表示((BATTLE_STATE:(LOCAL + 10):キャラ登録番号))%]</button><br>"
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+LOCALS += "</div>"
+
+HTML_PRINT LOCALS, 1
+
+FOR ループ用, 0, 32 + (y軸位置 / 100)
+	PRINTL
+NEXT
+
+BINPUTS
+IF ISNUMERIC(RESULTS) == 0
+	VARSET 表示用ステータス格納配列:0:0
+	表示切り替え文字列 = %RESULTS%
+	RETURN 0
+ENDIF
+LOCAL = TOINT(RESULTS)
+SELECTCASE LOCAL
+	CASE 0 TO 3
+		IF BATTLE_STATE:LOCAL:キャラ登録番号 > 0
+			CALL 探索個別ステータス表示(LOCAL)
+		ELSE
+			表示切り替え文字列 = メンバー編成
+		ENDIF
+		RETURN 0
+	CASE 10 TO 16
+		;武装の説明表示
+		LOCALS = 
+		IF DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{LOCAL - 10}", 1) == "固有"
+			詳細文文字列受け渡し変数 = 
+			IF ダンジョン表示モード == ""
+				TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("残弾セット")
+			ENDIF
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("アビ名")
+			LOCALS += @"■%TSTR:コマンド名受渡%（固有武装）<br>"
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("アビ説明文")
+			LOCALS += @"%詳細文文字列受け渡し変数%<br>"
+			LOCALS += @"<button value='999'>[999] 戻る</button><br>"
+		ELSEIF ISNUMERIC(DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{LOCAL - 10}", 1))
+			兵器id = TOINT(DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{LOCAL - 10}", 1))
+			詳細文文字列受け渡し変数 = 
+			IF ダンジョン表示モード == ""
+				TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("残弾セット", 兵器id)
+			ENDIF
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("アビ名", 兵器id)
+			LOCALS += @"■%TSTR:コマンド名受渡%<br>"
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("アビ説明文", 兵器id)
+			LOCALS += @"%詳細文文字列受け渡し変数%<br>"
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("装備条件説明文")
+			LOCALS += @"%詳細文文字列受け渡し変数%<br>"
+			LOCALS += @"<button value='0'>[0] 搭載兵器を変更する</button>　　　　　<button value='1'>[1] 搭載兵器を外す</button>　　　　　<button value='999'>[999] 戻る</button><br>"
+		ELSE
+			LOCALS += @"■未装備<br>"
+			TRYCALLFORM 乗機兵装関数_%DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%_{LOCAL - 10}("装備条件説明文")
+			LOCALS += @"%詳細文文字列受け渡し変数%<br>"
+			LOCALS += @"<button value='0'>[0] 搭載兵器を変更する</button>　　　　　<button value='999'>[999] 戻る</button><br>"
+		ENDIF
+		HTML_PRINT LOCALS
+		BINPUT
+		SELECTCASE RESULT
+			CASE 0
+				CALL 搭載兵器装備処理(表示id, LOCAL - 10)
+			CASE 1
+				PRINTFORMW %DT_CELL_GETS("所持乗機データベース", 表示id, "乗機名", 1)%の武装%TOFULL(TOSTR(LOCAL - 10))%に装備されていた%DT_CELL_GETS("所持兵器データベース", TOINT(DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{LOCAL - 10}", 1)), "兵器名", 1)%を外しました。
+				DT_CELL_SET "所持兵器データベース", TOINT(DT_CELL_GETS("所持乗機データベース", 表示id, @"武装{LOCAL - 10}", 1)), "装備乗機id", 0, 1
+				DT_CELL_SET "所持乗機データベース", 表示id, @"武装{LOCAL - 10}", "", 1
+		ENDSELECT
+		RETURN 0
+	CASE 100 TO 104
+		初期選択 = LOCAL - 90
+		VARSET 表示用ステータス格納配列:0:0
+		表示切り替え文字列 = 探索集約_サブメンバー編成
+		RETURN 0
+	CASE 110 TO 114
+		CALL 探索個別ステータス表示(LOCAL - 100)
+		RETURN 0
+	CASE 9998
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		DRAWLINE
+		PRINTL 編成メンバーの装備を一括で解除します。
+		DRAWLINE
+		PRINTBUTTON "[ 0] 全メンバーの装備全解除", 0
+		PRINT 　　　　
+		PRINTBUTTON "[ 1] 全メンバーの指輪・耳飾り全解除", 1
+		PRINTL
+		PRINTBUTTON "[10] メインメンバーの装備全解除", 10
+		PRINT 　　
+		PRINTBUTTON "[11] メインメンバーの指輪・耳飾り全解除", 11
+		PRINTL
+		PRINTL
+		PRINTBUTTON "[999] 戻る", 999
+		BINPUT
+		SELECTCASE RESULT
+			CASE 999
+				RETURN 0
+			CASE 0
+				PRINTW 全メンバーの装備を全て解除しました。
+				FOR LOCAL, 0, 14
+					SIF LOCAL > 3 && LOCAL < 10
+						CONTINUE
+					SIF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+						CONTINUE
+					;装備解除
+					装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備証番号 = 0
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号
+						DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号 = 0
+					ENDIF
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号
+						DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号 = 0
+					ENDIF
+					CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+				NEXT
+			CASE 1
+				PRINTW 全メンバーの指輪・耳飾りを全て解除しました。
+				FOR LOCAL, 0, 14
+					SIF LOCAL > 3 && LOCAL < 10
+						CONTINUE
+					SIF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+						CONTINUE
+					;装備解除
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号
+						DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号 = 0
+					ENDIF
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号
+						DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号 = 0
+					ENDIF
+					CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+				NEXT
+			CASE 10
+				PRINTW メインメンバーの装備を全て解除しました。
+				FOR LOCAL, 0, 4
+					SIF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+						CONTINUE
+					;装備解除
+					装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備証番号 = 0
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号
+						DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号 = 0
+					ENDIF
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号
+						DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号 = 0
+					ENDIF
+					CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+				NEXT
+			CASE 11
+				PRINTW メインメンバーの指輪・耳飾りを全て解除しました。
+				FOR LOCAL, 0, 4
+					SIF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+						CONTINUE
+					;装備解除
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号
+						DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号 = 0
+					ENDIF
+					IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号
+						DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号 = 0
+					ENDIF
+					CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+				NEXT
+		ENDSELECT
+	CASE 9999
+		VARSET 表示用ステータス格納配列:0:0
+		RETURN -1
+ENDSELECT
+
+
+@探索個別ステータス表示(ARG)
+;ARG=探索メンバー番号(0~3)
+
+CALL 戦闘能力表示画面(BATTLE_STATE:ARG:キャラ登録番号)
+DRAWLINE
+IF ARG > 0
+	PRINTBUTTONLC "[100]前のキャラへ", 100
+ELSE
+	PRINTLC  
+ENDIF
+IF BATTLE_STATE:(ARG + 1):キャラ登録番号 > 0 || (ARG == 3 && BATTLE_STATE:10:キャラ登録番号 > 0)
+	PRINTBUTTONLC "[101]次のキャラへ", 101
+ELSE
+	PRINTLC  
+ENDIF
+PRINTL
+PRINTL
+SIF CFLAG:(BATTLE_STATE:ARG:キャラ登録番号):指輪変更禁止 == 0
+	PRINTBUTTONLC "[110]指輪装備変更", 110
+SIF CFLAG:(BATTLE_STATE:ARG:キャラ登録番号):耳飾り変更禁止 == 0
+	PRINTBUTTONLC "[111]耳飾り装備変更", 111
+SIF CFLAG:(BATTLE_STATE:ARG:キャラ登録番号):ジョブ証変更禁止 == 0
+	PRINTBUTTONLC "[112]ジョブの証装備変更", 112
+PRINTL
+PRINTBUTTONLC "[113]経験値増加アイテムを使う", 113
+PRINTL
+PRINTBUTTONLC "[114]カットイン個別設定変更", 114
+IF EXISTFUNCTION(@"スタイル変更_{NO:(BATTLE_STATE:ARG:キャラ登録番号)}")
+	TRYCALLFORM スタイル変更_{NO:(BATTLE_STATE:ARG:キャラ登録番号)}(BATTLE_STATE:ARG:キャラ登録番号, "スタイル名取得")
+	;変化可能なスタイルが２個以上ある場合に選択肢を表示
+	PRINT 　　　
+	IF MATCH(RESULTS, "") < VARSIZE("RESULTS") - 2
+		PRINTBUTTONLC "[115]スタイル変更", 115
+	ELSE
+		SETCOLOR 0x666666
+		PRINTPLAIN [115]スタイル変更(条件未達)
+		RESETCOLOR
+	ENDIF
+ENDIF
+PRINTL
+PRINTBUTTONLC "[998]PTから外す", 998
+PRINTBUTTONLC "[999]戻る", 999
+$INPUT_LOOP
+INPUT
+
+SELECTCASE RESULT
+	CASE 100
+		IF ARG == 0
+			REUSELASTLINE 
+			GOTO INPUT_LOOP
+		ENDIF
+		ARG -= 1
+		IF ARG > 3 && ARG < 10
+			FOR LOCAL, 3, -1, -1
+				IF BATTLE_STATE:LOCAL:キャラ登録番号 > 0
+					ARG = LOCAL
+					BREAK
+				ENDIF
+			NEXT
+		ENDIF
+		RESTART
+	CASE 101
+		IF BATTLE_STATE:(ARG + 1):キャラ登録番号 < 1
+			IF ARG <= 3 && BATTLE_STATE:10:キャラ登録番号 > 0
+				ARG = 10
+				RESTART
+			ENDIF
+			REUSELASTLINE 
+			GOTO INPUT_LOOP
+		ENDIF
+		ARG += 1
+		RESTART
+	CASE 110
+		CALL 指輪付け替え処理画面(BATTLE_STATE:ARG:キャラ登録番号)
+		CALL 戦闘初期処理_味方(0)
+		RESTART
+	CASE 111
+		CALL 耳飾り付け替え処理画面(BATTLE_STATE:ARG:キャラ登録番号)
+		CALL 戦闘初期処理_味方(0)
+		RESTART
+	CASE 112
+		CALL 証付け替え処理画面(BATTLE_STATE:ARG:キャラ登録番号)
+		CALL 戦闘初期処理_味方(0)
+		RESTART
+	CASE 113
+		CALL 経験値増加アイテム処理画面(BATTLE_STATE:ARG:キャラ登録番号)
+		CALL 戦闘初期処理_味方(0)
+		RESTART
+	CASE 114
+		CALL 奥義カットイン個別設定画面(BATTLE_STATE:ARG:キャラ登録番号)
+		RESTART
+	CASE 115
+		CALL スタイル変更(BATTLE_STATE:ARG:キャラ登録番号)
+		RESTART
+	CASE 998
+		PRINTFORML %CALLNAME:(BATTLE_STATE:ARG:キャラ登録番号)%を探索メンバーから外しますか？
+		PRINTBUTTONLC "[0]はい", 0
+		PRINTBUTTONLC "[1]いいえ", 1
+
+		$INPUT_LOOP2
+		INPUT
+
+		SELECTCASE RESULT
+			CASE 0
+				IF OPTION変数:編成解除時の装備解除
+					;装備解除
+					装備ステータス補正保存:(BATTLE_STATE:ARG:キャラ登録番号):装備証番号 = 0
+					IF 装備ステータス補正保存:(BATTLE_STATE:ARG:キャラ登録番号):装備指輪番号
+						DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:ARG:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:ARG:キャラ登録番号):装備指輪番号 = 0
+					ENDIF
+					IF 装備ステータス補正保存:(BATTLE_STATE:ARG:キャラ登録番号):装備耳飾り番号
+						DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:ARG:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+						装備ステータス補正保存:(BATTLE_STATE:ARG:キャラ登録番号):装備耳飾り番号 = 0
+					ENDIF
+					CALL 装備再計算処理(BATTLE_STATE:ARG:キャラ登録番号)
+				ENDIF
+				LOCAL = BATTLE_STATE:ARG:キャラ登録番号
+				BATTLE_STATE:ARG:キャラ登録番号 = BATTLE_STATE:(ARG + 1):キャラ登録番号
+				BATTLE_STATE:(ARG + 1):キャラ登録番号 = BATTLE_STATE:(ARG + 2):キャラ登録番号
+				BATTLE_STATE:(ARG + 2):キャラ登録番号 = BATTLE_STATE:(ARG + 3):キャラ登録番号
+				BATTLE_STATE:(ARG + 3):キャラ登録番号 = BATTLE_STATE:(ARG + 4):キャラ登録番号
+				PRINTFORMW %CALLNAME:LOCAL%を探索メンバーから外しました
+				RETURN 0
+			CASE 1
+				RETURN 0
+			CASEELSE
+				REUSELASTLINE
+				GOTO INPUT_LOOP2
+		ENDSELECT
+	CASE 999
+		;再計算
+		CALL 戦闘初期処理_味方(1)
+		FOR LOCAL, 0, 14
+			SIF LOCAL > 3 && LOCAL < 10
+				CONTINUE
+			SIF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+				CONTINUE
+			CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+		NEXT
+		CALL 戦闘初期処理_味方(0)
+		RETURN -1
+	CASEELSE
+		REUSELASTLINE 
+		GOTO INPUT_LOOP
+ENDSELECT
+
+
+@最大レベル算出保存
+#DIM 配列番号
+;全キャラの中で最大レベルがいくつかを算出して保存する
+
+最大レベル保存 = 0
+FOR 配列番号, 1, CHARANUM
+	IF 基礎BATTLE_STATE:配列番号:Lv > 最大レベル保存
+		最大レベル保存 = 基礎BATTLE_STATE:配列番号:Lv
+	ENDIF
+NEXT
+
+SIF 最大レベル保存_周回 > 最大レベル保存
+	最大レベル保存 = 最大レベル保存_周回
+
+@メンバー編成画面(メインサブ = 0, y軸位置 = 0)
+#DIM ページ番号
+#DIM ソート法則
+#DIM y軸位置
+#DIM メインサブ
+#DIM 番号管理
+#DIM 昇順降順 = -1
+#DIM リスト表示位置
+#DIM 入れ替え候補_メンバー = -1
+#DIM 入れ替え候補_リスト = -1
+#DIM ソート基準配列, 1000
+
+IF (初期選択 >= 0 && 初期選択 <= 3) || (初期選択 >= 10 && 初期選択 <= 13)
+	入れ替え候補_メンバー = 初期選択
+	初期選択 = -1
+ENDIF
+
+VARSET ソート基準配列
+VARSET 表示用ステータス格納配列:0:0
+
+;現在パーティー表示
+LOCALS = 
+CALL 戦闘初期処理_味方(1)
+CALL 探索用顔グラフィック生成
+CALL DUNGEON_キャラ描画
+LOCALS += @"<div rect='3375,{y軸位置},2500,5000'>"
+FOR LOCAL, メインサブ * 10, メインサブ * 10 + 4
+	IF メインサブ && LOCAL - 9 > DT_CELL_GET("所持乗機データベース", 装備乗機ID, "サブ搭乗数_強化後", 1)
+		BREAK
+	ENDIF
+	IF 入れ替え候補_メンバー == LOCAL
+		LOCALS += @"<button value='{LOCAL}' ><img src='キャラ_{LOCAL}_ボタン' height='750' width='2462' ypos='{(LOCAL - メインサブ * 10) * 681}'></button>"
+	ELSE
+		LOCALS += @"<button value='{LOCAL}' ><img src='キャラ_{LOCAL}' srcb='キャラ_{LOCAL}_ボタン' height='750' width='2462' ypos='{(LOCAL - メインサブ * 10) * 681}'></button>"
+	ENDIF
+NEXT
+LOCALS += "</div>"
+
+HTML_PRINT LOCALS, 1
+
+;入れ替え候補者表示
+LOCALS += @"<div rect='200,{y軸位置 - 20},3150,3750' border='31' bcolor='#C0C0C0'></div>"
+LOCALS += @"<div rect='250,{y軸位置 + 30},3050,3650'>"
+LOCALS += @"名前　　　　　　　　　　　　　　　　　　　　<button value='50'>%メンバーリスト表示欄:1%</button>　<button value='51'>%メンバーリスト表示欄:2%</button>　<button value='52'>%メンバーリスト表示欄:3%</button><br>"
+LOCALS += @"-------------------------------------------------------------<br>"
+;候補者のリスト化
+LOCAL:1 = 0
+FOR LOCAL, 1, CHARANUM
+	SIF TALENT:LOCAL:非戦闘キャラ
+		CONTINUE
+	SIF CFLAG:LOCAL:探索参加許可フラグ == 0 && CFLAG:LOCAL:長期雇用 == 0 && TALENT:LOCAL:従業員 == 0
+		CONTINUE
+	SIF CFLAG:LOCAL:滞在期間 < 0
+		CONTINUE
+	IF メインサブ == 0
+		SIF GROUPMATCH(LOCAL, BATTLE_STATE:0:キャラ登録番号, BATTLE_STATE:1:キャラ登録番号, BATTLE_STATE:2:キャラ登録番号, BATTLE_STATE:3:キャラ登録番号)
+			表示用ステータス格納配列:(LOCAL:1):9 = 1
+		SIF GROUPMATCH(LOCAL, BATTLE_STATE:10:キャラ登録番号, BATTLE_STATE:11:キャラ登録番号, BATTLE_STATE:12:キャラ登録番号, BATTLE_STATE:13:キャラ登録番号)
+			表示用ステータス格納配列:(LOCAL:1):9 = 2
+	ELSE
+		SIF GROUPMATCH(LOCAL, BATTLE_STATE:0:キャラ登録番号, BATTLE_STATE:1:キャラ登録番号, BATTLE_STATE:2:キャラ登録番号, BATTLE_STATE:3:キャラ登録番号)
+			表示用ステータス格納配列:(LOCAL:1):9 = 2
+		SIF GROUPMATCH(LOCAL, BATTLE_STATE:10:キャラ登録番号, BATTLE_STATE:11:キャラ登録番号, BATTLE_STATE:12:キャラ登録番号, BATTLE_STATE:13:キャラ登録番号)
+			表示用ステータス格納配列:(LOCAL:1):9 = 1
+	ENDIF
+	表示用ステータス格納配列:(LOCAL:1):0 = LOCAL
+
+	SIF ソート法則 < 1 && ソート法則 > 3
+		ソート法則 = 1
+	FOR リスト表示位置, 1, 4
+		SELECTCASE メンバーリスト表示欄:リスト表示位置
+			CASE "属性"
+				IF 装備ステータス補正保存:LOCAL:属性
+					;0を火属性にしちゃったので数値そのままだと属性変更してるかどうか判別がつかないため、装備による属性変更は属性番号+10で保存している
+					表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 装備ステータス補正保存:LOCAL:属性 - 10
+				ELSE
+					表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:属性
+				ENDIF
+			CASE "Ｌｖ"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:Lv
+			CASE "固有"
+				IF ENUMFUNCBEGINSWITH(@"固有アビ_{NO:LOCAL}_") || EXISTFUNCTION(@"固有奥義_{NO:LOCAL}")
+					表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 1
+				ELSE
+					表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 0
+				ENDIF
+			CASE "ＨＰ"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:最大ＨＰ + 装備ステータス補正保存:LOCAL:最大ＨＰ
+			CASE "ＭＰ"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:最大ＭＰ + 装備ステータス補正保存:LOCAL:最大ＭＰ
+			CASE "攻撃"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:攻撃力 + 装備ステータス補正保存:LOCAL:攻撃力
+			CASE "防御"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:防御力 + 装備ステータス補正保存:LOCAL:防御力
+			CASE "回復"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:回復力 + 装備ステータス補正保存:LOCAL:回復力
+			CASE "速度"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:行動速度 + 装備ステータス補正保存:LOCAL:行動速度
+			CASE "DA率"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:DA率 + 装備ステータス補正保存:LOCAL:DA率
+			CASE "TA率"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:TA率 + 装備ステータス補正保存:LOCAL:TA率
+			CASE "命中"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:命中率 + 装備ステータス補正保存:LOCAL:命中率
+			CASE "回避"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:回避率 + 装備ステータス補正保存:LOCAL:回避率
+			CASE "火耐"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:火耐性 + 装備ステータス補正保存:LOCAL:火耐性
+			CASE "水耐"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:水耐性 + 装備ステータス補正保存:LOCAL:水耐性
+			CASE "風耐"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:風耐性 + 装備ステータス補正保存:LOCAL:風耐性
+			CASE "土耐"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:土耐性 + 装備ステータス補正保存:LOCAL:土耐性
+			CASE "光耐"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:光耐性 + 装備ステータス補正保存:LOCAL:光耐性
+			CASE "闇耐"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:闇耐性 + 装備ステータス補正保存:LOCAL:闇耐性
+			CASE "火強"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:火強化 + 装備ステータス補正保存:LOCAL:火強化
+			CASE "水強"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:水強化 + 装備ステータス補正保存:LOCAL:水強化
+			CASE "風強"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:風強化 + 装備ステータス補正保存:LOCAL:風強化
+			CASE "土強"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:土強化 + 装備ステータス補正保存:LOCAL:土強化
+			CASE "光強"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:光強化 + 装備ステータス補正保存:LOCAL:光強化
+			CASE "闇強"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 基礎BATTLE_STATE:LOCAL:闇強化 + 装備ステータス補正保存:LOCAL:闇強化
+			CASE "調合"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:調合知識
+			CASE "魔法"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:魔法知識
+			CASE "機械"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:機械知識
+			CASE "錬金"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:錬金知識
+			CASE "魔物"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:魔物知識
+			CASE "絵師"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:絵師
+			CASE "高貴"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:高貴
+			CASE "釣好"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:釣り好き
+			CASE "踊子"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:踊り子
+			CASE "歌唱"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:歌唱技能
+			CASE "料理"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:料理人
+			CASE "歴史"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:歴史知識
+			CASE "経営"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:経営知識
+			CASE "水泳"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:水泳技能
+			CASE "農業"
+				表示用ステータス格納配列:(LOCAL:1):リスト表示位置 = 知識素質:LOCAL:農業知識
+		ENDSELECT
+	NEXT
+
+	;ソート用情報保存
+	ソート基準配列:(LOCAL:1) = (表示用ステータス格納配列:(LOCAL:1):ソート法則 + 1) * 昇順降順
+	LOCAL:1 += 1
+NEXT
+ARRAYMSORT ソート基準配列, 表示用ステータス格納配列
+
+FOR LOCAL, ページ番号 * 28, ページ番号 * 28 + 28
+	SIF 表示用ステータス格納配列:LOCAL:0 < 1
+		BREAK
+	IF メインサブ == 0
+		IF GROUPMATCH(表示用ステータス格納配列:LOCAL:0, BATTLE_STATE:10:キャラ登録番号, BATTLE_STATE:11:キャラ登録番号, BATTLE_STATE:12:キャラ登録番号, BATTLE_STATE:13:キャラ登録番号)
+			LOCALS:1 = %NAME表示((表示用ステータス格納配列:LOCAL:0))%（サブ編成）
+		ELSE
+			LOCALS:1 = %NAME表示((表示用ステータス格納配列:LOCAL:0))%
+		ENDIF
+	ELSE
+		IF GROUPMATCH(表示用ステータス格納配列:LOCAL:0, BATTLE_STATE:0:キャラ登録番号, BATTLE_STATE:1:キャラ登録番号, BATTLE_STATE:2:キャラ登録番号, BATTLE_STATE:3:キャラ登録番号)
+			LOCALS:1 = %NAME表示((表示用ステータス格納配列:LOCAL:0))%（メイン編成）
+		ELSE
+			LOCALS:1 = %NAME表示((表示用ステータス格納配列:LOCAL:0))%
+		ENDIF
+	ENDIF
+	IF 表示用ステータス格納配列:LOCAL:9 == 1
+		LOCALS += @"<nonbutton>"
+		SIF STRLENS(LOCALS:1) > 42
+			LOCALS:1 = %SUBSTRING(LOCALS:1, 0, 42)%
+		LOCALS += @"<font color='#%カラーパレット_HTML("グレーアウト")%'>%LOCALS:1, 42, LEFT%</font>"
+		FOR リスト表示位置, 1, 4
+			CALL メンバー編成画面情報表示(LOCALS, LOCAL, リスト表示位置)
+		NEXT
+		LOCALS += "</nonbutton><br>"
+	ELSE
+		LOCALS += @"<button value='{LOCAL + 100}'>"
+		IF 入れ替え候補_リスト == 表示用ステータス格納配列:LOCAL:0
+			SIF STRLENS(LOCALS:1) > 40
+				LOCALS:1 = %SUBSTRING(LOCALS:1, 0, 40)%
+			LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>　%LOCALS:1, 40, LEFT%</font>"
+		ELSE
+			SIF STRLENS(LOCALS:1) > 42
+				LOCALS:1 = %SUBSTRING(LOCALS:1, 0, 42)%
+			IF 表示用ステータス格納配列:LOCAL:9 == 2
+				LOCALS += @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%LOCALS:1, 42, LEFT%</font>"
+			ELSE
+				LOCALS += @"%LOCALS:1, 42, LEFT%"
+			ENDIF
+		ENDIF
+		FOR リスト表示位置, 1, 4
+			CALL メンバー編成画面情報表示(LOCALS, LOCAL, リスト表示位置)
+		NEXT
+		LOCALS += "</button><br>"
+	ENDIF
+NEXT
+
+LOCALS += "</div>"
+
+LOCALS += @"<div rect='4000,{y軸位置 + 3262},3000,600'>"
+IF 入れ替え候補_メンバー > -1 && BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号 > 0
+	LOCALS += "<button value='9010'>[9010] パーティから外す</button>"
+ENDIF
+LOCALS += "<br>"
+LOCALS += "<button value='9002'>[9002]表示情報変更</button>　"
+LOCALS += "<br>"
+IF OPTION変数:編成解除時の装備解除
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='9003'>[9003]編成解除時に装備解除：ON</button></font>"
+ELSE
+	LOCALS += "<button value='9003'>[9003]編成解除時に装備解除：OFF</button>"
+ENDIF
+LOCALS += "<br>"
+IF OPTION変数:編成枠に装備紐づけ
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='9004'>[9004]入替時に装備を継承：ON</button></font>"
+ELSE
+	LOCALS += "<button value='9004'>[9004]入替時に装備を継承：OFF</button>"
+ENDIF
+LOCALS += "</div>"
+
+LOCALS += @"<div rect='262,{y軸位置 + 3562},5537,300'>"
+IF ページ番号 > 0
+	LOCALS += "<button value='9000'>[9000]前のページ</button>　"
+ELSE
+	LOCALS += "　　　　　　　　　"
+ENDIF
+LOCALS += @"- PAGE {ページ番号 + 1, 2, LEFT} -　　"
+IF 表示用ステータス格納配列:(28 + (ページ番号 * 28)):0 > 0
+	LOCALS += "<button value='9001'>[9001]次のページ</button>　"
+ELSE
+	LOCALS += "　　　　　　　　　"
+ENDIF
+LOCALS += "</div>"
+HTML_PRINT LOCALS, 1
+
+FOR LOCAL, 0, 32 + (y軸位置 / 100)
+	PRINTL
+NEXT
+
+BINPUTS
+IF ISNUMERIC(RESULTS) == 0
+	VARSET 表示用ステータス格納配列:0:0
+	表示切り替え文字列 = %RESULTS%
+	入れ替え候補_メンバー = -1
+	入れ替え候補_リスト = -1
+	ページ番号 = 0
+	RETURN 0
+ENDIF
+LOCAL = TOINT(RESULTS)
+SELECTCASE LOCAL
+	CASE 9000
+		ページ番号 -= 1
+	CASE 9001
+		ページ番号 += 1
+	CASE 9002
+		CALL メンバー編成画面情報変更(ソート法則, 昇順降順)
+		ソート法則 = RESULT:0
+		昇順降順 = RESULT:1
+		入れ替え候補_リスト = -1
+	CASE 9003
+		INVERTBIT OPTION変数:編成解除時の装備解除, 0
+		SIF OPTION変数:編成解除時の装備解除
+			OPTION変数:編成枠に装備紐づけ = 0
+	CASE 9004
+		INVERTBIT OPTION変数:編成枠に装備紐づけ, 0
+		SIF OPTION変数:編成枠に装備紐づけ
+			OPTION変数:編成解除時の装備解除 = 0
+	CASE 9010
+		IF OPTION変数:編成解除時の装備解除
+			;装備解除
+			装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備証番号 = 0
+			IF 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号
+				DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+				装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号 = 0
+			ENDIF
+			IF 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号
+				DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+				装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号 = 0
+			ENDIF
+			CALL 装備再計算処理(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号)
+		ENDIF
+		;隊列を詰める
+		FOR 番号管理, 入れ替え候補_メンバー, メインサブ * 10 + 4
+			BATTLE_STATE:番号管理:キャラ登録番号 = BATTLE_STATE:(番号管理 + 1):キャラ登録番号
+		NEXT
+		入れ替え候補_メンバー = -1
+		入れ替え候補_リスト = -1
+	CASE 0 TO 13
+		IF 入れ替え候補_リスト > 0
+			IF OPTION変数:編成解除時の装備解除
+				;装備解除
+				装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備証番号 = 0
+				IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号
+					DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号
+					DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号 = 0
+				ENDIF
+				CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+			ELSEIF OPTION変数:編成枠に装備紐づけ
+				;装備入れ替え
+				装備ステータス補正保存:入れ替え候補_リスト:装備証番号 = 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備証番号
+				装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備証番号 = 0
+				IF 装備ステータス補正保存:入れ替え候補_リスト:装備指輪番号
+					DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:入れ替え候補_リスト:装備指輪番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:入れ替え候補_リスト:装備指輪番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号
+					DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号, "装備キャラ番号", 入れ替え候補_リスト, 1
+					装備ステータス補正保存:入れ替え候補_リスト:装備指輪番号 = 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号
+					装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備指輪番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:入れ替え候補_リスト:装備耳飾り番号
+					DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:入れ替え候補_リスト:装備耳飾り番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:入れ替え候補_リスト:装備耳飾り番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号
+					DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 入れ替え候補_リスト, 1
+					装備ステータス補正保存:入れ替え候補_リスト:装備耳飾り番号 = 装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号
+					装備ステータス補正保存:(BATTLE_STATE:LOCAL:キャラ登録番号):装備耳飾り番号 = 0
+				ENDIF
+				CALL 装備再計算処理(入れ替え候補_リスト)
+				CALL 装備再計算処理(BATTLE_STATE:LOCAL:キャラ登録番号)
+			ENDIF
+			BATTLE_STATE:LOCAL:キャラ登録番号 = 入れ替え候補_リスト
+			;メイン/サブの方をチェック
+			FOR 番号管理, !メインサブ * 10, !メインサブ * 10 + 4
+				IF BATTLE_STATE:番号管理:キャラ登録番号 == 入れ替え候補_リスト
+					FOR LOCAL, 番号管理, !メインサブ * 10 + 4
+						BATTLE_STATE:LOCAL:キャラ登録番号 = BATTLE_STATE:(LOCAL + 1):キャラ登録番号
+					NEXT
+					BREAK
+				ENDIF
+			NEXT
+			入れ替え候補_メンバー = -1
+			入れ替え候補_リスト = -1
+			ページ番号 = 0
+		ELSE
+			IF 入れ替え候補_メンバー >= 0
+				SWAP BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号, BATTLE_STATE:LOCAL:キャラ登録番号
+				入れ替え候補_メンバー = -1
+			ELSE
+				入れ替え候補_メンバー = LOCAL
+			ENDIF
+		ENDIF
+	CASE 50
+		IF ソート法則 == 1
+			昇順降順 = 昇順降順 * -1
+		ELSE
+			ソート法則 = 1
+			入れ替え候補_リスト = -1
+			SIF メンバーリスト表示欄:1 == "属性"
+				昇順降順 = 1
+		ENDIF
+	CASE 51
+		IF ソート法則 == 2
+			昇順降順 = 昇順降順 * -1
+		ELSE
+			ソート法則 = 2
+			入れ替え候補_リスト = -1
+			SIF メンバーリスト表示欄:2 == "属性"
+				昇順降順 = 1
+		ENDIF
+	CASE 52
+		IF ソート法則 == 3
+			昇順降順 = 昇順降順 * -1
+		ELSE
+			ソート法則 = 3
+			入れ替え候補_リスト = -1
+			SIF メンバーリスト表示欄:3 == "属性"
+				昇順降順 = 1
+		ENDIF
+	CASE 9999
+		入れ替え候補_メンバー = -1
+		入れ替え候補_リスト = -1
+		ページ番号 = 0
+		VARSET 表示用ステータス格納配列:0:0
+		RETURN -1
+	CASE IS >= 100
+		IF 入れ替え候補_メンバー > -1
+			IF OPTION変数:編成解除時の装備解除
+				;装備解除
+				装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備証番号 = 0
+				IF 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号
+					DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号
+					DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号 = 0
+				ENDIF
+				CALL 装備再計算処理(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号)
+			ELSEIF OPTION変数:編成枠に装備紐づけ
+				;装備入れ替え
+				装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備証番号 = 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備証番号
+				装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備証番号 = 0
+				IF 装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備指輪番号
+					DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備指輪番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備指輪番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号
+					DT_CELL_SET "所持指輪データベース", 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号, "装備キャラ番号", (表示用ステータス格納配列:(LOCAL - 100):0), 1
+					装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備指輪番号 = 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号
+					装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備指輪番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備耳飾り番号
+					DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備耳飾り番号, "装備キャラ番号", 0, 1
+					装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備耳飾り番号 = 0
+				ENDIF
+				IF 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号
+					DT_CELL_SET "所持耳飾りデータベース", 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号, "装備キャラ番号", (表示用ステータス格納配列:(LOCAL - 100):0), 1
+					装備ステータス補正保存:(表示用ステータス格納配列:(LOCAL - 100):0):装備耳飾り番号 = 装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号
+					装備ステータス補正保存:(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号):装備耳飾り番号 = 0
+				ENDIF
+				CALL 装備再計算処理(表示用ステータス格納配列:(LOCAL - 100):0)
+				CALL 装備再計算処理(BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号)
+			ENDIF
+			BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号 = 表示用ステータス格納配列:(LOCAL - 100):0
+			;メイン/サブの方をチェック
+			FOR 番号管理, !メインサブ * 10, !メインサブ * 10 + 4
+				IF BATTLE_STATE:番号管理:キャラ登録番号 == BATTLE_STATE:入れ替え候補_メンバー:キャラ登録番号
+					FOR LOCAL, 番号管理, !メインサブ * 10 + 4
+						BATTLE_STATE:LOCAL:キャラ登録番号 = BATTLE_STATE:(LOCAL + 1):キャラ登録番号
+					NEXT
+					BREAK
+				ENDIF
+			NEXT
+			入れ替え候補_メンバー = -1
+			入れ替え候補_リスト = -1
+			ページ番号 = 0
+		ELSE
+			IF 入れ替え候補_リスト == 表示用ステータス格納配列:(LOCAL - 100):0
+				入れ替え候補_リスト = -1
+			ELSE
+				入れ替え候補_リスト = 表示用ステータス格納配列:(LOCAL - 100):0
+			ENDIF
+		ENDIF
+ENDSELECT
+
+@メンバー編成画面情報変更(ソート法則, 昇順降順)
+#DIM 選択位置記録, 2
+#DIM ソート法則
+#DIM 昇順降順
+{
+#DIMS CONST 表示キー = "属性", "Ｌｖ", "固有", "ＨＰ", "ＭＰ", "攻撃", "防御", "回復", "速度", "DA率",
+					"TA率", "命中", "回避", "火耐", "水耐", "風耐", "土耐", "光耐", "闇耐", "火強",
+					"水強", "風強", "土強", "光強", "闇強", "調合", "魔法", "機械", "錬金", "魔物",
+					"絵師", "高貴", "釣好", "踊子", "歌唱", "料理", "歴史", "経営", "水泳", "農業"
+}
+{
+#DIMS CONST 表示名 = "属性", "Ｌｖ", "固有スキル・奥義", "最大ＨＰ", "最大ＭＰ", "攻撃力", "防御力", "回復力", "行動速度", "DA率",
+				"TA率", "命中率", "回避率", "火耐性", "水耐性", "風耐性", "土耐性", "光耐性", "闇耐性", "火強化",
+				"水強化", "風強化", "土強化", "光強化", "闇強化", "調合知識", "魔法知識", "機械知識", "錬金知識", "魔物知識",
+				"絵師", "高貴", "釣り好き", "踊り子", "歌唱技能", "料理人", "歴史知識", "経営知識", "水泳技能", "農業知識"
+}
+
+VARSET 選択位置記録, -1
+
+$ループ位置
+
+PRINTL
+PRINTL
+PRINTL
+DRAWLINE
+PRINTL メンバー入れ替え画面で表示する情報を切り替えます。
+DRAWLINE
+LOCALS = 
+SIF 選択位置記録:1 > -1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>・入れ替える枠を選択してください。</font><br>"
+IF 選択位置記録:0 == 1
+	LOCALS += @"１：<font color='#%カラーパレット_HTML("黄")%'><button value='1'>%表示名:(FINDELEMENT(表示キー, メンバーリスト表示欄:1)), 20, LEFT%</button></font>"
+ELSE
+	LOCALS += @"１：<button value='1'>%表示名:(FINDELEMENT(表示キー, メンバーリスト表示欄:1)), 20, LEFT%</button>"
+ENDIF
+IF ソート法則 == 1 && 昇順降順 == 1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='1001'>[昇順]</button></font> / "
+ELSE
+	LOCALS += @"<button value='1001'>[昇順]</button> / "
+ENDIF
+IF ソート法則 == 1 && 昇順降順 == -1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='1002'>[降順]</button></font><br>"
+ELSE
+	LOCALS += @"<button value='1002'>[降順]</button><br>"
+ENDIF
+
+IF 選択位置記録:0 == 2
+	LOCALS += @"２：<font color='#%カラーパレット_HTML("黄")%'><button value='2'>%表示名:(FINDELEMENT(表示キー, メンバーリスト表示欄:2)), 20, LEFT%</button></font>"
+ELSE
+	LOCALS += @"２：<button value='2'>%表示名:(FINDELEMENT(表示キー, メンバーリスト表示欄:2)), 20, LEFT%</button>"
+ENDIF
+IF ソート法則 == 2 && 昇順降順 == 1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='1003'>[昇順]</button></font> / "
+ELSE
+	LOCALS += @"<button value='1003'>[昇順]</button> / "
+ENDIF
+IF ソート法則 == 2 && 昇順降順 == -1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='1004'>[降順]</button></font><br>"
+ELSE
+	LOCALS += @"<button value='1004'>[降順]</button><br>"
+ENDIF
+
+IF 選択位置記録:0 == 3
+	LOCALS += @"３：<font color='#%カラーパレット_HTML("黄")%'><button value='3'>%表示名:(FINDELEMENT(表示キー, メンバーリスト表示欄:3)), 20, LEFT%</button></font>"
+ELSE
+	LOCALS += @"３：<button value='3'>%表示名:(FINDELEMENT(表示キー, メンバーリスト表示欄:3)), 20, LEFT%</button>"
+ENDIF
+IF ソート法則 == 3 && 昇順降順 == 1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='1005'>[昇順]</button></font> / "
+ELSE
+	LOCALS += @"<button value='1005'>[昇順]</button> / "
+ENDIF
+IF ソート法則 == 3 && 昇順降順 == -1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='1006'>[降順]</button></font><br>"
+ELSE
+	LOCALS += @"<button value='1006'>[降順]</button><br>"
+ENDIF
+
+HTML_PRINT LOCALS
+DRAWLINE
+LOCALS = <div rect='0,0,6000,2000'>
+SIF 選択位置記録:0 > -1
+	LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>・入れ替える情報を選択してください。</font><br>"
+FOR LOCAL, 0, VARSIZE("表示名")
+	IF MATCH(メンバーリスト表示欄, 表示キー:LOCAL)
+		LOCALS += @"<font color='#%カラーパレット_HTML("薄ピンク")%'><button value='{LOCAL + 10}'>[{LOCAL + 10}] %表示名:LOCAL, 20, LEFT%</button></font>"
+	ELSEIF 選択位置記録:1 == LOCAL
+		LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'><button value='{LOCAL + 10}'>[{LOCAL + 10}] %表示名:LOCAL, 20, LEFT%</button></font>"
+	ELSE
+		LOCALS += @"<button value='{LOCAL + 10}'>[{LOCAL + 10}] %表示名:LOCAL, 20, LEFT%</button>"
+	ENDIF
+	SIF LOCAL == 12 || LOCAL == 24
+		LOCALS += "<br><br>"
+NEXT
+LOCALS += "<br></div>"
+HTML_PRINT LOCALS
+FOR LOCAL, 0, 14
+	PRINTL
+NEXT
+PRINTBUTTON "[999] 戻る", 999
+PRINTL
+PRINTL
+PRINTL
+BINPUT
+
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 999
+		RESULT:1 = 昇順降順
+		RETURN ソート法則
+	CASE IS < 4
+		IF 選択位置記録:1 < 0
+			選択位置記録:0 = LOCAL
+		ELSE
+			メンバーリスト表示欄:LOCAL = %表示キー:(選択位置記録:1)%
+			VARSET 選択位置記録, -1
+		ENDIF
+		GOTO ループ位置
+	CASE 1001 TO 1006
+		ソート法則 = (LOCAL - 999) / 2
+		;-1か1かにする
+		昇順降順 = ((LOCAL % 2) * 2) - 1
+		GOTO ループ位置
+	CASEELSE
+		IF 選択位置記録:0 < 0
+			選択位置記録:1 = LOCAL - 10
+			GOTO ループ位置
+		ELSE
+			メンバーリスト表示欄:(選択位置記録:0) = %表示キー:(LOCAL - 10)%
+			VARSET 選択位置記録, -1
+		ENDIF
+		GOTO ループ位置
+ENDSELECT
+
+@メンバー編成画面情報表示(HTML文字列, 対象配列, リスト表示位置)
+#DIMS REF HTML文字列
+#DIM 対象配列
+#DIM リスト表示位置
+
+SELECTCASE メンバーリスト表示欄:リスト表示位置
+	CASE "属性"
+		HTML文字列 += @"<font color='#%属性数値文字色変換_HTML(表示用ステータス格納配列:対象配列:リスト表示位置)%'>"
+		HTML文字列 += @"%属性数値文字列変換(表示用ステータス格納配列:対象配列:リスト表示位置), 6%</font>"
+	CASE "固有"
+		IF 表示用ステータス格納配列:対象配列:リスト表示位置
+			HTML文字列 += "　あり"
+		ELSE
+			HTML文字列 += @"　<font color='#%カラーパレット_HTML("グレーアウト")%'>なし</font>"
+		ENDIF
+	CASEELSE
+		IF メンバーリスト表示欄:リスト表示位置 == ""
+			HTML文字列 += "　　　"
+		ELSE
+			HTML文字列 += @"{表示用ステータス格納配列:対象配列:リスト表示位置, 6}"
+		ENDIF
+ENDSELECT
+
+@スタイル変更(対象キャラ)
+#DIM 対象キャラ
+#DIMS 表示配列, 30
+#DIM DYNAMIC 初回起動
+#DIM 表示キー
+
+SIF 対象キャラ == MASTER
+	NO:MASTER = FLAG:あなたキャラ化記録
+
+IF 初回起動 == 0
+	CALLFORM スタイル変更_{NO:対象キャラ}(対象キャラ, "スタイル名取得")
+	ARRAYCOPY "RESULTS", "表示配列"
+	IF CSTR:対象キャラ:スタイル管理文字列 != ""
+		表示キー = FINDELEMENT(表示配列, CSTR:対象キャラ:スタイル管理文字列)
+	ELSE
+		表示キー = 0
+	ENDIF
+	初回起動 = 1
+ENDIF
+
+DRAWLINE
+PRINTFORML %NAME表示(対象キャラ)%のスタイル変更をします。
+PRINTL スタイルに応じてステータスが変動することがあります。
+DRAWLINE
+
+LOCALS = <div rect='81,31,1937,2812' border='31' bcolor='#C0C0C0' padding='50,25,50'><nobr>
+;左側
+FOR LOCAL, 0,10
+	SIF 表示配列:LOCAL == ""
+		CONTINUE
+	IF LOCAL == 表示キー
+		LOCALS += @"<font color='#%カラーパレット_HTML("黄")%'>[{LOCAL}] %表示配列:(LOCAL + 10)%スタイル</font>"
+	ELSE
+		LOCALS += @"<button value='{LOCAL}'>[{LOCAL}] %表示配列:(LOCAL + 10)%スタイル</button>"
+	ENDIF
+	LOCALS += "<br>"
+NEXT
+LOCALS += "</nobr></div>"
+
+LOCALS += "<div rect='2081,31,3937,2812' border='31' bcolor='#C0C0C0' padding='50,25,50'>"
+;右側
+IF 表示キー == -1
+	LOCALS += "ここにスタイルの解説が表示されます。"
+ELSE
+	CALLFORM スタイル変更_{NO:対象キャラ}(対象キャラ, @"スタイル解説_%表示配列:表示キー%")
+	LOCALS += TSTR:スタイル解説
+	LOCALS += "<br>"
+	IF CSTR:対象キャラ:スタイル管理文字列 == 表示配列:表示キー || (CSTR:対象キャラ:スタイル管理文字列 == "" && 表示キー == 0)
+		LOCALS += @"<font color='#%カラーパレット_HTML("グレーアウト")%'>[100] このスタイルに変更する</font>　　※現在のスタイルです"
+	ELSE
+		LOCALS += "<button value='100'>[100] このスタイルに変更する</button>"
+	ENDIF
+ENDIF
+LOCALS += "</div>"
+HTML_PRINT LOCALS, 1
+FOR LOCAL, 0, 26
+	PRINTL
+NEXT
+
+PRINTBUTTONLC "[999]戻る", 999
+BINPUT
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 999
+		SIF 対象キャラ == MASTER
+			NO:MASTER = 0
+		RETURN 
+	CASE 100
+		IF 表示配列:表示キー == NAME:対象キャラ
+			CSTR:対象キャラ:スタイル管理文字列 = 
+			CSTR:対象キャラ:スタイル種別 = 
+		ELSE
+			CSTR:対象キャラ:スタイル管理文字列 = %表示配列:表示キー%
+			CSTR:対象キャラ:スタイル種別 = %表示配列:(表示キー + 10)%
+		ENDIF
+		CALLFORM スタイル変更_{NO:対象キャラ}(対象キャラ, "変更後処理")
+		CALL 装備再計算処理(対象キャラ)
+		PRINTFORMW %表示配列:表示キー%(%表示配列:(表示キー + 10)%)にスタイルを変更しました
+	CASEELSE
+		表示キー = LOCAL
+		RESTART
+ENDSELECT
+SIF 対象キャラ == MASTER
+	NO:MASTER = 0
+
+
+@スタイル奥義アビ表示_汎用文章(対象キャラ, スタイル名)
+#DIM 対象キャラ
+#DIMS スタイル名
+
+TSTR:スタイル解説 += "・使用奥義<br>"
+CALL スタイル奥義取得(対象キャラ, スタイル名)
+TSTR:スタイル解説 += @"%RESULTS%<br>"
+TSTR:スタイル解説 += "・使用アビリティ<br>"
+CALL スタイルアビ取得(対象キャラ, スタイル名)
+TSTR:スタイル解説 += @"%RESULTS%<br>"
+
+RETURN 0
+
+@スタイル奥義取得(対象キャラ, スタイル名)
+#DIM 対象キャラ
+#DIMS スタイル名
+#DIM スタイル一時フラグ
+#DIMS スタイル一時保存
+
+LOCALS = 
+スタイル一時フラグ = 0
+IF CSTR:対象キャラ:スタイル管理文字列 != スタイル名
+	スタイル一時保存 '= CSTR:対象キャラ:スタイル管理文字列
+	IF スタイル名 == NAME:対象キャラ
+		CSTR:対象キャラ:スタイル管理文字列 = 
+	ELSE
+		CSTR:対象キャラ:スタイル管理文字列 '= スタイル名
+	ENDIF
+	スタイル一時フラグ = 1
+ENDIF
+
+CALL 奥義名呼び出し(対象キャラ)
+CALL 奥義威力呼び出し(対象キャラ)
+IF OPTION変数:ツールチップ切り替え == 0
+	LOCALS += @"<nonbutton title='<br>%詳細文文字列受け渡し変数%<br>'>[%TSTR:コマンド名受渡%]</nonbutton>"
+ELSE
+	LOCALS += @"<nonbutton>[%TSTR:コマンド名受渡%]</nonbutton>"
+ENDIF
+
+SIF スタイル一時フラグ
+	SWAP スタイル一時保存, CSTR:対象キャラ:スタイル管理文字列
+
+RESULTS '= LOCALS
+RETURN 0
+
+@スタイルアビ取得(対象キャラ, スタイル名)
+#DIM 対象キャラ
+#DIMS スタイル名
+#DIM スタイル一時フラグ
+#DIMS スタイル一時保存
+#DIM 表示アビ数
+#DIM アビ番号
+
+LOCALS = 
+スタイル一時フラグ = 0
+IF CSTR:対象キャラ:スタイル管理文字列 != スタイル名
+	スタイル一時保存 '= CSTR:対象キャラ:スタイル管理文字列
+	IF スタイル名 == NAME:対象キャラ
+		CSTR:対象キャラ:スタイル管理文字列 = 
+	ELSE
+		CSTR:対象キャラ:スタイル管理文字列 '= スタイル名
+	ENDIF
+	スタイル一時フラグ = 1
+ENDIF
+
+VARSET RESULTS
+表示アビ数 = ENUMFUNCBEGINSWITH(@"固有アビ_{NO:対象キャラ}_")
+IF 表示アビ数
+	LOCAL = 0
+	FOR アビ番号, 0, 表示アビ数
+		TSTR:コマンド名受渡 = 
+		CALLFORM %RESULTS:アビ番号%("アビ名", 対象キャラ)
+		IF TSTR:コマンド名受渡 != ""
+			LOCAL += STRLENS(TSTR:コマンド名受渡) + 2
+			IF LOCAL > 100
+				LOCALS += "<br>"
+				LOCAL = 0
+			ENDIF
+			IF OPTION変数:ツールチップ切り替え == 0
+				CALLFORM %RESULTS:アビ番号%("アビ説明文", 対象キャラ)
+				詳細文文字列受け渡し変数 '= REPLACE(詳細文文字列受け渡し変数, "<(?!br).*?>", "")
+				LOCALS += @"<nonbutton title='<br>%詳細文文字列受け渡し変数%<br>'>[%TSTR:コマンド名受渡%]</nonbutton>"
+			ELSE
+				LOCALS += @"<nonbutton>[%TSTR:コマンド名受渡%]</nonbutton>"
+			ENDIF
+		ENDIF
+	NEXT
+	LOCALS += "<br>"
+ELSE
+	VARSET RESULTS
+	LOCALS += "汎用アビリティ："
+	表示アビ数 = ENUMFUNCBEGINSWITH("汎用固有アビ_")
+	FOR アビ番号, 0, 表示アビ数
+		TSTR:コマンド名受渡 = 
+		CALLFORM %RESULTS:アビ番号%("アビ名", 対象キャラ)
+		IF TSTR:コマンド名受渡 != ""
+			IF OPTION変数:ツールチップ切り替え == 0
+				CALLFORM %RESULTS:アビ番号%("アビ説明文", 対象キャラ)
+				LOCALS += @"<nonbutton title='<br>%詳細文文字列受け渡し変数%<br>'>[%TSTR:コマンド名受渡%]</nonbutton>　"
+			ELSE
+				LOCALS += @"<nonbutton>[%TSTR:コマンド名受渡%]</nonbutton>　"
+			ENDIF
+		ENDIF
+	NEXT
+	LOCALS += "<br>"
+ENDIF
+
+SIF スタイル一時フラグ
+	SWAP スタイル一時保存, CSTR:対象キャラ:スタイル管理文字列
+
+RESULTS '= LOCALS
+RETURN 0
+
+
+@スタイル判定関数(対象キャラ, スタイル名)
+#FUNCTION
+#DIM 対象キャラ
+#DIMS スタイル名
+
+IF スタイル名 == "デフォルト"
+	SIF CSTR:対象キャラ:スタイル管理文字列 == ""
+		RETURNF 1
+	SIF CSTR:対象キャラ:スタイル種別 == "ノーマル" || CSTR:対象キャラ:スタイル種別 == ""
+		RETURNF 1
+ELSE
+	SIF CSTR:対象キャラ:スタイル管理文字列 == スタイル名
+		RETURNF 1
+	SIF CSTR:対象キャラ:スタイル種別 == スタイル名
+		RETURNF 1
+ENDIF
+
+RETURNF 0

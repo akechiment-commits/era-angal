@@ -1,0 +1,293 @@
+﻿;-------------------------------------------------
+;触手アナル挿入
+;触手系コマンド、レベル2
+;-------------------------------------------------
+@COMNAME104
+#FUNCTIONS
+TSTR:コマンド名受渡 = 触手アナル挿入
+
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_104
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("触手系&Ａ系")
+;特殊な条件が必要なコマンドなので、弱点コマンドのランダム対象からは外す
+;弱点コマンドカテゴリ = V
+同時モード許可 = 999
+
+
+@COM_TOOLTIP_104
+LOCALS = <br>■触手アナル挿入<br>
+LOCALS += "触手をアナルに挿入するコマンド。<br>Ａ挿入系モードとなり、モードを変更するか性行為を終了するまで持続的に快楽が発生する。"
+LOCALS += "<br>COMタイプ：触手系<br>取得ソース：快Ａ・接触・露出・苦痛・不潔(一定条件時)"
+LOCALS += "<br>固有の取得経験：触手操作経験(PLAYER)<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@COM104
+#DIM 快楽基礎値
+
+CALL MODE_CHANGE("触手アナル挿入", PLAYER, TARGET)
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+
+RCVAR:触手コマンドフラグ = 1
+
+快楽基礎値 = あなた特殊能力:触手変化術 * 3
+CALL SOURCE_CALC_快Ａ(TARGET, PLAYER, 快楽基礎値 * 100)
+CALL SOURCE_CALC_接触(TARGET, PLAYER, 快楽基礎値 * 30)
+CALL SOURCE_CALC_露出(TARGET, PLAYER, 快楽基礎値 * 40)
+
+;苦痛
+LOCAL = 800 * PAIN_CHECK_A(TARGET) / 1000
+CALL SOURCE_CALC_苦痛(TARGET, PLAYER, LOCAL)
+
+;A処女喪失
+CALL LOST_A_VIRGIN(TARGET, PLAYER, 4)
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;同性愛
+SIF 同性愛性癖判定(TARGET,PLAYER)
+	EXP:TARGET:同性愛経験 += 1
+SIF 同性愛性癖判定(PLAYER,TARGET)
+	EXP:PLAYER:同性愛経験 += 1
+
+EXP:PLAYER:触手操作経験 ++
+RETURN 1
+
+
+@CAN_COM104(ARG)
+#DIM CONST 必要実行値 = 45
+#DIM 実行値
+#DIM ＋表示フラグ
+
+;あなた相手なら許可
+SIF TARGET == MASTER
+	RETURN 1
+;モード実行中なら問答無用で許可
+SIF MODE_存在判定_完全一致("触手アナル挿入", PLAYER, TARGET)
+	RETURN 1
+
+SKIPDISP ARG
+PRINTFORML 触手アナル挿入(%CALLNAME:TARGET%)
+
+;-------------------------------------------------
+;実行判定処理
+;-------------------------------------------------
+実行値 = 0
+＋表示フラグ = 0
+
+;すべての命令に共通の要素を考慮
+CALL COM_ORDER
+実行値 = RESULT
+＋表示フラグ = RESULT:1
+
+;ABL:欲望
+IF ABL:欲望
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += ABL:欲望 * 3
+	PRINTFORM 欲望LV{ABL:欲望}({ABL:欲望 * 3})
+	＋表示フラグ = 1
+ENDIF
+;ABL:Ａ感覚
+IF ABL:Ａ感覚
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += ABL:Ａ感覚 * 2
+	PRINTFORM Ａ感覚LV{ABL:Ａ感覚}({ABL:Ａ感覚 * 2})
+	＋表示フラグ = 1
+ENDIF
+;快楽刻印
+IF MARK:快楽刻印
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += MARK:快楽刻印 * 3
+	PRINTFORM 快楽刻印LV{MARK:快楽刻印}({MARK:快楽刻印 * 3})
+	＋表示フラグ = 1
+ENDIF
+;PALAM:潤滑（の不足）
+IF PALAM:潤滑 < PALAMLV:3
+	PRINT  - 
+	実行値 -= 5
+	PRINT 潤滑不足(5)
+	＋表示フラグ = 1
+ENDIF
+;PALAM:欲情
+IF GETPALAMLV(PALAM:欲情, 5)
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += GETPALAMLV(PALAM:欲情, 5) * 3
+	PRINTFORM 欲情LV{GETPALAMLV(PALAM:欲情, 5)}({GETPALAMLV(PALAM:欲情, 5) * 3})
+	＋表示フラグ = 1
+ENDIF
+;恥じらい
+IF TALENT:羞恥心 > 0
+	PRINT  - 
+	実行値 -= 2
+	PRINT 羞恥心(2)
+	＋表示フラグ = 1
+ENDIF
+;快感の否定
+IF TALENT:快感応答 < 0 && !TALENT:恋慕
+	PRINT  - 
+	実行値 -= 5
+	PRINT 快感の否定(5)
+	＋表示フラグ = 1
+ENDIF
+;恋慕
+IF TALENT:恋慕
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += 15
+	PRINT 恋慕(15)
+	＋表示フラグ = 1
+ELSE
+	;男嫌い（恋慕で無効）
+	IF TALENT:性別嗜好 & 1 && TALENT:PLAYER:性別 == 2
+		PRINT  - 
+		実行値 -= 12
+		PRINT 男嫌い(12)
+		＋表示フラグ = 1
+	ENDIF
+	;女嫌い（恋慕で無効）
+	IF TALENT:性別嗜好 & 2 && TALENT:PLAYER:性別 == 1
+		PRINT  - 
+		実行値 -= 12
+		PRINT 女嫌い(12)
+		＋表示フラグ = 1
+	ENDIF
+ENDIF
+;Ａ経験
+IF EXP:Ａ経験 < EXPLV:2
+	PRINT  - 
+	実行値 -= 15
+	PRINT Ａ経験不足(15)
+	＋表示フラグ = 1
+ENDIF
+;触手経験
+IF EXP:触手快楽経験 + EXP:触手絶頂経験 < EXPLV:2
+	PRINT  - 
+	実行値 -= 15
+	PRINT 触手経験不足(15)
+	＋表示フラグ = 1
+ENDIF
+
+;媚薬
+IF TEQUIP:媚薬
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += 6
+	PRINT 媚薬(6)
+	＋表示フラグ = 1
+ENDIF
+
+;発情期
+IF CFLAG:発情期フラグ < 0
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += 4
+	PRINT 発情中(4)
+	＋表示フラグ = 1
+ENDIF
+
+;合計を表示(45以上で実行)
+PRINTFORM  = {実行値}
+
+SIF 実行値 < 必要実行値
+	PRINT  < 
+SIF 実行値 == 必要実行値
+	PRINT  = 
+SIF 実行値 > 必要実行値
+	PRINT  > 
+PRINTFORM 実行値{必要実行値}
+
+WAIT
+SKIPDISP 0
+
+;実行できない
+SIF 実行値 < 必要実行値
+	RETURN 0
+
+RETURN 1
+
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE104
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(104)
+	RETURN RESULT
+;モード実行中ならだめ
+SIF MODE_存在判定_ターゲット側("触手アナル挿入", TARGET)
+	RETURN 0
+;Aがない場合駄目
+SIF TALENT:TARGET:Ａ感度 == -2
+	RETURN 0
+;潤滑不足はだめ
+SIF PALAM:潤滑 < PALAMLV:2
+	RETURN 0
+;アナルを何かに使ってるなら無理
+SIF TEQUIP:TARGET:アナル
+	RETURN 0
+;操作術レベル不足
+SIF あなた特殊能力:触手変化術 < 2
+	RETURN 0
+;将来的には許可する予定だけど（ユリウスとか）一旦あなた以外は封印
+SIF PLAYER != MASTER
+	RETURN 0
+
+
+RETURN 1
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM104
+#DIM 同時キャラ番号
+PRINTFORM %CALLNAME:PLAYER%は
+
+IF GETBIT(FLAG:モード管理, モードビット_同時)
+	PRINT 幾つもの触手を
+	FOR 同時キャラ番号, 0, 同時モード_選択数
+		SIF 同時キャラ番号 > 0
+			PRINT 、
+		PRINTFORM %CALLNAME:(同時モード_選択キャラ:同時キャラ番号)%
+	NEXT
+	PRINT アナルへと挿入した
+	RETURN 0
+ENDIF
+
+PRINTFORM 自らの触手を%CALLNAME:TARGET%の
+IF TEQUIP:下腹部前鎧あり || TEQUIP:下腹部後鎧あり
+	PRINT 鎧の隙間から
+	IF TEQUIP:下タイツあり
+		PRINT タイツの下に
+	ENDIF
+	PRINT 潜り込ませ、
+ELSEIF TEQUIP:下半身服あり
+	PRINT 服の隙間から
+	IF TEQUIP:下タイツあり
+		PRINT タイツの下に
+	ENDIF
+	PRINT 潜り込ませ、
+ELSEIF TEQUIP:下半身下着あり > 0
+	IF TEQUIP:下タイツあり
+		PRINT タイツの下から
+	ENDIF
+	PRINT 下着に潜り込ませ、
+ENDIF
+
+IF EXP:Ａ経験 <= EXPLV:2
+	PRINT まだ固く閉じられた
+ELSEIF EXP:Ａ経験 >= EXPLV:4
+	PRINT すっかり柔らかく淫靡になった
+ENDIF
+PRINTFORML アナルへと挿入した
+

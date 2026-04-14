@@ -1,0 +1,40 @@
+﻿;------------------------------------------------------------------------------
+;通常時、管理人をねぎらってくれる
+;------------------------------------------------------------------------------
+@AUTOCOMNAME4
+RESULTS = 管理人を労う
+
+@AUTOCOM4
+CALL SOURCE_CALC_歓楽(AUTOCOM_実行番号保存, PLAYER, 500)
+CALL SOURCE_CALC_好感度要素_信頼度UP(AUTOCOM_実行番号保存, PLAYER, 250)
+TIME_管理人を労う:AUTOCOM_実行番号保存:0 = TIME
+
+RETURN 1
+
+@AUTOCOM_ABLE4(キャラ番号)
+#DIM キャラ番号
+;あなたが必要
+SIF GETBIT(AUTOCOM_相手判別関数(キャラ番号), 0) == 0
+	RETURN 0
+;友人以上
+SIF CFLAG:キャラ番号:好感度レベル < 関係閾値:2
+	RETURN 0
+;４つの好感度要素で信頼度が最も高い
+LOCAL = 要素最大値算出(キャラ番号)
+SIF LOCAL != 1 && LOCAL != 5
+	RETURN 0
+;２時間に１回のみ発動
+SIF TIME - TIME_管理人を労う:キャラ番号:0 < 120
+	RETURN 0
+;うふふ中ではない
+SIF CFLAG:キャラ番号:うふふ
+	RETURN 0
+RETURN 1
+
+@MESSAGE_AUTOCOM4
+IF TALENT:TARGET:従業員
+	PRINTFORML %CALLNAME:AUTOCOM_実行番号保存%は%CALLNAME:PLAYER%に、業務の労いとしてお茶を淹れてくれた。
+ELSE
+	PRINTFORML %CALLNAME:AUTOCOM_実行番号保存%は%CALLNAME:PLAYER%に、普段の業務のお礼としてお菓子をくれた。
+ENDIF
+

@@ -1,0 +1,58 @@
+﻿;----------カットイン終了と呼び出しはセットで使用する
+@カットイン終了
+;アニメ停止、画面からの削除
+SETANIMETIMER -1
+CBGREMOVERANGE -1, 0
+
+
+@カットイン呼出(ARGS)
+;カットインオフならここで終了
+SIF カットイン演出一括表示フラグ == 1
+	RETURN -1
+
+CALLFORM %ARGS%カットイン
+
+;アニメが作成されなかったときは終了
+SIF RESULT == 0
+	RETURN -1
+
+;アニメ再生
+CBGSETSPRITE "カットインアニメ_0", 30, 0, -1,
+SETANIMETIMER 50
+
+
+;-------------分割アニメーション
+;-------------カットイン呼出、カットイン継承(1)、カットイン継承終了(1)、・・・の順に呼び出す
+@カットイン継承終了(ARG)
+;またはウェイト付き終了
+
+;アニメが作成されなかったときは終了
+SPRITECREATED @"カットインアニメ_{ARG}"
+SIF RESULT == 0
+	RETURN
+
+FOR LOCAL, 0, 待機フレーム数:ARG
+	AWAIT 1
+NEXT
+
+CALL カットイン終了
+
+;継承アニメの削除を行う
+SPRITEDISPOSE @"カットインアニメ_{ARG}"
+
+
+@カットイン継承(ARG)
+
+;アニメが作成されなかったときは終了
+SPRITECREATED @"カットインアニメ_{ARG}"
+SIF RESULT == 0
+	RETURN
+
+;先行アニメ削除
+CBGREMOVERANGE -1, 0
+
+;アニメ再生
+CBGSETSPRITE @"カットインアニメ_{ARG}", 30, 0, -1,
+SETANIMETIMER 50
+
+

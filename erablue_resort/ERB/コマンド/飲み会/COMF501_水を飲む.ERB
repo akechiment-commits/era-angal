@@ -1,0 +1,87 @@
+﻿
+@COMNAME501
+#FUNCTIONS
+TSTR:コマンド名受渡 = 水を飲む
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_501
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("飲み会")
+
+@COM_TOOLTIP_501
+LOCALS = <br>水を飲む<br>
+LOCALS += "水を飲んで一息つき、自身の酩酊ゲージを減少させるコマンド。<br>他のキャラクターも酩酊ゲージを減少させるが、[飲兵衛]の素質を持つキャラのみ酩酊ゲージが増加する。<br>"
+LOCALS += "<br>COMタイプ：飲み会<br>取得ソース：歓楽"
+LOCALS += "<br>固有の取得経験：飲酒経験(一定条件時)<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@COM501
+
+;歓楽の基礎値
+LOCAL:0 = 500
+
+
+IF BASE:PLAYER:酩酊 < 0
+	BASE:PLAYER:酩酊 += RAND:100 + 150
+	BASE:PLAYER:酩酊 = MIN(BASE:PLAYER:酩酊, 0)
+ELSE
+	BASE:PLAYER:酩酊 -= RAND:100 + 150
+	BASE:PLAYER:酩酊 = MAX(BASE:PLAYER:酩酊, 0)
+ENDIF
+
+FOR LOCAL, 1, CHARANUM
+	SIF 飲み会TARGET:LOCAL < 1
+		BREAK
+
+	IF TALENT:(飲み会TARGET:LOCAL):飲兵衛 > 0
+		IF !初体験日:(飲み会TARGET:LOCAL):初飲酒
+			初体験日:(飲み会TARGET:LOCAL):初飲酒 = DAY
+			TCVAR:(飲み会TARGET:LOCAL):初飲酒フラグ = 1
+			CALL 履歴データベース登録(CFLAG:(飲み会TARGET:LOCAL):人物番号, @"初めてリゾートでお酒を飲んだ","日常")
+		ENDIF
+		EXP:(飲み会TARGET:LOCAL):飲酒経験 += RAND:5 + 1
+		BASE:(飲み会TARGET:LOCAL):酩酊 += RAND:100 + RAND:100 + 100
+		SIF BASE:(飲み会TARGET:LOCAL):酩酊 >= 1000
+			CFLAG:(飲み会TARGET:LOCAL):酔いすぎ = 1
+		CALL SOURCE_CALC_歓楽((飲み会TARGET:LOCAL), PLAYER, 300)
+	ELSE
+		IF BASE:(飲み会TARGET:LOCAL):酩酊 < 0
+			BASE:(飲み会TARGET:LOCAL):酩酊 += RAND:100 + 50
+			SIF TALENT:(飲み会TARGET:LOCAL):酒に強い == 2
+				BASE:(飲み会TARGET:LOCAL):酩酊 = 0
+			BASE:(飲み会TARGET:LOCAL):酩酊 = MIN(BASE:(飲み会TARGET:LOCAL):酩酊, 0)
+		ELSE
+			BASE:(飲み会TARGET:LOCAL):酩酊 -= RAND:100 + 50
+			BASE:(飲み会TARGET:LOCAL):酩酊 = MAX(BASE:(飲み会TARGET:LOCAL):酩酊, 0)
+		ENDIF
+		CALL SOURCE_CALC_歓楽((飲み会TARGET:LOCAL), PLAYER, 100)
+		CALL SOURCE_CALC_好感度要素_友情度UP(TARGET, PLAYER, 50)
+	ENDIF
+NEXT
+
+TIME += 15
+
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE501
+;会話実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(501)
+	RETURN RESULT
+SIF TALENT:TARGET:飲食不可
+	RETURN 0
+RETURN 1
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM501
+PRINTFORM %CALLNAME:PLAYER%は水を飲んで少し休憩している
+
+

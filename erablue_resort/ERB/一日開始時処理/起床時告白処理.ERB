@@ -1,0 +1,111 @@
+﻿
+
+
+@起床時告白キャラ判定()
+#FUNCTION
+#DIM キャラ番号
+#DIM 候補配列, 2000
+#DIM 候補数
+
+;まずオプション
+IF OPTION変数:起床時告白禁止
+	RETURNF 0
+;自室にいなかったらダメ
+ELSEIF CFLAG:MASTER:自室位置 != CFLAG:MASTER:現在位置 || CFLAG:MASTER:現在マップ種別
+	RETURNF 0
+ENDIF
+
+候補数 = 0
+;恋慕候補で恋慕条件を満たしてるが恋慕でないキャラを探す
+FOR キャラ番号, 1, CHARANUM
+	SIF CFLAG:キャラ番号:滞在期間 < 1
+		CONTINUE
+	SIF CFLAG:キャラ番号:ゲージ起動分類 != 1
+		CONTINUE
+	SIF 陥落チェック_恋慕系(キャラ番号)
+		CONTINUE
+	SIF DT_SELECT("関係性データベース", @"(対象キャラ１ = {CFLAG:キャラ番号:人物番号} Or 対象キャラ２ = {CFLAG:キャラ番号:人物番号}) And 関係性種別 = '恋慕'")
+		CONTINUE
+	;本来恋慕50が告白条件だが、あっちから言ってくるのは勇気がいるので70制限
+	SIF CFLAG:キャラ番号:恋慕レベル <= 70
+		CONTINUE
+	SIF GETBIT(TALENT:キャラ番号:陥落不可, 0)
+		CONTINUE
+	SIF 恋愛対象外チェック(キャラ番号, MASTER)
+		CONTINUE
+	;人妻系はあっちからは来ない
+	SIF TALENT:キャラ番号:恋人持ち
+		CONTINUE
+	;一回したらもう来ない
+	SIF CFLAG:キャラ番号:起床時告白済み
+		CONTINUE
+	候補配列:候補数 = キャラ番号
+	候補数 ++
+NEXT
+
+IF 候補数 > 0
+	RETURNF 候補配列:(RAND:候補数)
+ELSE
+	RETURNF 0
+ENDIF
+
+
+@起床時告白処理(告白キャラ)
+#DIM 告白キャラ
+DRAWLINE
+;あっちから告白してくる処理
+
+;口上があるならそっちを表示
+CALL 口上変数初期化
+TRYCALLFORM KOJO_EVENT_起床時告白_開始時_{NO:告白キャラ}(告白キャラ)
+IF !口上有無確認(0, 1)
+	;汎用告白処理
+	PRINTFORMW %CALLNAME:MASTER%が起きて朝の支度をしていると、自室に来客があった。
+	PRINTFORMW 訪ねてきた%CALLNAME:告白キャラ%を出迎え、お茶を出してもてなす。どうやら話があるようだ。
+	PRINTL
+	PRINTFORMW %CALLNAME:告白キャラ%は赤い顔をして少し躊躇いながら、%CALLNAME:MASTER%への愛の言葉を告げる。
+	PRINTFORMW 恋人同士になりたくて、告白をしに%CALLNAME:MASTER%の部屋を訪れたらしい。
+ENDIF
+
+PRINTFORML %CALLNAME:告白キャラ%の想いに、%CALLNAME:MASTER%は……
+PRINTBUTTONLC "[0] 想いに応える", 0
+PRINTBUTTONLC "[1] 少し考えさせて欲しいと言う", 1
+PRINTL
+
+BINPUT
+IF RESULT == 0
+	TARGET = 告白キャラ
+	CALL 口上変数初期化
+	TRYCALLFORM KOJO_EVENT_起床時告白_成功_{NO:TARGET}(TARGET)
+	IF !口上有無確認(0, 1)
+		PRINTFORMW %CALLNAME:MASTER%が承諾の返事を返すと、%CALLNAME%は笑顔を浮かべて喜んだ。
+	ENDIF
+	SETCOLOR カラーパレット("えっちな色")
+	PRINTFORMW %CALLNAME%は［恋慕］を得た。
+	RESETCOLOR
+	CALL 履歴データベース登録(CFLAG:MASTER:人物番号, @"<img src='えっちハート'><font color='#%カラーパレット_HTML("赤ピンク")%'>%CALLNAME%を[恋慕]陥落させた</font><img src='えっちハート'>","うふふ実績")
+	CALL 履歴データベース登録(CFLAG:人物番号, @"<img src='えっちハート'><font color='#%カラーパレット_HTML("赤ピンク")%'>陥落素質[恋慕]を得た</font><img src='えっちハート'>","うふふ実績")
+	TALENT:恋慕 = 1
+	CFLAG:現在位置 = CFLAG:MASTER:現在位置
+	CFLAG:現在マップ種別 = CFLAG:MASTER:現在マップ種別
+	CFLAG:睡眠 = 0
+	SIF BASE:酩酊
+		CFLAG:酔いすぎ = 2
+	;野外オナニー時に備えて隠密を消す
+	CALL 野外オナニー途中終了(TARGET)
+	CFLAG:隠密 = 0
+	;先に同室フラグを建てることで発覚口上をスキップする
+	CFLAG:同室 = 1
+	CALL 特定キャラモードリセット(TARGET)
+	CFLAG:同行 = 60 + (CFLAG:好感度レベル - 関係閾値:2) * 5
+	BASE:ムード = MAXBASE:ムード
+
+ELSE
+	CALL 口上変数初期化
+	TRYCALLFORM KOJO_EVENT_起床時告白_保留_{NO:告白キャラ}(告白キャラ)
+	IF !口上有無確認(0, 1)
+		PRINTFORMW %CALLNAME:MASTER%が少し考えさせて欲しいと返すと、%CALLNAME:告白キャラ%は答えは急がないからと帰っていった……
+	ENDIF
+	CFLAG:告白キャラ:起床時告白済み = 1
+ENDIF
+

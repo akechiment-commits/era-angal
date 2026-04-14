@@ -1,0 +1,351 @@
+﻿
+@COMNAME362
+#FUNCTIONS
+
+TSTR:コマンド名受渡 = 逆ハーヴィンディルド
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_362
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("セクハラ")
+
+@COM_TOOLTIP_362
+LOCALS = <br>■逆ハーヴィンディルド<br>
+LOCALS += "V、あるいはAに挿入したまま相手の服の下に自身を固定するコマンド。<br>同室者が全員陥落済みの時のみ可能だが、一緒に隠密時は同じ場所に非陥落キャラがいても可能。"
+LOCALS += "<br>COMタイプ：セクハラ<br>取得ソース：快Ｃ・接触"
+LOCALS += "<br>固有の取得経験：ＶorＡ性交経験(TARGET)・Ｃ性交経験_ＶorＡ挿入(PLAYER)<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@COM362
+;固定された後は自動で時間が進むのでモード化しない
+
+DRAWLINE
+PRINTL ■挿入先を選んでください
+PRINTL
+LOCAL = 0
+IF GETBIT(TALENT:TARGET:性別, 0) == 1 && TALENT:TARGET:Ｖ感度 != -2
+	IF TEQUIP:TARGET:膣 == 0
+		LOCALS = Ｖ挿入
+		SIF TALENT:TARGET:処女
+			LOCALS += "（処女）"
+		PRINTBUTTONLC @"[1] %LOCALS%", 1
+		LOCAL += 1
+	ENDIF
+ENDIF
+IF TALENT:TARGET:Ａ感度 != -2
+	IF TEQUIP:TARGET:アナル == 0
+		LOCALS = Ａ挿入
+		SIF TALENT:TARGET:Ａ処女
+			LOCALS += "（Ａ処女）"
+		PRINTBUTTONLC @"[2] %LOCALS%", 2
+		LOCAL += 1
+	ENDIF
+ENDIF
+SIF LOCAL == 0
+	PRINT 挿入先がありません。
+PRINTL
+PRINTL
+PRINTBUTTONLC "[999]戻る", 999
+
+BINPUT
+
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 1 TO 2
+		TRYCALLFORM CAN_逆ディルド(1, LOCAL)
+		IF !RESULT
+			TRYCALLFORM CAN_逆ディルド(0, LOCAL)
+			RESTART
+		ENDIF
+	CASE 999
+		RETURN -1
+ENDSELECT
+
+RFLAG:コマンド結果受渡し変数 = LOCAL
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+IF LOCAL == 1
+	CALL MODE_CHANGE("ハーヴィンディルドＶ", TARGET, PLAYER)
+	CALL SOURCE_CALC_快Ｖ(TARGET, PLAYER, 400)
+	;処女喪失
+	CALL LOST_VIRGIN(TARGET, PLAYER, 1)
+	CALL LOST_MAN_VIRGIN(PLAYER, TARGET)
+	;苦痛
+	LOCAL = 200 * PAIN_CHECK_V(TARGET) / 1000
+	CALL SOURCE_CALC_苦痛(TARGET, PLAYER, LOCAL)
+ELSE
+	CALL MODE_CHANGE("ハーヴィンディルドＡ", TARGET, PLAYER)
+	CALL SOURCE_CALC_快Ａ(TARGET, PLAYER, 400)
+	;A処女喪失
+	CALL LOST_A_VIRGIN(TARGET, PLAYER, 1)
+	CALL LOST_MAN_A_VIRGIN(PLAYER, TARGET)
+	;苦痛
+	LOCAL = 200 * PAIN_CHECK_A(TARGET) / 1000
+	CALL SOURCE_CALC_苦痛(TARGET, PLAYER, LOCAL)
+ENDIF
+CALL SOURCE_CALC_接触(TARGET, PLAYER, 200)
+CALL SOURCE_CALC_接触(PLAYER, TARGET, 200)
+CALL SOURCE_CALC_苦痛(PLAYER, TARGET, 250)
+RCVAR:PLAYER:苦痛コマンドフラグ = 1
+
+CALL SOURCE_CALC_快Ｃ(PLAYER, TARGET, 400)
+
+;貞操観念
+IF !TALENT:恋慕
+	IF TALENT:貞操 == 1
+		CALL SOURCE_CALC_不潔(TARGET, PLAYER, 500)
+	ELSEIF TALENT:貞操 == 0
+		CALL SOURCE_CALC_不潔(TARGET, PLAYER, 250)
+	ENDIF
+ENDIF
+
+;同性愛
+SIF 同性愛性癖判定(TARGET,PLAYER)
+	EXP:TARGET:同性愛経験 += 4
+SIF 同性愛性癖判定(PLAYER,TARGET)
+	EXP:PLAYER:同性愛経験 += 4
+
+
+TIME += 15
+TFLAG:オートコマンド連続発動 = 11
+TFLAG:オートコマンド連続発動_逆オナホ = 1
+RETURN 1
+
+
+@CAN_逆ディルド(ARG, 部位フラグ)
+#DIM CONST 必要実行値 = 45
+#DIM 実行値
+#DIM ＋表示フラグ
+#DIM 部位フラグ
+
+SKIPDISP ARG
+PRINTFORML 逆ハーヴィンディルド(%CALLNAME:TARGET%)
+;-------------------------------------------------
+;実行できるかの判定
+;-------------------------------------------------
+実行値 = 0
+＋表示フラグ = 0
+
+;すべての命令に共通の要素を考慮
+CALL COM_ORDER
+実行値 = RESULT
+＋表示フラグ = RESULT:1
+
+;ABL:欲望
+IF ABL:欲望
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += ABL:欲望 * 3
+	PRINTFORM 欲望LV{ABL:欲望}({ABL:欲望 * 3})
+	＋表示フラグ = 1
+ENDIF
+IF 部位フラグ == 1
+	;ABL:Ｖ感覚
+	IF ABL:Ｖ感覚
+		SIF ＋表示フラグ
+			PRINT  + 
+		実行値 += ABL:Ｖ感覚 * 2
+		PRINTFORM Ｖ感覚LV{ABL:Ｖ感覚}({ABL:Ｖ感覚 * 2})
+		＋表示フラグ = 1
+	ENDIF
+ELSE
+	;ABL:Ａ感覚
+	IF ABL:Ａ感覚
+		SIF ＋表示フラグ
+			PRINT  + 
+		実行値 += ABL:Ａ感覚 * 2
+		PRINTFORM Ａ感覚LV{ABL:Ａ感覚}({ABL:Ａ感覚 * 2})
+		＋表示フラグ = 1
+	ENDIF
+ENDIF
+;快楽刻印
+IF MARK:快楽刻印
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += MARK:快楽刻印 * 3
+	PRINTFORM 快楽刻印LV{MARK:快楽刻印}({MARK:快楽刻印 * 3})
+	＋表示フラグ = 1
+ENDIF
+;PALAM:潤滑（の不足）
+IF PALAM:潤滑 < PALAMLV:3
+	PRINT  - 
+	実行値 -= 5
+	PRINT 潤滑不足(5)
+	＋表示フラグ = 1
+ENDIF
+;PALAM:欲情
+IF GETPALAMLV(PALAM:欲情, 5)
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += GETPALAMLV(PALAM:欲情, 5) * 3
+	PRINTFORM 欲情LV{GETPALAMLV(PALAM:欲情, 5)}({GETPALAMLV(PALAM:欲情, 5) * 3})
+	＋表示フラグ = 1
+ENDIF
+;恥じらい
+IF TALENT:羞恥心 > 0
+	PRINT  - 
+	実行値 -= 2
+	PRINT 羞恥心(2)
+	＋表示フラグ = 1
+ENDIF
+;快感の否定
+IF TALENT:快感応答 < 0 && !TALENT:恋慕
+	PRINT  - 
+	実行値 -= 5
+	PRINT 快感の否定(5)
+	＋表示フラグ = 1
+ENDIF
+;恋慕
+IF TALENT:恋慕
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += 15
+	PRINT 恋慕(15)
+	＋表示フラグ = 1
+ELSE
+	;男嫌い（恋慕で無効）
+	IF TALENT:性別嗜好 & 1 && TALENT:PLAYER:性別 == 2
+		PRINT  - 
+		実行値 -= 12
+		PRINT 男嫌い(12)
+		＋表示フラグ = 1
+	ENDIF
+	;女嫌い（恋慕で無効）
+	IF TALENT:性別嗜好 & 2 && TALENT:PLAYER:性別 == 1
+		PRINT  - 
+		実行値 -= 12
+		PRINT 女嫌い(12)
+		＋表示フラグ = 1
+	ENDIF
+ENDIF
+;セフレ
+IF TALENT:セフレ
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += 10
+	PRINT セフレ(10)
+	＋表示フラグ = 1
+ENDIF
+;未陥落
+IF 陥落チェック_性的(TARGET) == 0
+	PRINT  - 
+	実行値 -= 10
+	PRINT 未陥落(10)
+	＋表示フラグ = 1
+ENDIF
+IF 部位フラグ == 1
+	;処女
+	LOCAL = MAX(10, 40 - EXP:Ｖ経験)
+	IF TALENT:処女
+		PRINT  - 
+		実行値 -= LOCAL
+		PRINTFORM 処女({LOCAL})
+		＋表示フラグ = 1
+	;V経験
+	ELSEIF EXP:Ｖ経験 < EXPLV:2
+		PRINT  - 
+		実行値 -= 15
+		PRINT Ｖ経験不足(15)
+		＋表示フラグ = 1
+	ENDIF
+ELSE
+	;A経験
+	IF EXP:Ａ経験 < EXPLV:2
+		PRINT  - 
+		実行値 -= 15
+		PRINT Ａ経験不足(15)
+		＋表示フラグ = 1
+	ENDIF
+ENDIF
+
+;サド性感
+IF ABL:サド性感 < 3
+	PRINT  - 
+	実行値 -= 15
+	PRINT サド性感不足(15)
+	＋表示フラグ = 1
+ENDIF
+
+;媚薬
+IF TEQUIP:媚薬
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += 6
+	PRINT 媚薬(6)
+	＋表示フラグ = 1
+ENDIF
+
+;発情期
+IF CFLAG:発情期フラグ < 0
+	SIF ＋表示フラグ
+		PRINT  + 
+	実行値 += 6
+	PRINT 発情中(6)
+	＋表示フラグ = 1
+ENDIF
+
+;合計を表示(45以上で実行)
+PRINTFORM  = {実行値}
+
+SIF 実行値 < 必要実行値
+	PRINT  < 
+SIF 実行値 == 必要実行値
+	PRINT  = 
+SIF 実行値 > 必要実行値
+	PRINT  > 
+PRINTFORM 実行値{必要実行値}
+
+WAIT
+SKIPDISP 0
+
+;実行できない
+SIF 実行値 < 必要実行値
+	RETURN 0
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE362
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+
+;一括管理
+SIF GLOBAL_COMABLE(362)
+	RETURN RESULT
+;自分にちんこあること
+SIF GETBIT(TALENT:PLAYER:性別, 1) == 0 || TALENT:PLAYER:Ｃ感度 == -2
+	RETURN 0
+;体格がハーヴィン並のみかつ相手がそれなりにデカいこと
+;男女は……まあいいか
+SIF TALENT:PLAYER:体格 != 体格_ハーヴィン並
+	RETURN 0
+SIF TALENT:TARGET:体格 < 体格_普通
+	RETURN 0
+
+SIF TEQUIP:PLAYER:ペニス
+	RETURN 0
+
+;ほかは基本的に押し倒すと判定は同一
+CALL COM_ABLE350()
+RETURN RESULT
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM362
+
+PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%を全裸に剥き、
+SELECTCASE RFLAG:コマンド結果受渡し変数
+	CASE 1
+		PRINTL 抱きつかせる形で秘裂に挿入させた……
+	CASE 2
+		PRINTL 背中に抱きつかせる形で肛門に挿入させた……
+ENDSELECT
+PRINTFORML そのまま%CALLNAME:PLAYER%を密着させるように体に固定し、服の下に隠した。
+

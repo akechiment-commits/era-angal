@@ -1,0 +1,104 @@
+﻿@SHOW_JUEL
+
+@SHOW_ABLUP_SELECT
+;多くの要素が必要な能力から上げてゆく
+{
+#DIM CONST ソート済ABL番号格納 =
+	GETNUM(ABL, "露出癖"),
+	GETNUM(ABL, "奉仕精神"),
+	GETNUM(ABL, "マゾ性感"),
+	GETNUM(ABL, "サド性感"),
+	GETNUM(ABL, "玩具嗜好"),
+	GETNUM(ABL, "技巧"),
+	GETNUM(ABL, "欲望"),
+	GETNUM(ABL, "Ｓ感覚"),
+	GETNUM(ABL, "Ｂ感覚"),
+	GETNUM(ABL, "Ａ感覚"),
+	GETNUM(ABL, "Ｖ感覚"),
+	GETNUM(ABL, "Ｃ感覚")
+}
+#DIM キャラ番号ループ
+#DIM ABLループ
+#DIM パターン
+#DIM 必要JUEL, VARSIZE("JUEL")
+#DIM 必要EXP, VARSIZE("EXP")
+#DIM PALAM番号
+#DIM EXP番号
+#DIM 条件未達
+
+DRAWLINE
+FOR キャラ番号ループ, 0, CHARANUM
+	FOR ABLループ, 0, VARSIZE("ソート済ABL番号格納")
+		FOR パターン, 0, 4
+			;必要な宝珠を取得
+			VARSET 必要JUEL, 0
+			SELECTCASE JUEL_DEMAND(必要JUEL, ソート済ABL番号格納:ABLループ, パターン, キャラ番号ループ)
+				CASE -2, 0
+					BREAK
+				CASE -1
+					CONTINUE
+				CASEELSE
+					条件未達 = 0
+					FOR PALAM番号, 0, VARSIZE("JUEL")
+						IF 必要JUEL:PALAM番号 > 0
+							IF JUEL:キャラ番号ループ:PALAM番号 < 必要JUEL:PALAM番号
+								条件未達 = 1
+								BREAK
+							ENDIF
+						ENDIF
+					NEXT
+					SIF 条件未達
+						CONTINUE
+			ENDSELECT
+
+			;必要な経験を取得
+			VARSET 必要EXP, 0
+			IF EXP_DEMAND(必要EXP, ソート済ABL番号格納:ABLループ, パターン, キャラ番号ループ) == 1
+				条件未達 = 0
+				FOR EXP番号, 0, VARSIZE("EXP")
+					IF 必要EXP:EXP番号 > 0
+						IF EXP:キャラ番号ループ:EXP番号 < 必要EXP:EXP番号
+							条件未達 = 1
+							BREAK
+						ENDIF
+					ENDIF
+				NEXT
+				SIF 条件未達
+					CONTINUE
+			ENDIF
+
+			;宝珠の消費とABL上昇の実処理
+			FOR PALAM番号, 0, VARSIZE("JUEL")
+				JUEL:キャラ番号ループ:PALAM番号 -= 必要JUEL:PALAM番号
+			NEXT
+			ABL:キャラ番号ループ:(ソート済ABL番号格納:ABLループ) += 1
+			SIF CFLAG:キャラ番号ループ:滞在期間 > 0
+				PRINTFORML %ABLNAME:(ソート済ABL番号格納:ABLループ)%LVUP (%CALLNAME:キャラ番号ループ%)
+			BREAK
+		NEXT
+	NEXT
+NEXT
+PRINT [100] - 確認
+
+
+@USERABLUP
+IF RESULT == 100
+	CALL JUJUN_UP_CHECK(TARGET)
+	BEGIN TURNEND
+	RETURN 1
+ENDIF
+RETURN 0
+
+
+
+;ABLの上限
+@MAXABL(ARG)
+;恋慕はMAXLV99
+IF ABL:ARG >= 99
+	PRINTW 既にMAXです
+	RETURN 1
+ELSEIF ABL:ARG >= 5 && !TALENT:恋慕
+	PRINTW 既にMAXです
+	RETURN 1
+ENDIF
+RETURN 0

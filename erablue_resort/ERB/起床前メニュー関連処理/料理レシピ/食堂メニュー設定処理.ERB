@@ -1,0 +1,102 @@
+﻿
+@食堂メニュー設定処理
+
+DRAWLINE
+PRINTL 所持しているメニューから、どれを提供するかを選びます。
+DRAWLINE
+
+
+LOCALS = <div rect='81,31,5925,3812' border='31' bcolor='#C0C0C0'></div>
+LOCALS += "<div rect='156,156,5850,3812'>"
+LOCALS += "<br>■現在のメニュー一覧<br><br>"
+FOR LOCAL, 1, 6
+	IF 現在設定メニュー:LOCAL
+		LOCALS:2 = %属性数値文字色変換_HTML(DT_CELL_GET("料理メニューデータベース", 現在設定メニュー:LOCAL, "料理属性", 1))%
+		IF DT_CELL_GET("料理メニューデータベース", 現在設定メニュー:LOCAL, "特殊料理フラグ", 1)
+			LOCALS:1 = ランク
+		ELSE
+			LOCALS:1 = 汎用料理ランク
+		ENDIF
+		LOCALS:1 += @"%TOFULL(TOSTR(DT_CELL_GET("料理メニューデータベース", 現在設定メニュー:LOCAL, "料理ランク", 1)))%：<font color='#%LOCALS:2%'>%DT_CELL_GETS("料理メニューデータベース",  現在設定メニュー:LOCAL, "メニュー名", 1)%</font>"
+	ELSE
+		LOCALS:1 = --------------------
+	ENDIF
+	LOCALS += @"　<button value='{LOCAL}'>メニュー%TOFULL(TOSTR(LOCAL))%「%LOCALS:1%」</button><br>"
+NEXT
+LOCALS += @"<br><button value='996'>[996] システムの説明</button>"
+LOCALS += @"<br><button value='999'>[999] 戻る</button>"
+LOCALS += "</div>"
+LOCALS += "<div rect='3156,100,2770,3670' border='20' bcolor='#C0C0C0'></div>"
+LOCALS += "<div rect='3231,225,2670,3550'>"
+FOR LOCAL, 1, 6
+	SIF 現在設定メニュー:LOCAL == 0
+		CONTINUE
+	LOCALS += @"■メニュー%TOFULL(TOSTR(LOCAL))%の特殊効果<br>"
+	詳細文文字列受け渡し変数 = 
+	;フラグに使用食材数が入っている
+	IF DT_CELL_GET("料理メニューデータベース", 現在設定メニュー:LOCAL, "特殊料理フラグ", 1)
+		CALLFORM 特殊料理_{DT_CELL_GET("料理メニューデータベース", 現在設定メニュー:LOCAL, "特殊料理フラグ", 1)}種レシピ_%DT_CELL_GETS("料理メニューデータベース",  現在設定メニュー:LOCAL, "メニュー名", 1)%("料理特殊ステータス")
+		LOCALS += @"%詳細文文字列受け渡し変数%<br><br>"
+	ELSE
+		LOCALS += "　なし<br><br>"
+	ENDIF
+NEXT
+LOCALS += "</div>"
+LOCALS += "<div rect='156,2800,2950,970' border='20' bcolor='#C0C0C0'></div>"
+LOCALS += "<div rect='231,2875,2800,900'>"
+LOCALS += "■メニューのコンボ効果<br>"
+発動中コンボ名 = 
+詳細文文字列受け渡し変数 = 
+CALL 料理メニューコンボ判定処理
+IF RESULT
+	LOCALS += @"　コンボ名：【%発動中コンボ名%】<br>"
+	LOCALS += @"　効果：%詳細文文字列受け渡し変数%<br>"
+ELSE
+	LOCALS += "　コンボ名：--------------------<br>"
+	LOCALS += "　効果：なし<br>"
+ENDIF
+LOCALS += "</div>"
+
+
+HTML_PRINT LOCALS, 1
+FOR LOCAL, 0, 36
+	PRINTL
+NEXT
+DRAWLINE
+
+
+IF チュートリアルフラグ:食事設定 == 0
+	RESULT = 996
+ELSE
+	BINPUT
+ENDIF
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 1 TO 5
+		CALL 既存メニュー閲覧(1, 1, 1)
+		LOCAL:1 = RESULT
+		IF LOCAL:1 == -2
+			現在設定メニュー:LOCAL = 0
+		ELSEIF LOCAL:1 > 0 && !MATCH(現在設定メニュー, LOCAL:1)
+			現在設定メニュー:LOCAL = LOCAL:1
+		ENDIF
+		RESTART
+	CASE 996
+		CALL 食事メニュー設定チュートリアル()
+		RESTART
+	CASE 999
+		RETURN -1
+ENDSELECT
+
+
+@料理メニューコンボ判定処理
+
+ENUMFUNCBEGINSWITH "料理メニューコンボ_"
+FOR LOCAL, 0, RESULT
+	CALLFORM %RESULTS:LOCAL%("コンボ判定")
+	SIF RESULT
+		RETURN RESULT
+NEXT
+RETURN 0
+
+

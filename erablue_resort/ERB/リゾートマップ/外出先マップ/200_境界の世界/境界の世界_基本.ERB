@@ -1,0 +1,199 @@
+﻿
+@MAP_VIEWING_200(AA)
+#DIMS REF AA, 0
+TRYCALLFORM MAP_RESORT_200_{TFLAG:マップ種別}(AA)
+
+@エリア情報登録_200(ARGS)
+SELECTCASE ARGS
+	CASE "エリア名"
+		TSTR:場所名受渡 = 境界の民の村
+	CASE "エリア移動可能場所"
+		RETURN 1
+	CASE "選択肢名"
+		TSTR:場所名受渡 = 境界の世界
+	CASE "外出先出現条件"
+		SIF ダンジョンクリアフラグ_境界への導き < 1
+			RETURN 0
+		
+		RETURN 1
+	CASE "外出先説明"
+		TSTR:ツールチップ受渡 = 
+		TSTR:ツールチップ受渡 += "■境界の世界<br>"
+		TSTR:ツールチップ受渡 += "<br>"
+		TSTR:ツールチップ受渡 += "空の世界と赤き地平の狭間にある、奇妙な世界。<br>"
+		TSTR:ツールチップ受渡 += "星の民タピィラや数少ない人々が静かに暮らしている。<br>"
+		TSTR:ツールチップ受渡 += "<br>"
+		TSTR:ツールチップ受渡 += "※イベント作成途中のため、外出してもイベントは進行しません。<br>"
+		TSTR:ツールチップ受渡 += "<br>"
+		TSTR:ツールチップ受渡 += "居住キャラ：タピィラ、シトリ<br>"
+ENDSELECT
+
+@外出先_登場キャラ設定_200(対象キャラ)
+#DIM 対象キャラ
+
+SIF GROUPMATCH(NO:対象キャラ, 997, 410)
+	RETURN 1
+
+RETURN 0
+
+
+@MAP_RESORT_200_0(AA)
+#DIMS REF AA, 0
+#DIM MAP
+
+MAP = 0
+AA:(MAP++) = 　
+AA:(MAP++) = 　　┌─────┐
+AA:(MAP++) = 　　│　　　　　│
+AA:(MAP++) = 　　│　　01　　│
+AA:(MAP++) = 　　│　　　　　│　　　　　　　　　　　　　　　　　　┌───┐
+AA:(MAP++) = 　　└─────┘　　　　　　　　　　　　　　　　　　│　　　│
+AA:(MAP++) = 　　　　　　　　　　　　　　　　　　　　　　　　　　　│　02　│
+AA:(MAP++) = 　　　　　　　　　　　　　　　　　　　　　　　　　　　│　　　│
+AA:(MAP++) = 　　　　　　　　　　　　　　┌───┐　　　　　　　　└───┘
+AA:(MAP++) = 　　　　　　　　　　　　　　│　　　│
+AA:(MAP++) = 　　　　　　　　　　　　　　└───┘
+AA:(MAP++) = 　　　　　┌─┐　
+AA:(MAP++) = 　　　　　│　│
+AA:(MAP++) = 　　　　　│　│　　　　　　　　　　　　　　　┌─┐
+AA:(MAP++) = 　　　　　│　│　　　　　　　　　　　　　　　│　│
+AA:(MAP++) = 　　　　　│　└───┐　　　　　　　　　　　└─┘
+AA:(MAP++) = 　　　　　│03　　　　│
+AA:(MAP++) = 　　　　　└─────┘
+AA:(MAP++) = 
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡　　　　　　　　　　　┌───┐
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡　　　　　　　　　　　│　　　│
+AA:(MAP++) = 　　　　≡≡≡≡畑≡≡≡≡　　　　　　　　　　　│　　　│
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡　　　　　　　　　　　│　04　│
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡　　　　　　　　　　　│　　　│
+AA:(MAP++) = 　　　　　　　　　　　　　　　　　　　　　　　　│　　　│
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡　　　　　　　　　　　└───┘
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡　　　　　　　　　　　　　　　┌─┐
+AA:(MAP++) = 　　　　≡≡≡≡畑≡≡≡≡　　　　　　　　　　　　　　　│　│
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡　　　　　　　　　　　　　　　└─┘
+AA:(MAP++) = 　　　　≡≡≡≡≡≡≡≡≡
+AA:(MAP++) = 　
+AA:(MAP++) = 　
+AA:(MAP++) = 01：タピィラの家　　　02：ミカとシトリの家　03：民家　　　　　　　04：空き家
+
+
+
+@GETPLACENAME_200_0(ARG)
+#FUNCTION
+SELECTCASE ARG
+	CASE 1
+		TSTR:場所名受渡 = タピィラの家
+	CASE 2
+		TSTR:場所名受渡 = ミカとシトリの家
+	CASE 3
+		TSTR:場所名受渡 = 民家
+	CASE 4
+		TSTR:場所名受渡 = 空き家
+ENDSELECT
+
+@DRAW_MAP_BG_200_0(SLICED, 表示文字列)
+#DIMS REF 表示文字列
+#DIMS SLICED
+#DIM 改行フラグ
+
+SELECTCASE SLICED
+	CASE "≡"
+		表示文字列 += @"<font color='#ce0000'>%SLICED%</font>"
+	CASE "畑"
+		表示文字列 += @"<font color='#ce0000'>%SLICED%</font>"
+	;ふつうの
+	CASEELSE
+		表示文字列 += @"%SLICED%"
+ENDSELECT
+
+
+@外出先_封印コマンド設定_200(コマンド番号)
+#FUNCTION
+#DIMS コマンド番号
+
+;コマンド番号が封印するものなら０を返す、封印しないなら１を返す
+
+;日常系
+SIF GROUPMATCH(コマンド番号, "301", "316", "317", "318", "305", "320", "401", "402", "403", "404", "405", "411", "412")
+	RETURNF 0
+
+;性処理
+SIF GROUPMATCH(コマンド番号, "315")
+	RETURNF 0
+
+;セクハラ
+SIF GROUPMATCH(コマンド番号, "363")
+	RETURNF 0
+
+;業務系・誘い系
+SIF GROUPMATCH(コマンド番号, "600", "601", "602", "603", "604", "605")
+	RETURNF 0
+
+RETURNF 1
+
+
+@エリア来訪時イベント_200
+
+IF 境界の民の村初来訪イベントフラグ == 0
+	DRAWLINE
+	PRINTL ［初来訪：境界の世界］
+	DRAWLINE
+	PRINTW
+	PRINTFORMW %CALLNAME:PLAYER%は星の民タピィラに導かれ、境界の世界を訪れた。
+	CALL CALLPRINT_用語解説("空の世界")
+	PRINT でも
+	CALL CALLPRINT_用語解説("赤き地平")
+	PRINTFORMW でもない、暗雲に囲まれ夕暮れのように薄暗い異様な世界だ。
+	PRINTFORMW 唯一雲の合間に浮かぶ陸地を眺めてみると、近くに小さな集落が見える。
+	PRINTFORMW %CALLNAME:PLAYER%は船を操り、その集落近くへと着陸する──。
+	PRINTL
+	PRINTFORMW ………
+	PRINTFORMW ……
+	PRINTFORMW …
+	PRINTL
+	PRINTFORMW 集落の入口には、一人の美女が%CALLNAME:PLAYER%たちを待っていた。
+	PRINTL
+
+	CALLF 任意顔グラ表示用文字列関数(キャラ検索("[隠遁する星の民]タピィラ"),"顔_デフォルト",100,,,)
+	LOCALS = %立ち絵リソース記録%
+	IF LOCALS != "顔ノーイメ"
+		PRINT_IMG LOCALS, 1125, 1125
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		PRINTL 
+		PRINTL 
+	ENDIF
+	PRINTL タピィラ：
+	PRINTFORMW 「お待ちしていました、%CALLNAME:PLAYER%。
+	PRINTFORMW 　ここまで足を運んでもらい、とても感謝しています」
+	PRINTL
+	PRINTBUTTON "[0] ここは何なんだ？　と尋ねる", 0
+	PRINTL
+	PRINTBUTTON "[1] eraのために来た、話を進めてくれと促す", 1
+	PRINTL
+	BINPUT
+	IF RESULT == 0
+		PRINTL
+		PRINTL タピィラ：
+		PRINTFORMW 「ここは境界の世界。空と赤き地平の狭間にある場所。
+		PRINTFORMW 　昔は行き来の出来ない隔絶した空間でしたが……
+		PRINTFORMW 　今では、道さえ知っていれば出入り出来る程度の場所でしかありません。
+		PRINTFORMW 　かつてここにいた人々も、外へと出ていきました。今はもう、数えるほどの者が住むだけです」
+		PRINTL
+	ENDIF
+	PRINTL
+	PRINTL タピィラ：
+	PRINTFORMW 「では……本題に入る前に、私の家へ行きましょう。
+	PRINTFORMW 　少し長い話になります。何かやるべきことがあるのなら、先に済ませておいてください」
+	PRINTL
+	PRINTFORMW そう言って、タピィラは村の手前にある家に入っていく。
+	PRINTFORMW 話を聞く準備が出来たら、タピィラの前で「イベントを進める」コマンドを実行しよう。
+	境界の民の村初来訪イベントフラグ = 1
+ENDIF
+

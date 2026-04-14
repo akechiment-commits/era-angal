@@ -1,0 +1,139 @@
+﻿;-------------------------------------------------
+;アナル舐め
+;愛撫系コマンド、レベル1
+;-------------------------------------------------
+@COMNAME4
+#FUNCTIONS
+TSTR:コマンド名受渡 = アナル舐め
+
+
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_4
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("Ａ系")
+弱点コマンドカテゴリ = A
+オートコマンド許可 = 1
+
+
+@COM_TOOLTIP_4
+LOCALS = <br>■アナル舐め<br>
+LOCALS += "相手のアナルを舌で愛撫するコマンド。<br>実行者が[舌使い][猫舌]を持っている場合、効果が増減する。"
+LOCALS += "<br>COMタイプ：Ａ系<br>取得ソース：快Ａ・露出・接触・液体"
+LOCALS += "<br>固有の取得経験：なし<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+@COM4
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+
+LOCAL = 50
+;調教者のTALENT:舌使いをみる
+SIF TALENT:PLAYER:舌使い
+	TIMES LOCAL , 1.50
+;調教者のTALENT:猫舌をみる
+SIF TALENT:PLAYER:猫舌
+	TIMES LOCAL , 0.75
+CALL SOURCE_CALC_快Ａ(TARGET, PLAYER, LOCAL)
+CALL SOURCE_CALC_液体(TARGET, PLAYER, 50)
+CALL SOURCE_CALC_接触(TARGET, PLAYER, 180)
+CALL SOURCE_CALC_露出(TARGET, PLAYER, 150)
+
+
+
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;同性愛
+SIF 同性愛性癖判定(TARGET,PLAYER)
+	EXP:TARGET:同性愛経験 += 3
+SIF 同性愛性癖判定(PLAYER,TARGET)
+	EXP:PLAYER:同性愛経験 += 3
+;口淫経験
+EXP:PLAYER:口淫経験 ++
+
+;調教者が猫舌持ちの場合は、調教者に嗜虐快楽経験を追加
+SIF TALENT:PLAYER:猫舌
+	EXP:PLAYER:嗜虐快楽経験 += 1
+
+CALL 初体験日登録処理(PLAYER, TARGET, "ファーストキス", DAY * 1440 + TIME, GETPLACENAME(CFLAG:PLAYER:現在マップ種別, CFLAG:PLAYER:現在位置), "アナル", "", 1)
+IF RESULT
+	RCVAR:PLAYER:ファーストキス中フラグ = 1
+	CALL 履歴データベース登録(CFLAG:PLAYER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%CALLNAME:TARGET%の[アナル]にファーストキスを捧げた</font><img src='えっちハート'>","うふふ")
+ENDIF
+
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+
+@COM_ABLE4
+;アナル舐め実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(4)
+	RETURN RESULT
+;Aがない場合駄目
+SIF TALENT:TARGET:Ａ感度 == -2
+	RETURN 0
+
+;猫舌の調教者の場合は技巧Lv2以上必要
+SIF TALENT:PLAYER:猫舌 && ABL:PLAYER:技巧 < 2
+	RETURN 0
+
+;下半身着衣
+;後鎧、めくれない服、タイツがあると無理
+SIF TEQUIP:下腹部後鎧あり
+	RETURN 0
+SIF TEQUIP:下半身服あり && (!TEQUIP:スカートめくり可 && !TEQUIP:ずらし可)
+	RETURN 0
+SIF TEQUIP:下タイツあり && !TEQUIP:下タイツ破れ
+	RETURN 0
+;口を何かに使ってるなら無理
+SIF TEQUIP:PLAYER:口
+	RETURN 0
+;アナルを何かに使ってる・届かないなら無理
+SIF TEQUIP:TARGET:アナル
+	RETURN 0
+CALL MODE_部位届く判定(部位_アナル, PLAYER, TARGET)
+SIF RESULT == 0
+	RETURN 0
+;挿入系・素股系時は個別にOFF
+SIF MODE_存在判定_順不同("ＶＡ挿入系", PLAYER, TARGET)
+	RETURN 0
+SIF MODE_存在判定_順不同("素股系", PLAYER, TARGET)
+	RETURN 0
+
+;オートコマンド中の制限
+IF FLAG:オートコマンド判定中フラグ
+	SIF 初体験済みチェック("ファーストキス", PLAYER) == 0
+		RETURN 0
+	SIF EXP:PLAYER:Ａ経験 == 0 || EXP:TARGET:Ａ経験 == 0 || ( TALENT:TARGET:性別 == 2 &&  OPTION変数:男性への愛撫禁止 )
+		RETURN 0
+ENDIF
+
+RETURN 1
+
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM4
+PRINTFORM %CALLNAME:PLAYER%は
+PRINTFORM %CALLNAME:TARGET%の
+;Ａ経験10以下
+IF EXP:Ａ経験 <= 10
+	PRINT 硬く閉ざされた
+ENDIF
+PRINT アヌスを丁寧に舐めほぐし
+;Ａ経験100以上＋欲望のPALAMLV3以上
+SIF EXP:Ａ経験 >= 100 && PALAM:欲情 >= PALAMLV:3
+	PRINT 、舌先を突き入れて穴の中までかきまわしてやっ
+PRINTL た…
+

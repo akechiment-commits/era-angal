@@ -1,0 +1,576 @@
+﻿
+;=========================================================
+;	連番画像アニメーション
+;
+;	sRes_Name	：リソースの名前文字列　この名前の後に連番数字を付ける
+;	iStart		：開始番号
+;	iEnd		：開始からの描画枚数
+;	iAnime_Num	：全体のアニメーション繰り返し回数 省略0でオプション設定したフラグ回数になります
+;	iRollback	：ロールバックさせるかフラグ
+;	iWait		：1枚の表示時間
+;	iSize		：一行の高さに対するサイズ％数値　縦基準　縦横比維持　省略で1000(10倍)
+;	sAlign		：align属性　省略で左寄せ　left, center, rightの三種が指定できます
+;=========================================================
+@PRINT_IMAGE_ANIMATION(sRes_Name,iStart=0,iEnd=4,iAnime_Num=0,iRollback=1,iWait=100,iSize=1000,sAlign="left")
+#DIMS sRes_Name
+#DIM iStart
+#DIM iEnd
+#DIM iAnime_Num
+#DIM iRollback
+#DIM iWait
+#DIM iSize
+#DIM TEMP
+#DIMS sAlign
+
+
+SIF sRes_Name == ""
+	RETURN RESULT
+
+SIF !FLAG_アニメーション
+	RETURN RESULT
+
+SIF !iAnime_Num
+	iAnime_Num = FLAG_アニメーション
+
+TEMP = CURRENTREDRAW()
+REDRAW 0
+
+FOR LOCAL,0,iAnime_Num
+	FOR LOCAL:1,iStart,(iStart+iEnd)
+		CALL PRINT_IMAGE(@"%sRes_Name%{LOCAL:1}",iSize,sAlign)
+		TWAIT iWait, 0
+		CLEARLINE iSize/100
+	NEXT
+	
+	;ロールバックさせるか
+	SIF !iRollback
+		CONTINUE
+
+	FOR LOCAL:1,(iStart+iEnd)-2,iStart-1,-1
+		CALL PRINT_IMAGE(@"%sRes_Name%{LOCAL:1}",iSize,sAlign)
+		TWAIT iWait, 0
+		CLEARLINE iSize/100
+	NEXT
+NEXT
+REDRAW TEMP
+
+RETURN RESULT
+
+;=========================================================
+;	正常位のアニメーション画像表示
+;
+;	sRes_Name	：最後に表示する画像のリソース名
+;	iSize		：一行の高さに対するサイズ％数値　縦基準　縦横比維持　省略で1000(10倍)
+;	sAlign		：align属性　省略で左寄せ　left, center, rightの三種が指定できます
+;	Anal		：腸内射精モード。0以外なら射精画像設定が断面図の場合、それを無視します
+;=========================================================
+@PRINT_IMAGE_ANIMATION_正常位(sRes_Name,iSize=1000,sAlign="left", Anal=0)
+#DIMS sRes_Name
+#DIM iSize
+#DIMS sAlign
+#DIMS insType
+#DIM Anal
+
+#DIM iStart
+#DIMS sPrint_Res_Name
+#DIMS sAnime_Res_Name
+
+SIF sRes_Name == "" || !FLAG_挿絵表示
+	RETURN RESULT
+LOCAL = 2
+SIF Anal
+	SWAP FLAG_射精画像種類, LOCAL
+IF STRCOUNT(sRes_Name,"_射精") && FLAG_射精画像種類 < 3
+	sPrint_Res_Name = %sRes_Name%_{FLAG_射精画像種類}
+ELSE
+	sPrint_Res_Name = %sRes_Name%
+ENDIF
+
+IF !FLAG_アニメーション
+	CALL PRINT_IMAGE(sPrint_Res_Name,iSize,sAlign)
+	SIF Anal
+		SWAP FLAG_射精画像種類, LOCAL
+	RETURN RESULT
+ENDIF
+
+sAnime_Res_Name = 正常位_挿入_
+
+IF STRCOUNT(sRes_Name,"_射精") || STRCOUNT(sRes_Name,"_絶頂")
+	iStart = 1
+ELSE
+	iStart= 0
+ENDIF
+
+CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,iStart,4-iStart,FLAG_アニメーション,1,,iSize,sAlign)
+CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,iStart,4-iStart,1,0,,iSize,sAlign)
+
+IF STRCOUNT(sRes_Name,"_射精")
+	sAnime_Res_Name = %sRes_Name%_{FLAG_射精画像種類}_
+	CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,0,2,FLAG_アニメーション,0,,iSize,sAlign)
+	CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,2,2,FLAG_アニメーション,1,,iSize,sAlign)
+ENDIF
+CALL PRINT_IMAGE(sPrint_Res_Name,iSize,sAlign)
+SIF Anal
+	SWAP FLAG_射精画像種類, LOCAL
+RETURN RESULT
+
+;=========================================================
+;	後背位のアニメーション画像表示
+;	コマ数など変わったので別で
+;
+;	sRes_Name	：最後に表示する画像のリソース名
+;	iTarget		：射精した人物(0:あなた, 1:それ以外)
+;	iSize		：一行の高さに対するサイズ％数値　縦基準　縦横比維持　省略で1000(10倍)
+;	sAlign		：align属性　省略で左寄せ　left, center, rightの三種が指定できます
+;	Anal		：腸内射精モード。0以外なら射精画像設定が断面図の場合、それを無視します
+;=========================================================
+@PRINT_IMAGE_ANIMATION_後背位(sRes_Name,iTarget=0,iSize=1000,sAlign="left", Anal=0)
+#DIMS sRes_Name
+#DIM iTarget
+#DIM iSize
+#DIMS sAlign
+#DIM Anal
+
+#DIMS sPrint_Res_Name
+#DIMS sAnime_Res_Name
+#DIM iAnimeCon
+
+SIF sRes_Name == "" || !FLAG_挿絵表示
+	RETURN RESULT
+
+LOCAL = 2
+SIF Anal
+	SWAP FLAG_射精画像種類, LOCAL
+IF STRCOUNT(sRes_Name,"_射精")
+	sPrint_Res_Name = %sRes_Name%_{FLAG_射精画像種類}
+	SIF NOWEX:MASTER:射精 > 1
+		sPrint_Res_Name = %sRes_Name%_{FLAG_射精画像種類}_9
+ELSE
+	sPrint_Res_Name = %sRes_Name%
+ENDIF
+
+IF !FLAG_アニメーション
+	CALL PRINT_IMAGE(sPrint_Res_Name,iSize,sAlign)
+	SIF Anal
+		SWAP FLAG_射精画像種類, LOCAL
+	RETURN RESULT
+ENDIF
+
+IF STRCOUNT(sRes_Name,"_挿入")
+	
+	iAnimeCon = FLAG_アニメーション/2?FLAG_アニメーション/2#1
+	CALL PRINT_IMAGE_ANIMATION(@"%sRes_Name%_",0,6,iAnimeCon,1,,iSize,sAlign)
+		
+	iAnimeCon = (FLAG_アニメーション-iAnimeCon)?FLAG_アニメーション-iAnimeCon#1
+	CALL PRINT_IMAGE_ANIMATION(@"%sRes_Name%2_",0,12,iAnimeCon,0)
+ELSE
+	IF STRCOUNT(sRes_Name,"_絶頂")
+		iAnimeCon = FLAG_アニメーション/2?FLAG_アニメーション/2#1
+		CALL PRINT_IMAGE_ANIMATION("後背位_挿入2_",0,12,iAnimeCon,0)
+	ENDIF
+	
+	CALL PRINT_IMAGE_ANIMATION("後背位_絶頂_",0,4,FLAG_アニメーション,0)
+	CALL PRINT_IMAGE_ANIMATION("後背位_絶頂_",0,2,1,0)
+ENDIF
+IF STRCOUNT(sRes_Name,"_射精")
+	sAnime_Res_Name = %sRes_Name%_{FLAG_射精画像種類}_
+	CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,0,8,1,0,,iSize,sAlign)
+	CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,6,2,FLAG_アニメーション,1,,iSize,sAlign)
+	
+	;大量なら追加で
+	IF iTarget == 0
+		IF NOWEX:MASTER:射精 > 1
+			CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,8,2,FLAG_アニメーション,1,,iSize,sAlign)
+		ENDIF
+	ELSE
+		IF NOWEX:TARGET:射精 > 1
+			CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,8,2,FLAG_アニメーション,1,,iSize,sAlign)
+		ENDIF
+	ENDIF
+	
+ENDIF
+CALL PRINT_IMAGE(sPrint_Res_Name,iSize,sAlign)
+SIF Anal
+	SWAP FLAG_射精画像種類, LOCAL
+
+RETURN RESULT
+;=========================================================
+;	射精後のアニメーション画像表示
+;
+;	sRes_Name	：最後に表示する画像のリソース名
+;	iTarget		：射精した人物(0:あなた, 1:それ以外)
+;	iSize		：一行の高さに対するサイズ％数値　縦基準　縦横比維持　省略で1000(10倍)
+;	sAlign		：align属性　省略で左寄せ　left, center, rightの三種が指定できます
+;	Anal		：腸内射精モード。0以外なら射精画像設定が断面図の場合、それを無視します
+;=========================================================
+@PRINT_IMAGE_ANIMATION_射精後(sRes_Name="正常位_中出し",iTarget=0,iSize=1000,sAlign="left", Anal=0)
+#DIMS sRes_Name
+#DIM iTarget
+#DIM iSize
+#DIMS sAlign
+#DIM Anal
+
+#DIM iWait
+#DIMS sAnime_Res_Name
+#DIMS sType
+#DIM SAVE_RESULT
+#DIM TEMP
+
+SIF sRes_Name == "" || !FLAG_挿絵表示
+	RETURN RESULT
+
+IF !FLAG_アニメーション
+	CALL PRINT_IMAGE(sRes_Name,iSize,sAlign)
+	RETURN RESULT
+ENDIF
+SAVE_RESULT = RESULT
+SPLIT sRes_Name,"_",sType
+
+LOCAL:1 = 2
+SIF Anal
+	SWAP FLAG_射精画像種類, LOCAL:1
+
+IF STRCOUNT(sType,"後背位")
+	IF iTarget == 0
+		sAnime_Res_Name = %sType%_射精_{FLAG_射精画像種類}_\@NOWEX:MASTER:射精>1?9#7\@
+	ELSE
+		sAnime_Res_Name = %sType%_射精_{FLAG_射精画像種類}_\@NOWEX:TARGET:射精>1?9#7\@
+	ENDIF
+ELSE
+	sAnime_Res_Name = %sType%_射精_{FLAG_射精画像種類}_3
+ENDIF
+TEMP = CURRENTREDRAW()
+REDRAW 0
+iWait = 500
+CALL PRINT_IMAGE(@"%sAnime_Res_Name%",iSize,sAlign)
+sAnime_Res_Name = %sType%_挿入_
+TWAIT iWait, 0
+CLEARLINE iSize/100
+
+iWait = 100
+FOR LOCAL,3,0,-1
+	CALL PRINT_IMAGE(@"%sAnime_Res_Name%{LOCAL}",iSize,sAlign)
+	TWAIT iWait, 0
+	CLEARLINE iSize/100
+NEXT
+
+;後背位のみアニメ
+IF STRCOUNT(sType,"後背位")
+	sAnime_Res_Name = %sType%_射精後_
+	CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,0,2,1,0,iWait,iSize,sAlign)
+	CALL PRINT_IMAGE_ANIMATION(sAnime_Res_Name,2,2,0,0,iWait,iSize,sAlign)
+ENDIF
+
+CALL PRINT_IMAGE(sRes_Name,iSize,sAlign)
+SIF Anal
+	SWAP FLAG_射精画像種類, LOCAL:1
+
+REDRAW TEMP
+RESULT = SAVE_RESULT
+RETURN RESULT
+
+;=========================================================
+;	リソースの表示
+;	表示後サイズに合わせて改行を行う
+;	PRINT_IMG の拡張みたいな感じ　文中の挿絵的に使えると思う
+;
+;	sRes_Name	：リソースの名前文字列
+;	iSize		：一行の高さに対するサイズ％数値　縦基準　縦横比維持　省略で1000(10倍)
+;	sAlign		：align属性　省略で左寄せ　left, center, rightの三種が指定できます
+;=========================================================
+@PRINT_IMAGE(sRes_Name,iSize=1000,sAlign="left")
+#DIMS sRes_Name
+#DIM iSize
+#DIMS sAlign
+#DIMS sPrint_Text
+#DIM iEnter_Con
+#DIM iFont_Hei_mag
+
+SIF sRes_Name == ""
+	RETURN RESULT
+
+iEnter_Con = 0
+iFont_Hei_mag = GETCONFIG("一行の高さ") * iSize*10 / GETCONFIG("フォントサイズ")
+iFont_Hei_mag = (iFont_Hei_mag/10) + (iFont_Hei_mag%10 >= 5?1#0)
+
+HTML_PRINT @"<p align='%sAlign%'><nobr><img src='%sRes_Name%' height='{iFont_Hei_mag}'>"
+iEnter_Con++
+
+FOR LOCAL,iEnter_Con-1,(iSize/100)-1
+	HTML_PRINT "<br>"
+NEXT
+RETURN RESULT
+
+;=========================================================
+;	アナルセックス時のアニメーション
+;	加筆者さまの許諾を得ていないので簡易化
+;=========================================================
+
+
+@PRINT_IMAGE_ANIMATION_Ａ正常位(ARGS,ARG=1000,ARGS:1="left")
+LOCALS '= REPLACE(ARGS, "Ａ", "")
+CALL PRINT_IMAGE_ANIMATION_正常位(LOCALS,ARG,ARGS:1, 1)
+
+@PRINT_IMAGE_ANIMATION_Ａ後背位(ARGS,ARG=0,ARG:1=1000,ARGS:1="left")
+LOCALS '= REPLACE(ARGS, "Ａ", "")
+CALL PRINT_IMAGE_ANIMATION_後背位(LOCALS,ARG,ARG:1,ARGS:1, 1)
+
+;=========================================================
+;	アニメの取り扱いを簡易にするため一元化
+;=========================================================
+
+@挿入アニメ表示(ARG, ARGS="_挿入", ARG:1= 0)
+SIF !FLAG_挿絵表示
+	RETURN
+SIF !INRANGE(ARG, 0, CHARANUM-1)
+	RETURN
+SIF ARG:1 && !GROUPMATCH(SELECTCOM, 60, 62) && !GROUPMATCH(SELECTCOM_S, "60_1", "60_2", "60_3", "62_1", "62_2", "62_3")
+	RETURN
+
+LOCALS '= CHECK_体位(ARG)
+TRYCCALLFORM PRINT_IMAGE_ANIMATION_%LOCALS%(LOCALS + ARGS)
+CATCH
+ENDCATCH
+
+@アニメ表示_射精(sRes_Name,iTarget=0,iSize=1000,sAlign="left")
+#DIMS sRes_Name
+#DIM iTarget
+#DIM iSize
+#DIMS sAlign
+#DIM Anal
+IF STRCOUNT(sRes_Name, "Ａ")
+	LOCALS '= REPLACE(sRes_Name, "Ａ", "")
+	Anal = 1
+ELSE
+	LOCALS '= sRes_Name
+	Anal = 0
+ENDIF
+CALL PRINT_IMAGE_ANIMATION_射精後(LOCALS+"_中出し",iTarget,iSize,sAlign, Anal)
+
+@受精アニメ(ARG)
+IF !ARG
+	CALL PRINT_IMAGE_ANIMATION("受精",0,7,MIN(2,FLAG_アニメーション),1)
+	CALL PRINT_IMAGE_ANIMATION("受精",0,3,1,0)
+	CALL PRINT_IMAGE("受精2")
+	WAIT
+ELSE
+	CALL PRINT_IMAGE_ANIMATION("受精",0,12,1,0)
+	CALL PRINT_IMAGE("受精11")
+ENDIF
+
+;=========================================================
+;	現在どこに挿入中かをサーチして表示するアニメの種類を返す
+;	バリアントによりサーチ手段がまちまちなので独立して書き換える
+;=========================================================
+
+@CHECK_体位(ARG)
+#FUNCTIONS
+SIF !INRANGE(ARG, 0, CHARANUM-1)
+	RETURNF ""
+
+LOCAL = 0
+SIF MODE_存在判定_ターゲット側("正常位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("対面座位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("側位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("屈曲位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("駅弁", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("対面立位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("騎乗位", ARG)
+	LOCAL += 1
+SIF LOCAL 
+	RETURNF "正常位"
+
+LOCAL = 0
+SIF MODE_存在判定_ターゲット側("Ａ正常位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ対面座位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ側位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ屈曲位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ駅弁", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ対面立位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ騎乗位", ARG)
+	LOCAL += 1
+SIF LOCAL 
+	RETURNF "Ａ正常位"
+
+LOCAL = 0
+SIF MODE_存在判定_ターゲット側("後背位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("寝バック", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("側位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("背面座位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("背面駅弁", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("立ちバック", ARG)
+	LOCAL += 1
+SIF LOCAL 
+	RETURNF "後背位"
+
+LOCAL = 0
+SIF MODE_存在判定_ターゲット側("Ａ後背位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ寝バック", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ側位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ背面座位", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ背面駅弁", ARG)
+	LOCAL += 1
+SIF MODE_存在判定_ターゲット側("Ａ立ちバック", ARG)
+	LOCAL += 1
+SIF LOCAL 
+	RETURNF "Ａ後背位"
+
+RETURNF ""
+
+;=========================================================
+;	指定フォルダの連番画像をアニメーション表示
+;
+;	指定フォルダ	：連番画像を保存してあるフォルダ、resources以下から指定
+;	自動改行	：非0の時、画像の高さだけ自動で改行し、そこに画像を表示するフラグ
+;				性質上X位置, Y位置は無効化される
+;	X位置, Y位置	：字の通り
+;	画像残り	：アニメーション終わりにラストの画像を残すかどうか
+;				自動改行ONの時のみ働く（表示場所がどうやってもズレるので）
+;
+;	フォルダ内の画像の命名規則は[(連番)_(表示ミリ秒)]で統一
+;	最初の画像かつ100ミリ秒表示なら[0_100]、表示ミリ秒が指定されてない時は100ミリ秒
+;=========================================================
+@PRINT_IMAGE_ANIMATION_GIF(指定フォルダ, 自動改行 = 1, X位置 = 0, Y位置 = 0, 画像残り = 1, ループ = 0)
+#DIMS 指定フォルダ
+#DIM X位置
+#DIM Y位置
+#DIM X幅
+#DIM Y幅
+#DIM 連番
+#DIM 表示ミリ秒
+#DIM ループ
+#DIM 自動改行
+#DIM 画像残り
+#DIM 画像枚数
+#DIMS 画像名分割, 2
+#DIMS 一時文字列
+#DIM ソート用番号, 500
+;レイヤー番号が被るとまずいので、十分に大きくかつ被らなさそうな番号を使う
+#DIM CONST レイヤー番号 = 7200
+
+SIF 指定フォルダ == ""
+	RETURN -1
+
+;画像ファイル名をRESULTSに格納
+画像枚数 = ENUMFILES(@"resources/%指定フォルダ%", "*.webp")
+;png非対応
+
+SIF 画像枚数 < 1
+	RETURN -1
+
+;RESULTSを並び替え
+VARSET ソート用番号, 999
+FOR 連番, 0, 画像枚数
+	一時文字列 '= REPLACE(REPLACE(RESULTS:連番, ESCAPE("\\"), "/"), @"resources/%指定フォルダ%/", "")
+	一時文字列 '= REPLACE(一時文字列, ".webp", "")
+	SPLIT 一時文字列, "_", 画像名分割
+	ソート用番号:連番 = TOINT(画像名分割:0) + 1
+NEXT
+ARRAYMSORT ソート用番号, RESULTS
+
+;縦横幅を取るため最初の一枚を読み込み
+GDISPOSE レイヤー番号
+SPRITEDISPOSE "汎用アニメスプライト"
+SPRITEDISPOSE "画像残りスプライト"
+GCREATEFROMFILE レイヤー番号, REPLACE(REPLACE(RESULTS:0, ESCAPE("\\"), "/"), "resources/", "")
+
+;画像サイズを取得
+X幅 = GWIDTH(レイヤー番号)
+Y幅 = GHEIGHT(レイヤー番号)
+
+;自動改行
+IF 自動改行
+	FOR 連番, 0, (Y幅 / GETCONFIG("一行の高さ")) + 1
+		PRINTL 
+	NEXT
+ENDIF
+
+;アニメーションスプライトを生成
+SPRITEANIMECREATE "汎用アニメスプライト", X幅, Y幅
+
+;表示ミリ秒を画像ファイル名から取得
+VARSET 画像名分割
+一時文字列 '= REPLACE(REPLACE(RESULTS:0, ESCAPE("\\"), "/"), @"resources/%指定フォルダ%/", "")
+一時文字列 '= REPLACE(一時文字列, ".webp", "")
+SPLIT 一時文字列, "_", 画像名分割
+IF ISNUMERIC(画像名分割:1)
+	表示ミリ秒 = TOINT(画像名分割:1)
+ELSE
+	表示ミリ秒 = 100
+ENDIF
+
+;アニメーションフレームを追加、全画像は同じサイズであることを想定
+SPRITEANIMEADDFRAME "汎用アニメスプライト", レイヤー番号, 0, 0, X幅, Y幅, 0, 0, 表示ミリ秒
+
+FOR 連番, 1, 画像枚数
+	;連番の画像を全部登録していく
+	GDISPOSE レイヤー番号 + 連番
+	GCREATEFROMFILE レイヤー番号 + 連番, REPLACE(REPLACE(RESULTS:連番, ESCAPE("\\"), "/"), "resources/", "")
+	
+	;表示ミリ秒を画像ファイル名から取得
+	VARSET 画像名分割
+	一時文字列 '= REPLACE(REPLACE(RESULTS:連番, ESCAPE("\\"), "/"), @"resources/%指定フォルダ%/", "")
+	一時文字列 '= REPLACE(一時文字列, ".webp", "")
+	SPLIT 一時文字列, "_", 画像名分割
+	IF ISNUMERIC(画像名分割:1)
+		表示ミリ秒 = TOINT(画像名分割:1)
+	ELSE
+		表示ミリ秒 = 100
+	ENDIF
+
+	;アニメーションフレームを追加、全画像は同じサイズであることを想定
+	IF 連番 == 画像枚数 - 1 && ループ == 0
+		;ループしない場合、最後だけは設定を無視して10秒ほど出す
+		SPRITEANIMEADDFRAME "汎用アニメスプライト", レイヤー番号 + 連番, 0, 0, X幅, Y幅, 0, 0, 10000
+	ELSE
+		SPRITEANIMEADDFRAME "汎用アニメスプライト", レイヤー番号 + 連番, 0, 0, X幅, Y幅, 0, 0, 表示ミリ秒
+	ENDIF
+NEXT
+
+IF 自動改行
+	CBGSETSPRITE "汎用アニメスプライト", 10, -10, -1
+ELSE
+	CBGSETSPRITE "汎用アニメスプライト", X位置, (Y幅 + Y位置) - GETCONFIG("ウィンドウ高さ"), -1
+ENDIF
+SETANIMETIMER 25
+FORCEWAIT
+
+SETANIMETIMER -1
+CBGREMOVERANGE -1, 0
+
+;自動改行後、改行部分を消す
+IF 自動改行
+	CLEARLINE (Y幅 / GETCONFIG("一行の高さ")) + 1
+
+	IF 画像残り == 1
+		;画像残りがある場合、最後の画像を表示しなおす
+		SPRITECREATE "画像残りスプライト", レイヤー番号 + 画像枚数 - 1
+		HTML_PRINT @"<div rect='60, 60, {(X幅 / GETCONFIG("フォントサイズ")) * 100 + 100}, {(Y幅 / GETCONFIG("フォントサイズ")) * 100 + 100}'><img src='画像残りスプライト' height='{(Y幅 / GETCONFIG("フォントサイズ")) * 100}'></div>"
+		FOR 連番, 0, (Y幅 / GETCONFIG("一行の高さ"))
+			PRINTL 
+		NEXT
+	ENDIF
+ENDIF
+
+RETURN 1

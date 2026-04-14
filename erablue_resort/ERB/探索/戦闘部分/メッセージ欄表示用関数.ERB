@@ -1,0 +1,393 @@
+﻿
+
+@メッセージ欄表示用関数(画像リソース = "", 名前欄表示文字列 = "", 表示位置 = "下", WAITあり = 1, ログ保存しないフラグ = 0, ARG)
+#DIMS 画像リソース
+#DIMS 名前欄表示文字列
+#DIMS 表示位置
+#DIM ウィンドウ番号
+#DIMS 複数メッセージ欄ページ切り替え用, 2
+#DIM WAITあり
+	;１なら通常WAIT（デフォルト）、２ならFORCEWAIT、０でWAITなし
+#DIM 表示文章種類保存
+#DIM ログ保存しないフラグ
+VARSET LOCALS
+VARSET LOCAL
+VARSET 複数メッセージ欄_名前欄記録
+VARSET 複数メッセージ欄_メッセージ欄記録
+表示行数カウント = 0
+表示文章種類保存 = 0
+ログ保存用文字列 = 
+
+CALL メッセージ欄文字列受け渡し_下側_登録処理(名前欄表示文字列, 画像リソース)
+;複数メッセージ欄_名前欄記録:メッセージ欄追加数カウント = %メッセージ欄スクロール表示(名前欄表示文字列, 画像リソース, メッセージ欄追加数カウント)%
+
+;ここまでが文章スクロールをまたいでも表示し続ける要素なので、表示する文章がなくなるまで複数メッセージ欄_名前欄記録に保持し続ける
+;文章スクロールで変動する部分は複数メッセージ欄_メッセージ欄記録に入れる
+
+FOR LOCAL,0,1000
+	SIF KCOLOR:LOCAL > -1
+		SETCOLOR KCOLOR:LOCAL
+	IF !(WSTR:LOCAL == "")
+		IF 表示文章種類保存 == 2
+			WAIT
+		ENDIF
+		CALL PRINT_STR_メッセージ用(WSTR:LOCAL, ARG)
+		複数メッセージ欄_メッセージ欄記録:メッセージ欄追加数カウント += @"%RESULTS%<br>"
+		ログ保存用文字列 += "<br>"
+		CALL メッセージ欄文字列受け渡し_下側_登録処理(名前欄表示文字列, 画像リソース)
+		CALL 画面再描画
+		WAIT
+		表示文章種類保存 = 0
+		表示行数カウント += 1
+	ELSEIF !(KSTR:LOCAL == "")
+		IF 表示文章種類保存 == 2
+			WAIT
+		ENDIF
+		CALL PRINT_STR_メッセージ用(KSTR:LOCAL, ARG)
+		複数メッセージ欄_メッセージ欄記録:メッセージ欄追加数カウント += @"%RESULTS%<br>"
+		ログ保存用文字列 += "<br>"
+		表示文章種類保存 = 1
+		表示行数カウント += 1
+	ELSEIF !(WNSTR:LOCAL == "")
+		IF 表示文章種類保存 == 2
+			WAIT
+		ENDIF
+		CALL PRINT_STR_メッセージ用(WNSTR:LOCAL, ARG)
+		複数メッセージ欄_メッセージ欄記録:メッセージ欄追加数カウント += @"%RESULTS%"
+		CALL メッセージ欄文字列受け渡し_下側_登録処理(名前欄表示文字列, 画像リソース)
+		CALL 画面再描画
+		WAIT
+		表示文章種類保存 = 0
+	ELSEIF !(NSTR:LOCAL == "")
+		IF 表示文章種類保存 == 2
+			WAIT
+		ENDIF
+		;複数メッセージ表示時、WAIT対応
+		IF STRFIND(NSTR:LOCAL, "++++") > -1
+			CALL メッセージ欄文字列受け渡し_下側_登録処理(名前欄表示文字列, 画像リソース)
+			CALL 画面再描画
+			WAIT
+			メッセージ欄追加数カウント += 1
+			表示行数カウント = 0
+		ENDIF
+		CALL PRINT_STR_メッセージ用(NSTR:LOCAL, ARG)
+		複数メッセージ欄_メッセージ欄記録:メッセージ欄追加数カウント += @"%RESULTS%"
+		表示文章種類保存 = 1
+	ENDIF
+
+	IF 表示行数カウント == 表示行数制限 || メッセージ欄ページ送り用フラグ == 1
+		IF 表示文章種類保存 == 1
+			CALL メッセージ欄文字列受け渡し_下側_登録処理(名前欄表示文字列, 画像リソース)
+			CALL 画面再描画
+		ENDIF
+		;一番最後の複数メッセージ欄_メッセージ欄記録をリセットする
+		複数メッセージ欄_メッセージ欄記録:メッセージ欄追加数カウント = 
+		表示文章種類保存 = 2
+		表示行数カウント = 0
+		メッセージ欄ページ送り用フラグ = 0
+	ENDIF
+NEXT
+IF 表示文章種類保存 == 1
+	CALL メッセージ欄文字列受け渡し_下側_登録処理(名前欄表示文字列, 画像リソース)
+	CALL 画面再描画
+ENDIF
+IF WAITあり == 1
+	WAIT
+ELSEIF WAITあり == 2
+	FORCEWAIT
+ENDIF
+
+IF ログ保存しないフラグ == 0
+	IF ダンジョン表示モード == "戦闘画面"
+		サイド描画_戦闘ログ保存 += @"%ログ保存用文字列%<br>"
+	ELSEIF ダンジョン表示モード == "マップ画面"
+		サイド描画_ダンジョンログ保存 += @"%ログ保存用文字列%<br>"
+	ENDIF
+ENDIF
+
+RETURN 1
+
+
+@PRINT_STR_メッセージ用(ARGS = "", 対象キャラ=-1)
+#DIM LCOUNT
+#DIM 返し数
+#DIMS 返し文
+#DIMS 表示文
+#DIM 文字色
+#DIMS 書式, 3
+#DIM 対象キャラ
+
+VARSET 表示文
+VARSET LOCALS
+
+SIF 対象キャラ == -1
+	対象キャラ = TARGET
+SIF !INRANGE(対象キャラ, 0, CHARANUM - 1)
+	対象キャラ = MASTER
+
+;文字列を分解する
+SPLIT ARGS, "_", LOCALS
+LOCAL = 0
+LOCAL:1 = 0
+FOR LCOUNT, 0, 100
+	;特殊な操作
+	SELECTCASE LOCALS:LCOUNT
+	CASE "CALLNAME:TARGET","調教対象","被調教者"
+		表示文 += @"%CALLNAME:TARGET%"
+		ログ保存用文字列 += @"%CALLNAME:TARGET%"
+		CONTINUE
+	CASE "CALLNAME:MASTER","主人","主人公"
+		表示文 += @"%CALLNAME:MASTER%"
+		ログ保存用文字列 += @"%CALLNAME:MASTER%"
+		CONTINUE
+	 CASE "一人称","1st"
+	 	表示文 += @"%CSTR:対象キャラ:一人称%"
+	 	ログ保存用文字列 += @"%CSTR:対象キャラ:一人称%"
+	 	CONTINUE
+	 CASE "二人称","2nd"
+	 	表示文 += @"%CSTR:対象キャラ:二人称%"
+	 	ログ保存用文字列 += @"%CSTR:対象キャラ:二人称%"
+	 	CONTINUE
+	CASE "呼び名","CALLNAME"
+		表示文 += @"%CALLNAME:対象キャラ%"
+		ログ保存用文字列 += @"%CALLNAME:対象キャラ%"
+		CONTINUE
+	CASE "名前","NAME"
+		表示文 += @"%NAME表示(対象キャラ)%"
+		ログ保存用文字列 += @"%NAME表示(対象キャラ)%"
+		CONTINUE
+	CASE "BUTTON"
+		;次の文字をボタンにする
+		LCOUNT += 1
+		表示文 += @"<button value='%LOCALS:LCOUNT%'>%LOCALS:LCOUNT%</button>"
+		;文字だけをログに保存
+		ログ保存用文字列 += @"<nonbutton>%LOCALS:LCOUNT%</nonbutton>"
+		CONTINUE
+	CASE "CALL"
+		;次の文字をCALLで呼び出す(引数なし)
+		LCOUNT += 1
+		CALLFORM %LOCALS:LCOUNT%
+		CONTINUE
+	CASE "COLOR"
+		;次の文字の色を変更する
+		LCOUNT += 1
+		表示文 += @"<font color='#%LOCALS:LCOUNT%'>"
+		;ログに保存
+		ログ保存用文字列 += @"<font color='#%LOCALS:LCOUNT%'>"
+		LCOUNT += 1
+		表示文 += @"%LOCALS:LCOUNT%</font>"
+		ログ保存用文字列 += @"%LOCALS:LCOUNT%</font>"
+		CONTINUE
+	CASE "INPUT"
+		;INPUTを呼び出す
+		INPUT
+		返し数 = RESULT
+		LOCAL = 1
+		CONTINUE
+	CASE "INPUTS"
+		;INPUTSを呼び出す
+		INPUTS
+		返し文 = %RESULTS%
+		LOCAL:1 = 1
+		CONTINUE
+	CASE "-"
+		;次の文字に打消し線を引く
+		LCOUNT += 1
+		表示文 += @"<s>%LOCALS:LCOUNT%</s>"
+		;ログに保存
+		ログ保存用文字列 += @"<s>%LOCALS:LCOUNT%</s>"
+		CONTINUE
+	CASE "B"
+		;次の文字を太字にする
+		LCOUNT += 1
+		表示文 += @"<b>%LOCALS:LCOUNT%</b>"
+		;ログに保存
+		ログ保存用文字列 += @"<b>%LOCALS:LCOUNT%</b>"
+		CONTINUE
+	CASE "I"
+		;次の文字を斜体にする
+		LCOUNT += 1
+		表示文 += @"<i>%LOCALS:LCOUNT%</i>"
+		;ログに保存
+		ログ保存用文字列 += @"<i>%LOCALS:LCOUNT%</i>"
+		CONTINUE
+	CASE "LINE"
+		;次の文字に下線を引く
+		LCOUNT += 1
+		表示文 += @"<u>%LOCALS:LCOUNT%</u>"
+		;ログに保存
+		ログ保存用文字列 += @"<u>%LOCALS:LCOUNT%</u>"
+		CONTINUE
+	CASE "FS"
+		;次の文字の書式を変更する(Bit 0:太字 1:斜体 2:打ち消し線 3:下線)
+		LCOUNT += 1
+		書式:0 '= LOCALS:LCOUNT
+		書式:1 '= ""
+		書式:2 '= ""
+		SIF !TOINT(書式)
+			CONTINUE
+		FOR LOCAL:2, 0, 4
+			IF GETBIT(TOINT(書式), LOCAL:2)
+				書式:1 += "<" + SUBSTRING("bisu", LOCAL:2, 1) + ">"
+				書式:2 += "</" + SUBSTRING("bisu", LOCAL:2, 1) + ">"
+			ENDIF
+		NEXT
+		LCOUNT += 1
+		表示文 += 書式:1 + LOCALS:LCOUNT + 書式:2
+		;ログに保存
+		ログ保存用文字列 += 書式:1 + LOCALS:LCOUNT + 書式:2
+		CONTINUE
+	CASE "H"
+		表示文 += "<img src='えっちハート' height='112' width='112'>"
+		;ログに保存
+		ログ保存用文字列 += "<img src='えっちハート' height='112' width='112'>"
+		CONTINUE
+	CASE "A"
+		表示文 += "<img src='怒りマーク' height='112' width='112'>"
+		;ログに保存
+		ログ保存用文字列 += "<img src='怒りマーク' height='112' width='112'>"
+		CONTINUE
+	CASE "BIG"
+		LCOUNT += 1
+		;何番でもいいけどとりあえず20000以降を使用
+		GDISPOSE 20000 + TFLAG:口上用画像表示番号
+		SPRITEDISPOSE @"口上用画像{20000 + TFLAG:口上用画像表示番号}"
+		GCREATE 20000 + TFLAG:口上用画像表示番号, STRLENS(LOCALS:LCOUNT) * 110, 220
+		GSETFONT 20000 + TFLAG:口上用画像表示番号, GETFONT(), GETCONFIG("フォントサイズ") * 13
+		GDRAWTEXT 20000 + TFLAG:口上用画像表示番号, LOCALS:LCOUNT
+		SPRITECREATE @"口上用画像{20000 + TFLAG:口上用画像表示番号}", 20000 + TFLAG:口上用画像表示番号
+		表示文 += @"<img src='口上用画像{20000 + TFLAG:口上用画像表示番号}' height='220' width='{STRLENS(LOCALS:LCOUNT) * 110}'><br>"
+		ログ保存用文字列 += @"%LOCALS:LCOUNT%<br>"
+		TFLAG:口上用画像表示番号 ++
+		CONTINUE
+	CASE "BIGDOWN"
+		LCOUNT += 1
+		;何番でもいいけどとりあえず20000以降を使用
+		GDISPOSE 20000 + TFLAG:口上用画像表示番号
+		SPRITEDISPOSE @"口上用画像{20000 + TFLAG:口上用画像表示番号}"
+		GCREATE 20000 + TFLAG:口上用画像表示番号, STRLENS(LOCALS:LCOUNT) * 110, 220
+		GSETFONT 20000 + TFLAG:口上用画像表示番号, GETFONT(), GETCONFIG("フォントサイズ") * 13
+		GDRAWTEXT 20000 + TFLAG:口上用画像表示番号, LOCALS:LCOUNT
+		SPRITECREATE @"口上用画像{20000 + TFLAG:口上用画像表示番号}", 20000 + TFLAG:口上用画像表示番号
+		表示文 += @"<img src='口上用画像{20000 + TFLAG:口上用画像表示番号}' height='220' width='{STRLENS(LOCALS:LCOUNT) * 110}'>"
+		ログ保存用文字列 += @"%LOCALS:LCOUNT%"
+		TFLAG:口上用画像表示番号 ++
+		CONTINUE
+	CASE "BIGUP"
+		LCOUNT += 1
+		;何番でもいいけどとりあえず20000以降を使用
+		GDISPOSE 20000 + TFLAG:口上用画像表示番号
+		SPRITEDISPOSE @"口上用画像{20000 + TFLAG:口上用画像表示番号}"
+		GCREATE 20000 + TFLAG:口上用画像表示番号, STRLENS(LOCALS:LCOUNT) * 110, 220
+		GSETFONT 20000 + TFLAG:口上用画像表示番号, GETFONT(), GETCONFIG("フォントサイズ") * 13
+		GDRAWTEXT 20000 + TFLAG:口上用画像表示番号, LOCALS:LCOUNT
+		SPRITECREATE @"口上用画像{20000 + TFLAG:口上用画像表示番号}", 20000 + TFLAG:口上用画像表示番号
+		表示文 += @"<img src='口上用画像{20000 + TFLAG:口上用画像表示番号}' height='220' width='{STRLENS(LOCALS:LCOUNT) * 110}' ypos='-100'>"
+		ログ保存用文字列 += @"%LOCALS:LCOUNT%"
+		TFLAG:口上用画像表示番号 ++
+		CONTINUE
+	CASE "IMAGE"
+		;画像を表示する
+		LCOUNT += 1
+		表示文 += @"<img src='%LOCALS:LCOUNT%' height='112' width='112'>"
+		;ログに保存
+		ログ保存用文字列 += @"<img src='%LOCALS:LCOUNT%' height='112' width='112'>"
+		CONTINUE
+	CASE "PAGE"
+		メッセージ欄ページ送り用フラグ = 1
+		CONTINUE
+	CASE "++++"
+		;メッセージ欄を追加する
+		;処理順の都合上、NSTR:K++のところで処理
+		CONTINUE
+	ENDSELECT
+
+	表示文 += @"%LOCALS:LCOUNT%"
+	;特殊コード以外の部分をログに保存
+	ログ保存用文字列 += @"%LOCALS:LCOUNT%"
+NEXT
+
+RESULTS = %表示文%
+SIF LOCAL:1 > 0
+	RESULTS:1 = %返し文%
+SIF LOCAL > 0
+	RETURN 返し数
+
+
+
+@メッセージY軸位置(ARGS)
+#FUNCTION
+
+SELECTCASE ARGS
+	CASE "マップ画面"
+		RETURNF 3125 - 969 * メッセージ欄追加数カウント
+	CASE "アイテム画面"
+		RETURNF 3125 - 969 * メッセージ欄追加数カウント
+	CASE "戦闘画面"
+		RETURNF 4312 - 969 * メッセージ欄追加数カウント
+ENDSELECT
+
+@メッセージ欄スクロール表示(名前欄表示文字列 = "", 画像リソース = "", ウィンドウ番号)
+#FUNCTIONS
+#DIMS 画像リソース
+#DIMS 名前欄表示文字列
+#DIM ウィンドウ番号
+
+LOCAL = メッセージY軸位置(ダンジョン表示モード)
+LOCALS = <div rect='200,{LOCAL - 62 + 969 * ウィンドウ番号},5662,1687'><img src='メッセージ欄' height='933' width='5635' ypos='0'></div>
+
+IF 画像リソース != ""
+	;文字列に対応する画像リソースがない場合はNoimage顔
+	IF SPRITECREATED(画像リソース)
+		LOCALS += @"<div rect='{左顔グラなし},{LOCAL + 969 * ウィンドウ番号},5662,1687'><img src='%画像リソース%' ypos ='0' height='812' width='812'></div>"
+	ELSE
+		LOCALS += @"<div rect='{左顔グラなし},{LOCAL + 969 * ウィンドウ番号},5662,1687'><img src='顔ノーイメ' ypos ='0' height='812' width='812'></div>"
+	ENDIF
+	LOCALS += @"<div rect='{左顔グラあり},{LOCAL + 969 * ウィンドウ番号},4662,1687'>"
+ELSE
+	LOCALS += @"<div rect='{左顔グラなし},{LOCAL + 969 * ウィンドウ番号},5562,1687'>"
+ENDIF
+LOCALS += "<nobr>"
+
+表示行数制限 = 7
+IF 名前欄表示文字列 != ""
+	LOCALS += @"%名前欄表示文字列%<br>------------------------------------------------------------------------------------------<br>"
+	表示行数制限 = 5
+ENDIF
+
+RETURNF LOCALS
+
+@メッセージ欄文字列受け渡し_下側_登録処理(名前欄表示文字列, 画像リソース)
+#DIM ウィンドウ番号
+#DIM 画像ありフラグ
+#DIMS 名前欄表示文字列
+#DIMS 画像リソース
+
+TSTR:メッセージ欄文字列受け渡し_下側 = 
+画像ありフラグ = 0
+FOR ウィンドウ番号, 0, メッセージ欄追加数カウント + 1
+	IF ウィンドウ番号 == 0
+		複数メッセージ欄_名前欄記録:ウィンドウ番号 = %メッセージ欄スクロール表示(名前欄表示文字列, 画像リソース, ウィンドウ番号)%
+		IF 画像リソース != "" && SPRITECREATED(画像リソース)
+			画像ありフラグ = 1
+		ENDIF
+	ELSE
+		複数メッセージ欄_名前欄記録:ウィンドウ番号 = %メッセージ欄スクロール表示(切り替え名前:(ウィンドウ番号 - 1), 切り替え顔グラリソース:(ウィンドウ番号 - 1), ウィンドウ番号)%
+		IF 切り替え顔グラリソース:(ウィンドウ番号 - 1) != "" && SPRITECREATED(切り替え顔グラリソース:(ウィンドウ番号 - 1))
+			画像ありフラグ = 1
+		ENDIF
+	ENDIF
+	TSTR:メッセージ欄文字列受け渡し_下側 += @"%複数メッセージ欄_名前欄記録:ウィンドウ番号%"
+	TSTR:メッセージ欄文字列受け渡し_下側 += @"%複数メッセージ欄_メッセージ欄記録:ウィンドウ番号%</div>" 
+	IF 画像ありフラグ
+		IF STRLENS(複数メッセージ欄_メッセージ欄記録:ウィンドウ番号) > 46
+;			DEBUGPRINTFORML メッセージが横幅以上である可能性があります。
+;			DEBUGPRINTFORML 該当文章：%複数メッセージ欄_メッセージ欄記録:ウィンドウ番号%
+		ENDIF
+	ELSE
+		IF STRLENS(複数メッセージ欄_メッセージ欄記録:ウィンドウ番号) > 55
+;			DEBUGPRINTFORML メッセージが横幅以上である可能性があります。
+;			DEBUGPRINTFORML 該当文章：%複数メッセージ欄_メッセージ欄記録:ウィンドウ番号%
+		ENDIF
+	ENDIF
+NEXT

@@ -1,0 +1,163 @@
+﻿;-----------------
+;罫線や改行の表示を飛ばしたCOM
+;-----------------
+@おさわりMASSAGE_COM(有効アロマフラグ)
+#DIMS DYNAMIC コマンド番号保存
+#DIM REF 有効アロマフラグ,0
+#DIM 警戒度保存
+#DIM 理性保存
+#DIM 警戒度変化量
+#DIM 理性変化量
+
+;アロマ効果のために変化前の値を保存
+警戒度保存 = BASE:TARGET:警戒
+理性保存 = BASE:TARGET:理性
+
+RESULT = 0
+弱点コマンドカテゴリ = 
+IF RSTR:SELECTCOM_S受け渡し != ""
+	IF TCVAR:TARGET:食いしばりフラグ
+	ELSE
+		TRYCALLFORM MASSAGE_CAN_COM_S%RSTR:SELECTCOM_S受け渡し%
+	ENDIF
+	TRYCALLFORMF MASSAGE_COMTYPE_S_%RSTR:SELECTCOM_S受け渡し%
+	TRYCALLFORM MASSAGE_COM_S%RSTR:SELECTCOM_S受け渡し%
+	LOCAL:1 = RESULT
+	IF LOCAL:1 >= 0
+		コマンド番号保存 = %RSTR:SELECTCOM_S受け渡し%
+		IF STRFIND(コマンド初回フラグ:TARGET:0, @"-MASSAGE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_一時保存:TARGET:0 += @"-MASSAGE_%コマンド番号保存%-"
+		ENDIF
+		IF STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-MASSAGE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_PLAYER_一時保存:PLAYER:0 += @"-MASSAGE_%コマンド番号保存%-"
+		ENDIF
+	ENDIF
+	SPLIT RSTR:SELECTCOM_S受け渡し, "_", RESULTS
+ELSE
+	IF TCVAR:TARGET:食いしばりフラグ
+	ELSE
+		TRYCALLFORM MASSAGE_CAN_COM{SELECTCOM}
+	ENDIF
+	TRYCALLFORMF MASSAGE_COMTYPE_{SELECTCOM}
+	TRYCALLFORM MASSAGE_COM{SELECTCOM}
+	LOCAL:1 = RESULT
+	IF LOCAL:1 >= 0
+		コマンド番号保存 = {SELECTCOM}
+		IF STRFIND(コマンド初回フラグ:TARGET:0, @"-MASSAGE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_一時保存:TARGET:0 += @"-MASSAGE_%コマンド番号保存%-"
+		ENDIF
+		IF STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-MASSAGE_%コマンド番号保存%-") < 0
+			コマンド初回フラグ_PLAYER_一時保存:PLAYER:0 += @"-MASSAGE_%コマンド番号保存%-"
+		ENDIF
+	ENDIF
+ENDIF
+
+;変化量をもとにアロマ効果をつける
+;効果は同時発動可能にするので別のIFで判定する
+警戒度変化量 = BASE:TARGET:警戒 - 警戒度保存
+理性変化量 = BASE:TARGET:理性 - 理性保存
+
+;警戒度上昇抑制
+IF 警戒度変化量 > 0 && 有効アロマフラグ:2
+	有効アロマフラグ:2 --
+	警戒度変化量 = 警戒度変化量 / 2
+ENDIF
+;警戒度減少強化
+IF 警戒度変化量 < 0 && 有効アロマフラグ:0
+	有効アロマフラグ:0 --
+	警戒度変化量 = 警戒度変化量 * 2
+ENDIF
+;理性抑制
+IF 理性変化量 > 0 && 有効アロマフラグ:1
+	有効アロマフラグ:1 --
+	理性変化量 = 理性変化量 / 2
+ELSEIF 理性変化量 < 0 && 有効アロマフラグ:1
+	有効アロマフラグ:1 --
+	理性変化量 = 理性変化量 * 2
+ENDIF
+
+;再計算する
+BASE:TARGET:警戒 = 警戒度保存 + 警戒度変化量
+BASE:TARGET:理性 = 理性保存 + 理性変化量
+
+RETURN LOCAL:1
+
+@おさわりCOM_S
+#DIMS DYNAMIC コマンド番号保存
+
+RESULT = 0
+弱点コマンドカテゴリ = 
+TRYCALLFORMF COMTYPE_S_%RSTR:SELECTCOM_S受け渡し%
+コマンド番号保存 = %RSTR:SELECTCOM_S受け渡し%
+SIF 弱点チェック(TARGET, コマンド番号保存)
+	TCVAR:TARGET:弱点コマンドフラグ = 1
+SIF 弱点チェック(PLAYER, @"%コマンド番号保存%_PLAYER側")
+	TCVAR:PLAYER:弱点コマンドフラグ = 1
+TRYCALLFORM COM_S%RSTR:SELECTCOM_S受け渡し%
+LOCAL:1 = RESULT
+IF LOCAL:1 >= 0
+	IF STRFIND(コマンド初回フラグ:TARGET:0, @"-%コマンド番号保存%-") < 0
+		コマンド初回フラグ_一時保存:TARGET:0 += @"-%コマンド番号保存%-"
+	ENDIF
+	IF STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-%コマンド番号保存%-") < 0
+		コマンド初回フラグ_PLAYER_一時保存:PLAYER:0 += @"-%コマンド番号保存%-"
+	ENDIF
+	IF STRFIND(弱点コマンドカテゴリ, "リダイレクト") >= 0
+		コマンド番号保存 = %SUBSTRING(弱点コマンドカテゴリ, 12)%
+	ENDIF
+	; IF 弱点コマンドカテゴリ != ""
+	CALL 弱点看破処理(TARGET, コマンド番号保存)
+	CALL 弱点看破処理(PLAYER, @"%コマンド番号保存%_PLAYER側")
+	; ENDIF
+ELSE
+	TCVAR:TARGET:弱点コマンドフラグ = 0
+ENDIF
+SPLIT RSTR:SELECTCOM_S受け渡し, "_", RESULTS
+;RETURN LOCAL:1
+
+
+@おさわりCOM
+#DIMS DYNAMIC コマンド番号保存
+
+RESULT = 0
+弱点コマンドカテゴリ = 
+TRYCALLFORMF COMTYPE_{SELECTCOM}
+SELECTCASE SELECTCOM
+	CASE 370 TO 374
+		コマンド番号保存 = {SELECTCOM}_{NO:TARGET}
+	CASE 380 TO 384
+		コマンド番号保存 = {SELECTCOM}_{CFLAG:MASTER:現在マップ種別}_{CFLAG:MASTER:現在位置}
+	CASE 385 TO 389
+		コマンド番号保存 = {SELECTCOM}_%開催予定祭り名%
+	CASE 400
+		コマンド番号保存 = {SELECTCOM}
+		;追い出され・入室不可判定
+		CALL 入室不可処理(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置, 1)
+	CASEELSE
+		コマンド番号保存 = {SELECTCOM}
+ENDSELECT
+SIF 弱点チェック(TARGET, コマンド番号保存)
+	TCVAR:TARGET:弱点コマンドフラグ = 1
+SIF 弱点チェック(PLAYER, @"%コマンド番号保存%_PLAYER側")
+	TCVAR:PLAYER:弱点コマンドフラグ = 1
+TRYCALLFORM COM{SELECTCOM}
+LOCAL:1 = RESULT
+IF LOCAL:1 >= 0
+	IF STRFIND(コマンド初回フラグ:TARGET:0, @"-%コマンド番号保存%-") < 0
+		コマンド初回フラグ_一時保存:TARGET:0 += @"-%コマンド番号保存%-"
+	ENDIF
+	IF STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-%コマンド番号保存%-") < 0
+		コマンド初回フラグ_PLAYER_一時保存:PLAYER:0 += @"-%コマンド番号保存%-"
+	ENDIF
+	; IF STRFIND(弱点コマンドカテゴリ, "リダイレクト") >= 0
+	; 	コマンド番号保存 = %SUBSTRING(弱点コマンドカテゴリ, 12)%
+	; ENDIF
+	; IF 弱点コマンドカテゴリ != ""
+	CALL 弱点看破処理(TARGET, コマンド番号保存)
+	CALL 弱点看破処理(PLAYER, @"%コマンド番号保存%_PLAYER側")
+	; ENDIF
+ELSE
+	TCVAR:TARGET:弱点コマンドフラグ = 0
+ENDIF
+;RETURN LOCAL:1
+

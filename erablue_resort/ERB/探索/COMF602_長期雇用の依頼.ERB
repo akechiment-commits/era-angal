@@ -1,0 +1,114 @@
+﻿;-------------------------------------------------
+;長期雇用の依頼
+;-------------------------------------------------
+@COMNAME602
+#FUNCTIONS
+TSTR:コマンド名受渡 = 長期雇用の依頼
+SIF CFLAG:TARGET:長期雇用
+	TSTR:コマンド名受渡 = 長期雇用の取消
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_602
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("探索")
+
+@COM_TOOLTIP_602
+LOCALS = <br>■長期雇用の依頼<br>
+LOCALS += "相手を雇用し、リゾートに滞在しながら探索を手伝ってもらう契約を結ぶ。<br>"
+LOCALS += "この契約が続いている間は、相手はリゾートに滞在し続ける。<br>"
+LOCALS += "<br>COMタイプ：探索<br>取得ソース：なし"
+LOCALS += "<br>固有の取得経験：なし<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+
+@COM602
+CALL ユニーク客人数チェック()
+DRAWLINE
+IF CFLAG:TARGET:長期雇用
+	PRINTL ※既に長期雇用済みです
+	PRINTFORML %CALLNAME:TARGET%の長期雇用を取り消しますか？　（現在消費中ルピ：１日 / 1000ルピ）
+ELSEIF CFLAG:TARGET:スイートルーム滞在フラグ && 滞在キャラ数 >= 滞在キャラ上限
+	PRINTL ※長期雇用すると、スイートルームから通常の部屋に移動します。
+	PRINTW ※通常の部屋に空きが無いので長期雇用出来ません。
+	RETURN -1
+ELSE
+	PRINTL 探索の手伝いを長期に渡って依頼することで、毎日ルピを消費する代わりにキャラクターが帰宅しないようになります。
+	PRINTL ※探索パーティから外すことは可能です。
+	SIF CFLAG:TARGET:スイートルーム滞在フラグ
+		PRINTL ※長期雇用すると、スイートルームから通常の部屋に移動します。
+	PRINTFORML %CALLNAME:TARGET%を長期雇用しますか？　（必要ルピ：１日 / 1000ルピ）
+ENDIF
+
+
+PRINTBUTTON "[0]はい", 0
+PRINTL
+PRINTBUTTON "[1]いいえ", 1
+PRINTL
+$INPUT_LOOP
+INPUT
+
+SELECTCASE RESULT
+	CASE 0
+		CFLAG:TARGET:長期雇用 = !CFLAG:TARGET:長期雇用
+		CFLAG:TARGET:探索参加許可フラグ = 1
+		;長期雇用するとスイートから抜ける
+		IF CFLAG:TARGET:スイートルーム滞在フラグ
+			CALL 滞在者部屋割り配列削除処理(TARGET)
+			FOR LOCAL, 0, 滞在キャラ上限
+				IF 滞在者部屋割り配列:LOCAL < 1
+					滞在者部屋割り配列:LOCAL = TARGET
+					BREAK
+				ENDIF
+			NEXT
+		ENDIF
+	CASE 1
+		RETURN -1
+	CASEELSE
+		REUSELASTLINE 
+		GOTO INPUT_LOOP
+ENDSELECT
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE602
+#DIM ループ用
+;移動実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(602)
+	RETURN RESULT
+;睡眠中
+SIF CFLAG:睡眠
+	RETURN 0
+;好感度レベル11以上(探索パーティ勧誘と同条件)
+SIF CFLAG:TARGET:好感度レベル < 11
+	RETURN 0
+;従業員はだめ
+SIF TALENT:TARGET:従業員
+	RETURN 0
+;定住してるとだめ
+SIF TALENT:TARGET:定住者
+	RETURN 0
+;eraは見ない
+SIF NO:TARGET == 998
+	RETURN 0
+RETURN 1
+
+;-------------------------------------------------
+;メッセージ
+;-------------------------------------------------
+
+@MESSAGE_COM602
+
+IF CFLAG:TARGET:長期雇用
+	PRINTFORML %CALLNAME:TARGET%を長期雇用しました。
+	PRINTL （一日の終了時にルピが1000消費されます）
+ELSE
+	PRINTFORML %CALLNAME:TARGET%の長期雇用を取り消しました。
+ENDIF
