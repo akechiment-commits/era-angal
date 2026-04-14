@@ -1051,10 +1051,16 @@ ELSE
 	;キャラがいない＝フラグ値が0なら再入力
 	SIF C < 0 || D > 20000 || FLAG:D == 0
 		GOTO INPUT_LOOP
-	ADDCHARA C
+	;確認画面（PARTNER_CONFIRM内でADDCHARAする）
+	CALL PARTNER_CONFIRM, C
+	IF RESULT == 0
+		GOTO INPUT_LOOP
+	ENDIF
+	;確定（ADDCHARAはCONFIRM内で完了済み）
+	D = C + 999
 	TARGET = 1
 	FLAG:D = 0
-	;[パートナー]付加 
+	;[パートナー]付加
 	TALENT:150 = 1
 	
 	A = CHARANUM - 1
@@ -1168,3 +1174,58 @@ IF RESULT == 0
 	TALENT:18 = 1
 ENDIF
 
+;-------------------------------------------------
+; パートナー確認画面  ARG:0=キャラNO
+;-------------------------------------------------
+@PARTNER_CONFIRM(ARG)
+;キャラを仮追加して情報取得
+ADDCHARA ARG:0
+LOCAL:0 = CHARANUM - 1
+A = LOCAL:0
+
+DRAWLINE
+SETCOLOR 100, 220, 255
+PRINTL ★★　キャラクター確認　★★
+RESETCOLOR
+PRINTL 
+
+;顔グラ表示（EmueraEM+EE: 3引数で相対パス指定）
+STR:0 = TOSTR(ARG:0)
+IF STRLEN(STR:0) == 1
+	STR:0 = "0" + STR:0
+ENDIF
+STR:0 = "resources/face_" + STR:0 + ".png"
+GCREATEFROMFILE 0, STR:0, 1
+GDISP 0, 580, 10
+
+;プロフィール表示
+PRINTFORML 	名前：%NAME:A%（%CALLNAME:A%）
+PRINTFORML 	誕生日：%CSTR:A:21%　血液型：%CSTR:A:24%
+PRINTFORML 	身長体重：%CSTR:A:22%
+PRINTFORML 	スリーサイズ：%CSTR:A:23%
+PRINTFORML 	部活：%CSTR:A:25%
+PRINTL 
+PRINTFORML 	学力素質：{ABL:A:98}　運動素質：{ABL:A:54}　表現素質：{ABL:A:55}　知識素質：{ABL:A:56}
+LOCAL:1 = CFLAG:A:12
+IF LOCAL:1 <= -40
+	PRINTL 	性格：超弱気
+ELSEIF LOCAL:1 < -10
+	PRINTL 	性格：弱気
+ELSEIF LOCAL:1 <= 10
+	PRINTL 	性格：普通
+ELSEIF LOCAL:1 < 40
+	PRINTL 	性格：強気
+ELSE
+	PRINTL 	性格：超強気
+ENDIF
+PRINTL 
+DRAWLINE
+PRINTL [0] このキャラでいく　　[1] 選び直す
+INPUT
+
+IF RESULT == 0
+	RETURN 1  ;確定
+ENDIF
+;キャンセル：仮追加を取り消す
+DELCHARA LOCAL:0
+RETURN 0
