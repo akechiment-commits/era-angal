@@ -1,0 +1,594 @@
+﻿@周回引き継ぎ処理(戻れないフラグ = 0)
+#DIM 引き継ぎ枠
+#DIM 同行枠
+#DIM 戻れないフラグ
+#DIMS HTML文
+#DIM DYNAMIC 起動直後
+
+IF 起動直後 == 0
+	VARSET 引き継ぎキャラ番号
+	VARSET キャラ妊娠引き継ぎ
+	起動直後 = 1
+ENDIF
+
+DRAWLINE
+PRINTL 一部のデータを引き継ぎ、新しいゲームを開始します。
+PRINTL
+PRINTL ・引き継ぐデータ
+PRINTL 　　あなた特殊能力・ランダムキャラの存在（ONにした場合）
+PRINTL 　　各キャラへの肉体熟知及び弱点開示状況・所持ルピ・指輪・耳飾り・素材アイテム
+PRINTL 　　探索アイテム・ジョブの証・従業員制服・選択したキャラクターの能力全般
+PRINTL 　　その他一部の特殊なフラグ
+DRAWLINE
+引き継ぎ枠 = 引き継ぎ枠判定()
+PRINTFORML ■引き継ぎ予定キャラ（最大{引き継ぎ枠}名）
+FOR LOCAL, 0, 引き継ぎ枠
+	IF 引き継ぎキャラ番号:LOCAL
+		PRINTBUTTON @"{LOCAL, 2}：%NAME表示((引き継ぎキャラ番号:LOCAL))%", LOCAL
+		IF TALENT:(引き継ぎキャラ番号:LOCAL):妊娠
+			PRINT 　　
+			IF キャラ妊娠引き継ぎ:LOCAL
+				SETCOLOR カラーパレット("黄")
+				PRINTPLAIN [妊娠状態を引き継ぐ]
+				RESETCOLOR
+				PRINT  / 
+				PRINTBUTTON "[妊娠状態を引き継がない]", LOCAL + 200
+			ELSE
+				PRINTBUTTON "[妊娠状態を引き継ぐ]", LOCAL + 200
+				PRINT  / 
+				SETCOLOR カラーパレット("黄")
+				PRINTPLAIN [妊娠状態を引き継がない]
+				RESETCOLOR
+			ENDIF
+		ENDIF
+		PRINTL
+	ELSE
+		PRINTBUTTON @"{LOCAL, 2}：--------------------", LOCAL
+		PRINTL
+	ENDIF
+NEXT
+PRINTL
+IF ランダムキャラ引き継ぎフラグ
+	HTML_PRINT @"<button value='100'>[100] ランダムキャラの存在を引き継ぐ / <font color='#%カラーパレット_HTML("グレーアウト")%'>引き継がない</font></button>", 1
+ELSE
+	HTML_PRINT @"<button value='100'>[100] ランダムキャラの存在を<font color='#%カラーパレット_HTML("グレーアウト")%'>引き継ぐ</font> / 引き継がない</button>", 1
+ENDIF
+PRINT 　　
+PRINTBUTTON "[説明]", 101
+PRINTL
+SELECTCASE あなた引き継ぎフラグ
+	CASE 0
+		HTML文 = %CALLNAME:MASTER%の能力・履歴を
+		HTML文 += @"<button value='112'><font color='#%カラーパレット_HTML("グレーアウト")%'>全て引き継ぐ</font></button>"
+		HTML文 += " / "
+		HTML文 += @"<button value='111'><font color='#%カラーパレット_HTML("グレーアウト")%'>能力のみ引き継ぐ</font></button>"
+		HTML文 += " / "
+		HTML文 += "引き継がない"
+		HTML_PRINT HTML文, 1
+	CASE 1
+		HTML文 = %CALLNAME:MASTER%の能力・履歴を
+		HTML文 += @"<button value='112'><font color='#%カラーパレット_HTML("グレーアウト")%'>全て引き継ぐ</font></button>"
+		HTML文 += " / "
+		HTML文 += "能力のみ引き継ぐ"
+		HTML文 += " / "
+		HTML文 += @"<button value='110'><font color='#%カラーパレット_HTML("グレーアウト")%'>引き継がない</font></button>"
+		HTML_PRINT HTML文, 1
+	CASE 2
+		HTML文 = %CALLNAME:MASTER%の能力・履歴を
+		HTML文 += @"全て引き継ぐ"
+		HTML文 += " / "
+		HTML文 += @"<button value='111'><font color='#%カラーパレット_HTML("グレーアウト")%'>能力のみ引き継ぐ</font></button>"
+		HTML文 += " / "
+		HTML文 += @"<button value='110'><font color='#%カラーパレット_HTML("グレーアウト")%'>引き継がない</font></button>"
+		HTML_PRINT HTML文, 1
+ENDSELECT
+PRINT 　　
+PRINTBUTTON "[説明]", 103
+PRINTL
+IF キャラ弱点引き継ぎフラグ
+	HTML_PRINT @"<button value='104'>[104] キャラの弱点判明状態・ランダム弱点を引き継ぐ / <font color='#%カラーパレット_HTML("グレーアウト")%'>引き継がない</font></button>", 1
+ELSE
+	HTML_PRINT @"<button value='104'>[104] キャラの弱点判明状態・ランダム弱点を<font color='#%カラーパレット_HTML("グレーアウト")%'>引き継ぐ</font> / 引き継がない</button>", 1
+ENDIF
+PRINT 　　
+PRINTBUTTON "[説明]", 105
+PRINTL
+DRAWLINE
+
+PRINT 周回後のスタート地点：
+SIF 周回スタート != 0
+	SETCOLOR カラーパレット("グレーアウト")
+PRINTBUTTON "[はじめから]", 1000
+RESETCOLOR
+PRINT  / 
+SIF 周回スタート != 1
+	SETCOLOR カラーパレット("グレーアウト")
+PRINTBUTTON "[リゾートランクＤから]", 1001
+RESETCOLOR
+
+PRINTL
+PRINTBUTTON "[スタート地点の解説]", 106
+PRINTL
+DRAWLINE
+PRINTL
+PRINTBUTTON "[998] これで新しいゲームを開始する", 998
+PRINTL
+IF 戻れないフラグ == 0
+	PRINTBUTTON "[999] 戻る", 999
+	PRINTL
+ENDIF
+PRINTL
+PRINTL
+
+BINPUT
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 1000 TO 1010
+		周回スタート = LOCAL - 1000
+		RESTART
+	CASE 100
+		INVERTBIT ランダムキャラ引き継ぎフラグ, 0
+		RESTART
+	CASE 101
+		DRAWLINE
+		PRINTL この周回中に存在したランダムキャラを、次周でも登場させます。
+		PRINTL ランダムキャラは従業員ではなくなり、ネームドキャラと同様に扱われます。
+		PRINTL このオプションをOFFにした場合でも個別に引き継ぎキャラに選んだ場合、次周に引き継がれます。
+		WAIT
+		RESTART
+	CASE 110 TO 112
+		あなた引き継ぎフラグ = LOCAL - 110
+		RESTART
+	CASE 103
+		DRAWLINE
+		PRINTFORML %CALLNAME:MASTER%のステータス、獲得した特殊能力、および履歴を引き継ぎます。
+		PRINTFORML 引き継いだ場合、%CALLNAME:MASTER%の履歴と引き継いでいないキャラクターの履歴の整合性が取れなくなります。
+		PRINTL 引き継ぎキャラとの履歴の整合性は保たれます。
+		WAIT
+		RESTART
+	CASE 104
+		INVERTBIT キャラ弱点引き継ぎフラグ, 0
+		RESTART
+	CASE 105
+		DRAWLINE
+		PRINTFORML キャラクターの弱点判明状況、及びランダムで割り振られた弱点枠を引き継ぎます。
+		PRINTFORML 引き継いだ場合、すでに判明している弱点はゲーム開始時に判明済みとなり、キャラクターの弱点は今期と同じになります。
+		PRINTL 引き継がない場合、全ての弱点は未判明状態に戻り、口上で設定してある弱点を除きランダムに変更されます。
+		WAIT
+		RESTART
+	CASE 106
+		DRAWLINE
+		PRINTL それぞれ、周回後にどの地点からゲームを開始するかを選択出来ます。
+		PRINTL スタートダッシュモードを選択した時のゲーム開始地点選択機能は無効化されます。
+		PRINTL
+		PRINTL ・はじめから
+		PRINTL 　引き継ぎ要素以外のすべてを初期値に戻します。
+		PRINTL 　シナリオ進行やダンジョンクリア状況も初期状態に戻ります。
+		PRINTL
+		PRINTL ・リゾートランクＤから
+		PRINTL 　リゾートランクがＤに達した時を想定した地点から始まります。
+		PRINTL 　　　リゾートランクＤ、リゾート人気度301、所持ルピ300,000、所持ZP3,000
+		PRINTL 　　　キャンプ場、レストラン、遊技場、温泉、プールそれぞれLV1改造済み
+		PRINTL 　　　図書室、訓練場、自宅建設済み、商業区・鍛冶施設作成済み
+		PRINTL 　　　大規模エリア２枠開放、居住区・海作成済み
+		PRINTL 　　　ダンジョン６種クリア済み（沿岸部の森、人食い鳥の島、名前を亡くした遺跡、
+		PRINTL 　　　　　　　　　　　　　バルツ地下廃工場、深海の古戦場跡、風遊ぶ渓谷の参道）
+		PRINTL 　　　及びこれらに関連する機能の開放・イベントの視聴済み
+		PRINTL 
+		FORCEWAIT
+		RESTART
+	CASE 999
+		IF 戻れないフラグ == 0
+			VARSET 引き継ぎキャラ番号
+			RETURN 1
+		ELSE
+			RESTART
+		ENDIF
+	CASE 998
+		CALL 周回実処理(引き継ぎ枠)
+		RETURN -1
+	CASE 200 TO 299
+		INVERTBIT キャラ妊娠引き継ぎ:(LOCAL - 200), 0
+		RESTART
+	CASEELSE
+		CALL 陥落キャラ選択()
+		引き継ぎキャラ番号:LOCAL = RESULT
+		RESTART
+ENDSELECT
+
+
+
+@引き継ぎ枠判定
+#FUNCTION
+#DIM 引き継ぎ枠
+
+;ハーレム能力に応じて増加
+SELECTCASE あなた特殊能力:ハーレム
+	CASE 1
+		引き継ぎ枠 = 1
+	CASE 2
+		引き継ぎ枠 = 1
+	CASE 3
+		引き継ぎ枠 = 2
+	CASE 4
+		引き継ぎ枠 = 3
+	CASE 5
+		引き継ぎ枠 = 10
+ENDSELECT
+
+IF 引き継ぎ数記録:ハーレム能力 < 引き継ぎ枠
+	引き継ぎ数記録:ハーレム能力 = 引き継ぎ枠
+ENDIF
+
+;セフレ数に応じて増加
+引き継ぎ枠 = SQRT(MIN(あなたセフレ人数(), 100))
+
+IF 引き継ぎ数記録:セフレ人数 < 引き継ぎ枠
+	引き継ぎ数記録:セフレ人数 = 引き継ぎ枠
+ENDIF
+
+;最低１人
+引き継ぎ枠 = MAX(SUMARRAY(引き継ぎ数記録), 1)
+RETURNF 引き継ぎ枠
+
+@引き継ぎ不能キャラ(キャラ番号)
+#FUNCTION
+#DIM キャラ番号
+
+;IF TALENT:キャラ番号:妊娠
+;	RESULTS '= "妊娠中のキャラは引き継ぎできません"
+;	RETURNF 1
+;ENDIF
+
+RESULTS '= ""
+RETURNF 0
+
+@陥落キャラ選択
+#DIM 現在ページ
+#DIM 表示候補, 500
+#DIM ソート基準値, 500
+#DIM 候補人数
+現在ページ = 0
+
+$最初から
+;表示候補選定
+LOCAL:1 = 0
+VARSET 表示候補
+VARSET LOCALS
+;陥落者のみ
+FOR LOCAL, 1, CHARANUM
+	SIF MATCH(引き継ぎキャラ番号, LOCAL)
+		CONTINUE
+	IF TALENT:LOCAL:恋慕 || TALENT:LOCAL:セフレ
+		表示候補:(LOCAL:1) = LOCAL
+		LOCAL:1 += 1
+	ENDIF
+NEXT
+候補人数 = LOCAL:1
+
+$表示処理_LOOP
+DRAWLINE
+VARSET LOCAL
+VARSET LOCALS
+;表示処理
+FOR LOCAL, 現在ページ * 30, 候補人数
+	IF 引き継ぎ不能キャラ(表示候補:LOCAL)
+		LOCALS += @"<font color='#666666'><button value = '{表示候補:LOCAL}'>[{表示候補:LOCAL,3}] %ADD_STR_SPACE(NAME表示省略(NAME表示(表示候補:LOCAL)), "]"),41,LEFT%</button>"
+
+		IF TALENT:(表示候補:LOCAL):恋慕
+			LOCALS += "　　　恋慕陥落　"
+		ELSE
+			LOCALS += "　　セフレ陥落　"
+		ENDIF
+		LOCALS += "</font>"
+	ELSE
+		LOCALS += @"<button value = '{表示候補:LOCAL}'>[{表示候補:LOCAL,3}] %ADD_STR_SPACE(NAME表示省略(NAME表示(表示候補:LOCAL)), "]"),41,LEFT%</button>"
+
+		IF TALENT:(表示候補:LOCAL):恋慕
+			LOCALS += "　　　<font color='#FF3399'>恋慕陥落</font>　"
+		ELSE
+			LOCALS += "　　セフレ陥落　"
+		ENDIF
+	ENDIF
+
+	LOCAL:1 += 1
+	IF LOCAL:1 % 2 == 0
+		HTML_PRINT LOCALS
+		LOCALS = 
+	ENDIF
+	SIF LOCAL:1 > 29
+		BREAK
+NEXT
+IF LOCALS != ""
+	HTML_PRINT LOCALS
+	LOCALS = 
+ENDIF
+PRINTL 
+IF 現在ページ > 0
+	PRINTLC  [900]前のページへ
+ELSE
+	PRINTLC  
+ENDIF
+IF 現在ページ < 候補人数 / 30
+	PRINTLC  [901]次のページへ
+ENDIF
+PRINTL
+DRAWLINE
+PRINTL
+PRINTBUTTONLC "[1000]戻る", 1000
+PRINTL
+
+BINPUT
+IF RESULT == 1000
+	RETURN 0
+ELSEIF RESULT == 900
+	現在ページ = MAX(現在ページ - 1, 0)
+	GOTO 表示処理_LOOP
+ELSEIF RESULT == 901
+	現在ページ = MIN(現在ページ + 1, 候補人数 / 30)
+	GOTO 表示処理_LOOP
+ELSE
+	IF 引き継ぎ不能キャラ(RESULT)
+		PRINTFORMW %RESULTS%
+		GOTO 表示処理_LOOP
+	ENDIF
+	RETURN RESULT
+ENDIF
+
+
+@周回実処理(引き継ぎ枠)
+#DIM 弱点配列
+#DIM 同行枠
+#DIM 候補数
+#DIM 相手キャラ
+#DIM 引き継ぎ枠
+; ・引き継ぐデータ
+; あなた特殊能力・ランダムキャラの存在（従業員ではなくなります）
+; 各キャラへの肉体熟知及び弱点開示状況・所持ルピ・指輪・耳飾り・素材アイテム
+; 探索アイテム・ジョブの証・従業員制服・選択したキャラクターの能力全般
+; その他一部の特殊なフラグ
+
+引き継ぎ中フラグ = 1
+
+;人物データベースを最後に更新しておく
+FOR LOCAL, 0, CHARANUM
+	CALL UPDATE_PERSON_FROM_CHARA(LOCAL)
+NEXT
+
+;指輪と耳飾りの装備を外しておく
+FOR LOCAL, 0, DT_ROW_LENGTH("所持指輪データベース")
+	IF DT_CELL_GET("所持指輪データベース", LOCAL, "装備キャラ番号")
+		装備ステータス補正保存:(DT_CELL_GET("所持指輪データベース", LOCAL, "装備キャラ番号")):装備指輪番号 = 0
+		DT_CELL_SET "所持指輪データベース", LOCAL, "装備キャラ番号", 0
+	ENDIF
+NEXT
+FOR LOCAL, 0, DT_ROW_LENGTH("所持耳飾りデータベース")
+	IF DT_CELL_GET("所持耳飾りデータベース", LOCAL, "装備キャラ番号")
+		装備ステータス補正保存:(DT_CELL_GET("所持耳飾りデータベース", LOCAL, "装備キャラ番号")):装備指輪番号 = 0
+		DT_CELL_SET "所持耳飾りデータベース", LOCAL, "装備キャラ番号", 0
+	ENDIF
+NEXT
+
+;データベースを退避
+DT_TOXML "人物データベース"
+SAVETEXT RESULTS:0, "dat/人物DT_XML.txt"
+SAVETEXT RESULTS:1, "dat/人物DT_schema.txt"
+DT_TOXML "所持素材データベース"
+SAVETEXT RESULTS:0, "dat/素材DT_XML.txt"
+SAVETEXT RESULTS:1, "dat/素材DT_schema.txt"
+DT_TOXML "所持ジョブ証データベース"
+SAVETEXT RESULTS:0, "dat/証DT_XML.txt"
+SAVETEXT RESULTS:1, "dat/証DT_schema.txt"
+DT_TOXML "所持指輪データベース"
+SAVETEXT RESULTS:0, "dat/指輪DT_XML.txt"
+SAVETEXT RESULTS:1, "dat/指輪DT_schema.txt"
+DT_TOXML "所持耳飾りデータベース"
+SAVETEXT RESULTS:0, "dat/耳飾りDT_XML.txt"
+SAVETEXT RESULTS:1, "dat/耳飾りDT_schema.txt"
+DT_TOXML "所持アイテムデータベース"
+SAVETEXT RESULTS:0, "dat/アイテムDT_XML.txt"
+SAVETEXT RESULTS:1, "dat/アイテムDT_schema.txt"
+DT_TOXML "履歴データベース"
+SAVETEXT RESULTS:0, "dat/履歴DT_XML.txt"
+SAVETEXT RESULTS:1, "dat/履歴DT_schema.txt"
+DT_TOXML "エンディング用変数配列"
+SAVETEXT RESULTS:0, "dat/エンディングDT_XML.txt"
+SAVETEXT RESULTS:1, "dat/エンディングDT_schema.txt"
+DT_TOXML "弱点の欠片データベース"
+SAVETEXT RESULTS:0, "dat/弱点の欠片DT_XML.txt"
+SAVETEXT RESULTS:1, "dat/弱点の欠片DT_schema.txt"
+;現在持ってるミルクを全部フタにする
+FOR LOCAL, 0, DT_ROW_LENGTH("ミルクデータベース")
+	DT_CELL_SET "ミルクデータベース", LOCAL, "状態", "フタ"
+NEXT
+DT_TOXML "ミルクデータベース"
+SAVETEXT RESULTS:0, "dat/ミルクDT_XML.txt"
+SAVETEXT RESULTS:1, "dat/ミルクDT_schema.txt"
+;ランダムキャラを引き継がないなら、不要なキャラデータを無効化する
+IF !ランダムキャラ引き継ぎフラグ
+	LOCAL:1 = 1
+	WHILE ランダムキャラデータ_IS_KEY_EXIST(, LOCAL:1)
+		IF ランダムキャラデータ_IS_KEY_IGNORED(, LOCAL:1)
+			LOCAL:1 ++
+			CONTINUE
+		ENDIF
+		SIF !MATCH(引き継ぎキャラ番号, FIND_CHARA_FROM_PERSON_ID(ランダムキャラデータ_GET(, LOCAL:1, "人物番号")))
+			CALL ランダムキャラデータ_IGNORE_KEY(, LOCAL:1)
+
+		LOCAL:1 ++
+	WEND
+ENDIF
+DT_TOXML Ｒキャラ初期値記録
+SAVETEXT RESULTS:0, "dat/Rキャラ初期値DT_XML.txt"
+SAVETEXT RESULTS:1, "dat/Rキャラ初期値DT_schema.txt"
+
+;変数を退避
+制服引き継ぎ = %所持制服文字列%
+エロ衣装引き継ぎ = %所持エロ衣装文字列%
+所持ルピ引き継ぎ = MONEY
+周回後スタート地点 = 周回スタート
+
+LOCAL:1 = 0
+FOR LOCAL, 1, CHARANUM
+	キャラ変数引き継ぎ:(LOCAL):キャラナンバー = NO:LOCAL
+	IF NO:LOCAL == 999
+		キャラ変数引き継ぎ:(LOCAL):キャラナンバー = ランダムキャラデータ_GET_KEY_FROM_PERSON(, CFLAG:LOCAL:人物番号) * -1
+	ENDIF
+	キャラ変数引き継ぎ:(LOCAL):肉体熟知 = EXP:LOCAL:肉体熟知
+	IF キャラ弱点引き継ぎフラグ
+		FOR 弱点配列, 0, 弱点コマンド数上限
+			キャラ変数引き継ぎ:(LOCAL):(弱点配列 + 2) = 弱点看破:LOCAL:弱点配列
+			キャラ文字列引き継ぎ:(LOCAL):弱点配列 = %弱点コマンド枠:LOCAL:弱点配列%
+		NEXT
+		FOR 弱点配列, 0, 追加弱点コマンド数上限
+			キャラ文字列引き継ぎ:(LOCAL):(弱点配列 + 50) = %追加弱点コマンド枠:LOCAL:弱点配列%
+		NEXT
+	ENDIF
+NEXT
+
+ARRAYCOPY "オート射精先オプション", "オート射精設定引き継ぎ"
+ARRAYCOPY "OPTION変数", "オプション引き継ぎ"
+ARRAYCOPY "素質切り替えOPTION記憶", "素質切り替え引き継ぎ"
+ARRAYCOPY "画像サイズ切り替えOPTION記憶", "画像サイズ切り替え引き継ぎ"
+ARRAYCOPY "一日終了時オナニーOPTION", "一日終了時オナニー引き継ぎ"
+ARRAYCOPY "ITEM", "アイテム引き継ぎ"
+
+
+
+VARSET あなた特殊能力引き継ぎ
+VARSET あなた技巧引き継ぎ
+;あなたの退避
+IF あなた引き継ぎフラグ == 2
+	SAVECHARA "あなた", "あなた", 0
+	AWAIT
+	あなた引き継ぎ = 2
+	FOR LOCAL, 0, 100
+		あなた特殊能力引き継ぎ:LOCAL = あなた特殊能力:LOCAL
+	NEXT
+	FOR LOCAL, 0, 20
+		あなた技巧引き継ぎ:LOCAL = ABL:MASTER:(LOCAL + 20)
+	NEXT
+ELSEIF あなた引き継ぎフラグ == 1
+	あなた引き継ぎ = 1
+	FOR LOCAL, 0, 100
+		あなた特殊能力引き継ぎ:LOCAL = あなた特殊能力:LOCAL
+	NEXT
+	FOR LOCAL, 0, 20
+		あなた技巧引き継ぎ:LOCAL = ABL:MASTER:(LOCAL + 20)
+	NEXT
+ENDIF
+
+;選択したキャラの退避
+キャラ同士関係性データ = 
+引き継ぎ人数 = 引き継ぎ枠
+FOR LOCAL, 0, 引き継ぎ枠
+	IF 引き継ぎキャラ番号:LOCAL > 0
+		;関係性は一旦リセットする
+		;ただし、引き継ぐキャラ同士は維持する
+		
+		CSTR:(引き継ぎキャラ番号:LOCAL):引き継ぎ用同行キャラ確率保存 = 
+		FOR 同行枠, 0, 100
+			SIF 同行候補キャラ番号:(引き継ぎキャラ番号:LOCAL):同行枠 == 0
+				CONTINUE
+			IF FINDELEMENT(引き継ぎキャラ番号, 同行候補キャラ番号:(引き継ぎキャラ番号:LOCAL):同行枠) > -1
+				CSTR:(引き継ぎキャラ番号:LOCAL):引き継ぎ用同行キャラ確率保存 += @"%NAME表示((同行候補キャラ番号:(引き継ぎキャラ番号:LOCAL):同行枠))%_{同行候補キャラ確率:(引き継ぎキャラ番号:LOCAL):同行枠}_"
+			ENDIF
+		NEXT
+
+		VARSET RELATION_NO:(引き継ぎキャラ番号:LOCAL):0
+		VARSET RELATION_VAL:(引き継ぎキャラ番号:LOCAL):0
+		VARSET 同行候補キャラ番号:(引き継ぎキャラ番号:LOCAL):0
+		VARSET 同行候補キャラ確率:(引き継ぎキャラ番号:LOCAL):0
+
+		TALENT:(引き継ぎキャラ番号:LOCAL):従業員 = 0
+		CFLAG:(引き継ぎキャラ番号:LOCAL):長期雇用 = 0
+		TALENT:(引き継ぎキャラ番号:LOCAL):定住者 = 0
+		TALENT:(引き継ぎキャラ番号:LOCAL):店持ち = 0
+		IF TALENT:(引き継ぎキャラ番号:LOCAL):妊娠
+			IF キャラ妊娠引き継ぎ:LOCAL == 0
+				TALENT:(引き継ぎキャラ番号:LOCAL):妊娠 = 0
+				CFLAG:(引き継ぎキャラ番号:LOCAL):妊娠経過日 = 0
+				CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親 = -1
+				CFLAG:(引き継ぎキャラ番号:LOCAL):妊娠発覚 = 0
+				CFLAG:(引き継ぎキャラ番号:LOCAL):今回受胎人数 = 0
+				IF CFLAG:(引き継ぎキャラ番号:LOCAL):妊娠時バストサイズ増加
+					;元が魔乳未満の場合、TALENTも小さくする（魔乳の場合は下駄履かせて計算させてるのでそのままでOK）
+					SIF CFLAG:(引き継ぎキャラ番号:LOCAL):妊娠時バストサイズ増加 == 1
+						TALENT:(引き継ぎキャラ番号:LOCAL):バストサイズ --
+					;BASEが実際に小さくなるまでループ
+					LOCAL:1 = BASE:(引き継ぎキャラ番号:LOCAL):バスト
+					LOCAL:2 = 0
+					DO
+						CALL SET_BODYSIZE((引き継ぎキャラ番号:LOCAL),2)
+						;なんか知らんけどここで無限ループになるパターンがあるっぽいので１００回ループしてもダメなら-1する
+						LOCAL:2 ++
+						IF LOCAL:2 > 100
+							BASE:(引き継ぎキャラ番号:LOCAL):バスト = LOCAL:1 - 1
+							BREAK
+						ENDIF
+					LOOP BASE:(引き継ぎキャラ番号:LOCAL):バスト > LOCAL:1
+					TALENT:(引き継ぎキャラ番号:LOCAL):バストサイズ = LIMIT(TALENT:(引き継ぎキャラ番号:LOCAL):バストサイズ, バストサイズ_最小, バストサイズ_最大)
+					CFLAG:(引き継ぎキャラ番号:LOCAL):妊娠時バストサイズ増加 = 0
+					SIF TALENT:(引き継ぎキャラ番号:LOCAL):母乳体質 != 1
+						TALENT:(引き継ぎキャラ番号:LOCAL):母乳体質 = 0
+				ENDIF
+			ELSE
+				;MASTERの場合
+				IF CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親 == 0
+					CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親 = FLAG:あなたキャラ化記録
+				ELSE
+					FOR LOCAL:1, 0, 引き継ぎ枠
+						;引き継ぎキャラの場合、LOCAL:1 + 10001(次週のキャラID+10000)を入れる
+						IF CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親 == 引き継ぎキャラ番号:(LOCAL:1)
+							CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親 = LOCAL:1 + 10001
+							BREAK
+						ENDIF
+						;引き継ぎキャラ以外の場合
+						IF LOCAL:1 == 引き継ぎ枠 - 1
+							IF NO:(CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親) == 999 && !ランダムキャラ引き継ぎフラグ
+								CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親 = 999
+							ELSE
+								CFLAG:(引き継ぎキャラ番号:LOCAL):子の父親 = キャラ変数引き継ぎ:(引き継ぎキャラ番号:LOCAL):キャラナンバー
+							ENDIF
+						ENDIF
+					NEXT
+				ENDIF
+			ENDIF
+		ENDIF
+		;SAVECHARAメモにキャラのNOを入れておく
+		SAVECHARA TOSTR(LOCAL), TOSTR(NO:(引き継ぎキャラ番号:LOCAL)), 引き継ぎキャラ番号:LOCAL
+		AWAIT
+
+		;キャラ同士恋慕セフレの記録
+		VARSET RESULT
+		候補数 = DT_SELECT("関係性データベース", @"対象キャラ１ = {CFLAG:(引き継ぎキャラ番号:LOCAL):人物番号} Or 対象キャラ２ = {CFLAG:(引き継ぎキャラ番号:LOCAL):人物番号}")
+		IF 候補数
+			FOR LOCAL:1, 1, 候補数 + 1
+				相手キャラ = FIND_CHARA_FROM_PERSON_ID(関係性_相手人物番号取得(CFLAG:(引き継ぎキャラ番号:LOCAL):人物番号, RESULT:(LOCAL:1)))
+				SIF 相手キャラ <= 0
+					CONTINUE
+				SIF MATCH(引き継ぎキャラ番号, 相手キャラ) < 1
+					CONTINUE
+				;既にあるならスルー
+				SIF STRFIND(キャラ同士関係性データ, @"%NAME:(引き継ぎキャラ番号:LOCAL)%_%NAME:相手キャラ%_%DT_CELL_GETS("関係性データベース", RESULT:(LOCAL:1), "関係性種別", 1)%") >= 0
+					CONTINUE
+				SIF STRFIND(キャラ同士関係性データ, @"%NAME:相手キャラ%_%NAME:(引き継ぎキャラ番号:LOCAL)%_%DT_CELL_GETS("関係性データベース", RESULT:(LOCAL:1), "関係性種別", 1)%") >= 0
+					CONTINUE
+				;引き継ぎ用に登録
+				キャラ同士関係性データ += @"%NAME:(引き継ぎキャラ番号:LOCAL)%_%NAME:相手キャラ%_%DT_CELL_GETS("関係性データベース", RESULT:(LOCAL:1), "関係性種別", 1)%+++"
+			NEXT
+		ENDIF
+	ENDIF
+NEXT
+
+周回回数累計:0 += 1
+
+;最大レベルの引き継ぎ
+CALL 最大レベル算出保存()
+最大レベル引き継ぎ = 最大レベル保存
+;リゾート名退避
+リゾート名引き継ぎ '= リゾート名称
+
+ARRAYCOPY "周回回数累計", "周回回数累計_退避"
+RESETDATA
+ARRAYCOPY "周回回数累計_退避", "周回回数累計"

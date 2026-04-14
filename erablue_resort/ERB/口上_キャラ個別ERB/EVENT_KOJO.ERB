@@ -1,0 +1,635 @@
+﻿;--------------------------------------------------
+;@KOJO_MESSAGE_COM関係
+;コマンド実行時に出力されます
+;--------------------------------------------------
+@KOJO_MESSAGE_COM_通常モード
+#DIMS 呼び出し文字列
+#DIM 対象キャラ
+#DIM DYNAMIC 単独フラグ
+
+TFLAG:TARGET保存用 = TARGET
+IF 自慰ターゲット保存 > -1
+	TARGET = 自慰ターゲット保存
+ENDIF
+
+VARSET LOCAL
+IF FLAG:汎用文章表示切り替えオプション > 0
+	IF PLAYER == MASTER
+		IF TCVAR:PLAYER:弱点コマンドフラグ
+			DRAWLINE
+			SETCOLOR カラーパレット("えっちな色")
+			PRINTFORMW <<<弱点コマンド！！（%CALLNAME:PLAYER%）>>>
+			RESETCOLOR
+		ELSEIF TCVAR:PLAYER:弱点シチュフラグ
+			SETCOLOR カラーパレット("えっちな色")
+			PRINT <<<弱点シチュエーション
+			PRINT_IMG "えっちハート"
+			PRINTFORML （%CALLNAME:PLAYER%）>>>
+			RESETCOLOR
+		ENDIF
+	ENDIF
+	FOR LOCAL, 1, CHARANUM
+		SIF TARGET:LOCAL < 1
+			BREAK
+		IF TCVAR:(TARGET:LOCAL):弱点コマンドフラグ
+			DRAWLINE
+			SETCOLOR カラーパレット("えっちな色")
+			PRINTFORMW <<<弱点コマンド！！（%CALLNAME:(TARGET:LOCAL)%）>>>
+			RESETCOLOR
+		ELSEIF TCVAR:(TARGET:LOCAL):弱点シチュフラグ
+			SETCOLOR カラーパレット("えっちな色")
+			PRINT <<<弱点シチュエーション
+			PRINT_IMG "えっちハート"
+			PRINTFORML （%CALLNAME:(TARGET:LOCAL)%）>>>
+			RESETCOLOR
+		ENDIF
+	NEXT
+	CALL TRAIN_MESSAGE
+	SIF RESULT
+		PRINTW
+	PRINTL
+ENDIF
+IF FLAG:口上表示切り替えオプション <= 0
+	RETURN 0
+ENDIF
+
+CALL 口上変数初期化
+RESULT = 0
+
+;口上ありでも汎用喘ぎを使うならここで表示
+IF TFLAG:オートコマンドフラグ == 0 || (TFLAG:オートコマンドフラグ && AUTOCOM_対象番号保存 != MASTER && AUTOCOM_対象番号保存 >= 0)
+	IF TFLAG:オートコマンドフラグ && AUTOCOM_対象番号保存 >= 0
+		対象キャラ = AUTOCOM_対象番号保存
+	ELSE
+		対象キャラ = TARGET
+	ENDIF
+	IF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == -1
+		CALL 汎用喘ぎ処理(対象キャラ)
+	ELSEIF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == 1
+		;禁止時はなにもしない
+	ELSE
+		IF TALENT:対象キャラ:性別 == 2
+			SIF GETBIT(OPTION変数:汎用喘ぎ使用_男, 0) && GETBIT(OPTION変数:汎用喘ぎ使用_男, 1)
+				CALL 汎用喘ぎ処理(対象キャラ)
+		ELSE
+			SIF GETBIT(OPTION変数:汎用喘ぎ使用, 0) && GETBIT(OPTION変数:汎用喘ぎ使用, 1)
+				CALL 汎用喘ぎ処理(対象キャラ)
+		ENDIF
+	ENDIF
+ENDIF
+
+SIF TCVAR:TARGET:食いしばりフラグ
+	SKIPDISP 1
+
+RESULT = 0
+;まずオートコマンドとサイドボタン時をふるい分け
+IF RFLAG:サイドボタン操作
+ELSEIF TFLAG:オートコマンドフラグ >= 4000
+	SWAP TARGET, AUTOCOM_実行番号保存
+	SWAP PLAYER, AUTOCOM_対象番号保存
+	LOCALS = 
+	IF AUTOCOM_派生保存 != ""
+		LOCALS = {TFLAG:オートコマンドフラグ - 4000}_%AUTOCOM_派生保存%
+	ELSE
+		LOCALS = {TFLAG:オートコマンドフラグ - 4000}
+	ENDIF
+	SIF CFLAG:PLAYER:体力限界 == 0
+		TRYCALLFORM KOJO_COMPLAYER_{NO:PLAYER}_%LOCALS%(PLAYER)
+	;コマンドごとの画像をここで表示
+	CALL コマンド実行時画像表示処理(TARGET, SELECTCOM_NAME)
+	SIF CFLAG:TARGET:体力限界 == 0
+		TRYCALLFORM KOJO_COM_{NO:TARGET}_%LOCALS%(TARGET)
+	SWAP TARGET, AUTOCOM_実行番号保存
+	SWAP PLAYER, AUTOCOM_対象番号保存
+ELSEIF TFLAG:オートコマンドフラグ >= 3000
+	;自慰パターンだけ特殊処理
+	IF TFLAG:オートコマンドフラグ - 3000 == 9
+		LOCALS = {TFLAG:オートコマンドフラグ - 3000}_%AUTOCOM_派生保存%
+		;コマンドごとの画像をここで表示
+		CALL コマンド実行時画像表示処理(自慰ターゲット保存, SELECTCOM_NAME)
+		SIF CFLAG:自慰ターゲット保存:体力限界 == 0
+			TRYCALLFORM KOJO_COM_{NO:自慰ターゲット保存}_%LOCALS%(自慰ターゲット保存)
+	ELSE
+		SWAP PLAYER, AUTOCOM_実行番号保存
+		SWAP TARGET, AUTOCOM_対象番号保存
+		LOCALS = 
+		IF AUTOCOM_派生保存 != ""
+			LOCALS = {TFLAG:オートコマンドフラグ - 3000}_%AUTOCOM_派生保存%
+		ELSE
+			LOCALS = {TFLAG:オートコマンドフラグ - 3000}
+		ENDIF
+		SIF CFLAG:PLAYER:体力限界 == 0
+			TRYCALLFORM KOJO_COMPLAYER_{NO:PLAYER}_%LOCALS%(PLAYER)
+		;コマンドごとの画像をここで表示
+		CALL コマンド実行時画像表示処理(TARGET, SELECTCOM_NAME)
+		SIF CFLAG:TARGET:体力限界 == 0
+			TRYCALLFORM KOJO_COM_{NO:TARGET}_%LOCALS%(TARGET)
+		SWAP PLAYER, AUTOCOM_実行番号保存
+		SWAP TARGET, AUTOCOM_対象番号保存
+	ENDIF
+ELSEIF TFLAG:オートコマンドフラグ > 2000
+	SWAP PLAYER, AUTOCOM_対象番号保存
+	TRYCCALLFORM ALLAUTOCOMNAME{TFLAG:オートコマンドフラグ - 2000}
+		CALL コマンド実行時画像表示処理(AUTOCOM_実行番号保存, RESULTS)
+	CATCH
+	ENDCATCH
+	SIF CFLAG:AUTOCOM_実行番号保存:体力限界 == 0
+		TRYCALLFORM KOJO_ALLAUTOCOM_{NO:AUTOCOM_実行番号保存}_{TFLAG:オートコマンドフラグ - 2000}(AUTOCOM_実行番号保存)
+	SWAP PLAYER, AUTOCOM_対象番号保存
+ELSEIF TFLAG:オートコマンドフラグ > 1000
+	SWAP PLAYER, AUTOCOM_対象番号保存
+	TRYCCALLFORM AUTOCOMNAME{TFLAG:オートコマンドフラグ - 1000}
+		CALL コマンド実行時画像表示処理(AUTOCOM_実行番号保存, RESULTS)
+	CATCH
+	ENDCATCH
+	SIF CFLAG:AUTOCOM_実行番号保存:体力限界 == 0
+		TRYCALLFORM KOJO_AUTOCOM_{NO:AUTOCOM_実行番号保存}_{TFLAG:オートコマンドフラグ - 1000}(AUTOCOM_実行番号保存)
+	SWAP PLAYER, AUTOCOM_対象番号保存
+ELSEIF TFLAG:オートコマンドフラグ > 0
+	SWAP PLAYER, AUTOCOM_対象番号保存
+	SIF CFLAG:AUTOCOM_実行番号保存:体力限界 == 0
+		TRYCALLFORM KOJO_PREAUTOCOM_{NO:AUTOCOM_実行番号保存}_{TFLAG:オートコマンドフラグ}(AUTOCOM_実行番号保存)
+	SWAP PLAYER, AUTOCOM_対象番号保存
+ELSEIF TFLAG:オートコマンドフラグ == -1
+	IF CFLAG:AUTOCOM_実行番号保存:体力限界 == 0
+		SELECTCASE RFLAG:コマンド結果受渡し変数
+			CASE 0
+				;自宅で遊ぶ
+				SELECTCASE RFLAG:コマンド結果受渡し変数２
+					CASE 0
+						;許可
+						TRYCALLFORM KOJO_EVENT_自室訪問承諾_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+					CASE 1
+						;簡易許可
+						TRYCALLFORM KOJO_EVENT_自室訪問簡易承諾_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+					CASE 2
+						;断る
+						TRYCALLFORM KOJO_EVENT_自室訪問断り_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+				ENDSELECT
+			CASE 1
+				;遊びに誘う
+				SELECTCASE RFLAG:コマンド結果受渡し変数２
+					CASE 0
+						;許可
+						TRYCALLFORM KOJO_EVENT_遊びの誘い承諾_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+					CASE 1
+						;簡易許可
+						TRYCALLFORM KOJO_EVENT_遊びの誘い簡易承諾_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+					CASE 2
+						;断る
+						TRYCALLFORM KOJO_EVENT_遊びの誘い断り_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+				ENDSELECT
+			CASE 2
+				;仕事の用事
+				TRYCALLFORM KOJO_EVENT_仕事訪問_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+			CASE 3
+				;うふふお誘い
+				SELECTCASE RFLAG:コマンド結果受渡し変数２
+					CASE 0
+						;許可
+						TRYCALLFORM KOJO_EVENT_うふふ誘い承諾_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+					CASE 2
+						;断る
+						TRYCALLFORM KOJO_EVENT_うふふ誘い断り_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+				ENDSELECT
+			CASE 4
+				;飲みに誘う
+				SELECTCASE RFLAG:コマンド結果受渡し変数２
+					CASE 0
+						;許可
+						TRYCALLFORM KOJO_EVENT_飲みの誘い承諾_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+					CASE 1
+						;簡易許可
+						TRYCALLFORM KOJO_EVENT_飲みの誘い簡易承諾_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+					CASE 2
+						;断る
+						TRYCALLFORM KOJO_EVENT_飲みの誘い断り_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+				ENDSELECT
+		ENDSELECT
+	ENDIF
+ELSEIF TFLAG:オートコマンドフラグ == -2
+	;マッサージ来店
+	IF CFLAG:AUTOCOM_実行番号保存:体力限界 == 0
+		SELECTCASE RFLAG:コマンド結果受渡し変数２
+			CASE 0
+				;マッサージモード遷移
+				TRYCALLFORM KOJO_EVENT_マッサージ来店_念入り_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+			CASE 1
+				;簡易マッサージ
+				TRYCALLFORM KOJO_EVENT_マッサージ来店_簡易_{NO:AUTOCOM_実行番号保存}(AUTOCOM_実行番号保存)
+		ENDSELECT
+	ENDIF
+	;下の処理には回さずに返す
+	RETURN 0 
+ELSE
+	;コマンドごとの画像をここで表示
+	CALL コマンド実行時画像表示処理(TARGET, SELECTCOM_NAME)
+
+	;単独チェック
+	IF RSTR:SELECTCOM_S受け渡し != ""
+		CALLFORMF COMTYPE_S_%RSTR:SELECTCOM_S受け渡し%
+		SIF TFLAG:コマンドタイプ受渡 >= 100 && STRFIND(TSTR:複合コマンドタイプ受け渡し, "単独可能") >= 0
+			単独フラグ = 1
+		SIF TFLAG:コマンドタイプ受渡 == 10
+			単独フラグ = 1
+	ELSE
+		CALLFORMF COMTYPE_{SELECTCOM}
+		SIF TFLAG:コマンドタイプ受渡 >= 100 && STRFIND(TSTR:複合コマンドタイプ受け渡し, "単独可能") >= 0
+			単独フラグ = 1
+		SIF TFLAG:コマンドタイプ受渡 == 10
+			単独フラグ = 1
+	ENDIF
+
+	;オートじゃないなら指示モード口上を見る
+	IF GETBIT(FLAG:モード管理, モードビット_指示) && CFLAG:PLAYER:体力限界 == 0
+		IF RSTR:SELECTCOM_S受け渡し != ""
+			TRYCALLFORM KOJO_COMPLAYER_{NO:PLAYER}_%RSTR:SELECTCOM_S受け渡し%(PLAYER)
+		ELSEIF SELECTCOM >= 380 && SELECTCOM <= 384
+			TRYCALLFORM KOJO_COMPLAYER_{NO:PLAYER}_{SELECTCOM}_{CFLAG:MASTER:現在マップ種別}_{CFLAG:MASTER:現在位置}(PLAYER)
+		ELSEIF SELECTCOM >= 385 && SELECTCOM <= 389
+			TRYCALLFORM KOJO_COMPLAYER_{NO:PLAYER}_{SELECTCOM}_%開催予定祭り名%(PLAYER)
+		ELSEIF SELECTCOM >= 370 && SELECTCOM <= 374
+			TRYCALLFORM KOJO_COMPLAYER_{NO:PLAYER}_{SELECTCOM}_{NO:TARGET}(PLAYER)
+		ELSE
+			TRYCALLFORM KOJO_COMPLAYER_{NO:PLAYER}_{SELECTCOM}(PLAYER)
+		ENDIF
+	ENDIF
+	IF 自慰ターゲット保存 > -1
+		;自慰パターンだけ特殊処理
+		SIF CFLAG:自慰ターゲット保存:体力限界 == 0
+			TRYCALLFORM KOJO_COM_{NO:自慰ターゲット保存}_%RSTR:SELECTCOM_S受け渡し%(自慰ターゲット保存)
+	ELSEIF CFLAG:TARGET:睡眠
+		;睡眠時は何も喋らない
+	ELSEIF CFLAG:TARGET:体力限界
+		;体力限界時は何も喋らない
+	ELSEIF RSTR:SELECTCOM_S受け渡し != ""
+		TRYCALLFORM KOJO_COM_{NO:TARGET}_%RSTR:SELECTCOM_S受け渡し%(TARGET)
+		IF GETBIT(FLAG:モード管理, モードビット_同時)
+			呼び出し文字列 = %RSTR:SELECTCOM_S受け渡し%
+		ENDIF
+	ELSEIF SELECTCOM >= 380 && SELECTCOM <= 384
+		TRYCALLFORM KOJO_COM_{NO:TARGET}_{SELECTCOM}_{CFLAG:MASTER:現在マップ種別}_{CFLAG:MASTER:現在位置}(TARGET)
+		IF GETBIT(FLAG:モード管理, モードビット_同時)
+			呼び出し文字列 = {SELECTCOM}_{CFLAG:MASTER:現在マップ種別}_{CFLAG:MASTER:現在位置}
+		ENDIF
+	ELSEIF SELECTCOM >= 385 && SELECTCOM <= 389
+		TRYCALLFORM KOJO_COM_{NO:TARGET}_{SELECTCOM}_%開催予定祭り名%(TARGET)
+		IF GETBIT(FLAG:モード管理, モードビット_同時)
+			呼び出し文字列 = {SELECTCOM}_%開催予定祭り名%
+		ENDIF
+	ELSEIF SELECTCOM >= 370 && SELECTCOM <= 374
+		TRYCALLFORM KOJO_COM_{NO:TARGET}_{SELECTCOM}_{NO:TARGET}(TARGET)
+		IF GETBIT(FLAG:モード管理, モードビット_同時)
+			呼び出し文字列 = {SELECTCOM}_{NO:TARGET}
+		ENDIF
+	ELSEIF SELECTCOM == 404
+		;覗きは対象がTARGETじゃないことがあるので別枠で設定
+		TRYCALLFORM KOJO_COM_{NO:(RFLAG:コマンド結果受渡し変数２)}_{SELECTCOM}(RFLAG:コマンド結果受渡し変数２)
+	ELSEIF SELECTCOM == 414
+		;写真撮影は対象がTARGETじゃないことがあるので別枠で設定
+		IF RFLAG:コマンド結果受渡し変数３ == 3
+			TRYCALLFORM KOJO_COM_{NO:(RFLAG:コマンド結果受渡し変数２)}_{SELECTCOM}(RFLAG:コマンド結果受渡し変数２)
+		ELSE
+			TRYCALLFORM KOJO_COM_{NO:TARGET}_{SELECTCOM}(TARGET)
+		ENDIF
+	ELSE
+		TRYCALLFORM KOJO_COM_{NO:TARGET}_{SELECTCOM}(TARGET)
+		IF GETBIT(FLAG:モード管理, モードビット_同時)
+			呼び出し文字列 = {SELECTCOM}
+		ENDIF
+	ENDIF
+ENDIF
+
+SKIPDISP 0
+SIF KSTR:0 == "" && WSTR:0 == "" && NSTR:0 == "" && WNSTR:0 == "" 
+	LOCAL:1 = 1
+
+
+IF SELECTCOM == 210
+	;呼び出される側の口上を呼ぶ
+	FOR LOCAL, 0, 500
+		SIF 呼び出し対象:LOCAL < 1
+			CONTINUE
+		DRAWLINE
+		PRINTFORML %CALLNAME:(呼び出し対象:LOCAL)%が来た
+		CALL 口上変数初期化
+		TRYCALLFORM KOJO_COM_{NO:(呼び出し対象:LOCAL)}_{SELECTCOM}_非対象側(呼び出し対象:LOCAL)
+	NEXT
+ENDIF
+
+IF GETBIT(FLAG:モード管理, モードビット_同時) && TFLAG:オートコマンドフラグ == 0
+	;同時モード時は全員喋らせる
+	FOR LOCAL, 0, 同時モード_選択数
+		SIF 同時モード_選択キャラ:LOCAL == TARGET
+			CONTINUE
+		DRAWLINE
+		対象キャラ = 同時モード_選択キャラ:LOCAL
+		IF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == -1
+			CALL 汎用喘ぎ処理(対象キャラ)
+		ELSEIF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == 1
+			;禁止時はなにもしない
+		ELSE
+			IF TALENT:対象キャラ:性別 == 2
+				SIF GETBIT(OPTION変数:汎用喘ぎ使用_男, 0) && GETBIT(OPTION変数:汎用喘ぎ使用_男, 1)
+					CALL 汎用喘ぎ処理(対象キャラ)
+			ELSE
+				SIF GETBIT(OPTION変数:汎用喘ぎ使用, 0) && GETBIT(OPTION変数:汎用喘ぎ使用, 1)
+					CALL 汎用喘ぎ処理(対象キャラ)
+			ENDIF
+		ENDIF
+		SIF TCVAR:対象キャラ:食いしばりフラグ
+			CONTINUE
+		SIF CFLAG:対象キャラ:体力限界
+			CONTINUE
+		TRYCALLFORM KOJO_COM_{NO:対象キャラ}_%呼び出し文字列%(対象キャラ)
+		PRINTL
+		IF KSTR:0 == "" && WSTR:0 == "" && NSTR:0 == "" && WNSTR:0 == ""
+		ELSE
+			LOCAL:1 = 0
+		ENDIF
+	NEXT
+ENDIF
+呼び出し文字列 = 
+
+
+IF LOCAL:1 == 1
+	;通常口上も複数人プレイ口上も無かった場合、非口上メッセージを出す
+	;口上なしで汎用喘ぎを使うならここで表示
+	IF TFLAG:オートコマンドフラグ && AUTOCOM_対象番号保存 != MASTER && AUTOCOM_対象番号保存 >= 0
+		対象キャラ = AUTOCOM_対象番号保存
+	ELSE
+		対象キャラ = TARGET
+	ENDIF
+	IF CFLAG:対象キャラ:汎用喘ぎ禁止フラグ == 1
+		;禁止時はなにもしない
+	ELSEIF TFLAG:オートコマンドフラグ == 0 || (TFLAG:オートコマンドフラグ && AUTOCOM_対象番号保存 != MASTER && AUTOCOM_対象番号保存 >= 0)
+		IF TALENT:対象キャラ:性別 == 2
+			SIF GETBIT(OPTION変数:汎用喘ぎ使用_男, 0) && GETBIT(OPTION変数:汎用喘ぎ使用_男, 1) == 0
+				CALL 汎用喘ぎ処理(対象キャラ)
+		ELSE
+			SIF GETBIT(OPTION変数:汎用喘ぎ使用, 0) && GETBIT(OPTION変数:汎用喘ぎ使用, 1) == 0
+				CALL 汎用喘ぎ処理(対象キャラ)
+		ENDIF
+	ENDIF
+	IF CFLAG:対象キャラ:体力限界
+		CALL TRAIN_MESSAGE_体力限界時(対象キャラ)
+	ELSEIF TCVAR:対象キャラ:食いしばりフラグ == 0
+		CALL TRAIN_MESSAGE_非口上時
+	ENDIF
+ENDIF
+
+IF 自慰ターゲット保存 > -1
+	TARGET = TFLAG:TARGET保存用
+ENDIF
+
+
+;-------------------------------------------------
+;@KOJO_ORGASM_射精
+;キャラの射精時口上
+;-------------------------------------------------
+@KOJO_ORGASM_射精(対象キャラ)
+#DIM 対象キャラ
+VARSET LOCAL
+IF FLAG:口上表示切り替えオプション <= 0
+	RETURN 0
+ENDIF
+IF CFLAG:対象キャラ:体力限界
+	RETURN 0
+ENDIF
+
+TRYCALLFORM KOJO_ORGASM_射精_{NO:対象キャラ}(対象キャラ)
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG関係
+;パラメータ変動をトリガーにした口上
+;パラメータ変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_ORGASM_絶頂(対象キャラ)
+#DIM 対象キャラ
+VARSET LOCAL
+IF FLAG:汎用文章表示切り替えオプション > 0
+	CALL PALAM_MESSAGE_通常絶頂(対象キャラ)
+	PRINTL
+ENDIF
+IF FLAG:口上表示切り替えオプション <= 0
+	RETURN 0
+ENDIF
+
+;ボールギャグ
+; IF TEQUIP:ボールギャグ && SELECTCOM != 106
+; 	TRYCALLFORM KOJO_COM_BALLGAG_K{NO:TARGET}
+;SELECTCOM
+; ELSE
+	;取得ソースなどで絶頂を分岐させる予定だけど上手い手段が思いつかないので一旦封印
+	
+	; IF TFLAG:露出コマンドフラグ
+	; 	TRYCALLFORM KOJO_ORGASM_露出絶頂_{NO:TARGET}(TARGET)
+	; ELSEIF TFLAG:苦痛コマンドフラグ
+	; 	TRYCALLFORM KOJO_ORGASM_苦痛絶頂_{NO:TARGET}(TARGET)
+	; ELSEIF TFLAG:嗜虐コマンドフラグ
+	; 	TRYCALLFORM KOJO_ORGASM_嗜虐絶頂_{NO:TARGET}(TARGET)
+	; ELSEIF TFLAG:奉仕コマンドフラグ
+	; 	TRYCALLFORM KOJO_ORGASM_奉仕絶頂_{NO:TARGET}(TARGET)
+	; ELSEIF TFLAG:道具コマンドフラグ
+	; 	TRYCALLFORM KOJO_ORGASM_道具絶頂_{NO:TARGET}(TARGET)
+	; ELSE
+		IF MATCH(TARGET, 対象キャラ) && !CFLAG:対象キャラ:睡眠
+			TRYCALLFORM KOJO_ORGASM_通常絶頂_{NO:対象キャラ}(対象キャラ)
+		ENDIF
+	; ENDIF
+; ENDIF
+IF 対象キャラ == TARGET
+	CALL 挿入アニメ表示(対象キャラ, "_絶頂")
+ENDIF
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG関係
+;パラメータ変動をトリガーにした口上
+;パラメータ変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_D
+IF FLAG:汎用文章表示切り替えオプション > 0
+	CALL PALAM_MESSAGE_D
+	PRINTL
+ENDIF
+IF FLAG:口上表示切り替えオプション <= 0
+	RETURN 0
+ENDIF
+;-------------------------------------------------
+;@KOJO_MESSAGE_PALAMCNG関係
+;触手関連（未実装）
+;-------------------------------------------------
+@KOJO_MESSAGE_PALAMCNG_E
+IF FLAG:7 <= 0
+	SIF FLAG:6 > 0
+		CALL PALAM_MESSAGE_E
+	RETURN 0
+ENDIF
+RESULT = 0
+RESULTS =
+;口上の存在判定 and RESULTSに文字列代入
+TRYCALLFORM KOJO_K{NO:TARGET}
+IF !RESULT && FLAG:6 > 0
+	CALL PALAM_MESSAGE_E
+	RETURN 0
+ENDIF
+;ボールギャグ
+LOCALS = 
+TRYCALLFORM KOJO%RESULTS%_MESSAGE_PALAMCNG_E_K%LOCALS%{NO:TARGET}
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_MARKCNG関係
+;刻印変動をトリガーにした口上
+;刻印変動後に口上を発動します
+;-------------------------------------------------
+@KOJO_MESSAGE_MARKCNG
+IF FLAG:7 <= 0
+	SIF FLAG:6 > 0
+		CALL MARK_MESSAGE
+	RETURN 0
+ENDIF
+RESULT = 0
+RESULTS =
+;口上の存在判定 and RESULTSに文字列代入
+TRYCALLFORM KOJO_K{NO:TARGET}
+IF !RESULT && FLAG:6 > 0
+	CALL MARK_MESSAGE
+	RETURN 0
+ENDIF
+;ボールギャグ
+LOCALS = 
+TRYCALLFORM KOJO%RESULTS%_MESSAGE_MARKCNG_%LOCALS%K{NO:TARGET}
+
+;-------------------------------------------------
+;@KOJO_MESSAGE_ENDING関係
+;イベント時の口上、イベント開始時に出力します
+;-------------------------------------------------
+@KOJO_MESSAGE_ENDING
+TRYCALLFORM KOJO_MESSAGE_ENDING_K{NO:TARGET}
+
+;-------------------------------------------------
+;@KOJO_EVENT
+;イベント時の口上、イベント開始時に出力します
+;-------------------------------------------------
+@KOJO_EVENT(ARG,ARG:1,ARG:2,ARG:3)
+;ARG イベント番号(0=屋敷で遭遇した
+;ARG:1 口上主
+;ARG:2～口上に渡す引数
+LOCAL = TARGET
+TARGET = ARG:1
+IF FLAG:7 <= 0
+	TRYCALLFORM KOJO_EVENT_{NO:ARG}(ARG:2,ARG:3)
+	TARGET = LOCAL
+	RETURN 0
+ENDIF
+RESULT = 0
+RESULTS =
+TRYCALLFORM KOJO_K{NO:TARGET}
+IF !RESULT
+	TRYCALLFORM KOJO_EVENT_{NO:ARG}(ARG:2,ARG:3)
+	TARGET = LOCAL
+	RETURN 0
+ENDIF
+TRYCALLFORM KOJO%RESULTS%_EVENT_K{NO:TARGET}_{NO:ARG}(ARG:2,ARG:3)
+TARGET = LOCAL
+
+
+@コマンド実行時画像表示処理(対象キャラ, コマンド名)
+#DIM 対象キャラ
+#DIMS コマンド名
+#DIMS 画像文字列
+
+SIF GROUPMATCH(コマンド名, "性交渉をお願いする", "飲み会を始める") && !RFLAG:コマンド結果受渡し変数
+	コマンド名 = 失敗_%コマンド名%
+画像文字列 '= コマンド実行時画像名称変換処理(対象キャラ, コマンド名)
+
+IF 画像文字列 != ""
+	;プレイヤー側の場合対象キャラを入れ替え
+	IF STRCOUNT(画像文字列, "プレイヤー側_") > 0
+		対象キャラ = PLAYER
+		SIF 対象キャラ == TARGET
+			対象キャラ = TFLAG:TARGET保存用
+	ENDIF
+
+	IF STRCOUNT(画像文字列, "動画_") > 0
+		画像文字列 '= REPLACE(画像文字列, "動画_", "")
+		CALL PRINT_IMAGE_ANIMATION_GIF(画像文字列)
+	ELSE
+		SIF STRCOUNT(画像文字列, "コマンド実行時_") > 0
+			画像文字列 '= REPLACE(画像文字列, "コマンド実行時_", "")
+		CALL PRINT_STRL(@"IMAGEPATH_%CSTR:対象キャラ:画像フォルダ%/コマンド実行時_%画像文字列%")
+	ENDIF
+ENDIF
+
+@体力限界時画像表示処理(対象キャラ)
+#DIM 対象キャラ
+#DIMS FOLDER
+#DIMS PATRN
+#DIMS 妊娠用PATRN保存
+#DIM L_CNT
+#DIMS 画像配列保存, 2000
+
+SIF CSTR:対象キャラ:画像フォルダ == ""
+	CSTR:対象キャラ:画像フォルダ '= GET_RESOURCES_BASE_FOLDER(対象キャラ)
+
+PATRN '= CSTR:対象キャラ:表示グラフィックカテゴリ
+SIF PATRN == ""
+	PATRN = デフォルト
+
+妊娠用PATRN保存 = 
+IF TALENT:対象キャラ:妊娠 && PREGNANCY_SIZE(対象キャラ) >= 2
+	妊娠用PATRN保存 '= PATRN
+	PATRN '= "妊娠" + PATRN
+ENDIF
+
+$妊娠差分用_LOOP
+
+VARSET LOCAL
+VARSET 画像配列保存
+VARSET RESULTS
+
+FOLDER '= "resources/" + CSTR:対象キャラ:画像フォルダ
+LOCAL = ENUMFILES(FOLDER, "体力限界時_" + PATRN + "*.*")
+ARRAYCOPY "RESULTS", "画像配列保存"
+
+IF LOCAL < 1
+	VARSET RESULTS
+	;見つからなかったならダウン時の短冊を探す
+	IF 差分抽出(対象キャラ, "短冊_", PATRN, "ダウン")
+		画像配列保存:0 '= FOLDER + RESULTS
+		LOCAL = 1
+	ELSE
+		IF PATRN == "妊娠デフォルト"
+			;妊娠デフォルトが無いならデフォルトに戻してもういっかい
+			PATRN = デフォルト
+			;分岐用に一時保存にも入れておく
+			妊娠用PATRN保存 = デフォルト
+			GOTO 妊娠差分用_LOOP
+		ELSEIF STRCOUNT(PATRN, "妊娠") > 0
+			;着せ替えの妊娠差分がないなら戻して最初から
+			PATRN '= 妊娠用PATRN保存
+			妊娠用PATRN保存 = 
+			GOTO 妊娠差分用_LOOP
+		ELSE
+			IF TALENT:対象キャラ:妊娠 && PREGNANCY_SIZE(対象キャラ) >= 2 && 妊娠用PATRN保存 == ""
+				;妊娠しててPATRN保存が空っぽ = 現在衣装のグラが妊娠も通常も無いパターン
+				;なので通常妊娠画像を見に行く
+				PATRN = 妊娠デフォルト
+				GOTO 妊娠差分用_LOOP
+			ELSE
+				;なんにも見つからなかったなら表示しない
+				RETURN 0
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+L_CNT = RAND:LOCAL
+RESULTS '= 画像配列保存:L_CNT
+
+SUBSTRING RESULTS, 1 + STRLENS(FOLDER), -1
+REPLACE RESULTS, "\.png", ""
+REPLACE RESULTS, "\.webp", ""
+
+CALL PRINT_STRL(@"IMAGEPATH_%CSTR:対象キャラ:画像フォルダ%/%RESULTS%")
+
+RETURN 1

@@ -1,0 +1,1804 @@
+﻿;-------------------------------------------------
+;いわゆるROUND関数判定
+;ARG <= ARG:1 <= ARG:2ならば1を、そうでなければ0を返す
+;-------------------------------------------------
+@CHK_FOCUS(ARG, ARG:1, ARG:2)
+#FUNCTION
+;SIF CALC_FOCUS(ARG, ARG:1, ARG:2) != ARG:1
+;	RETURNF 0
+;RETURNF 1
+SIF INRANGE(ARG:1, ARG:0, ARG:2)
+	RETURNF 1
+SIF ARG > ARG:2
+	PRINT ARG:0 > ARG:2 エラー
+RETURNF 0
+;-------------------------------------------------
+;いわゆるROUND関数出力
+;-------------------------------------------------
+@CALC_FOCUS(ARG, ARG:1, ARG:2)
+#FUNCTION
+SIF ARG >= ARG:1
+	RETURNF ARG
+SIF ARG	:1 >= ARG:2
+	RETURNF ARG:2
+RETURNF ARG:1 
+
+;-------------------------------------------------
+;与えられた要素の0~ARG番目のうち、何番目が最大の数値か返す（同値なら番手が少ないほうが優先）
+;-------------------------------------------------
+@MAXFIND(ARG, 要素:0, 要素:1, 要素:2, 要素:3, 要素:4, 要素:5, 要素:6, 要素:7, 要素:8, 要素:9)
+#FUNCTION
+#DIM DYNAMIC 要素, 11
+SIF ARG < 0
+	RETURNF 0
+要素:10 = MAXARRAY(要素)
+FOR LOCAL, 0, ARG
+	SIF 要素:LOCAL == 要素:10
+		BREAK
+NEXT
+RETURNF LOCAL-1
+
+;-------------------------------------------------
+;与えられた要素の0~ARG番目のうちのうち、何番目が最小の数値か返す（同値なら番手が少ないほうが優先）
+;-------------------------------------------------
+@MINFIND(ARG, 要素:0, 要素:1, 要素:2, 要素:3, 要素:4, 要素:5, 要素:6, 要素:7, 要素:8, 要素:9)
+#FUNCTION
+#DIM DYNAMIC 要素, 11
+SIF ARG < 0
+	RETURNF 0
+要素:10 = MINARRAY(要素)
+FOR LOCAL, 0, ARG
+	SIF 要素:LOCAL == 要素:10
+		BREAK
+NEXT
+RETURNF LOCAL-1
+
+;-------------------------------------------------
+;ARGが、与えられた数値間のうちどの範囲に入るかを返す
+;(10, 1, 3, 100, 5, 15)とかだと先に3～100に反応して1を返す
+;-------------------------------------------------
+@RANGEFIND(ARG, 要素:0, 要素:1, 要素:2, 要素:3, 要素:4, 要素:5, 要素:6, 要素:7, 要素:8, 要素:9)
+#FUNCTION
+#DIM DYNAMIC 要素, 10
+FOR LOCAL, 0, 9
+	SIF INRANGE(ARG, 要素:LOCAL, 要素:(LOCAL+1))
+		BREAK
+NEXT
+RETURNF LOCAL-1
+
+;;;-------------------------------------------------
+;;;二項分布に従う確率で, 0から第一引数までの値を返す
+;;;第二引数は千倍した確率を表す（省略可能, 初期値は500） 高いと第一引数に近い値が出やすい
+;;;-------------------------------------------------
+@BINOMIAL_DIST(試行回数, 確率 = 500)
+#FUNCTION
+#DIM 試行回数
+#DIM 確率
+#DIM 総和
+総和 = 0
+FOR LOCAL, 0, 試行回数
+	総和 += (RAND:1000 < 確率)
+NEXT
+RETURNF 総和
+
+@滞在キャラ数算出関数(ARG = 0)
+#FUNCTION
+;モブ、ネームド観光客など全部ひっくるめた数の算出
+
+SELECTCASE ARG
+	CASE 0
+		;お金払って滞在中人数
+		RETURNF モブ観光客数 + 滞在キャラ数
+	CASE 1
+		;純粋にリゾートに存在する人数
+		LOCAL:1 = 0
+		FOR LOCAL, 1, CHARANUM
+			SIF CFLAG:LOCAL:滞在期間 > 0
+				LOCAL:1 += 1
+		NEXT
+		RETURNF LOCAL:1 + モブ観光客数
+	CASE 2
+		;雑務ゲージ用
+		;現在起きてる＋リゾートにいる人数
+		LOCAL:1 = 0
+		FOR LOCAL, 1, CHARANUM
+			SIF CFLAG:LOCAL:滞在期間 < 0
+				CONTINUE
+			SIF CFLAG:LOCAL:現在マップ種別 != 0
+				CONTINUE
+			SIF CFLAG:LOCAL:睡眠
+				CONTINUE
+			LOCAL:1 += 1
+		NEXT
+		;０時～７時はモブ寝てる
+		IF TIME > 420
+			LOCAL:1 += モブ観光客数
+		ENDIF
+		RETURNF LOCAL:1
+ENDSELECT
+
+@陥落チェック(ARG, 動作モード = 0)
+#FUNCTION
+#DIM 動作モード
+
+SIF ARG == MASTER
+	RETURNF 15
+
+LOCAL = 0
+
+;性的陥落
+IF GETBIT(動作モード, 0) || 動作モード == 0
+	SIF TALENT:ARG:恋慕
+		SETBIT LOCAL, 0
+	SIF TALENT:ARG:セフレ
+		SETBIT LOCAL, 1
+ENDIF
+
+;非エロ陥落
+IF GETBIT(動作モード, 1) || 動作モード == 0
+	SIF TALENT:ARG:非エロ陥落
+		SETBIT LOCAL, 2
+ENDIF
+
+;疑似恋慕
+IF GETBIT(動作モード, 1) || 動作モード == 0
+	SIF TALENT:ARG:疑似恋慕
+		SETBIT LOCAL, 3
+ENDIF
+
+RETURNF LOCAL
+
+@陥落チェック_性的(ARG)
+#FUNCTION
+;引数を渡すだけ
+RETURNF 陥落チェック(ARG, 1p0)
+
+@陥落チェック_非性的(ARG)
+#FUNCTION
+;引数を渡すだけ
+RETURNF 陥落チェック(ARG, 1p1)
+
+@陥落チェック_性的＋疑似恋慕(ARG)
+#FUNCTION
+RETURNF 陥落チェック(ARG, 0) & 0b1011
+
+@陥落チェック_恋慕系(ARG)
+#FUNCTION
+RETURNF 陥落チェック(ARG, 0) & 0b1001
+
+
+@恋慕ありチェック(ARG)
+#FUNCTION
+
+IF TALENT:ARG:恋慕
+	RETURNF 1
+ELSEIF TALENT:ARG:疑似恋慕
+	RETURNF 1
+ELSEIF DT_SELECT("関係性データベース", @"(対象キャラ１ = {CFLAG:ARG:人物番号} Or 対象キャラ２ = {CFLAG:ARG:人物番号}) And 関係性種別 = '恋慕'")
+	RETURNF 1
+ENDIF
+
+RETURNF 0
+
+@セフレありチェック(ARG)
+#FUNCTION
+
+IF TALENT:ARG:セフレ
+	RETURNF 1
+ELSEIF TALENT:ARG:セフレあり
+	RETURNF 1
+ELSEIF DT_SELECT("関係性データベース", @"(対象キャラ１ = {CFLAG:ARG:人物番号} Or 対象キャラ２ = {CFLAG:ARG:人物番号}) And 関係性種別 = 'セフレ'")
+	RETURNF 1
+ENDIF
+
+RETURNF 0
+
+
+@従業員人数チェック()
+
+従業員人数 = 0
+FOR LOCAL,1,CHARANUM
+	IF TALENT:LOCAL:従業員
+		従業員人数 += 1
+	ENDIF
+NEXT
+
+RETURN 従業員人数
+
+@ユニーク客人数チェック()
+
+滞在キャラ数 = 0
+FOR LOCAL,1,CHARANUM
+	SIF CFLAG:LOCAL:滞在期間 < 1
+		CONTINUE
+	SIF TALENT:LOCAL:従業員
+		CONTINUE
+	SIF TALENT:LOCAL:定住者
+		CONTINUE
+	滞在キャラ数 += 1
+NEXT
+滞在キャラ数 += FLAG:滞在キャラ枠先確保分
+
+RETURN 滞在キャラ数
+
+
+
+@ドロップ判定処理(ドロップ確率, 入手アイテム名)
+#DIM ドロップ確率
+#DIMS 入手アイテム名
+#DIM データベース行数
+#DIMS 入手アイテム種別
+
+入手アイテム種別 = 
+FOR COUNT, 0, DT_ROW_LENGTH("所持素材データベース")
+	IF DT_CELL_GETS("所持素材データベース", COUNT, "素材アイテム名") == 入手アイテム名
+		入手アイテム種別 = 素材
+		BREAK
+	ENDIF
+NEXT
+IF 入手アイテム種別 == ""
+	ENUMFUNCBEGINSWITH @"アイテム個別文章表示_%入手アイテム名%"
+	IF RESULT > 0
+		入手アイテム種別 = 探索アイテム
+	ENDIF
+ENDIF
+IF 入手アイテム種別 == ""
+	ENUMFUNCBEGINSWITH @"指輪ステータス決定_%入手アイテム名%"
+	IF RESULT > 0
+		入手アイテム種別 = 指輪
+	ENDIF
+ENDIF
+IF 入手アイテム種別 == ""
+	ENUMFUNCBEGINSWITH @"耳飾りステータス決定_%入手アイテム名%"
+	IF RESULT > 0
+		入手アイテム種別 = 耳飾り
+	ENDIF
+ENDIF
+;他、必要な種別があればここに増やしていく
+
+IF 入手アイテム種別 == ""
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL アイテム名が不正です。制作者に連絡してください。
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL
+	FORCEWAIT
+ENDIF
+
+LOCAL = RAND:100
+
+IF 確定ドロップフラグ
+	LOCAL = 0
+ENDIF
+
+IF LOCAL < ドロップ確率
+	IF ダンジョン表示モード != ""
+		;ダンジョン内、っていうか戦闘中ドロップ表示
+		WSTR:(K++) = %入手アイテム名%を手に入れた！
+	ELSE
+		;非戦闘中、つまり自動探索ドロップ
+		IF MAP_HAS("自動探索ドロップ", 入手アイテム名)
+			MAP_SET "自動探索ドロップ", 入手アイテム名, @"{TOINT(MAP_GET("自動探索ドロップ", 入手アイテム名)) + 1}"
+		ELSE
+			MAP_SET "自動探索ドロップ", 入手アイテム名, "1"
+		ENDIF
+	ENDIF
+	SELECTCASE 入手アイテム種別
+		CASE "素材"
+			CALL 素材入手処理(入手アイテム名, 1)
+		CASE "探索アイテム"
+			CALL アイテム増減汎用処理(入手アイテム名, 1)
+		CASE "指輪"
+			CALL 汎用指輪取得処理(入手アイテム名, ドロップ質の良さ)
+		CASE "耳飾り"
+			CALL 汎用耳飾り取得処理(入手アイテム名)
+	ENDSELECT
+ENDIF
+ドロップ質の良さ = 0
+
+@素材入手処理(入手アイテム名, 入手数 = 1, 累計入手無効フラグ = 0)
+#DIMS 入手アイテム名
+#DIM 入手数
+#DIM 累計入手無効フラグ
+
+VARSET LOCAL
+FOR COUNT, 0, DT_ROW_LENGTH("所持素材データベース")
+	IF DT_CELL_GETS("所持素材データベース", COUNT, "素材アイテム名") == 入手アイテム名
+		DT_CELL_SET "所持素材データベース", COUNT, "所持素材数", DT_CELL_GET("所持素材データベース", COUNT, "所持素材数") + 入手数
+		IF 累計入手無効フラグ == 0
+			;無効でない限り、累計入手素材数を計上
+			DT_CELL_SET "所持素材データベース", COUNT, "累計入手素材数", DT_CELL_GET("所持素材データベース", COUNT, "累計入手素材数") + 入手数
+		ENDIF
+		RETURN 0
+	ENDIF
+NEXT
+PRINTL
+PRINTL
+PRINTL
+PRINTL
+PRINTFORML アイテム名（%入手アイテム名%）が不正です。制作者に連絡してください。
+PRINTL
+PRINTL
+PRINTL
+PRINTL
+RETURN -1
+
+@素材消費処理(消費アイテム名, 消費数 = 1)
+#DIMS 消費アイテム名
+#DIM 消費数
+
+VARSET LOCAL
+FOR COUNT, 0, DT_ROW_LENGTH("所持素材データベース")
+	IF DT_CELL_GETS("所持素材データベース", COUNT, "素材アイテム名") == 消費アイテム名
+		LOCAL:1 = 1
+		LOCAL = COUNT
+		BREAK
+	ENDIF
+NEXT
+IF LOCAL:1
+	LOCAL:1 = MAX(0, DT_CELL_GET("所持素材データベース", LOCAL, "所持素材数") - 消費数)
+	DT_CELL_SET "所持素材データベース", LOCAL, "所持素材数", LOCAL:1
+ELSE
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL アイテム名が不正です。制作者に連絡してください。
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL
+ENDIF
+
+@素材アイテム_数値データ取得(取得データ名, 判定アイテム名)
+#FUNCTION
+#DIMS 取得データ名
+#DIMS 判定アイテム名
+
+VARSET LOCAL
+FOR COUNT, 0, DT_ROW_LENGTH("所持素材データベース")
+	IF DT_CELL_GETS("所持素材データベース", COUNT, "素材アイテム名") == 判定アイテム名
+		LOCAL:1 = 1
+		BREAK
+	ENDIF
+NEXT
+IF LOCAL:1
+	RETURNF DT_CELL_GET("所持素材データベース", COUNT - 1, 取得データ名)
+ELSE
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL アイテム名が不正です。制作者に連絡してください。
+	PRINTL
+	PRINTL
+	PRINTL
+ENDIF
+
+@素材アイテム_文字列データ取得(取得データ名, 判定アイテム名)
+#FUNCTIONS
+#DIMS 取得データ名
+#DIMS 判定アイテム名
+
+VARSET LOCAL
+FOR COUNT, 0, DT_ROW_LENGTH("所持素材データベース")
+	IF DT_CELL_GETS("所持素材データベース", COUNT, "素材アイテム名") == 判定アイテム名
+		LOCAL:1 = 1
+		BREAK
+	ENDIF
+NEXT
+IF LOCAL:1
+	RETURNF DT_CELL_GETS("所持素材データベース", COUNT - 1, 取得データ名)
+ELSE
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL
+	PRINTL アイテム名が不正です。制作者に連絡してください。
+	PRINTL
+	PRINTL
+	PRINTL
+ENDIF
+
+;-------------------------------------------------
+;時刻をもらって時間(hour)の文字列を返す式中関数
+;IS_HALFが0の場合, 0時間以上9時間以下の場合は全角, 10時間以上の場合は半角で返す
+;IS_HALFが非0の場合, 半角で返す
+;例: CONVERT_HOURS(599) = ９, CONVERT_HOURS(600) = 10
+;-------------------------------------------------
+@CONVERT_HOURS(MINITES, IS_HALF = 0)
+#FUNCTIONS
+#DIM MINITES
+#DIM IS_HALF
+#DIM HOURS
+HOURS = MINITES/60
+RETURNF ((0 <= HOURS && HOURS <= 9) || IS_HALF) ? TOFULL(TOSTR(HOURS)) # TOSTR(HOURS)
+
+;-------------------------------------------------
+;ARG番のキャラに男性器があるかどうかを返す関数
+;-------------------------------------------------
+@HAS_PENIS(ARG)
+#FUNCTION
+RETURNF GETBIT(TALENT:ARG:性別, 1)
+
+;-------------------------------------------------
+;ARG番のキャラに女性器があるかどうかを返す関数
+;-------------------------------------------------
+@HAS_VAGINA(ARG)
+#FUNCTION
+RETURNF GETBIT(TALENT:ARG:性別, 0)
+
+;-------------------------------------------------
+;ARG番のキャラに睾丸があるかどうかを返す関数
+;ふたなりの場合はOPTIONや個別設定に依存する 現状は両方が未設定の場合は玉なしとして扱う
+;-------------------------------------------------
+@HAS_TESTICLES(ARG)
+#FUNCTION
+{
+	RETURNF IS_MALE(ARG) || (HAS_PENIS(ARG) &&
+	(OPTION変数:ふたなり玉設定 == 2 || フレーバー素質:ARG:ふたなり時_玉ありなし == フレーバー素質_ふたなり時_玉あり))
+}
+;-------------------------------------------------
+;ARG番のキャラがベースとして男扱いなら1を返す関数
+;-------------------------------------------------
+@IS_MALE(ARG)
+#FUNCTION
+RETURNF !IS_FEMALE(ARG)
+
+;-------------------------------------------------
+;ARG番のキャラがベースとして女扱いなら1を返す関数
+;-------------------------------------------------
+@IS_FEMALE(ARG)
+#FUNCTION
+RETURNF HAS_VAGINA(ARG)
+
+;-------------------------------------------------
+;利用する施設の性別を返す関数
+;女性施設は１，男性施設は２を返す
+;-------------------------------------------------
+@施設利用性別(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+
+RFLAG:利用性別 = 0
+TRYCALLFORMF 施設利用性別登録_{NO:対象キャラ}(対象キャラ)
+SIF RFLAG:利用性別
+	RETURNF RFLAG:利用性別
+
+;男は男、それ以外は全部女性側がデフォルト
+IF TALENT:対象キャラ:性別 == 2
+	RETURNF 2
+ELSE
+	RETURNF 1
+ENDIF
+
+
+;-------------------------------------------------
+;ARG番のキャラとARG:1番のキャラが同じ部屋/空間にいるなら1を返す関数
+;-------------------------------------------------
+@IS_SAME_ROOM(ARG, ARG:1 = -1)
+#FUNCTION
+SIF ARG:1 == -1
+	ARG:1 = PLAYER
+RETURNF CFLAG:ARG:現在位置 == CFLAG:(ARG:1):現在位置 && CFLAG:ARG:現在マップ種別 == CFLAG:(ARG:1):現在マップ種別
+
+;-------------------------------------------------
+;判定キャラたちがPLAYERと同じ空間にいて、かつうふふ状態の人数を返す
+;-------------------------------------------------
+@GROUPうふふMATCH_SAMEROOM(対象キャラ:0 = -1, 対象キャラ:1 = -1, 対象キャラ:2 = -1, 対象キャラ:3 = -1, 対象キャラ:4 = -1, 対象キャラ:5 = -1, 対象キャラ:6 = -1, 対象キャラ:7 = -1, 対象キャラ:8 = -1, 対象キャラ:9 = -1)
+#FUNCTION
+#DIM 対象キャラ, 10
+#DIM 人数記録
+
+人数記録 = 0
+FOR LOCAL, 0, 10
+	SIF 対象キャラ:LOCAL < 0
+		CONTINUE
+	SIF CFLAG:(対象キャラ:LOCAL):現在位置 != CFLAG:PLAYER:現在位置
+		CONTINUE
+	SIF CFLAG:(対象キャラ:LOCAL):現在マップ種別 != CFLAG:PLAYER:現在マップ種別
+		CONTINUE
+	SIF !CFLAG:(対象キャラ:LOCAL):うふふ
+		CONTINUE
+	人数記録 ++
+NEXT
+
+RETURNF 人数記録
+
+
+;-------------------------------------------------
+;ARG番のキャラに性感帯が存在するかどうかを返す関数
+;部位_Ｃ, 部位_Ｖ, 部位_Ａ, 部位_Ｂのいずれかが存在すれば1, いずれも存在しないならば0を返す
+;部位_Ｓについては判定しない
+;-------------------------------------------------
+@HAS_EROGENOUS_ZONE(ARG)
+#FUNCTION
+RETURNF !(MAX(TALENT:ARG:Ｂ感度, TALENT:ARG:Ａ感度, TALENT:ARG:Ｃ感度, TALENT:ARG:Ｖ感度) == -2)
+
+;-------------------------------------------------
+;部位をARG番のキャラの感度と敏感で重み付けてランダムに返す関数
+;現状では使いづらいので部位_Ｓは返さない
+;IS_MALE(ARG)の時は部位_Ｖは返さない
+;Ｖ,Ａ未経験の時はそれぞれ部位_Ｖと部位_Ａは返さない
+;例外として, ＣＢ性感帯が存在しないかつＶＡ未経験の場合, 性感帯が全く存在しない場合など
+;返すべき部位が存在しないときは-1を返す
+;-------------------------------------------------
+@WEIGHTED_RANDOM_PART(ARG)
+#FUNCTION
+#DIM 部位嗜好, 4
+#DIM 総和
+#DIM 選好
+#DIM 部位
+
+;性感帯が全く無い場合は-1を返す
+SIF !HAS_EROGENOUS_ZONE(ARG)
+	RETURNF -1
+
+VARSET 部位嗜好 ;原則正の値, 選ばれてはいけない(存在しない, 経験がない)場合のみ0
+VARSET 総和
+VARSET 選好
+
+FOR 部位, 0, 4
+	;鈍感がなければ各部位の嗜好値は3スタート
+	;感覚がすべて0だと鈍感部位の選択率は1/3で敏感部位の選択率は2倍
+	;感覚がすべて3だと鈍感部位の選択率は1/2で敏感部位の選択率は1.5倍と鈍感敏感の影響が減っていく
+	部位嗜好:部位 = MAX(1, 3 + ABL:ARG:部位 + TALENT:ARG:(部位 + 部位感度)*3)
+	SIF TALENT:ARG:(部位 + 部位感度) == -2
+		部位嗜好:部位 = 0
+	総和 += 部位嗜好:部位
+NEXT
+
+IF !EXP:ARG:Ｖ経験 || IS_MALE(ARG)
+	総和 -= 部位嗜好:部位_Ｖ
+	部位嗜好:部位_Ｖ = 0
+ENDIF
+IF !EXP:ARG:Ａ経験 || (TALENT:ARG:性別 == 2 && OPTION変数:男性への愛撫禁止)
+	総和 -= 部位嗜好:部位_Ａ
+	部位嗜好:部位_Ａ = 0
+ENDIF
+IF TALENT:ARG:性別 == 2 && OPTION変数:男性への愛撫禁止
+	総和 -= 部位嗜好:部位_Ｂ
+	部位嗜好:部位_Ｂ = 0
+ENDIF
+
+
+;返してもよい部位が存在しないときのみ総和が0になる
+SIF 総和 == 0
+	RETURNF -1
+
+選好 = RAND(総和) + 1
+FOR 部位, 0, 4
+	SIF !部位嗜好:部位
+		CONTINUE
+
+	総和 -= 部位嗜好:部位
+	IF 選好 >= 総和
+		RETURNF 部位
+	ENDIF
+NEXT
+
+;-------------------------------------------------
+;ARGS中の、最初のARGS:1の後ろをARG:2文字あけた文字列を返す関数
+;-------------------------------------------------
+@ADD_STR_SPACE(ARGS, ARGS:1, ARG:2 = 1)
+#FUNCTIONS
+
+LOCAL = STRFIND(ARGS, ARGS:1) 
+IF LOCAL > 0
+	LOCALS = %SUBSTRING(ARGS, 0, LOCAL + 1), LOCAL + 1 + ARG:2,LEFT%
+	LOCALS += @"%SUBSTRING(ARGS, 1 + LOCAL, STRLENS(ARGS))%"
+	RETURNF LOCALS
+ENDIF
+
+RETURNF ARGS
+
+@料理セット判定(ARGS)
+#FUNCTION
+
+FOR LOCAL, 1, 6
+	SIF DT_CELL_GETS("料理メニューデータベース",  現在設定メニュー:LOCAL, "メニュー名", 1) == ARGS
+		RETURNF 1
+NEXT
+
+RETURNF 0
+
+
+@DB_idから行数取得(データベース名, id番号)
+#FUNCTION
+#DIMS データベース名
+#DIM id番号
+
+FOR LOCAL, 0, DT_ROW_LENGTH(データベース名)
+	IF DT_CELL_GET(データベース名, LOCAL, "id") == id番号
+		RETURNF LOCAL
+	ENDIF
+NEXT
+
+@恋慕_恋心比較(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+#DIM 恋心_好感度レベル
+
+FOR 恋心_好感度レベル, 0, 100
+	IF 経験値テーブル:恋心_好感度レベル >= CFLAG:対象キャラ:恋心度
+		BREAK
+	ENDIF
+NEXT
+
+RETURNF MAX(CFLAG:対象キャラ:恋慕レベル, 恋心_好感度レベル)
+
+@恋慕_性愛比較(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+#DIM 性愛_好感度レベル
+
+FOR 性愛_好感度レベル, 0, 100
+	IF 経験値テーブル:性愛_好感度レベル >= CFLAG:対象キャラ:性愛度
+		BREAK
+	ENDIF
+NEXT
+
+RETURNF MAX(CFLAG:対象キャラ:恋慕レベル, 性愛_好感度レベル)
+
+@うふふ開始キャラ処理(対象キャラ, シチュ記録 = "", 場所登録 = "")
+#DIM 対象キャラ
+#DIMS シチュ記録
+#DIMS 場所登録
+;MASTER相手なので相手キャラは取らない
+
+;初回フラグに記録
+IF STRFIND(CSTR:対象キャラ:衣装初回_着用うふふ, @"_%CSTR:対象キャラ:着せ替え服%_") < 0
+	SIF CSTR:対象キャラ:衣装初回_着用うふふ == ""
+		CSTR:対象キャラ:衣装初回_着用うふふ = _
+	CSTR:対象キャラ:衣装初回_着用うふふ += @"%CSTR:対象キャラ:着せ替え服%_"
+ENDIF
+
+CFLAG:対象キャラ:うふふ = 1
+CSTR:対象キャラ:うふふシチュ記録 '= シチュ記録
+
+IF 場所登録 == ""
+	場所登録 '= GETPLACENAME(CFLAG:MASTER:現在マップ種別, CFLAG:MASTER:現在位置)
+ENDIF
+
+CALL 初体験日登録処理(対象キャラ, MASTER, "初うふふ", DAY * 1440 + TIME, 場所登録, シチュ記録, "", 1)
+CALL 初体験日登録処理(対象キャラ, MASTER, "うふふ", DAY * 1440 + TIME, 場所登録, シチュ記録, "", 0)
+IF RESULT
+	CALL 履歴データベース登録(CFLAG:対象キャラ:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>初めて%CALLNAME:MASTER%とえっちをした</font><img src='えっちハート'>","うふふ")
+	TCVAR:対象キャラ:初うふふフラグ = 1
+ENDIF
+CALL 初体験日登録処理(MASTER, 対象キャラ, "初うふふ", DAY * 1440 + TIME, 場所登録, シチュ記録, "", 1)
+CALL 初体験日登録処理(MASTER, 対象キャラ, "うふふ", DAY * 1440 + TIME, 場所登録, シチュ記録, "", 0)
+IF RESULT
+	CALL 履歴データベース登録(CFLAG:MASTER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>初めて%CALLNAME:対象キャラ%とえっちをした</font><img src='えっちハート'>","うふふ")
+ENDIF
+
+あなた追跡キャラ = 0
+
+;非うふふ中専用のサイド領域だった場合変更する
+IF サイド描画表示種類 == "クイック触れ合い"
+	サイド描画表示種類 = クイック自慰
+ENDIF
+
+@うふふ終了処理(終了原因 = "")
+#DIM EXP番号
+#DIM TALENT番号
+#DIM 分身並べ替え基準, 5
+#DIM 時間保存
+#DIMS 終了原因
+
+FOR LOCAL, 1, CHARANUM
+	SIF TARGET:LOCAL < 1
+		BREAK
+	IF TCVAR:(TARGET:LOCAL):食いしばりフラグ > 1
+		;食いしばり時にうふふ終了すると、即座に体力限界に移行させる
+		PRINTFORML （%CALLNAME:(TARGET:LOCAL)%の体力が限界に来ています）
+		;限界口上
+		TRYCALLFORM KOJO_EVENT_うふふ体力限界_{NO:(TARGET:LOCAL)}(TARGET:LOCAL)
+		FORCEWAIT
+
+		;うふふ時間で履歴登録
+		時間保存 = (TIME + 1440 * DAY) - CFLAG:(TARGET:LOCAL):うふふ開始時間記録
+		IF 時間保存 > 300 && CFLAG:(TARGET:LOCAL):うふふ開始時間記録 > 0
+			CALL 履歴データベース登録(CFLAG:MASTER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%CALLNAME:(TARGET:LOCAL)%と%TOFULL(TOSTR(時間保存 / 60))%時間%TOFULL(TOSTR(時間保存 % 60))%分えっちした</font><img src='えっちハート'>","うふふ")
+			CALL 履歴データベース登録(CFLAG:(TARGET:LOCAL):人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%CALLNAME:MASTER%と%TOFULL(TOSTR(時間保存 / 60))%時間%TOFULL(TOSTR(時間保存 % 60))%分えっちした</font><img src='えっちハート'>","うふふ")
+		ENDIF
+		
+		;その他変数セット
+		IF CFLAG:(TARGET:LOCAL):デート == MASTER + 100
+			CALL デート採点処理(TARGET:LOCAL)
+		ENDIF
+		TCVAR:(TARGET:LOCAL):食いしばりフラグ = 0
+		CFLAG:(TARGET:LOCAL):体力限界 = 1
+		EXP:(TARGET:LOCAL):ダウン経験 += 1
+		;経験取得表示スキップ用
+		TCVAR:(TARGET:LOCAL):436 = EXP:(TARGET:LOCAL):ダウン経験
+	ELSEIF CFLAG:(TARGET:LOCAL):うふふ
+		;うふふ終了口上
+		TRYCALLFORM KOJO_EVENT_うふふ終了_{NO:(TARGET:LOCAL)}(TARGET:LOCAL, 終了原因)
+
+		;うふふ時間で履歴登録
+		時間保存 = (TIME + 1440 * DAY) - CFLAG:(TARGET:LOCAL):うふふ開始時間記録
+		IF 時間保存 > 300 && CFLAG:(TARGET:LOCAL):うふふ開始時間記録 > 0
+			CALL 履歴データベース登録(CFLAG:MASTER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%CALLNAME:(TARGET:LOCAL)%と%TOFULL(TOSTR(時間保存 / 60))%時間%TOFULL(TOSTR(時間保存 % 60))%分えっちした</font><img src='えっちハート'>","うふふ")
+			CALL 履歴データベース登録(CFLAG:(TARGET:LOCAL):人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%CALLNAME:MASTER%と%TOFULL(TOSTR(時間保存 / 60))%時間%TOFULL(TOSTR(時間保存 % 60))%分えっちした</font><img src='えっちハート'>","うふふ")
+		ENDIF
+	ENDIF
+	CFLAG:(TARGET:LOCAL):うふふ = 0
+	TCVAR:(TARGET:LOCAL):ダウン後いたずら = 0
+	CFLAG:(TARGET:LOCAL):うふふ開始時間記録 = 0
+	CALL 性欲ゲージ減少処理(TARGET:LOCAL)
+	TCVAR:(TARGET:LOCAL):初うふふフラグ = 0
+	;モードもリセット
+	CALL 特定キャラモードリセット(TARGET:LOCAL)
+	IF CSTR:(TARGET:LOCAL):コスプレ前の服 != "" && !CFLAG:(TARGET:LOCAL):体力限界
+		CALL CLOTHES_RESET(TARGET:LOCAL)
+		CSTR:(TARGET:LOCAL):コスプレ前の服 '= ""
+	ENDIF
+	FOR TALENT番号, 206, 210
+		SIF TALENT:(TARGET:LOCAL):TALENT番号 == 2
+			TALENT:(TARGET:LOCAL):TALENT番号 = 0
+	NEXT
+	;体力限界時処理
+	IF CFLAG:(TARGET:LOCAL):体力限界
+		CALL CHARA_SLEEP, TARGET:LOCAL
+		CFLAG:(TARGET:LOCAL):飲み会 = 0
+	ENDIF
+
+	;改造箇所
+	IF TCVAR:(TARGET:LOCAL):泥酔眠姦 >= 1
+		TCVAR:(TARGET:LOCAL):泥酔眠姦 = 0
+		TCVAR:(TARGET:LOCAL):言いなり = 0
+		;TCVAR:(TARGET:LOCAL):日中睡眠 = 1
+		CFLAG:(TARGET:LOCAL):睡眠 = 1
+		CFLAG:(TARGET:LOCAL):酔いすぎ = 1
+		PRINTL
+		IF 終了原因 == "目撃される"
+			SAVESTR:ゲームフェイズ管理 = 通常モード
+		ELSE
+			PRINTFORM 酔い潰した%CALLNAME:(TARGET:LOCAL)%のカラダを%TEXTR("無断で/")%%TEXTR("存分に/満足するまで/こっそり")%%TEXTR("堪能し/味わい")%
+			IF TCVAR:(TARGET:LOCAL):膣内精液量 > 0
+				PRINTFORM つくし、彼女の
+				SIF あなた特殊能力:朔望鑑定術 >= 2 && RISKY_DAY((TARGET:LOCAL)) >= 1
+					PRINTFORM %TEXTR("危険日の/タマゴを抱えた/ちょうど孕み頃な")%
+				IF 知識素質:高貴 > 0
+					SELECTCASE RAND:2
+					CASE 0
+						PRINTFORM %TEXTR("ロイヤル/血統書付き")%%TEXTR("まんこ/子宮")%
+					CASE 1
+						PRINTFORM 血統書付き%TEXTR("赤ちゃんベッド/高級オナホール")%
+					ENDSELECT
+				ELSEIF TALENT:(TARGET:LOCAL):恋人持ち == 2 && TALENT:(TARGET:LOCAL):恋慕 != 2
+					PRINTFORM 人妻%TEXTR("まんこ/子宮")%
+				ELSEIF アイドル判定((TARGET:LOCAL))
+					SIF TALENT:(TARGET:LOCAL):年齢層 == 10 || (BASE:(TARGET:LOCAL):年齢 <= 14 && BASE:(TARGET:LOCAL):年齢 != 0)
+						PRINTFORM %TEXTR("ジュニア/ロリ/こども")%
+					PRINTFORM アイドル%TEXTR("まんこ/子宮")%
+				ELSEIF 十天衆判定((TARGET:LOCAL))
+					PRINTFORM 全空最%TEXTR("強/キツ")%%TEXTR("まんこ/ラブドール/オナホール")%のいちばん奥
+				ELSEIF TALENT:(TARGET:LOCAL):年齢層 == 10 || (BASE:(TARGET:LOCAL):年齢 <= 14 && BASE:(TARGET:LOCAL):年齢 != 0)
+					PRINTFORM %TEXTR("コドモ/未熟な")%%TEXTR("まんこ/子宮")%
+				ELSE
+					PRINTFORM %TEXTR("まんこ/子宮")%
+				ENDIF
+				SELECTCASE RAND:4
+				CASE 0
+					PRINTFORM にたっぷりと
+					IF TALENT:(TARGET:LOCAL):恋人持ち == 2 && TALENT:(TARGET:LOCAL):恋慕 != 2
+						PRINTFORM 伴侶への裏切りの証を%TEXTR("刻みつけて/注ぎ込んで")%
+					ELSEIF アイドル判定((TARGET:LOCAL))
+						PRINTFORM ファンへの裏切りの証を%TEXTR("刻みつけて/注ぎ込んで")%
+					ELSE
+						PRINTFORM 遺伝子を%TEXTR("くれて/注ぎ込んで")%
+					ENDIF
+				CASE 1
+					PRINTFORM に%TEXTR("たっぷりと種を植えつけて/たくさんの「思い出」を残して")%やった
+				CASE 2
+					PRINTFORM で%TEXTR("最高に気持ちいい/")%%TEXTR("無許可/無責任な")%孕ませ射精を楽しんだ
+				CASEELSE
+					PRINTFORM を%TEXTR("べっとりと/ドロドロの")%
+					IF TALENT:(TARGET:LOCAL):恋人持ち == 2 && TALENT:(TARGET:LOCAL):恋慕 != 2
+						PRINTFORM 托卵
+					ELSEIF アイドル判定((TARGET:LOCAL))
+						PRINTFORM 泥酔スキャンダル
+					ENDIF
+					PRINTFORM ザーメンで%TEXTR("マーキング/汚/穢/征服/所有宣言")%してやった
+				ENDSELECT
+				CALL 履歴データベース登録(CFLAG:(TARGET:LOCAL):人物番号, @"<font color='#%カラーパレット_HTML("赤ピンク")%'>酔い潰れているあいだに、%CALLNAME:PLAYER%の%TEXTR("精液/遺伝子")%をたっぷりと%TEXTR("お腹/子宮")%に%TEXTR("詰め込まれて/注ぎ込まれて/植えつけられて")%しまった……</font><img src='えっちハート'>","うふふ")
+			ELSE
+				PRINTFORM つくした
+			ENDIF
+			PRINTFORML %CALLNAME:PLAYER%は、
+			PRINTFORMW ぐったりと体を投げ出して寝息をたてはじめた%CALLNAME:(TARGET:LOCAL)%の体を丁寧に拭き、服を着せ、そっと布団をかけてやった……。
+			PRINTL
+		ENDIF
+	ELSEIF TFLAG:マッサージ_鬼灯の香使用時間 > 0 && TFLAG:マッサージ_鬼灯の香使用時間 + 20 < DAY * 1440 + TIME && CFLAG:MASTER:うふふ == 1
+	;マッサージ中にお香使って犯した場合。条件これでいいかは不明。他にいいのあったっけ？
+		IF 終了原因 == "目撃される"
+			SAVESTR:ゲームフェイズ管理 = 通常モード
+		ELSE
+			PRINTFORM 鬼灯の香で抵抗力を奪った%CALLNAME:(TARGET:LOCAL)%のカラダを%TEXTR("無断で/")%%TEXTR("存分に/満足するまで/こっそり")%%TEXTR("堪能し/味わい")%
+			IF TCVAR:(TARGET:LOCAL):膣内精液量 > 0
+				PRINTFORM つくし、彼女の
+				SIF あなた特殊能力:朔望鑑定術 >= 2 && RISKY_DAY((TARGET:LOCAL)) >= 1
+					PRINTFORM %TEXTR("危険日の/タマゴを抱えた/ちょうど孕み頃な")%
+				IF 知識素質:高貴 > 0
+					SELECTCASE RAND:2
+					CASE 0
+						PRINTFORM %TEXTR("ロイヤル/血統書付き")%%TEXTR("まんこ/子宮")%
+					CASE 1
+						PRINTFORM 血統書付き%TEXTR("赤ちゃんベッド/高級オナホール")%
+					ENDSELECT
+				ELSEIF TALENT:(TARGET:LOCAL):恋人持ち == 2 && TALENT:(TARGET:LOCAL):恋慕 != 2
+					PRINTFORM 人妻%TEXTR("まんこ/子宮")%
+				ELSEIF アイドル判定((TARGET:LOCAL))
+					SIF TALENT:(TARGET:LOCAL):年齢層 == 10 || (BASE:(TARGET:LOCAL):年齢 <= 14 && BASE:(TARGET:LOCAL):年齢 != 0)
+						PRINTFORM %TEXTR("ジュニア/ロリ/こども")%
+					PRINTFORM アイドル%TEXTR("まんこ/子宮")%
+				ELSEIF 十天衆判定((TARGET:LOCAL))
+					PRINTFORM 全空最%TEXTR("強/キツ")%%TEXTR("まんこ/ラブドール/オナホール")%のいちばん奥
+				ELSEIF TALENT:(TARGET:LOCAL):年齢層 == 10 || (BASE:(TARGET:LOCAL):年齢 <= 14 && BASE:(TARGET:LOCAL):年齢 != 0)
+					PRINTFORM %TEXTR("コドモ/未熟な")%%TEXTR("まんこ/子宮")%
+				ELSE
+					PRINTFORM %TEXTR("まんこ/子宮")%
+				ENDIF
+				SELECTCASE RAND:4
+				CASE 0
+					PRINTFORM にたっぷりと
+					IF TALENT:(TARGET:LOCAL):恋人持ち == 2 && TALENT:(TARGET:LOCAL):恋慕 != 2
+						PRINTFORM 伴侶への裏切りの証を%TEXTR("刻みつけて/注ぎ込んで")%
+					ELSEIF アイドル判定((TARGET:LOCAL))
+						PRINTFORM ファンへの裏切りの証を%TEXTR("刻みつけて/注ぎ込んで")%
+					ELSE
+						PRINTFORM 遺伝子を%TEXTR("くれて/注ぎ込んで")%
+					ENDIF
+				CASE 1
+					PRINTFORM に%TEXTR("たっぷりと種を植えつけて/たくさんの「思い出」を残して")%やった
+				CASE 2
+					PRINTFORM で%TEXTR("最高に気持ちいい/")%%TEXTR("無許可/無責任な")%孕ませ射精を楽しんだ
+				CASEELSE
+					PRINTFORM を%TEXTR("べっとりと/ドロドロの")%
+					IF TALENT:(TARGET:LOCAL):恋人持ち == 2 && TALENT:(TARGET:LOCAL):恋慕 != 2
+						PRINTFORM 托卵
+					ELSEIF アイドル判定((TARGET:LOCAL))
+						PRINTFORM スキャンダル
+					ENDIF
+					PRINTFORM ザーメンで%TEXTR("マーキング/汚/穢/征服/所有宣言")%してやった
+				ENDSELECT
+				CALL 履歴データベース登録(CFLAG:(TARGET:LOCAL):人物番号, @"<font color='#%カラーパレット_HTML("赤ピンク")%'>マッサージ中に媚香を嗅がされ、夢心地の中で%CALLNAME:PLAYER%の%TEXTR("精液/遺伝子")%をたっぷりと%TEXTR("お腹/子宮")%に%TEXTR("詰め込まれて/注ぎ込まれて/植えつけられて")%しまった……</font><img src='えっちハート'>","うふふ")
+			ELSE
+				PRINTFORM つくした
+			ENDIF
+			PRINTFORML %CALLNAME:PLAYER%は、
+			PRINTFORMW ぐったりと四肢を投げ出して余韻に体を%TEXTR("震わせる/ひくつかせる")%%CALLNAME:(TARGET:LOCAL)%の体を丁寧に拭き、施術着を着せて整えたのち、気付けの香を嗅がせてやった……。
+			PRINTL
+			PRINTL ────
+			PRINTL
+			PRINTFORM ややあって媚香の効果が抜けた%CALLNAME:(TARGET:LOCAL)%は、
+			IF TCVAR:(TARGET:LOCAL):膣内精液量 > 0
+				PRINTFORM %TEXTR("どっぷりと/べっとりと/ドロドロの/ギトギトの")%
+				SIF TALENT:(TARGET:LOCAL):恋人持ち == 2 && TALENT:(TARGET:LOCAL):恋慕 != 2 || TALENT:(TARGET:LOCAL):恋人持ち == 1
+					PRINTFORM %TEXTR("不貞/浮気")%
+				PRINTFORML %TEXTR("精液/精子/ザーメン")%%TEXTR("を注ぎ込まれ/を詰め込まれ/で穢されきっ/に汚されきっ/を溜め")%%TEXTR("て火照る/た")%%TEXTR("下腹/子宮のあたり")%%TEXTR("にわずかに違和感のあるそぶりをし/を不思議そうに撫でさすり")%ながらも、
+			ELSE
+				PRINTFORML 性感で火照った体を「マッサージのおかげで血行が良くなった」のだと思い込んで喜び、
+			ENDIF
+			PRINTFORMW %CALLNAME:PLAYER%が施術の終わりを告げると、%TEXTR("すごくよかった/気持ちよかった/また来る/次回使えるクーポン券を渡す")%と%TEXTR("嬉しそうに/笑顔で")%リピートを宣言した。
+			PRINTL
+			SELECTCASE RAND:7
+			;しらじらしいコメント
+			CASE 0
+				PRINTFORMW お客様に%TEXTR("喜んでもらえて/こんなに喜んでいただけるなんて")%、とっても嬉しい！
+			CASE 1
+				PRINTFORMW たっぷり%TEXTR("ハメて/犯して")%やったお客様に、こんな笑顔までいただけるなんて！%TEXTR("最高の仕事だ/まさに天職だなぁ/なんていい仕事なんだろう")%！
+			CASE 2
+				PRINTFORML まさかそのカラダを%TEXTR("奥の奥まで/隅々まで/こっそりと")%%CALLNAME:PLAYER%に%TEXTR("楽しまれ/堪能され/「使われ」")%てしまったなどとは思いもしてないだろう%CALLNAME:(TARGET:LOCAL)%の笑顔に、
+				PRINTFORMW %CALLNAME:PLAYER%からも思わず笑みがこぼれた。
+				;アイドルかつハメ撮り、みたいなやつ
+				;PRINTFORM まさかそのカラダを%TEXTR("奥の奥まで/隅々まで/こっそりと")%%CALLNAME:PLAYER%に%TEXTR("楽しまれ/堪能され/「使われ」")%、
+				;	PRINTFORM ファンには絶対に知られちゃいけないコトをされてしまったなどとはつゆほども知らない
+				;	PRINTFORM %TEXTR("ファンには絶対に見せられない/誰にも見せられない/流出でもしたらアイドルとして終わりの/彼女の世界の週刊誌にでも売れば凄まじい値になるだろう")%%TEXTR("あられもない/スキャンダル/スキャンダラスな/屈辱的な/恥辱にまみれた/")%%TEXTR("写真/映像/ハメ撮り/レイプ実録/強姦記録/ＡＶ")%をたっぷりと撮影されてしまったなどとはつゆほども知らない
+				;PRINTFORML %CALLNAME:(TARGET:LOCAL)%の笑顔に、
+				;PRINTFORMW %CALLNAME:PLAYER%からも思わず笑みがこぼれた。
+			CASE 3
+				PRINTFORMW %TEXTR("こっそり/無理やり/お香で消した記憶の裏側で/好き放題/ドロドロになるまで")%%TEXTR("レイプした/犯した/ハメ尽くした/強姦した")%相手%TEXTR("に/から")%、笑顔でお礼まで言われるなんて……%TEXTR("最高の仕事だ/まさに天職だなぁ/なんていい仕事なんだろう")%！
+			CASE 4
+				PRINTFORMW またのご来店を、お待ちしていますね！
+			CASE 5
+				PRINTFORML お客様の喜びが、%CALLNAME:PLAYER%に活力を与える。
+				PRINTFORMW この笑顔を再び見るために、次の来店でもまたこのカラダを%TEXTR("味わわせてもらうとしよう/たっぷり気持ちよくしてあげよう")%……
+			CASE 6
+				PRINTFORM 被害者意識の欠片もない%CALLNAME:(TARGET:LOCAL)%のリピート宣言は、
+				SELECTCASE RAND:2
+				CASE 0
+					PRINTFORM 「また%TEXTR("犯/レイプ")%%TEXTR("されに/してもらいに")%来ます
+				CASE 1
+					PRINTFORM 「次もまた、%TEXTR("このカラダでたっぷり楽しんでください/このカラダをあなたにお捧げします/たくさん乱暴してください/たくさん犯してください")%
+				ENDSELECT
+				CALL PRINT_STR(@"_H_」")
+				PRINTFORML という犯され宣言として%CALLNAME:PLAYER%の耳に届いた……
+				PRINTFORMW またのご来店を、お待ちしていますね！
+			ENDSELECT
+			PRINTL
+		ENDIF
+	ENDIF
+
+	;オートコマンド履歴をリセット
+	CSTR:(TARGET:LOCAL):オートコマンド履歴０ = 
+	CSTR:(TARGET:LOCAL):オートコマンド履歴１ = 
+	CSTR:(TARGET:LOCAL):オートコマンド履歴２ = 
+	CSTR:(TARGET:LOCAL):オートコマンド履歴３ = 
+	CSTR:(TARGET:LOCAL):オートコマンド履歴４ = 
+
+	;シチュリセット
+	CSTR:(TARGET:LOCAL):うふふシチュ記録 = 
+NEXT
+CFLAG:MASTER:うふふ = 0
+CSTR:MASTER:オートコマンド履歴０ = 
+CSTR:MASTER:オートコマンド履歴１ = 
+CSTR:MASTER:オートコマンド履歴２ = 
+CSTR:MASTER:オートコマンド履歴３ = 
+CSTR:MASTER:オートコマンド履歴４ = 
+連れ込みパターン = 
+FLAG:イベントうふふ終了 = 1
+
+;オートコマンドもリセット
+TFLAG:オートコマンドフラグ = 0
+AUTOCOM_実行番号保存 = -1
+AUTOCOM_対象番号保存 = -1
+自慰ターゲット保存 = -1
+CALL TURN_RESET
+
+;同時モードもリセット
+FLAG:モード管理 = 0
+PLAYER = MASTER
+同時モード_選択数 = 0
+VARSET 同時モード_選択キャラ, -1
+
+;うふふ中専用のサイド領域だった場合変更する
+IF サイド描画表示種類 == "クイック自慰"
+	サイド描画表示種類 = クイック触れ合い
+ENDIF
+
+;分身を消す
+;降順に並べないとDELでキャラ番号がズレるのでまずソート
+VARSET 分身並べ替え基準
+FOR LOCAL, 0, 分身最大数
+	分身並べ替え基準:LOCAL = 分身登録:LOCAL:0 * -1
+NEXT
+ARRAYMSORT 分身並べ替え基準, 分身登録, 分身EXP保存
+FOR LOCAL, 0, 分身最大数
+	SIF 分身登録:LOCAL:0 < 1
+		CONTINUE
+	FOR EXP番号, 0, 200
+		EXP:(分身登録:LOCAL:1):EXP番号 += EXP:(分身登録:LOCAL:0):EXP番号 - 分身EXP保存:LOCAL:EXP番号
+	NEXT
+	DELCHARA 分身登録:LOCAL:0
+NEXT
+VARSET 分身登録:0:0
+VARSET 分身EXP保存:0:0
+CALL SORT_CHARALIST()
+CALL TARGET_SET()
+
+@分身指定削除(対象キャラ)
+#DIM 対象キャラ
+#DIM 分身番号
+#DIM EXP番号
+
+SIF TALENT:対象キャラ:分身 < 1
+	RETURN -1
+
+FOR LOCAL, 0, 分身最大数
+	IF 分身登録:LOCAL:0 == 対象キャラ
+		分身番号 = LOCAL
+		BREAK
+	ENDIF
+NEXT
+
+FOR EXP番号, 0, 200
+	EXP:(分身登録:分身番号:1):EXP番号 += EXP:(分身登録:分身番号:0):EXP番号 - 分身EXP保存:分身番号:EXP番号
+NEXT
+DELCHARA 対象キャラ
+
+;キャラ番号をズラしておく
+FOR LOCAL, 0, 分身最大数
+	SIF 分身登録:LOCAL:0 > 対象キャラ
+		分身登録:LOCAL:0 -= 1
+NEXT
+FOR LOCAL, 分身番号, 分身最大数 - 1
+	分身登録:LOCAL:0 = 分身登録:(LOCAL + 1):0
+	分身登録:LOCAL:1 = 分身登録:(LOCAL + 1):1
+	FOR EXP番号, 0, 200
+		分身EXP保存:LOCAL:EXP番号 = 分身EXP保存:(LOCAL + 1):EXP番号
+	NEXT
+NEXT
+CALL SORT_CHARALIST()
+CALL TARGET_SET()
+
+
+
+@飲み会終了処理
+
+FOR LOCAL, 1, CHARANUM
+	SIF TARGET:LOCAL < 1
+		BREAK
+	;モードもリセット
+	IF CFLAG:(TARGET:LOCAL):飲み会
+		CFLAG:(TARGET:LOCAL):飲み会 = 0
+		CALL 特定キャラモードリセット(TARGET:LOCAL)
+	ENDIF
+	; IF CSTR:(TARGET:LOCAL):コスプレ前の服 != ""
+	; 	CALL CLOTHES_RESET(TARGET:LOCAL)
+	; 	CSTR:(TARGET:LOCAL):コスプレ前の服 '= ""
+	; ENDIF
+NEXT
+FOR LOCAL, 1, CHARANUM
+	SIF 飲み会TARGET:LOCAL < 1
+		BREAK
+	CFLAG:(飲み会TARGET:LOCAL):飲み会 = 0
+	;モードもリセット
+	CALL 特定キャラモードリセット(飲み会TARGET:LOCAL)
+	; IF CSTR:(飲み会TARGET:LOCAL):コスプレ前の服 != ""
+	; 	CALL CLOTHES_RESET(飲み会TARGET:LOCAL)
+	; 	CSTR:(飲み会TARGET:LOCAL):コスプレ前の服 '= ""
+	; ENDIF
+NEXT
+CFLAG:PLAYER:飲み会 = 0
+TFLAG:調教モード = 1
+
+
+@MAXRAND(要素:0 = -999, 要素:1 = -999, 要素:2 = -999, 要素:3 = -999, 要素:4 = -999, 要素:5 = -999, 要素:6 = -999, 要素:7 = -999, 要素:8 = -999, 要素:9 = -999)
+;要素の中で最大の値を返す
+;最大の値が複数あるのならばランダムでそのうちのどれかを返す、１０個まで
+#FUNCTION
+#DIM 要素, 10
+#DIM ランダム候補, 10
+#DIM ランダム番号
+#DIM 最大値
+#DIM 最大値順番
+
+VARSET ランダム候補, -1
+ランダム番号 = 0
+最大値 = -999
+FOR LOCAL, 0, 10
+	IF 要素:LOCAL > 最大値
+		最大値 = 要素:LOCAL
+		最大値順番 = LOCAL
+		VARSET ランダム候補, -1
+		ランダム番号 = 0
+		ランダム候補:ランダム番号 = LOCAL
+		ランダム番号 += 1
+	ELSEIF 要素:LOCAL == 最大値
+		ランダム候補:ランダム番号 = LOCAL
+		ランダム番号 += 1
+	ENDIF
+NEXT
+
+IF ランダム番号 == 1
+	RETURNF 最大値順番
+ELSEIF ランダム番号 > 1
+	RETURNF ランダム候補:(RAND:ランダム番号)
+ELSE
+	RETURNF -1
+ENDIF
+
+
+@キャラ一致チェック(対象キャラ, キャラNAME)
+#FUNCTION
+#DIM 対象キャラ
+#DIMS キャラNAME
+
+;対象キャラのNOが指定NAMEのNOと一致するなら１を返す
+RETURNF CSVNAME(NO:対象キャラ) == キャラNAME
+
+
+@キャラ検索(キャラNAME)
+#FUNCTION
+#DIM 対象キャラ
+#DIMS キャラNAME
+
+FOR 対象キャラ, 0, CHARANUM
+	SIF キャラ一致チェック(対象キャラ, キャラNAME)
+		RETURNF 対象キャラ
+NEXT
+RETURNF -1
+
+@滞在キャラランダム選出(除外キャラ)
+#FUNCTION
+#DIM 対象キャラ
+#DIM 番号記録
+#DIM 除外キャラ
+
+番号記録 = 0
+VARSET LOCAL
+FOR 対象キャラ, 1, CHARANUM
+	SIF 対象キャラ == 除外キャラ
+		CONTINUE
+	SIF CFLAG:対象キャラ:滞在期間 < 1
+		CONTINUE
+	SIF CFLAG:対象キャラ:睡眠
+		CONTINUE
+	LOCAL:番号記録 = 対象キャラ
+	番号記録 ++
+NEXT
+IF 番号記録 > 0
+	RETURNF LOCAL:(RAND:番号記録)
+ENDIF
+
+@同室ランダム選出(除外キャラ)
+#FUNCTION
+#DIM 対象キャラ
+#DIM 番号記録
+#DIM 除外キャラ
+
+番号記録 = 0
+VARSET LOCAL
+FOR 対象キャラ, 1, CHARANUM
+	SIF 対象キャラ == 除外キャラ
+		CONTINUE
+	SIF CFLAG:対象キャラ:現在マップ種別 != CFLAG:PLAYER:現在マップ種別
+		CONTINUE
+	SIF CFLAG:対象キャラ:現在位置 != CFLAG:PLAYER:現在位置
+		CONTINUE
+	LOCAL:番号記録 = 対象キャラ
+	番号記録 ++
+NEXT
+IF 番号記録 > 0
+	RETURNF LOCAL:(RAND:番号記録)
+ENDIF
+
+@現在地自宅チェック(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+#DIM 部屋割
+
+IF 対象キャラ == MASTER
+	IF CFLAG:対象キャラ:現在位置 == 20 && CFLAG:対象キャラ:現在マップ種別 == 0
+		RETURNF 1
+	ENDIF
+ELSE
+	部屋割 = キャラクター部屋検索(対象キャラ)
+	IF CFLAG:対象キャラ:現在位置 == 部屋割 && CFLAG:対象キャラ:現在マップ種別 == 部屋検索_マップ種別
+		RETURNF 1
+	ENDIF
+ENDIF
+
+@要素最大値算出(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+#DIM 要素最大値
+#DIM 友情度記録
+#DIM 信頼度記録
+#DIM 恋心度記録
+#DIM 性愛度記録
+
+LOCAL = 100501
+SIF 干渉強化変数:対象キャラ:干渉種類 == 1
+	LOCAL += 2
+SIF TALENT:MASTER:印象 == 1
+	LOCAL += 1
+友情度記録 = CFLAG:対象キャラ:友情度
+SIF 友情度記録 >= 100500
+	友情度記録 = LOCAL
+
+LOCAL = 100501
+SIF 干渉強化変数:対象キャラ:干渉種類 == 2
+	LOCAL += 2
+SIF TALENT:MASTER:印象 == 2
+	LOCAL += 1
+信頼度記録 = CFLAG:対象キャラ:信頼度
+SIF 信頼度記録 >= 100500
+	信頼度記録 = LOCAL
+
+LOCAL = 100501
+SIF 干渉強化変数:対象キャラ:干渉種類 == 3
+	LOCAL += 2
+SIF TALENT:MASTER:印象 == 3
+	LOCAL += 1
+恋心度記録 = CFLAG:対象キャラ:恋心度
+SIF 恋心度記録 >= 100500
+	恋心度記録 = LOCAL
+
+LOCAL = 100501
+SIF 干渉強化変数:対象キャラ:干渉種類 == 4
+	LOCAL += 2
+SIF TALENT:MASTER:印象 == 4
+	LOCAL += 1
+性愛度記録 = CFLAG:対象キャラ:性愛度
+SIF 性愛度記録 >= 100500
+	性愛度記録 = LOCAL
+
+要素最大値 = MAXFIND(4, 友情度記録, 信頼度記録, 恋心度記録, 性愛度記録)
+
+RETURNF 要素最大値
+
+@同時モード組み合わせ選択(対象キャラ１ = -1, 対象キャラ２ = -1, 対象キャラ３ = -1)
+#FUNCTION
+#DIM 対象キャラ１
+#DIM 対象キャラ２
+#DIM 対象キャラ３
+
+
+LOCAL = 1
+
+SIF 対象キャラ１ > -1 && MATCH(同時モード_選択キャラ, 対象キャラ１) < 1
+	LOCAL = 0
+
+SIF 対象キャラ２ > -1 && MATCH(同時モード_選択キャラ, 対象キャラ２) < 1
+	LOCAL = 0
+
+SIF 対象キャラ３ > -1 && MATCH(同時モード_選択キャラ, 対象キャラ３) < 1
+	LOCAL = 0
+
+RETURNF LOCAL
+
+;-------------------------------------------------
+;対象キャラに口上があるかどうかを返す関数
+;-------------------------------------------------
+@HAS_KOJO(対象キャラ, 種類 = 0)
+#FUNCTION
+#DIM 対象キャラ
+#DIM 種類
+#DIM L_CNT
+{
+#DIMS CONST DUNGEON項目リスト = 
+	"チェンバ発動時", 
+	"トドメ時", 
+	"奥義発動時", 
+	"固有アビ発動時", 
+	"戦闘勝利時", 
+	"全滅リザルト", 
+	"全滅時", 
+	"仲間と会話", 
+	"撤退リザルト", 
+	"討伐達成リザルト", 
+	"踏破達成リザルト", 
+	"逃走時", 
+	"被回復時"
+}
+{
+#DIMS CONST EVENT項目リスト = 
+	"うふふ終了", 
+	"うふふ体力限界", 
+	"うふふ誘い承諾", 
+	"うふふ誘い断り", 
+	"おはよう", 
+	"カード勝負", 
+	"この場おやすみ", 
+	"すごろく", 
+	"挨拶", 
+	"移動おやすみ", 
+	"飲み会終了", 
+	"逆おはよう", 
+	"業務訪問_バーテンダー", 
+	"業務訪問_プール監視員", 
+	"業務訪問_ロビー受付", 
+	"業務訪問_司書", 
+	"業務訪問_食事処店員", 
+	"業務訪問_装飾品店店員", 
+	"業務訪問_土産物屋店員", 
+	"業務訪問_道具屋店員", 
+	"仕事訪問", 
+	"自室訪問簡易承諾", 
+	"自室訪問承諾", 
+	"自室訪問断り", 
+	"従業員解雇", 
+	"処女喪失", 
+	"初対面", 
+	"情事目撃", 
+	"卓球勝負中", 
+	"罰ゲーム", 
+	"秘書業務_朝起こし", 
+	"物陰連れ込み", 
+	"遊びの誘い簡易承諾", 
+	"遊びの誘い承諾", 
+	"遊びの誘い断り", 
+	"恋慕自覚", 
+	"連れ込み満足"
+}
+
+SELECTCASE 種類
+	CASE 0
+		;- 口上(全体)
+		; 「口上_XXXX.ERB」ファイルが存在するかどうか
+		VARSET RESULTS
+		SIF ENUMFILES(@"ERB/口上_キャラ個別ERB/{NO:対象キャラ}_%CALLNAME:対象キャラ%", "口上_*.ERB", 1) > 0
+			RETURNF 1
+	CASE 1
+		;- 口上(交流)
+		;・「KOJO_COM_***」関数か「KOJO_EVENT_XXXX_***」関数が存在するか
+		;　他にもあるけど大体↑の2つが定義してあるので確認は省略
+		;1.「KOJO_COM_***」関数が存在するか
+		SIF ENUMFUNCBEGINSWITH(@"KOJO_COM_{NO:対象キャラ}") > 0
+			RETURNF 1
+		;2.「KOJO_EVENT_XXXX_***」関数が存在するか
+		; 命名規則的に1回のENUMFUNCBEGINSWITHで探せないので項目名の総当りで探す
+		FOR L_CNT, 0, VARSIZE("EVENT項目リスト")
+			SIF ENUMFUNCBEGINSWITH(@"KOJO_EVENT_%EVENT項目リスト:L_CNT%_{NO:対象キャラ}") > 0
+				RETURNF 1
+		NEXT
+	CASE 2
+		;- 口上(ダンジョン)
+		; 「KOJO_DUNGEON_XXXX_***」関数が存在するか
+		; 命名規則的に1回のENUMFUNCBEGINSWITHで探せないので項目名の総当りで探す
+		FOR L_CNT, 0, VARSIZE("DUNGEON項目リスト")
+			SIF ENUMFUNCBEGINSWITH(@"KOJO_DUNGEON_%DUNGEON項目リスト:L_CNT%_{NO:対象キャラ}") > 0
+				RETURNF 1
+		NEXT
+ENDSELECT
+RETURNF 0
+
+;-------------------------------------------------
+;対象キャラにキャラ解説があるかどうかを返す関数
+;-------------------------------------------------
+@HAS_INTRODUCTION(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+; キャラ解説関数が存在するかどうか
+RETURNF EXISTFUNCTION(@"口上_ステータス画面_キャラ解説_{NO:対象キャラ}") > 0
+
+;-------------------------------------------------
+;対象キャラに固有奥義があるかどうかを返す関数
+;-------------------------------------------------
+@HAS_CHARGE_ATTACK(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+; 固有奥義関数が存在するかどうか
+RETURNF ENUMFUNCENDSWITH(@"固有奥義_{NO:対象キャラ}") > 0
+
+;-------------------------------------------------
+;対象キャラに固有アビリティがあるかどうかを返す関数
+;-------------------------------------------------
+@HAS_SKILLS(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+; 固有アビリティ関数が存在するかどうか
+RETURNF ENUMFUNCBEGINSWITH(@"固有アビ_{NO:対象キャラ}_") > 0
+
+;-------------------------------------------------
+;対象キャラにキャラ画像があるかどうかを返す関数
+;-------------------------------------------------
+@HAS_RESOURCES(対象キャラ, ALL_FOLDER = 0)
+#FUNCTION
+; 引数
+#DIM  対象キャラ
+#DIM  ALL_FOLDER
+; 内部変数
+#DIMS 対象フォルダ
+#DIMS 対象ファイル
+
+IF !ALL_FOLDER
+	;- 「CSTR:対象キャラ:画像フォルダ」にデフォルト画像が存在するかどうか
+	対象フォルダ '= CSTR:対象キャラ:画像フォルダ
+	対象ファイル '= "顔_デフォルト.*"
+	RETURNF GET_RESOURCES_FILES(対象フォルダ, 対象ファイル) > 0
+ELSE
+	;- 画像フォルダが存在するかどうか
+	RETURNF GET_ALL_RESOURCES_FOLDERS(対象キャラ) > 0
+ENDIF
+
+;-------------------------------------------------
+;対象キャラのデフォルトの画像フォルダを取得
+;-------------------------------------------------
+;フォルダ名(「***キャラ名」)を返す
+@GET_RESOURCES_BASE_FOLDER(対象キャラ)
+#FUNCTIONS
+; 引数
+#DIM 対象キャラ
+#DIM 任意キャラNO
+
+SIF CSTR:対象キャラ:フォルダ判定キー == ""
+	CSTR:対象キャラ:フォルダ判定キー '= CALLNAME:対象キャラ
+
+; 「あなた」だけ特殊
+IF 対象キャラ == MASTER
+	IF SAVESTR:あなたスタイル == "グランくんスタイル"
+		RETURNF "146グラン"
+	ELSEIF SAVESTR:あなたスタイル == "ジータちゃんスタイル"
+		RETURNF "27ジータ"
+	ELSEIF STRFIND(SAVESTR:あなたスタイル, "任意キャラスタイル") >= 0
+		;スタイル変化処理中は一時的にキャラNOが入る
+		SIF NO:対象キャラ > 0
+			RETURNF TOSTR(NO:対象キャラ) + CSTR:対象キャラ:フォルダ判定キー
+		任意キャラNO = TOINT(REPLACE(SAVESTR:あなたスタイル, "任意キャラスタイル_", ""))
+		IF 任意キャラNO > 0
+			RETURNF @"{任意キャラNO}%CSVCALLNAME(任意キャラNO)%"
+		ELSE
+			RETURNF "0あなた"
+		ENDIF
+	ELSE
+		RETURNF "0あなた"
+	ENDIF
+ENDIF
+
+; CSV番号＋名前
+RETURNF TOSTR(NO:対象キャラ) + CSTR:対象キャラ:フォルダ判定キー
+
+;-------------------------------------------------
+;対象キャラの画像フォルダを取得
+;-------------------------------------------------
+;フォルダ名(「***キャラ名」「***キャラ名\XXXX」)のリストを返す
+@GET_ALL_RESOURCES_FOLDERS(対象キャラ)
+#FUNCTION
+; 引数
+#DIM  対象キャラ
+; 内部変数
+#DIMS 対象フォルダ
+#DIMS 対象ファイル
+#DIM  ファイル数
+#DIM  L_CNT
+; 定数(ENUMFILES用)
+#DIM  CONST サブフォルダ検索なし = 0
+#DIM  CONST サブフォルダ検索あり = 1
+#DIMS CONST フォルダベース = "resources/"
+
+;- 「***キャラ名」フォルダ内のデフォルト画像を取得(サブフォルダ検索あり)
+対象フォルダ '= GET_RESOURCES_BASE_FOLDER(対象キャラ)
+対象ファイル '= "顔_デフォルト.*"
+VARSET RESULTS
+ファイル数 = ENUMFILES(フォルダベース + 対象フォルダ, 対象ファイル, サブフォルダ検索あり)
+
+; 取得結果(resources\***キャラ名\ファイル名)から不要部分(resources\と\ファイル名)を削除
+FOR L_CNT, 0, ファイル数
+	RESULTS:L_CNT '= SUBSTRING(RESULTS:L_CNT, STRLENS(フォルダベース), STRFIND(RESULTS:L_CNT, "顔_デフォルト") - STRLENS(フォルダベース) - 1)
+NEXT
+
+RETURNF ファイル数
+
+;-------------------------------------------------
+;対象画像フォルダ内のファイルを取得
+;-------------------------------------------------
+;ファイル名(「***」)のリストを返す
+@GET_RESOURCES_FILES(対象フォルダ, 対象ファイル, カウントのみ判定 = 0)
+#FUNCTION
+; 引数
+#DIMS 対象フォルダ
+#DIMS 対象ファイル
+#DIM  カウントのみ判定
+; 内部変数
+#DIM  ファイル数
+#DIM  L_CNT
+; 定数(ENUMFILES用)
+#DIM  CONST サブフォルダ検索なし = 0
+#DIM  CONST サブフォルダ検索あり = 1
+#DIMS CONST フォルダベース = "resources/"
+
+;- 対象フォルダ内の対象画像を取得(サブフォルダ検索なし)
+VARSET RESULTS
+ファイル数 = ENUMFILES(フォルダベース + 対象フォルダ, 対象ファイル, サブフォルダ検索なし)
+ファイル数 = MAX(ファイル数, 0)
+
+;カウントのみの場合はココで終了
+SIF カウントのみ判定
+	RETURNF ファイル数
+
+; 取得結果(resources\***キャラ名\ファイル名)から不要部分(resources\***キャラ名\)を削除
+FOR L_CNT, 0, ファイル数
+	RESULTS:L_CNT '= SUBSTRING(RESULTS:L_CNT, STRLENS(フォルダベース + 対象フォルダ + "/"), -1)
+NEXT
+RETURNF ファイル数
+
+;-------------------------------------------------
+;対象キャラの画像フォルダ設定を修正
+;-------------------------------------------------
+@FIX_RESOURCES_FOLDER(対象キャラ)
+; 引数
+#DIM  対象キャラ
+; 内部変数
+#DIM  画像フォルダ数
+#DIMS 修正候補フォルダ
+; 定数(HAS_RESOURCES用)
+#DIM CONST 設定フォルダのみ = 0
+#DIM CONST 全フォルダ       = 1
+
+; 設定中の画像フォルダが有効な場合は修正不要
+SIF HAS_RESOURCES(対象キャラ, 設定フォルダのみ)
+	RETURN 0
+
+画像フォルダ数 = GET_ALL_RESOURCES_FOLDERS(対象キャラ)
+;- 対象キャラに有効な画像フォルダがある
+IF 画像フォルダ数 > 0
+	; 修正候補 = 最初に見つかったフォルダ
+	修正候補フォルダ '= RESULTS:0
+;- 対象キャラに有効な画像フォルダがない
+ELSE
+	; 修正候補 = ベースフォルダ
+	;フォルダ判定キーも入れ直す
+	CSTR:対象キャラ:フォルダ判定キー '= CALLNAME:対象キャラ
+	修正候補フォルダ '= GET_RESOURCES_BASE_FOLDER(対象キャラ)
+ENDIF
+;- フォルダ設定の修正
+; 設定中の画像フォルダと修正候補が同じなら修正不要
+IF CSTR:対象キャラ:画像フォルダ != 修正候補フォルダ
+	CSTR:対象キャラ:画像フォルダ '= 修正候補フォルダ
+	RETURN 1
+ENDIF
+RETURN 0
+
+;-------------------------------------------------
+;対象キャラの画像枚数を取得する
+;-------------------------------------------------
+@GET_RESOURCES_COUNT(対象キャラ)
+#FUNCTION
+; 引数
+#DIM 対象キャラ
+; 内部変数
+#DIMS 対象フォルダ
+#DIMS 対象ファイル
+#DIM  DYNAMIC 画像枚数
+; 定数(GET_RESOURCES_FILES用)
+#DIM  CONST カウントのみ = 1
+
+対象フォルダ '= CSTR:対象キャラ:画像フォルダ
+;webp画像枚数取得
+対象ファイル '= "*.webp"
+画像枚数 += GET_RESOURCES_FILES(対象フォルダ, 対象ファイル, カウントのみ)
+;png画像枚数取得
+対象ファイル '= "*.png"
+画像枚数 += GET_RESOURCES_FILES(対象フォルダ, 対象ファイル, カウントのみ)
+RETURNF 画像枚数
+
+
+;-------------------------------------------------
+;対象キャラに指定衣装の画像があるかどうかを返す
+;-------------------------------------------------
+@HAS_COSTUME(対象キャラ, 衣装名)
+#FUNCTION
+; 引数
+#DIM 対象キャラ
+#DIMS 衣装名
+; 内部変数
+#DIMS 対象フォルダ
+#DIMS 対象ファイル
+#DIM  DYNAMIC 画像枚数
+; 定数(GET_RESOURCES_FILES用)
+#DIM  CONST カウントのみ = 1
+
+;デフォルト画像がない場合は衣装画像があっても表示されないので「なし」扱い
+SIF !HAS_RESOURCES(対象キャラ)
+	RETURNF 0
+
+;指定衣装の基本画像のチェック(顔画像)
+対象フォルダ '= CSTR:対象キャラ:画像フォルダ
+対象ファイル '= @"顔_%衣装名%.*"
+SIF GET_RESOURCES_FILES(対象フォルダ, 対象ファイル, カウントのみ) > 0
+	RETURNF 1
+;指定衣装の基本画像のチェック(短冊画像)
+対象ファイル '= @"短冊_%衣装名%.*"
+SIF GET_RESOURCES_FILES(対象フォルダ, 対象ファイル, カウントのみ) > 0
+	RETURNF 1
+;どちらもなかったら指定衣装画像なし
+RETURNF 0
+
+;-------------------------------------------------
+;対象キャラに妊娠画像があるかどうかを返す
+;-------------------------------------------------
+@HAS_PREGNANCY(対象キャラ)
+#FUNCTION
+; 引数
+#DIM 対象キャラ
+; 内部変数
+#DIMS 対象フォルダ
+#DIMS 対象ファイル
+
+;デフォルト画像がない場合は衣装画像があっても表示されないので「なし」扱い
+SIF !HAS_RESOURCES(対象キャラ)
+	RETURNF 0
+
+;指定衣装の基本画像のチェック(顔画像)
+対象フォルダ '= CSTR:対象キャラ:画像フォルダ
+対象ファイル '= "顔_妊娠*.*"
+SIF GET_RESOURCES_FILES(対象フォルダ, 対象ファイル, 1) > 0
+	RETURNF 1
+;指定衣装の基本画像のチェック(短冊画像)
+対象ファイル '= @"短冊_妊娠*.*"
+SIF GET_RESOURCES_FILES(対象フォルダ, 対象ファイル, 1) > 0
+	RETURNF 1
+;どちらもなかったら指定衣装画像なし
+RETURNF 0
+
+;-------------------------------------------------
+;対象キャラの現在の状態を取得
+;-------------------------------------------------
+@NOW_SITUATION(対象キャラ)
+#FUNCTIONS
+#DIM 対象キャラ
+
+IF RFLAG:おさわりモード中
+	SIF SAVESTR:ゲームフェイズ管理 == "マッサージモード"
+		RETURNF "マッサージ中_おさわりモード"
+
+	SIF CFLAG:対象キャラ:うふふ
+		RETURNF "うふふ中_おさわりモード"
+	
+	RETURNF "通常_おさわりモード"
+ENDIF
+
+SIF SAVESTR:ゲームフェイズ管理 == "マッサージモード"
+	RETURNF "マッサージ中"
+
+SIF SAVESTR:ゲームフェイズ管理 == "むりやりうふふモード"
+	RETURNF "むりやりうふふ中"
+
+SIF ダンジョン名 != ""
+	RETURNF "ダンジョンモード"
+
+SIF RFLAG:夜這い処理中フラグ
+	RETURNF "夜這い中"
+
+SIF CFLAG:対象キャラ:うふふ
+	RETURNF "うふふ中"
+
+SIF CFLAG:対象キャラ:飲み会
+	RETURNF "飲み会中"
+
+RETURNF "通常"
+
+
+;-------------------------------------------------
+;任意の固有素質を持ってるかどうかチェック
+;複数設定時はどれか一個引っかかれば１を返す
+;-------------------------------------------------
+@固有素質チェック(対象キャラ, 判定素質名:0 = "", 判定素質名:1 = "", 判定素質名:2 = "", 判定素質名:3 = "", 判定素質名:4 = "", 判定素質名:5 = "", 判定素質名:6 = "", 判定素質名:7 = "", 判定素質名:8 = "", 判定素質名:9 = "")
+#FUNCTION
+#DIM 対象キャラ
+#DIMS 判定素質名, 10
+
+FOR LOCAL, 0, 10
+	SIF 判定素質名:LOCAL == ""
+		CONTINUE
+	SIF MATCH(CSTR:対象キャラ:0, 判定素質名:LOCAL, 80, 90)
+		RETURNF 1
+NEXT
+
+RETURNF 0
+
+
+@NAME表示省略(文字列, 文字数=40)
+#FUNCTIONS
+#DIMS 文字列
+#DIMS 省略後文字列
+#DIM 文字数
+
+;全角20文字を超える時は省略表示
+IF STRLENS(文字列) > 文字数
+	省略後文字列 '= SUBSTRING(文字列, 0, 文字数-2) + "…"
+	; 省略しても40文字以上ある場合(半角文字が奇数個含まれているパターン)
+	; さらに半角1文字分減らす
+	IF STRLENS(省略後文字列) > 文字数
+		省略後文字列 '= SUBSTRING(文字列, 0, 文字数-3) + "…"
+	ENDIF
+	RETURNF 省略後文字列
+ENDIF
+
+RETURNF 文字列
+
+;-------------------------------------------------
+;表示用のNAME取得
+;-------------------------------------------------
+@GET_NAME(対象キャラ, 省略フラグ = 0, 省略文字数 = 41)
+#FUNCTIONS
+#DIM 対象キャラ
+#DIM 省略フラグ
+#DIM 省略文字数
+#DIMS NAME_TEMP
+
+;"]"の後ろに半角スペース挿入
+NAME_TEMP '= ADD_STR_SPACE(NAME表示(対象キャラ), "]")
+;省略フラグONの場合は指定文字数で省略
+SIF 省略フラグ
+	NAME_TEMP = %NAME表示省略(NAME_TEMP, 省略文字数), 省略文字数, LEFT%
+
+RETURNF NAME_TEMP
+
+
+;-------------------------------------------------
+;HTML表示する時にバグる記号を入れないようにするINPUTS
+;-------------------------------------------------
+@入力処理_HTML記法警告付き()
+
+RESULTS = 
+INPUTS
+IF STRFIND(RESULTS, "<") > -1
+	PRINTL "<"は使用出来ない記号です。
+	RESTART
+ENDIF
+IF STRFIND(RESULTS, "&") > -1
+	PRINTL "&"は使用出来ない記号です。
+	RESTART
+ENDIF
+
+
+@着用済み判定(対象キャラ, 服装名, 動作モード = 0)
+#FUNCTION
+#DIM 対象キャラ
+#DIMS 服装名
+#DIM 動作モード
+#DIMS 判定文字列
+
+SELECTCASE 動作モード
+	CASE 0
+		判定文字列 '= CSTR:対象キャラ:衣装初回_着用
+	CASE 1
+		判定文字列 '= CSTR:対象キャラ:衣装初回_着用うふふ
+ENDSELECT
+
+SIF STRFIND(判定文字列, @"%服装名%_") > -1
+	RETURNF 1
+
+RETURNF 0
+
+
+@うふふ時着用済み判定(対象キャラ, 服装名)
+#FUNCTION
+#DIM 対象キャラ
+#DIMS 服装名
+
+RETURNF 着用済み判定(対象キャラ, 服装名, 1)
+
+@同作品陥落キャラカウント(作品名)
+#FUNCTION
+#DIMS 作品名
+#DIM 対象キャラ
+#DIM 陥落数
+
+;グラブルキャラは数えない
+SIF 作品名 == "" || 作品名 == "グランブルーファンタジー"
+	RETURNF 0
+
+陥落数 = 0
+FOR 対象キャラ, 1, CHARANUM
+	SIF 作品名 != CSVCSTR(NO:対象キャラ, GETNUM(CSTR, "出演作品"))
+		CONTINUE
+	SIF 陥落チェック(対象キャラ)
+		陥落数 ++
+NEXT
+
+RETURNF 陥落数
+
+@RAND_EXCLUDE(判定配列, 除外要素, 判定個数)
+#FUNCTION
+#DIM REF 判定配列
+#DIM 除外要素
+#DIM 除外位置
+#DIM 判定個数
+
+;判定配列のうち、除外要素を除いたものからランダムに１つ返す
+VARSET LOCAL
+ARRAYCOPY "判定配列", "LOCAL"
+
+除外位置 = FINDELEMENT(LOCAL, 除外要素)
+IF 除外位置 >= 0
+	ARRAYREMOVE LOCAL, 除外位置, 1
+ENDIF
+
+SIF 判定個数 <= 1
+	RETURNF 0
+
+RETURNF LOCAL:(RAND:(判定個数 - 1))
+
+
+@RAND_EXCLUDE_S(判定配列, 除外要素, 判定個数)
+#FUNCTIONS
+#DIMS REF 判定配列
+#DIMS 除外要素
+#DIM 除外位置
+#DIM 判定個数
+
+;判定配列のうち、除外要素を除いたものからランダムに１つ返す
+VARSET LOCALS
+ARRAYCOPY "判定配列", "LOCALS"
+
+除外位置 = FINDELEMENT(LOCALS, 除外要素)
+IF 除外位置 >= 0
+	ARRAYREMOVE LOCALS, 除外位置, 1
+ENDIF
+
+SIF 判定個数 <= 1
+	RETURNF ""
+
+RETURNF LOCALS:(RAND:(判定個数 - 1))
+

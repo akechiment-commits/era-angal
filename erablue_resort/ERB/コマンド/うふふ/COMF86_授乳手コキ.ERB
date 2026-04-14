@@ -1,0 +1,100 @@
+﻿
+;-------------------------------------------------
+;手コキ派生だが直接アクセスも出来るようにする
+;-------------------------------------------------
+
+@COMNAME86
+#FUNCTIONS
+TSTR:コマンド名受渡 = 授乳手コキ
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_86
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("うふふ&奉仕")
+弱点コマンドカテゴリ = リダイレクト80_1
+オートコマンド許可 = 3
+反転オート許可 = 3
+
+@COM_TOOLTIP_86
+CALL COM_TOOLTIP_S80_1
+
+@COM86
+CALL COM_S80_1
+RETURN RESULT
+
+@CAN_COM86(ARG)
+CALL CAN_COM_S80_1(ARG)
+RETURN RESULT
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+
+@COM_ABLE86
+;授乳手コキ実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+SIF GLOBAL_COMABLE(86)
+	RETURN RESULT
+;ちんこがない場合駄目
+SIF TALENT:PLAYER:Ｃ感度 == -2
+	RETURN 0
+;Bがない場合駄目
+SIF TALENT:TARGET:Ｂ感度 == -2
+	RETURN 0
+;調教者がオトコか半人半妖かふたなりじゃないとダメ
+SIF !(TALENT:PLAYER:性別 & 2)
+	RETURN 0
+;縄使用中は不可
+; SIF TEQUIP:縄
+; 	RETURN 0
+;陥没乳首は乳首露出させてからでないと不可
+SIF TALENT:陥没乳首 && !TCVAR:陥没乳首露出フラグ
+	RETURN 0
+IF !MODE_存在判定_完全一致("手コキ", TARGET, PLAYER)
+	;ペニスを何かに使ってるなら無理
+	SIF TEQUIP:PLAYER:ペニス
+		RETURN 0
+	;指を何かに使ってるなら無理
+	SIF TEQUIP:TARGET:指
+		RETURN 0
+ENDIF
+IF !MODE_存在判定_完全一致("乳首吸い", PLAYER, TARGET)
+	;口を何かに使ってるなら無理
+	SIF TEQUIP:PLAYER:口
+		RETURN 0
+	;胸を何かに使ってるなら無理
+	SIF TEQUIP:TARGET:胸
+		RETURN 0
+ENDIF
+;上半身着衣(TARGET)
+;鎧、差し込めないorはだけない服、タイツ、ブラ等があると無理
+SIF TEQUIP:上半身鎧あり
+	RETURN 0
+SIF TEQUIP:上半身服あり && (!TEQUIP:手差し込み可 && !TEQUIP:はだけ可)
+	RETURN 0
+SIF TEQUIP:上タイツあり && !TEQUIP:上タイツ破れ
+	RETURN 0
+SIF TEQUIP:上半身下着あり > 0
+	RETURN 0
+;下半身着衣(PLAYER)
+;前鎧、タイツ、前張りがあると無理
+SIF TEQUIP:PLAYER:下腹部前鎧あり
+	RETURN 0
+SIF TEQUIP:PLAYER:下タイツあり && !TEQUIP:PLAYER:下タイツ破れ
+	RETURN 0
+SIF TEQUIP:PLAYER:下半身下着あり == 2
+	RETURN 0
+RETURN 1
+
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM86
+CALL MESSAGE_COM_S80_1
+
+
+

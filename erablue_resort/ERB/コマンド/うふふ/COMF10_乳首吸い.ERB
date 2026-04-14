@@ -1,0 +1,120 @@
+﻿;-------------------------------------------------
+;乳首吸い
+;愛撫系コマンド、レベル1
+;-------------------------------------------------
+@COMNAME10
+#FUNCTIONS
+TSTR:コマンド名受渡 = 乳首吸い
+SIF GETBIT(FLAG:モード管理, モードビット_同時)
+	TSTR:コマンド名受渡 = 同時に乳首吸い
+
+
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_10
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("うふふ_被挿入中")
+弱点コマンドカテゴリ = B
+
+
+@COM10
+;-------------------------------------------------
+;モードの設定
+;-------------------------------------------------
+
+CALL MODE_CHANGE("乳首吸い", PLAYER, TARGET)
+
+;-------------------------------------------------
+;ソース追加処理
+;-------------------------------------------------
+
+
+RCVAR:乳首開発フラグ = 2
+
+CALL SOURCE_CALC_露出(TARGET, PLAYER, 70)
+CALL SOURCE_CALC_接触(TARGET, PLAYER, 70)
+CALL SOURCE_CALC_苦痛(TARGET, PLAYER, 15)
+CALL SOURCE_CALC_奉仕(TARGET, PLAYER, 100)
+;-------------------------------------------------
+;経験の処理
+;-------------------------------------------------
+;同性愛　
+SIF 同性愛性癖判定(TARGET,PLAYER)
+	EXP:TARGET:同性愛経験 += 3
+SIF 同性愛性癖判定(PLAYER,TARGET)
+	EXP:PLAYER:同性愛経験 += 3
+
+SIF TALENT:恋慕
+	EXP:愛情経験 += 1
+
+SIF TALENT:PLAYER:猫舌
+	EXP:PLAYER:嗜虐快楽経験 += 1
+
+;口淫経験
+EXP:PLAYER:口淫経験 ++
+
+
+RETURN 1
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+
+@COM_ABLE10
+;乳首吸い
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(10)
+	RETURN RESULT
+;Bがない場合駄目
+SIF TALENT:TARGET:Ｂ感度 == -2
+	RETURN 0
+;上半身着衣
+;鎧、はだけない服、タイツ、ブラ等があると無理
+SIF TEQUIP:上半身鎧あり
+	RETURN 0
+SIF TEQUIP:上半身服あり && !TEQUIP:はだけ可
+	RETURN 0
+SIF TEQUIP:上タイツあり && !TEQUIP:上タイツ破れ
+	RETURN 0
+SIF TEQUIP:上半身下着あり > 0
+	RETURN 0
+;口を何かに使ってるなら無理
+SIF TEQUIP:PLAYER:口
+	RETURN 0
+;胸を何かに使ってるなら無理
+SIF TEQUIP:TARGET:胸
+	RETURN 0
+
+;陥没乳首は乳首露出させてからでないと不可
+SIF TALENT:陥没乳首 && !TCVAR:陥没乳首露出フラグ
+	RETURN 0
+
+RETURN 1
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+;授乳手コキや乳首責めとの調整は保留
+
+@MESSAGE_COM10
+PRINTFORM %CALLNAME:PLAYER%は
+IF MODE_存在判定_順不同("ＶＡ挿入系", PLAYER, TARGET)
+	PRINTFORM %CALLNAME:TARGET%とつながったまま%OPPAI_DESCRIPTION(TARGET)%
+ELSE
+	PRINTFORM %CALLNAME:TARGET%の%OPPAI_DESCRIPTION(TARGET)%
+ENDIF
+
+;欲情のPALAMLV3以上
+IF PALAM:欲情 >= PALAMLV:3
+	PRINT の先端の、すっかり硬くなった突起に
+ELSEIF PALAM:欲情 >= PALAMLV:2
+	PRINT の先端の、硬さを帯び始めた突起に
+ELSE
+	PRINT の先端の、まだ柔らかい突起に
+ENDIF
+PRINTL 吸い付いた…
+

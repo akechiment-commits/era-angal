@@ -1,0 +1,125 @@
+﻿@USERCOM編集関数()
+#DIM コマンド配列, 100
+#DIM 一時配列, 100
+#DIM コマンド番号
+#DIM ループ用
+#DIMS コマンド名
+
+;初期設定
+VARSET コマンド配列
+VARSET 一時配列
+VARSET LOCALS
+VARSET LOCAL
+
+SPLIT USERCOM表示文字列, "_", LOCALS
+FOR コマンド番号, 0, RESULT
+	コマンド配列:コマンド番号 = TOINT(LOCALS:コマンド番号)
+NEXT
+SIF コマンド配列:0 == 0
+	コマンド番号 = 0
+
+VARSET RESULT
+VARSET RESULTS
+ENUMFUNCBEGINSWITH "USERCOM関数_"
+
+FOR ループ用, 0, RESULT
+	LOCAL = TOINT(REPLACE(RESULTS:ループ用, "USERCOM関数_", ""))
+	IF MATCH(コマンド配列, LOCAL) < 1
+		コマンド配列:コマンド番号 = -1 * LOCAL
+		コマンド番号 ++
+	ENDIF
+NEXT
+
+$動作LOOP
+
+DRAWLINE
+PRINTL 表示・非表示は[表示]あるいは[非表示]ボタンで制御出来ます。
+PRINTL 表示順は↑↓ボタンで制御出来ます。順番を直接指定することも可能です。
+PRINTL OPTIONボタンは非表示に出来ず、常に先頭に表示されます。
+DRAWLINE
+PRINTPLAINFORM  1： %"OPTION", 24, LEFT%
+PRINTL 
+
+FOR コマンド番号, 0, 100
+	SIF コマンド配列:コマンド番号 == 0
+		BREAK
+	PRINTFORM {コマンド番号 + 2, 2}：
+	TSTR:コマンド名受渡 = 
+	TRYCALLFORM USERCOM関数_{ABS(コマンド配列:コマンド番号)}("コマンド名")
+
+	SIF コマンド配列:コマンド番号 < 0
+		SETCOLOR カラーパレット("グレーアウト")
+	PRINTPLAINFORM  %TSTR:コマンド名受渡, 24, LEFT%
+	RESETCOLOR
+	IF コマンド配列:コマンド番号 > 0
+		PRINTPLAIN [表示] / 
+		SETCOLOR カラーパレット("グレーアウト")
+		PRINTBUTTON "[非表示]", コマンド番号
+		RESETCOLOR
+	ELSE
+		SETCOLOR カラーパレット("グレーアウト")
+		PRINTBUTTON "[表示]", コマンド番号
+		RESETCOLOR
+		PRINTPLAIN  / [非表示]
+	ENDIF
+	PRINT 　
+	IF コマンド番号 > 0
+		PRINTBUTTON "[↑]", コマンド番号 + 100
+	ELSE
+		PRINT 　　
+	ENDIF
+	IF コマンド配列:(コマンド番号 + 1) != 0
+		PRINTBUTTON "[↓]", コマンド番号 + 200
+	ELSE
+		PRINT 　　
+	ENDIF
+	PRINT 　
+	PRINTBUTTON "[順番指定]", コマンド番号 + 300
+	PRINTL
+NEXT
+DRAWLINE
+PRINTBUTTON "[999] 現状の設定を保存して戻る", 999
+PRINT 　　
+PRINTBUTTON "[998] 保存せず戻る", 998
+PRINTL
+BINPUT
+
+SELECTCASE RESULT
+	CASE 999
+		USERCOM表示文字列 = 
+		FOR コマンド番号, 0, 100
+			SIF コマンド配列:コマンド番号 > 0
+				USERCOM表示文字列 += @"{コマンド配列:コマンド番号}_"
+		NEXT
+		USERCOM表示文字列 '= SUBSTRING(USERCOM表示文字列, 0, STRLENS(USERCOM表示文字列) - 1)
+		RETURN 0
+	CASE 998
+		RETURN 0
+	CASE IS >= 300
+		LOCAL = RESULT - 300
+		DRAWLINE
+		PRINTFORML 何番目に移動するかを入力してください（2～{コマンド番号}）
+		INPUT
+		IF RESULT > コマンド番号 || RESULT < 2
+			PRINTL 不正な順番です。
+		ELSE
+			LOCAL:1 = コマンド配列:LOCAL
+			コマンド配列:LOCAL = コマンド配列:(RESULT - 2)
+			コマンド配列:(RESULT - 2) = LOCAL:1
+		ENDIF
+	CASE IS >= 200
+		コマンド番号 = RESULT - 200
+		LOCAL = コマンド配列:コマンド番号
+		コマンド配列:コマンド番号 = コマンド配列:(コマンド番号 + 1)
+		コマンド配列:(コマンド番号 + 1) = LOCAL
+	CASE IS >= 100
+		コマンド番号 = RESULT - 100
+		LOCAL = コマンド配列:コマンド番号
+		コマンド配列:コマンド番号 = コマンド配列:(コマンド番号 - 1)
+		コマンド配列:(コマンド番号 - 1) = LOCAL
+	CASEELSE
+		コマンド番号 = RESULT
+		コマンド配列:コマンド番号 = コマンド配列:コマンド番号 * -1
+ENDSELECT
+
+GOTO 動作LOOP

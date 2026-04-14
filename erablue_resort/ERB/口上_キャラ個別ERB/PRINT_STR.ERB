@@ -1,0 +1,264 @@
+﻿;-------------------------------------------------
+;特殊な書式の文字列ARGSを読める文章に直す
+;行や命令は_で区切る事。そしてLOCALSは99までなので手加減してくれ
+;CASEを増やして、そのうち文字列を別作成しないで済むようにしたい
+;改行する時とWAITを付けて改行する時は、それぞれ以下のPRINT_STRL, PRINT_STRWを用いると間違いが少なくなるのでおすすめです
+;-------------------------------------------------
+@PRINT_STR, ARGS = "",ARG = -1
+#DIM LCOUNT
+#DIM 返し数
+#DIMS 返し文
+#DIM 文字色
+#DIM 書式
+#DIM 改行数
+#DIM レイヤー番号
+#DIMS 文章保存
+
+;FOR LCOUNT, 1, 3
+;	SIF ARGS:LCOUNT != ""
+;		ARGS = %ARGS%_%ARGS:LCOUNT%
+;NEXT
+SIF ARG == -1
+	ARG = TARGET
+LOCAL:2 = GETCOLOR()
+文字色 =  LOCAL:2
+
+VARSET LOCALS
+
+;文字列を分解する
+SPLIT ARGS, "_", LOCALS
+LOCAL = 0
+LOCAL:1 = 0
+FOR LCOUNT, 0, RESULT
+	;特殊な操作
+	SELECTCASE LOCALS:LCOUNT
+	;CASE ""
+	;	BREAK
+	CASE "CALLNAME:TARGET","調教対象","被調教者"
+		PRINTFORM %CALLNAME:TARGET%
+		CONTINUE
+	CASE "CALLNAME:PLAYER","調教者"
+		PRINTFORM %CALLNAME:PLAYER%
+		CONTINUE
+	CASE "CALLNAME:MASTER","主人","主人公"
+		PRINTFORM %CALLNAME:MASTER%
+		CONTINUE
+	CASE "一人称","1st"
+		PRINTFORM %CSTR:ARG:一人称%
+		CONTINUE
+	CASE "二人称","2nd"
+			PRINTFORM %CSTR:ARG:二人称%
+		CONTINUE
+	CASE "呼び名","CALLNAME"
+		PRINTFORM %CALLNAME:ARG%
+		CONTINUE
+	CASE "名前","NAME"
+		PRINTFORM %NAME表示(ARG)%
+		CONTINUE
+	CASE "BUTTON"
+		;次の文字をボタンにする
+		LCOUNT += 1
+		PRINTBUTTON LOCALS:LCOUNT, LOCALS:LCOUNT
+		SETCOLOR LOCAL:2
+		CONTINUE
+	CASE "NOBUTTON"
+		;次の文字をボタンにしない
+		LCOUNT += 1
+		PRINTPLAINFORM %LOCALS:LCOUNT%
+		SETCOLOR LOCAL:2
+		CONTINUE
+	CASE "CALL"
+		;次の文字をCALLで呼び出す(引数なし)
+		LCOUNT += 1
+		CALLFORM %LOCALS:LCOUNT%
+		SETCOLOR LOCAL:2
+		CONTINUE
+	CASE "COLOR"
+		;次の文字の色を変更する
+		LCOUNT += 1
+		文字色 = TOINT(LOCALS:LCOUNT)
+		SETCOLOR 文字色
+		CONTINUE
+	CASE "INPUT"
+		;INPUTを呼び出す
+		INPUT
+		返し数 = RESULT
+		LOCAL = 1
+		CONTINUE
+	CASE "INPUTS"
+		;INPUTSを呼び出す
+		INPUTS
+		返し文 = %RESULTS%
+		LOCAL:1 = 1
+		CONTINUE
+	CASE "-"
+		;次の文字に打消し線を引く
+		FONTSTYLE 4
+		CONTINUE
+	CASE "B"
+		;次の文字を太字にする
+		FONTBOLD
+		CONTINUE
+	CASE "I"
+		;次の文字を斜体にする
+		FONTITALIC
+		CONTINUE
+	CASE "LINE"
+		;次の文字に下線を引く
+		FONTSTYLE 8
+		CONTINUE
+	CASE "DRAWLINE"
+		;DRAWLINEする
+		DRAWLINE
+		CONTINUE
+	CASE "FS"
+		;次の文字の書式を変更する(Bit 0:太字 1:斜体 2:打ち消し線 3:下線)
+		LCOUNT += 1
+		書式 = TOINT(LOCALS:LCOUNT)
+		FONTSTYLE 書式
+		CONTINUE
+	CASE "L","改行"
+		PRINTL 
+		CONTINUE
+	CASE "W"
+		PRINTW 
+		CONTINUE
+	CASE "WAIT"
+		WAIT
+		CONTINUE
+	CASE "FORCEWAIT"
+		FORCEWAIT
+		CONTINUE
+	CASE "H"
+		PRINT_IMG "えっちハート"
+		CONTINUE
+	CASE "BIG"
+		LCOUNT += 1
+		;何番でもいいけどとりあえず20000以降を使用
+		GDISPOSE 20000 + TFLAG:口上用画像表示番号
+		SPRITEDISPOSE @"口上用画像{20000 + TFLAG:口上用画像表示番号}"
+		GCREATE 20000 + TFLAG:口上用画像表示番号, STRLENS(LOCALS:LCOUNT) * 110, 220
+		GSETFONT 20000 + TFLAG:口上用画像表示番号, GETFONT(), GETCONFIG("フォントサイズ") * 13
+		GDRAWTEXT 20000 + TFLAG:口上用画像表示番号, LOCALS:LCOUNT
+		SPRITECREATE @"口上用画像{20000 + TFLAG:口上用画像表示番号}", 20000 + TFLAG:口上用画像表示番号
+		PRINT_IMG @"口上用画像{20000 + TFLAG:口上用画像表示番号}", STRLENS(LOCALS:LCOUNT) * 110, 220, 0
+		PRINTL
+		TFLAG:口上用画像表示番号 ++
+		CONTINUE
+	CASE "BIGDOWN"
+		LCOUNT += 1
+		;何番でもいいけどとりあえず20000以降を使用
+		GDISPOSE 20000 + TFLAG:口上用画像表示番号
+		SPRITEDISPOSE @"口上用画像{20000 + TFLAG:口上用画像表示番号}"
+		GCREATE 20000 + TFLAG:口上用画像表示番号, STRLENS(LOCALS:LCOUNT) * 110, 220
+		GSETFONT 20000 + TFLAG:口上用画像表示番号, GETFONT(), GETCONFIG("フォントサイズ") * 13
+		GDRAWTEXT 20000 + TFLAG:口上用画像表示番号, LOCALS:LCOUNT
+		SPRITECREATE @"口上用画像{20000 + TFLAG:口上用画像表示番号}", 20000 + TFLAG:口上用画像表示番号
+		PRINT_IMG @"口上用画像{20000 + TFLAG:口上用画像表示番号}", STRLENS(LOCALS:LCOUNT) * 110, 220, 0
+		TFLAG:口上用画像表示番号 ++
+		CONTINUE
+	CASE "BIGUP"
+		LCOUNT += 1
+		;何番でもいいけどとりあえず20000以降を使用
+		GDISPOSE 20000 + TFLAG:口上用画像表示番号
+		SPRITEDISPOSE @"口上用画像{20000 + TFLAG:口上用画像表示番号}"
+		GCREATE 20000 + TFLAG:口上用画像表示番号, STRLENS(LOCALS:LCOUNT) * 110, 220
+		GSETFONT 20000 + TFLAG:口上用画像表示番号, GETFONT(), GETCONFIG("フォントサイズ") * 13
+		GDRAWTEXT 20000 + TFLAG:口上用画像表示番号, LOCALS:LCOUNT
+		SPRITECREATE @"口上用画像{20000 + TFLAG:口上用画像表示番号}", 20000 + TFLAG:口上用画像表示番号
+		PRINT_IMG @"口上用画像{20000 + TFLAG:口上用画像表示番号}", STRLENS(LOCALS:LCOUNT) * 110, 220, -100
+		TFLAG:口上用画像表示番号 ++
+		CONTINUE
+	CASE "A"
+		PRINT_IMG "怒りマーク"
+		CONTINUE
+	CASE "IMAGE"
+		;画像を表示する
+		LCOUNT += 1
+		PRINT_IMG @"%LOCALS:LCOUNT%"
+		CONTINUE
+	CASE "IMAGEPATH"
+		;パス指定で画像を表示する
+		文章保存 = 
+		DO
+			LCOUNT += 1
+			SIF LOCALS:LCOUNT == ""
+				BREAK
+			文章保存 += @"_%LOCALS:LCOUNT%"
+		LOOP 1
+		文章保存 = %SUBSTRING(文章保存, 1, STRFIND(文章保存, "+++") - 1)%
+		IF EXIST画像FILE(@"resources/%文章保存%")
+			;何番でもいいけどとりあえず20000以降を使用
+			GDISPOSE 20000 + TFLAG:口上用画像表示番号
+			SPRITEDISPOSE @"口上用画像{TFLAG:口上用画像表示番号}"
+			CALL GCREATE_拡張子(20000 + TFLAG:口上用画像表示番号, 文章保存)
+			SPRITECREATE @"口上用画像{TFLAG:口上用画像表示番号}", 20000 + TFLAG:口上用画像表示番号
+			PRINT_IMG @"口上用画像{TFLAG:口上用画像表示番号}", GWIDTH(20000 + TFLAG:口上用画像表示番号) / 16 * 100, GHEIGHT(20000 + TFLAG:口上用画像表示番号) / 16 * 100
+			FOR 改行数, 0, GHEIGHT(20000 + TFLAG:口上用画像表示番号) / 18 + 1
+				PRINTL
+			NEXT
+			TFLAG:口上用画像表示番号 ++
+		ENDIF
+		CONTINUE
+	CASE "VIDEOPATH"
+		;パス指定で動画を表示する
+		文章保存 = 
+		DO
+			LCOUNT += 1
+			SIF LOCALS:LCOUNT == ""
+				BREAK
+			文章保存 += @"_%LOCALS:LCOUNT%"
+		LOOP 1
+		文章保存 = %SUBSTRING(文章保存, 1, -1)%
+		CALL PRINT_IMAGE_ANIMATION_GIF(文章保存)
+		CONTINUE
+	ENDSELECT
+	STRLENS LOCALS:LCOUNT
+	IF RESULT > 5
+		SUBSTRING LOCALS:LCOUNT,0,5
+		IF RESULTS == "CALL "
+			SUBSTRING LOCALS:LCOUNT,5,RESULT
+			CALLFORM %RESULTS%
+			CONTINUE
+		ENDIF
+	ENDIF
+	RESULT = 0
+
+	PRINTFORM %LOCALS:LCOUNT%
+	SETCOLOR LOCAL:2
+	文字色 = LOCAL:2
+	FONTSTYLE 0
+NEXT
+SIF LOCAL:1 > 0
+	RESULTS = %返し文%
+SIF LOCAL > 0
+	RETURN 返し数
+
+;-------------------------------------------------
+;PRINT_STRの最後の_Lと_Wを関数に織り込んだver
+;-------------------------------------------------
+@PRINT_STRL, ARGS = "",ARG = -1
+CALL PRINT_STR, ARGS , ARG
+PRINTL
+RETURN RESULT
+
+@PRINT_STRW, ARGS = "",ARG = -1
+CALL PRINT_STR, ARGS , ARG
+WAIT
+RETURN RESULT
+
+@PRINT_STRWN, ARGS = "",ARG = -1
+CALL PRINT_STR, ARGS , ARG
+WAIT
+RETURN RESULT
+
+@PRINT_STR_INPUT, ARGS = "",ARG = -1
+CALL PRINT_STR, ARGS , ARG
+INPUT
+RETURN RESULT
+
+@PRINT_STR_INPUTS, ARGS = "",ARG = -1
+CALL PRINT_STR, ARGS , ARG
+INPUTS
+RETURN RESULT
+

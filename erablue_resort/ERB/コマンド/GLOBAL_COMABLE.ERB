@@ -1,0 +1,493 @@
+﻿;COMABLE一括管理
+@GLOBAL_COMABLE(ARG)
+#FUNCTION
+#DIMS 分割文字列, 10
+;ARG = コマンド番号
+
+;固有条件
+IF GETMETH(@"固有COMABLE_ターゲット側_{ARG}_{NO:TARGET}", 1, TARGET) == 0
+	RESULT = 0
+	RETURNF 1
+ENDIF
+IF GETMETH(@"固有COMABLE_プレイヤー側_{ARG}_{NO:PLAYER}", 1, PLAYER) == 0
+	RESULT = 0
+	RETURNF 1
+ENDIF
+
+;外出時条件
+IF FLAG:お出かけ先フラグ > 0
+	IF GETMETH(@"外出先_封印コマンド設定_{CFLAG:MASTER:現在マップ種別}", 1, @"{ARG}") == 0
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ENDIF
+
+;コマンドフィルタ
+IF ARG >= 370 && ARG <= 374
+	LOCALS = /{ARG}_{NO:TARGET}/
+	IF STRCOUNT(SAVESTR:1,LOCALS)
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ELSEIF ARG >= 380 && ARG <= 384
+	LOCALS = /{ARG}_{CFLAG:MASTER:現在マップ種別}_{CFLAG:MASTER:現在位置}/
+	IF STRCOUNT(SAVESTR:1,LOCALS)
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ELSEIF ARG >= 385 && ARG <= 389
+	LOCALS = /{ARG}_%開催予定祭り名%/
+	IF STRCOUNT(SAVESTR:1,LOCALS)
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ELSE
+	LOCALS = /{ARG}/
+	IF STRCOUNT(SAVESTR:0,LOCALS)
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ENDIF
+
+;複数モード対応か否か
+同時モード許可 = 0
+同時モード拡張許可 = 0
+同時モード反転許可 = 0
+CALLFORMF COMTYPE_{ARG}
+;あなた特殊能力や効果による人数拡張
+IF 同時モード許可 > 0 && 同時モード拡張許可 == 1
+	SELECTCASE あなた特殊能力:八面六臂
+		CASE 1
+			同時モード許可 = MAX(同時モード許可, 4)
+		CASE 2
+			同時モード許可 = MAX(同時モード許可, 6)
+		CASE 3
+			同時モード許可 = MAX(同時モード許可, 12)
+		CASE 4
+			同時モード許可 = MAX(同時モード許可, 24)
+		CASE IS >= 5
+			同時モード許可 = MAX(同時モード許可, 1000)
+	ENDSELECT
+ENDIF
+;同時モード時
+IF GETBIT(FLAG:モード管理, モードビット_同時)
+	IF 反転時フラグ
+		IF 同時モード反転許可 < 同時モード_選択数
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	ELSE
+		IF 同時モード許可 < 同時モード_選択数
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	ENDIF
+ENDIF
+
+
+;コマンド種別による一括管理
+LOCALS = 
+VARSET 分割文字列
+TFLAG:コマンドタイプ受渡 = -1
+睡眠中許可 = 0
+ダウン中許可 = 0
+ダウン中許可_PLAYER = 0
+
+;種別取得
+IF ARG >= 370 && ARG <= 374
+	TRYCALLFORMF COMTYPE_{ARG}_{NO:TARGET}
+	SIF TFLAG:コマンドタイプ受渡 >= 0
+		LOCALS = %COMTYPE_S(TFLAG:コマンドタイプ受渡)%
+ELSEIF ARG >= 380 && ARG <= 384
+	TRYCALLFORMF COMTYPE_{ARG}_{CFLAG:MASTER:現在マップ種別}_{CFLAG:MASTER:現在位置}
+	SIF TFLAG:コマンドタイプ受渡 >= 0
+		LOCALS = %COMTYPE_S(TFLAG:コマンドタイプ受渡)%
+ELSEIF ARG >= 385 && ARG <= 389
+	TRYCALLFORMF COMTYPE_{ARG}_%開催予定祭り名%
+	SIF TFLAG:コマンドタイプ受渡 >= 0
+		LOCALS = %COMTYPE_S(TFLAG:コマンドタイプ受渡)%
+ELSE
+	TRYCALLFORMF COMTYPE_{ARG}
+	SIF TFLAG:コマンドタイプ受渡 >= 0
+		LOCALS = %COMTYPE_S(TFLAG:コマンドタイプ受渡)%
+ENDIF
+
+;&や_が入ってるとAND条件やOR条件になる
+IF TFLAG:コマンドタイプ受渡 == 100
+	SPLIT TSTR:複合コマンドタイプ受け渡し, "&", 分割文字列
+	LOCAL:1 = RESULT
+	FOR LOCAL, 0, LOCAL:1
+		IF GLOBAL_COMABLE_TYPE(分割文字列:LOCAL)
+			;AND条件なので一個でも不許可（1が返ってくる）なら通さない
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	NEXT
+	;FORを抜けた＝全部許可だったはずなので通す
+	RESULT = 0
+	RETURNF 0
+ENDIF
+
+IF TFLAG:コマンドタイプ受渡 == 101
+	SPLIT TSTR:複合コマンドタイプ受け渡し, "_", 分割文字列
+	LOCAL:1 = RESULT
+	FOR LOCAL, 0, LOCAL:1
+		IF GLOBAL_COMABLE_TYPE(分割文字列:LOCAL) == 0
+			;OR条件なので一個でも許可（0が返ってくる）なら通す
+			RESULT = 0
+			RETURNF 0
+		ENDIF
+	NEXT
+	;FORを抜けた＝全部不許可だったはずなので通さない
+	RESULT = 0
+	RETURNF 1
+ENDIF
+
+
+LOCAL = GLOBAL_COMABLE_TYPE(LOCALS)
+RESULT = 0
+睡眠中許可 = 0
+ダウン中許可 = 0
+ダウン中許可_PLAYER = 0
+
+RETURNF LOCAL
+
+@GLOBAL_COMABLE_S(ARGS)
+#FUNCTION
+#DIMS 分割文字列, 10
+
+;固有条件
+IF GETMETH(@"固有COMABLE_ターゲット側_%ARGS%_{NO:TARGET}", 1, TARGET) == 0
+	RESULT = 0
+	RETURNF 1
+ENDIF
+IF GETMETH(@"固有COMABLE_プレイヤー側_%ARGS%_{NO:PLAYER}", 1, PLAYER) == 0
+	RESULT = 0
+	RETURNF 1
+ENDIF
+
+;外出時条件
+IF FLAG:お出かけ先フラグ > 0
+	IF GETMETH(@"外出先_封印コマンド設定_{CFLAG:MASTER:現在マップ種別}", 1, @"%ARGS%") == 0
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ENDIF
+
+;コマンドフィルタ
+LOCALS = /%ARGS%/
+IF STRCOUNT(SAVESTR:2,LOCALS)
+	RESULT = 0
+	RETURNF 1
+ENDIF
+
+;複数モード対応か否か
+同時モード許可 = 0
+同時モード拡張許可 = 0
+TRYCALLFORMF COMTYPE_S_%ARGS%
+;あなた特殊能力や効果による人数拡張
+IF 同時モード許可 > 0 && 同時モード拡張許可 == 1
+	SELECTCASE あなた特殊能力:八面六臂
+		CASE 1
+			同時モード許可 = MAX(同時モード許可, 4)
+		CASE 2
+			同時モード許可 = MAX(同時モード許可, 6)
+		CASE 3
+			同時モード許可 = MAX(同時モード許可, 12)
+		CASE 4
+			同時モード許可 = MAX(同時モード許可, 24)
+		CASE IS >= 5
+			同時モード許可 = MAX(同時モード許可, 1000)
+	ENDSELECT
+ENDIF
+;同時モード時
+IF GETBIT(FLAG:モード管理, モードビット_同時)
+	IF 反転時フラグ
+		IF 同時モード反転許可 < 同時モード_選択数
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	ELSE
+		IF 同時モード許可 < 同時モード_選択数
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	ENDIF
+ENDIF
+
+;コマンド種別による一括管理
+LOCALS = 
+TFLAG:コマンドタイプ受渡 = -1
+;種別取得
+
+TRYCALLFORMF COMTYPE_S_%ARGS%
+IF TFLAG:コマンドタイプ受渡 >= 100
+	LOCALS = %TSTR:複合コマンドタイプ受け渡し%
+ELSEIF TFLAG:コマンドタイプ受渡 >= 0
+	LOCALS = %COMTYPE_S(TFLAG:コマンドタイプ受渡)%
+ENDIF
+VARSET 分割文字列
+;&や_が入ってるとAND条件やOR条件になる
+STRFIND LOCALS, "&"
+IF RESULT > -1
+	SPLIT LOCALS, "&", 分割文字列
+	LOCAL:1 = RESULT
+	FOR LOCAL, 0, LOCAL:1
+		IF GLOBAL_COMABLE_TYPE(分割文字列:LOCAL)
+			;AND条件なので一個でも不許可（1が返ってくる）なら通さない
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	NEXT
+	;FORを抜けた＝全部許可だったはずなので通す
+	RESULT = 0
+	RETURNF 0
+ENDIF
+
+STRFIND LOCALS, "_"
+IF RESULT > -1
+	SPLIT LOCALS, "_", 分割文字列
+	LOCAL:1 = RESULT
+	FOR LOCAL, 0, LOCAL:1
+		IF GLOBAL_COMABLE_TYPE(分割文字列:LOCAL) == 0
+			;OR条件なので一個でも許可（0が返ってくる）なら通す
+			RESULT = 0
+			RETURNF 0
+		ENDIF
+	NEXT
+	;FORを抜けた＝全部不許可だったはずなので通さない
+	RESULT = 0
+	RETURNF 1
+ENDIF
+
+LOCAL = GLOBAL_COMABLE_TYPE(LOCALS)
+RESULT = 0
+
+RETURNF LOCAL
+
+
+@GLOBAL_COMABLE_TYPE(ARGS)
+#FUNCTION
+#DIM 睡眠フラグ
+LOCALS = %ARGS%
+
+;反転コマンドで通る可能性があるので、PLAYERが睡眠時をカットしておく
+IF CFLAG:PLAYER:睡眠
+	RESULT = 0
+	RETURNF 1
+ENDIF
+
+睡眠フラグ = CFLAG:睡眠
+SIF 睡眠中許可
+	睡眠フラグ = 2
+;↓はいらないかも？
+SIF TCVAR:泥酔眠姦 > 0
+	睡眠フラグ = 2
+
+IF LOCALS == "隠密"
+;隠密行動は隠密時のみ
+	IF !CFLAG:MASTER:隠密
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ELSEIF LOCALS == "被挿入中"
+;被挿入中コマンドは被挿入中のみ
+	IF !MODE_存在判定_ターゲット側("ＶＡ挿入系", PLAYER)
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+ELSE
+	;隠密時は相手も隠密じゃないとダメ
+	IF CFLAG:PLAYER:隠密 && (!TARGET:1 || !CFLAG:TARGET:隠密)
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+	;被挿入中は基本全部アウト
+	IF MODE_存在判定_ターゲット側("ＶＡ挿入系", PLAYER)
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+	;ハーヴィンオナホ時は相手が必要なやつは消す
+	IF MODE_存在判定_ターゲット側("ハーヴィンオナホ系", TARGET) && LOCALS != "いつでも" && LOCALS != "単独可能"
+		RESULT = 0
+		RETURNF 1
+	ENDIF
+	SELECTCASE LOCALS
+;各コマンドのカテゴリで分ける
+;コマンド番号気にしなくてもあとから無秩序に追加できるように
+	CASE "日常"
+		IF TFLAG:調教モード != 1
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TARGET:1 <= 0 || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF MODE_存在判定_ターゲット側("全裸散歩", TARGET)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "セクハラ弱"
+		IF TFLAG:調教モード == 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TCVAR:MASTER:馴れ合い強度 < 1 && 知識素質:TARGET:性知識 >= 0 && !CFLAG:睡眠
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF (TARGET:1 <= 0 && 飲み会TARGET:1 <= 0) || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		;他人とデート中かつ寝てない時はダメ
+		IF !GROUPMATCH(CFLAG:TARGET:デート, 0, MASTER + 100) && TCVAR:TARGET:デートちょっかい値 <= 0 && !CFLAG:TARGET:睡眠
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "セクハラ"
+		IF TFLAG:調教モード == 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TCVAR:MASTER:馴れ合い強度 < 1 && 知識素質:TARGET:性知識 >= 0 && !CFLAG:睡眠
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF (TARGET:1 <= 0 && 飲み会TARGET:1 <= 0) || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		;他人とデート中かつ寝てない時はダメ
+		IF !GROUPMATCH(CFLAG:TARGET:デート, 0, MASTER + 100) && TCVAR:TARGET:デートちょっかい値 <= 0 && !CFLAG:TARGET:睡眠
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "セクハラ強"
+		IF TFLAG:調教モード == 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TCVAR:MASTER:馴れ合い強度 < 2 && 知識素質:TARGET:性知識 >= 0 && !CFLAG:睡眠 && TCVAR:TARGET:言いなり == 0 && TCVAR:TARGET:特殊言いなり == 0
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF 陥落チェック_性的＋疑似恋慕(TARGET) && 初体験日取得("初うふふ", TARGET, MASTER)
+		ELSEIF 陥落チェック(TARGET) && 知識素質:TARGET:性知識 < 0 && (GET_TARGETNUM() + GET_飲み会TARGETNUM()) == 1
+		ELSEIF TCVAR:TARGET:言いなり || TCVAR:TARGET:特殊言いなり
+		ELSEIF 睡眠フラグ == 2
+		ELSE
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF (TARGET:1 <= 0 && 飲み会TARGET:1 <= 0) || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		;他人とデート中かつ寝てない時はダメ
+		IF !GROUPMATCH(CFLAG:TARGET:デート, 0, MASTER + 100) && TCVAR:TARGET:デートちょっかい値 <= 0 && !CFLAG:TARGET:睡眠
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "探索"
+		IF TFLAG:調教モード > 1
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TARGET:1 <= 0 || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF MODE_存在判定_ターゲット側("全裸散歩", TARGET)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF MODE_存在判定_プレイヤー側("全裸散歩", PLAYER)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "うふふ"
+		IF TFLAG:調教モード != 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TARGET:1 <= 0 || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "Ｖ系"
+		IF TFLAG:調教モード != 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TARGET:1 <= 0 || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "Ａ系"
+		IF TFLAG:調教モード != 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TARGET:1 <= 0 || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "道具系"
+		IF TFLAG:調教モード != 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TARGET:1 <= 0 || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "単独可能"
+		IF TFLAG:調教モード > 1
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "特殊プレイ"
+		IF TFLAG:調教モード != 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		IF TARGET:2 <= 0 || 睡眠フラグ == 1 || CFLAG:隠密 || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "飲み会"
+		IF TFLAG:調教モード != 3
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "触手系"
+		;うふふのみ
+		IF TFLAG:調教モード != 2
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		;相手必須
+		IF TARGET:1 <= 0 || 睡眠フラグ == 1 || (CFLAG:隠密 && !CFLAG:PLAYER:隠密) || (CFLAG:体力限界 == 1 && ダウン中許可 == 0) || (CFLAG:PLAYER:体力限界 == 1 && ダウン中許可_PLAYER == 0)
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		;触手技能必須
+		IF !あなた特殊能力:触手変化術
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+		;触手性癖必須
+		IF 性癖素質:TARGET:触手プレイ < 1
+			RESULT = 0
+			RETURNF 1
+		ENDIF
+	CASE "いつでも"
+	ENDSELECT
+ENDIF
+
+
+
+
+

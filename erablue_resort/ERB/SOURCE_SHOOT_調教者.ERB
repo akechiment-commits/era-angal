@@ -1,0 +1,622 @@
+﻿;-------------------------------------------------------------------------------------------
+;射精先の選択肢関連の処理
+;-------------------------------------------------------------------------------------------
+@EVENT_SHOOT_MASTER
+#DIM 射精先キャラ, 射精先キャラ最大数
+#DIM 未使用１, 1
+#DIMS 未使用２, 1
+#DIM 対象キャラカウンタ
+#DIM 対象キャラ数
+#DIM 射精場所カウンタ
+#DIM 選択肢数
+#DIMS 選択肢文字列
+#DIM 選択射精場所
+#DIM 選択キャラ
+#DIM 選択番号
+VARSET 射精先キャラ, -1
+;0では駄目なので初期化
+
+;射精キャラを登録
+RFLAG:口上用射精キャラ番号 = MASTER
+
+;どこに射精するかを決定する
+
+;選択なしでそのまま出すもの
+CALL 確定射精先判定(MASTER)
+SIF RESULT
+	RETURN 0
+
+;まずTARGETのうちうふふ状態の相手を探す
+CALL キャラ番号配列_初期化_フィルタソート(射精先キャラ, "キャラソート_射精先_MASTER", 未使用１, 未使用２, 1)
+対象キャラ数 = RESULT
+
+;候補がいない＝非うふふ時の射精
+IF 対象キャラ数 == 0
+	IF SELECTCOM == 315
+		;性処理業務時は、各コマンドに射精場所の管理を渡す
+		IF RFLAG:性処理射精先
+			CALL 射精実処理(PLAYER, TARGET, RFLAG:性処理射精先 - 10)
+			RETURN 0
+		ELSE
+			TRYCCALLFORM 性処理_射精時処理_%RSTR:コマンド結果受渡し文字列%
+				SIF RESULT
+					RETURN 0
+			CATCH
+			ENDCATCH
+			;コマンドが特に指定しなかった場合は30番
+			JUMP 射精実処理(MASTER, TARGET, 30)
+		ENDIF
+	ELSE
+		;オートコマンドのみのはずなので、オートコマンド相手で呼び出す
+		JUMP 射精実処理(MASTER, AUTOCOM_実行番号保存, 30)
+	ENDIF
+ENDIF
+
+CALL SHOOT予告口上(MASTER)
+PRINTL 
+
+;オート射精設定があればそれに従う
+CALL オート射精先判定_MASTER(MASTER, 射精先キャラ, 対象キャラ数)
+SIF RESULT
+	RETURN 0
+
+選択射精場所 = -1
+選択キャラ = -1
+
+$INPUT_LOOP
+;射精先の一覧から可能な選択肢を引っ張ってくる
+選択肢文字列 '= ""
+選択肢数 = 0
+FOR 対象キャラカウンタ, 0, 対象キャラ数
+	FOR 射精場所カウンタ, 0, 31
+		TRYCCALLFORM SHOOT_ABLE_{射精場所カウンタ}(MASTER, 射精先キャラ:対象キャラカウンタ)
+			;ABLEが通れば決定
+			IF RESULT
+				CALLFORM SHOOT_NAME_{射精場所カウンタ}(射精先キャラ:対象キャラカウンタ)
+				選択番号 = 射精場所カウンタ + 対象キャラカウンタ * 100
+				;選択射精場所のものはえっちな色にする
+				SIF 選択射精場所 == 射精場所カウンタ && 選択キャラ == 対象キャラカウンタ
+					選択肢文字列 += @"<font color='#0xFF3399'>"
+				選択肢文字列 += @"<button value='{選択番号}'>[{選択番号,3}]%CALLNAME:(射精先キャラ:対象キャラカウンタ)%:%TSTR:コマンド名受渡%</button><br>"
+				SIF 選択射精場所 == 射精場所カウンタ && 選択キャラ == 対象キャラカウンタ
+					選択肢文字列 += @"</font>"
+				選択肢数 += 1
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+	選択肢文字列 += "<br>"
+NEXT
+
+IF 選択肢数 == 0
+	;選択肢がないなら30番確定
+	JUMP 射精実処理(MASTER, -1, 30)
+ELSEIF 選択肢数 == 1
+	;射精先が一択の場合
+	JUMP 射精実処理(MASTER, 射精先キャラ:(選択番号 / 100), 選択番号 % 100)
+ENDIF
+
+DRAWLINE
+PRINTL どこに射精しますか？
+DRAWLINE
+HTML_PRINT 選択肢文字列
+
+IF INRANGE(選択射精場所, 0, 30) && INRANGE(選択キャラ, 0, 対象キャラ数 - 1)
+	PRINTBUTTON @"[ -1]発射！", -1
+ELSE
+	SETCOLOR 0x666666
+	PRINTPLAIN [ -1]有効な射精先を選択してください
+	RESETCOLOR
+ENDIF
+PRINTL
+
+BINPUT
+選択番号 = RESULT
+
+SELECTCASE 選択番号
+	CASE -1
+		JUMP 射精実処理(MASTER, 射精先キャラ:選択キャラ, 選択射精場所)
+	CASEELSE
+		選択射精場所 = 選択番号 % 100
+		選択キャラ = 選択番号 / 100
+		REUSELASTLINE 
+		GOTO INPUT_LOOP
+ENDSELECT
+
+
+@オート射精先判定_MASTER(射精キャラ, 射精先キャラ, 対象キャラ数)
+#DIM 射精キャラ
+#DIM REF 射精先キャラ, 0
+#DIM 対象キャラ数
+#DIM オプション番号
+#DIM 対象キャラカウンタ
+
+;オート射精設定を上から見る
+FOR オプション番号, 0, 31
+	SIF オート射精先オプション:オプション番号 == -1
+		BREAK
+
+	FOR 対象キャラカウンタ, 0, 対象キャラ数
+		TRYCCALLFORM SHOOT_ABLE_{オート射精先オプション:オプション番号}(射精キャラ, 射精先キャラ:対象キャラカウンタ)
+			;射精先キャラはシャッフルされているので
+			;ABLEが通った時点でその相手に射精すればよい感じにばらけるはず
+			IF RESULT
+				CALL 射精実処理(射精キャラ, 射精先キャラ:対象キャラカウンタ, オート射精先オプション:オプション番号)
+				RETURN 1
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+NEXT
+RETURN 0
+
+
+@SHOOT絶頂計算(ARG, 射精キャラ)
+#DIM 絶頂残値
+#DIM 射精キャラ
+#DIM 強度一時保存
+#DIM ソート用配列, 5
+#DIM _C
+#DIM _V
+#DIM _A
+#DIM _B
+#DIM _S
+#DIM _L
+
+_C = 0
+_V = 0
+_A = 0
+_B = 0
+_S = 0
+
+絶頂残値 = 絶頂残値算出処理(ARG)
+
+;絶頂Ｃ
+NOWEX:ARG:被射精Ｃ絶頂 = 0
+DO
+	IF CUP:ARG:快Ｃ + PALAM:ARG:快Ｃ - CDOWN:ARG:快Ｃ >= PALAMLV:4
+		強度一時保存 = (CUP:ARG:快Ｃ + PALAM:ARG:快Ｃ - CDOWN:ARG:快Ｃ) / PALAMLV:4
+		NOWEX:ARG:被射精Ｃ絶頂 += 強度一時保存
+		_C = NOWEX:ARG:被射精Ｃ絶頂
+		CDOWN:ARG:快Ｃ += 強度一時保存 * PALAMLV:4 - 絶頂残値
+	ENDIF
+LOOP CUP:ARG:快Ｃ + PALAM:ARG:快Ｃ - CDOWN:ARG:快Ｃ >= PALAMLV:4
+;絶頂Ｖ
+NOWEX:ARG:被射精Ｖ絶頂 = 0
+DO
+	IF CUP:ARG:快Ｖ + PALAM:ARG:快Ｖ - CDOWN:ARG:快Ｖ >= PALAMLV:4
+		強度一時保存 = (CUP:ARG:快Ｖ + PALAM:ARG:快Ｖ - CDOWN:ARG:快Ｖ) / PALAMLV:4
+		NOWEX:ARG:被射精Ｖ絶頂 += 強度一時保存
+		_V = NOWEX:ARG:被射精Ｖ絶頂
+		CDOWN:ARG:快Ｖ += 強度一時保存 * PALAMLV:4 - 絶頂残値
+	ENDIF
+LOOP CUP:ARG:快Ｖ + PALAM:ARG:快Ｖ - CDOWN:ARG:快Ｖ >= PALAMLV:4
+;絶頂Ａ
+NOWEX:ARG:被射精Ａ絶頂 = 0
+DO
+	IF CUP:ARG:快Ａ + PALAM:ARG:快Ａ - CDOWN:ARG:快Ａ >= PALAMLV:4
+		強度一時保存 = (CUP:ARG:快Ａ + PALAM:ARG:快Ａ - CDOWN:ARG:快Ａ) / PALAMLV:4
+		NOWEX:ARG:被射精Ａ絶頂 += 強度一時保存
+		_A = NOWEX:ARG:被射精Ａ絶頂
+		CDOWN:ARG:快Ａ += 強度一時保存 * PALAMLV:4 - 絶頂残値
+	ENDIF
+LOOP CUP:ARG:快Ａ + PALAM:ARG:快Ａ - CDOWN:ARG:快Ａ >= PALAMLV:4
+;絶頂Ｂ
+NOWEX:ARG:被射精Ｂ絶頂 = 0
+DO
+	IF CUP:ARG:快Ｂ + PALAM:ARG:快Ｂ - CDOWN:ARG:快Ｂ >= PALAMLV:4
+		強度一時保存 = (CUP:ARG:快Ｂ + PALAM:ARG:快Ｂ - CDOWN:ARG:快Ｂ) / PALAMLV:4
+		NOWEX:ARG:被射精Ｂ絶頂 += 強度一時保存
+		_B = NOWEX:ARG:被射精Ｂ絶頂
+		CDOWN:ARG:快Ｂ += 強度一時保存 * PALAMLV:4 - 絶頂残値
+	ENDIF
+LOOP CUP:ARG:快Ｂ + PALAM:ARG:快Ｂ - CDOWN:ARG:快Ｂ >= PALAMLV:4
+;絶頂Ｓ
+NOWEX:ARG:被射精Ｓ絶頂 = 0
+DO
+	IF CUP:ARG:快Ｓ + PALAM:ARG:快Ｓ - CDOWN:ARG:快Ｓ >= PALAMLV:4
+		強度一時保存 = (CUP:ARG:快Ｓ + PALAM:ARG:快Ｓ - CDOWN:ARG:快Ｓ) / PALAMLV:4
+		NOWEX:ARG:被射精Ｓ絶頂 += 強度一時保存
+		_S = NOWEX:ARG:被射精Ｓ絶頂
+		CDOWN:ARG:快Ｓ += 強度一時保存 * PALAMLV:4 - 絶頂残値
+	ENDIF
+LOOP CUP:ARG:快Ｓ + PALAM:ARG:快Ｓ - CDOWN:ARG:快Ｓ >= PALAMLV:4
+
+;-------------------------------------------------
+;絶頂時の追加処理
+;-------------------------------------------------
+RCVAR:ARG:被射精絶頂の強度 = _C + _V + _A + _B + _S
+IF	ARG == MASTER
+	TFLAG:調教者被射精絶頂強度 = _C + _V + _A + _B + _S
+ENDIF
+IF ARG == TARGET
+	;快楽刻印の処理
+	IF RCVAR:ARG:被射精絶頂の強度 > 3 && MARK:ARG:1 < 3
+		RCVAR:ARG:快楽強度 = 3
+	;Rが3以上で快楽刻印２に相当
+	ELSEIF RCVAR:ARG:被射精絶頂の強度 > 2 && MARK:ARG:1 < 2
+		RCVAR:ARG:快楽強度 = 2
+	;Rが2以上で快楽刻印１に相当
+	ELSEIF RCVAR:ARG:被射精絶頂の強度 > 1 && MARK:ARG:1 < 1
+		RCVAR:ARG:快楽強度 = 1
+	ELSEIF RCVAR:ARG:被射精絶頂の強度 >= 1
+		RCVAR:ARG:快楽強度 = 0
+	ENDIF
+ENDIF
+
+IF RCVAR:ARG:被射精絶頂の強度 > 0 && 射精キャラ == MASTER
+	IF 初体験日:ARG:あなたの手で初絶頂 == 0
+		初体験日:ARG:あなたの手で初絶頂 = DAY
+		CALL 履歴データベース登録(CFLAG:MASTER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>初めて%CALLNAME:ARG%を絶頂させた</font>","うふふ")
+		CALL 履歴データベース登録(CFLAG:ARG:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>初めて%CALLNAME:MASTER%の手で絶頂した</font>","うふふ")
+	ENDIF
+ENDIF
+
+;同時絶頂による補正
+_L = 0
+SELECTCASE MIN(_C, _V, _A, _B, _S)
+	CASE IS >= 5
+		_L = 5
+		_C *= 60
+		_V *= 60
+		_A *= 60
+		_B *= 60
+		_S *= 60
+	CASE 4
+		_L = 5
+		_C *= 48
+		_V *= 48
+		_A *= 48
+		_B *= 48
+		_S *= 48
+	CASE 3
+		_L = 5
+		_C *= 36
+		_V *= 36
+		_A *= 36
+		_B *= 36
+		_S *= 36
+	CASE 2
+		_L = 5
+		_C *= 24
+		_V *= 24
+		_A *= 24
+		_B *= 24
+		_S *= 24
+	CASE 1
+		_L = 5
+		_C *= 12
+		_V *= 12
+		_A *= 12
+		_B *= 12
+		_S *= 12
+	CASEELSE
+		;絶頂状態部位がいくつあるかを検索
+		SELECTCASE GROUPMATCH(0, _C, _V, _A, _B, _S)
+			CASE 1
+				_L = 4
+				LOCAL = 8
+			CASE 2
+				_L = 3
+				LOCAL = 4
+			CASE 3
+				_L = 2
+				LOCAL = 2
+			CASE 4
+				_L = 1
+				LOCAL = 1
+			ENDSELECT
+		_C *= LOCAL
+		_V *= LOCAL
+		_A *= LOCAL
+		_B *= LOCAL
+		_S *= LOCAL
+ENDSELECT
+
+IF _C
+	SOURCE:ARG:露出 += 500 * _C
+	SOURCE:ARG:屈従 += 200 * _C
+ENDIF
+IF _V
+	SOURCE:ARG:欲情 += 800 * _V
+	SOURCE:ARG:恭順 += 500 * _V
+	SOURCE:ARG:露出 += 700 * _V
+	SOURCE:ARG:屈従 += 400 * _V
+ENDIF
+IF _A
+	SOURCE:ARG:欲情 += 500 * _A
+	SOURCE:ARG:恭順 += 700 * _A
+	SOURCE:ARG:露出 += 900 * _A
+	SOURCE:ARG:屈従 += 500 * _A
+	SOURCE:ARG:逸脱 += 200 * _A
+ENDIF
+IF _B
+	SOURCE:ARG:露出 += 500 * _B
+	SOURCE:ARG:屈従 += 200 * _B
+	SIF TALENT:ARG:性別  == 10
+		SOURCE:ARG:逸脱 += 100 * _B
+ENDIF
+IF _S
+	SOURCE:ARG:露出 += 500 * _S
+	SOURCE:ARG:屈従 += 200 * _S
+	SOURCE:ARG:逸脱 += 100 * _S
+ENDIF
+
+NOWEX:ARG:被射精多重絶頂 = _L
+
+;スコアを増やす
+ソート用配列 = NOWEX:ARG:被射精Ｃ絶頂, NOWEX:ARG:被射精Ｖ絶頂, NOWEX:ARG:被射精Ａ絶頂, NOWEX:ARG:被射精Ｂ絶頂, NOWEX:ARG:被射精Ｓ絶頂
+ARRAYSORT ソート用配列, BACK
+NOWEX:ARG:スコア += (SUMARRAY(ソート用配列, 0, 4) * POWER(2, MIN(3, NOWEX:ARG:被射精多重絶頂 - 1)) + ソート用配列:4) * 2
+
+;絶頂回数を増やす
+EX:ARG:Ｃ絶頂 += NOWEX:ARG:被射精Ｃ絶頂
+EX:ARG:Ｖ絶頂 += NOWEX:ARG:被射精Ｖ絶頂
+EX:ARG:Ａ絶頂 += NOWEX:ARG:被射精Ａ絶頂
+EX:ARG:Ｂ絶頂 += NOWEX:ARG:被射精Ｂ絶頂
+EX:ARG:Ｓ絶頂 += NOWEX:ARG:被射精Ｓ絶頂
+EX:ARG:多重絶頂 += _L
+
+;絶頂経験を増やす
+EXP:ARG:絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+EXP:ARG:Ｃ絶頂経験 += NOWEX:ARG:被射精Ｃ絶頂
+EXP:ARG:Ｖ絶頂経験 += NOWEX:ARG:被射精Ｖ絶頂
+EXP:ARG:Ａ絶頂経験 += NOWEX:ARG:被射精Ａ絶頂
+EXP:ARG:Ｂ絶頂経験 += NOWEX:ARG:被射精Ｂ絶頂
+EXP:ARG:Ｓ絶頂経験 += NOWEX:ARG:被射精Ｓ絶頂
+SIF RCVAR:ARG:露出コマンドフラグ
+	EXP:ARG:露出絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+SIF RCVAR:ARG:苦痛コマンドフラグ && CUP:ARG:苦痛 >= MAX(1, 100 - (ABL:ARG:マゾ性感 * 20))
+	EXP:ARG:苦痛絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+SIF RCVAR:ARG:嗜虐コマンドフラグ
+	EXP:ARG:嗜虐絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+SIF RCVAR:ARG:奉仕コマンドフラグ
+	EXP:ARG:奉仕絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+SIF RCVAR:ARG:道具コマンドフラグ
+	EXP:ARG:道具絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+SIF RCVAR:ARG:触手コマンドフラグ
+	EXP:ARG:触手絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+SIF MODE_存在判定_ターゲット側("首絞め", ARG)
+	EXP:ARG:首絞め絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+IF RCVAR:ARG:精飲フラグ
+	EXP:ARG:精飲絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+	EXP:ARG:精飲快楽経験 += RCVAR:ARG:被射精絶頂の強度 * 10
+ENDIF
+IF RCVAR:ARG:膣内射精フラグ
+	EXP:ARG:膣内射精絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+ENDIF
+IF RCVAR:ARG:腸内射精フラグ
+	EXP:ARG:腸内射精絶頂経験 += RCVAR:ARG:被射精絶頂の強度
+ENDIF
+
+; ;絶頂による欲望ＬＶアップ
+; IF ARG == TARGET
+; 	;自制心があると１下がる
+; 	SIF TALENT:ARG:自制心
+; 		_L -= 1
+; 	IF ABL:ARG:欲望 < _L
+; 		ABL:ARG:欲望 = _L
+; 		PRINTFORML そして欲望がLV{_L}になった
+; 	ENDIF
+; ENDIF
+CALL EXP取得表示_指定キャラ(ARG)
+CALL EXP変動記録処理(ARG)
+
+;-------------------------------------------------
+;絶頂時の追加処理
+;-------------------------------------------------
+;射精
+IF TALENT:ARG:性別 & 2
+	CALL 射精処理_コマンド(ARG, RCVAR:ARG:被射精絶頂の強度)
+	SIF RESULT > 0
+		CALL 勃起度下降_射精時(ARG)
+ENDIF
+
+;ZPの取得
+IF RCVAR:ARG:被射精絶頂の強度 > 0
+	CALL 絶頂体力減少処理(ARG, NOWEX:ARG:被射精Ｃ絶頂, NOWEX:ARG:被射精Ｖ絶頂, NOWEX:ARG:被射精Ａ絶頂, NOWEX:ARG:被射精Ｂ絶頂, NOWEX:ARG:被射精Ｓ絶頂)
+	CALL ZP_取得処理(ARG, RCVAR:ARG:被射精絶頂の強度)
+	CFLAG:ARG:体力成長値 = MIN(4000, CFLAG:ARG:体力成長値 + RCVAR:ARG:被射精絶頂の強度 * 5)
+ENDIF
+
+
+;連れ込み状態時、満足したか
+;ついでに中毒欲求不満の判定も行う
+CALL 中毒連れ込み判定_精飲(ARG)
+IF RESULT
+	;精飲時は必ず絶頂するはずなのでフラグだけ見る
+	IF RCVAR:ARG:精飲フラグ
+		CFLAG:ARG:中毒欲求不満フラグ = -1
+		SIF 連れ込みパターン == "精飲"
+			RCVAR:ARG:連れ込み満足フラグ = 1
+		NOWEX:ARG:スコア += NOWEX:ARG:被射精多重絶頂 * 2
+	ENDIF
+ENDIF
+CALL 中毒連れ込み判定_膣内射精(ARG)
+IF RESULT
+	;膣内射精時は必ず絶頂するはずなのでフラグだけ見る
+	IF RCVAR:ARG:膣内射精フラグ
+		CFLAG:ARG:中毒欲求不満フラグ = -1
+		SIF 連れ込みパターン == "膣内射精"
+			RCVAR:ARG:連れ込み満足フラグ = 1
+		NOWEX:ARG:スコア += NOWEX:ARG:被射精多重絶頂 * 2
+	ENDIF
+ENDIF
+CALL 中毒連れ込み判定_腸内射精(ARG)
+IF RESULT
+	;腸内射精時は必ず絶頂するはずなのでフラグだけ見る
+	IF RCVAR:ARG:腸内射精フラグ
+		CFLAG:ARG:中毒欲求不満フラグ = -1
+		SIF 連れ込みパターン == "腸内射精"
+			RCVAR:ARG:連れ込み満足フラグ = 1
+		NOWEX:ARG:スコア += NOWEX:ARG:被射精多重絶頂 * 2
+	ENDIF
+ENDIF
+
+RETURN 1
+
+
+@SHOOT予告口上(射精キャラ)
+#DIM 射精キャラ
+#DIM 口上用キャラ番号
+
+RESULT = 0
+TRYCALL SHOOT予告口上_MOD(射精キャラ)
+SIF RESULT > 0
+	RETURN 0
+
+;射精キャラがＶ挿入中
+;ちんこは一本だけなので場合分けしなくていいはず
+IF MODE_存在判定_プレイヤー側("Ｖ挿入系", 射精キャラ)
+	口上用キャラ番号 = DT_CELL_GET("体位モードデータベース", モードID受渡し, "対象キャラ", 1)
+	IF CFLAG:口上用キャラ番号:睡眠
+		;睡眠時はなし
+	ELSE
+		PRINTFORML 限界を迎えた%CALLNAME:射精キャラ%が膣内射精を予告すると、
+		IF TCVAR:口上用キャラ番号:泥酔眠姦
+			PRINTFORML 酔いつぶれて朦朧とした%CALLNAME:口上用キャラ番号%はわけもわからないまま、ただ本能に突き動かされるように膣肉を締めつけた
+		ELSEIF TFLAG:マッサージ_鬼灯の香使用時間 > 0 && TFLAG:マッサージ_鬼灯の香使用時間 + 20 < DAY * 1440 + TIME
+			SELECTCASE RAND:2
+			CASE 0
+				PRINTFORML 鬼灯の香が効いている%CALLNAME:口上用キャラ番号%は朦朧としたまま、ただ本能に突き動かされるように膣肉を締めつけた
+			CASE 1
+				PRINTFORML 鬼灯の香が効いている%CALLNAME:口上用キャラ番号%は朦朧としながらも弱々しく抵抗したが、嫌がって身をよじったことでかえって膣肉はペニスを不規則に締めつけ射精を促した
+			ENDSELECT
+		ELSEIF SAVESTR:ゲームフェイズ管理 == "むりやりうふふモード"
+			IF RISKY_DAY(口上用キャラ番号) > 0
+				PRINTFORM %CALLNAME:口上用キャラ番号%は青ざめ、
+				PRINTFORML 必死に%TEXTR("首を振って/手を突っ張ってもがきながら/ばたばたと足を暴れさせながら")%、%TEXTR("危ない日だから/デキちゃう日だから/嫌、やめて/ナカだけは嫌だ/妊娠は嫌だ/孕みたくない")%と抵抗する
+				PRINTL
+				PRINTFORML ……が、しかし。その%TEXTR("必死の/健気な/無駄な/無意味な")%抵抗によって%CALLNAME:口上用キャラ番号%の%TEXTR("体/膣肉")%は%CALLNAME:射精キャラ%のペニスを%TEXTR("ぎゅうっ/みちみちっ")%と締め付けるように刺激し、かえって強く%TEXTR("射精/吐精")%を促す結果となった……
+			ELSE
+				SELECTCASE RAND:2
+				CASE 0
+					PRINTFORM た%CALLNAME:口上用キャラ番号%は急に大人しくなり、
+					PRINTFORM %TEXTR("もうなんでもする/もうなんでも言うこと聞く/もう抵抗しない/今日のことは許すし誰にも言わない/今日のことは許すしこれからはいつでも犯していい")%から%TEXTR("ナカ出しだけは/中に出すのだけは/それだけは/妊娠だけは/孕ませるのだけは")%許して欲しい、と%TEXTR("震える/怯えた")%声で必死に%TEXTR("懇願/哀願/命乞い")%する
+					PRINTL
+					PRINTFORML  ……が、しかし。その%TEXTR("必死の/健気な/無駄な/無意味な")%%TEXTR("懇願/哀願/命乞い")%はかえって%CALLNAME:射精キャラ%の%TEXTR("征服欲/支配欲/嗜虐心")%をさらに煽り、さらに強く%TEXTR("射精/吐精")%を促す結果となった……
+				CASE 1
+					PRINTFORM %CALLNAME:口上用キャラ番号%は青ざめ、
+					PRINTFORML 必死に%TEXTR("首を振って/手を突っ張ってもがきながら/ばたばたと足を暴れさせながら")%、%TEXTR("嫌、やめて/ナカだけは嫌だ/妊娠は嫌だ/孕みたくない")%と抵抗する
+					PRINTL
+					PRINTFORML ……が、しかしその%TEXTR("必死の/健気な/無駄な/無意味な")%抵抗によって%CALLNAME:口上用キャラ番号%の%TEXTR("体/膣肉")%は%CALLNAME:射精キャラ%のペニスを%TEXTR("ぎゅうっ/みちみちっ")%と締め付けるように刺激し、かえって強く%TEXTR("射精/吐精")%を促す結果となった……
+				ENDSELECT
+			ENDIF
+		ELSEIF 知識素質:口上用キャラ番号:性知識 < 0
+			PRINTFORML 意味をよくわかっていないが、%CALLNAME:口上用キャラ番号%は本能のままに喘ぎ声を上げながら膣を締めつけていた
+		ELSEIF TALENT:口上用キャラ番号:恋慕 && 射精キャラ == MASTER
+			PRINTFORM %CALLNAME:口上用キャラ番号%は\@ PREGNANCY_SIZE(口上用キャラ番号) > 2 ? 膨らんだお腹を揺らしながら # 自ら腰を振り \@嬌声を上げて、
+			IF TALENT:口上用キャラ番号:妊娠 && CFLAG:口上用キャラ番号:子の父親 == 射精キャラ
+				PRINTFORM パパのチンポミルク頂戴
+			ELSEIF RISKY_DAY(口上用キャラ番号) > 0
+				IF CSTR:口上用キャラ番号:一人称 != ""
+					PRINTFORM %CSTR:口上用キャラ番号:一人称%を
+				ENDIF
+				PRINTDATA
+					DATA ママにして
+					DATA 孕ませて
+					DATA 妊娠させて
+				ENDDATA
+			ELSE
+				PRINTFORM 中に出して
+			ENDIF
+			PRINT_IMG "えっちハート"
+			PRINTFORML 、と膣内射精をねだっていた
+		ELSEIF CFLAG:口上用キャラ番号:発情期フラグ < 0
+			IF TALENT:口上用キャラ番号:妊娠
+				PRINTFORML %TEXTR("すっかり発情した/発情しきった")%%CALLNAME:口上用キャラ番号%は身重の体だから避妊の必要はない、と淫らな声で膣内射精をねだった
+			ELSE
+				PRINTFORML %TEXTR("すっかり発情した/発情しきった/発情ですっかり理性を飛ばしてしまった")%%CALLNAME:口上用キャラ番号%は%TEXTR("雌の本能に逆らえず/快楽に没頭したまま/本能のままに法悦を貪りながら/雌の本能が求めるままに")%、%TEXTR("淫らな/蕩けた/蕩けきった")%%TEXTR("表情/顔")%で%TEXTR("種付け/膣内射精")%をねだった
+			ENDIF
+		ELSE
+			IF RISKY_DAY(口上用キャラ番号) < -1
+				PRINTFORML %CALLNAME:口上用キャラ番号%は色っぽく喘ぎ、中に出しても大丈夫だから好きにして、と返事をした
+			ELSEIF PREGNANCY_SIZE(口上用キャラ番号) > 2
+				PRINTFORML %CALLNAME:口上用キャラ番号%は自分の膨らんだお腹を一瞥すると、好きにして、と諦めたように返事をした
+			ELSEIF RISKY_DAY(口上用キャラ番号) > 0 && TALENT:口上用キャラ番号:妊娠 < 1
+				PRINTFORML %CALLNAME:口上用キャラ番号%は必死に首を振って、今日は危険日だからせめて外に出して、と懇願する
+			ELSEIF RISKY_DAY(口上用キャラ番号) < 0 && TALENT:口上用キャラ番号:妊娠 < 1
+				PRINTFORML %CALLNAME:口上用キャラ番号%は色っぽく喘ぎ、今日は大丈夫だから好きにして、と返事をした
+			ELSE
+				PRINTFORML %CALLNAME:口上用キャラ番号%は快感に蕩けた頭で、中出しを許していいものかと逡巡した
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+
+@SHOOT絶頂口上(射精先キャラ, 射精キャラ)
+#DIM 射精先キャラ
+#DIM 射精キャラ
+
+;後々口上を入れる処理を入れ込む
+
+RESULT = 0
+TRYCALL SHOOT絶頂口上_MOD(射精先キャラ, 射精キャラ)
+SIF RESULT > 0
+	RETURN 0
+
+PRINTFORM %CALLNAME:射精先キャラ%は
+
+SELECTCASE RFLAG:フィニッシュ場所
+	CASE 0
+		;膣内
+		IF SAVESTR:ゲームフェイズ管理 == "むりやりうふふモード"
+			PRINTFORML %TEXTR("どくんどくん/どくっどくっ/どぷどぷ/びちゃびちゃ")%と%TEXTR("子宮/女のいちばん大事な場所")%%TEXTR("に溢れる/に注がれる/を侵略する/に吐き出されてしまった/に吐きつけられる/を汚していく/を穢していく/を犯す/を染めていく")%%TEXTR("望まぬ/濃厚な")%精液の%TEXTR("/絶望的な")%感覚に%TEXTR("身を/声を")%震わせながら、%TEXTR("失意/屈辱/屈服/恥辱")%とともに絶頂した
+		ELSE
+			PRINTL 子宮に溢れる濃厚な精液の感覚で絶頂した
+		ENDIF
+	CASE 1
+		;腸内
+		PRINTL 腸内に感じる精液の熱さに絶頂した
+	CASE 2
+		;口内
+		PRINTFORML 喉に%CALLNAME:射精キャラ%の精液を流し込まれて絶頂した
+	CASE 3
+		;乳内
+		PRINTL 乳房に垂れる精液の感触で絶頂した
+ENDSELECT
+
+IF 射精可能(射精先キャラ) && RCVAR:射精先キャラ:空打ちフラグ == 0
+	PRINTL 同時に、自らの陰茎からも精液を吐き出した…
+ENDIF
+WAIT
+
+
+@キャラソート_射精先_MASTER(キャラ番号, オプション変数, オプション文字列)
+#DIM キャラ番号
+#DIM REF オプション変数, 0
+#DIMS REF オプション文字列, 0
+
+SIF キャラ番号 == 0
+	RETURN 0
+SIF FINDELEMENT(TARGET, キャラ番号, 1) == -1
+	RETURN 0
+
+SIF MODE_存在判定_完全一致("Ｖ挿入系", MASTER, キャラ番号)
+	RETURN -2
+SIF MODE_存在判定_完全一致("Ａ挿入系", MASTER, キャラ番号)
+	RETURN -2
+SIF CFLAG:キャラ番号:うふふ
+	RETURN -1
+
+RETURN 0
+
+@精液濃縮解説()
+#FUNCTIONS
+#DIMS 返り文字列
+
+返り文字列 = 
+返り文字列 += "<br>"
+返り文字列 += "■精液濃縮について<br>"
+返り文字列 += "<br>"
+返り文字列 += "絶頂我慢機能をONにしている時に絶頂するほどの快楽を受けると、精液濃縮のカウントが増加します。<br>"
+返り文字列 += "精液濃縮のカウントに応じて以下の効果が発生します。<br>"
+返り文字列 += "・射精を受けたキャラに対する、精液による快楽発生量の増加<br>"
+返り文字列 += "・妊娠率の上昇<br>"
+返り文字列 += "<br>"
+返り文字列 += "精液濃縮カウントが１０以上の時、精力ゲージの右に「濃」と表示されます。<br>"
+返り文字列 += "精液濃縮カウントが２０の時、精力ゲージの右に「特濃」と表示されます。カウントはこれ以上増加しません。<br>"
+返り文字列 += "<br>"
+
+RETURNF 返り文字列

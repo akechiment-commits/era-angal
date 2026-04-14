@@ -1,0 +1,612 @@
+﻿
+@起床前イベントリスト
+#DIMS 表示用リスト, 100
+#DIMS NEWフラグ用リスト, 100
+#DIM 表示候補数
+#DIM カテゴリ別表示数, 4
+#DIM CONST ページ表示数 = 8, 21, 21, 10
+#DIM カテゴリ別ページ数, 4
+#DIMS リスト表示名
+VARSET LOCAL
+VARSET LOCALS
+VARSET NEWフラグ用リスト
+
+表示候補数 = DT_ROW_LENGTH("各イベント用変数配列")
+SPLIT TSTR:NEWイベントフラグ, "_", NEWフラグ用リスト
+
+DRAWLINE
+IF FLAG:クリア済み視聴フラグ
+	PRINTL 再視聴するクリア済みイベントを選んでください。（表示しきれないタイトルはツールチップで確認可能）
+	PRINTL ※基本的に再視聴では報酬などが取得出来ません。イベント中に「◯◯を入手した」と出ても取得されません。
+	;PRINTBUTTON "[9998] イベントリストへ戻る", 9998
+	HTML_PRINT @"<div rect='0,0,5400,200'><button value='9998'>[9998] イベントリストへ戻る</button></div>", 1
+ELSE
+	PRINTL 開始するイベントを選んでください。（表示しきれないタイトルはツールチップで確認可能）
+	;PRINTBUTTON "[9998] クリア済みイベントを再視聴する", 9998
+	HTML_PRINT @"<div rect='0,0,5400,200'><button value='9998'>[9998] クリア済みイベントを再視聴する</button></div>", 1
+ENDIF
+PRINTL
+DRAWLINE
+VARSET カテゴリ別表示数
+FOR LOCAL, 0, 表示候補数
+	リスト表示名 '= イベントリスト_リスト名表示補正関数(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"))
+	IF FLAG:クリア済み視聴フラグ
+		;発生してないものは出さない
+		SIF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント発生フラグ") == 0
+			CONTINUE
+		;再発生中だと出さない
+		SIF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント再発生CT") == -2
+			CONTINUE
+		IF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント完了フラグ") == 1
+			SELECTCASE DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")
+				CASE "メインシナリオ"
+					IF カテゴリ別ページ数:0 == カテゴリ別表示数:0 / ページ表示数:0
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:1 += @"<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button><br>"
+						ELSE
+							LOCALS:1 += @"<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button><br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:0 ++
+				CASE "サブイベント"
+					IF カテゴリ別ページ数:1 == カテゴリ別表示数:1 / ページ表示数:1
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:2 += @"<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button><br>"
+						ELSE
+							LOCALS:2 += @"<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button><br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:1 ++
+				CASE "キャライベント"
+					IF カテゴリ別ページ数:2 == カテゴリ別表示数:2 / ページ表示数:2
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:3 += @"<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button><br>"
+						ELSE
+							LOCALS:3 += @"<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button><br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:2 ++
+				CASE "突発イベント"
+					IF カテゴリ別ページ数:3 == カテゴリ別表示数:3 / ページ表示数:3
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:4 += @"<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button><br>"
+						ELSE
+							LOCALS:4 += @"<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button><br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:3 ++
+			ENDSELECT
+		ENDIF
+	ELSE
+		SIF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント消滅CT") == -2
+			CONTINUE
+		SIF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント発生フラグ") == 0
+			CONTINUE
+		IF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント完了フラグ") == 0
+			LOCALS:10 = 
+			LOCALS:11 = 
+			IF MATCH(NEWフラグ用リスト, @"EVENT%TOSTR(LOCAL)%")
+				LOCALS:10 += @"<font color='#%カラーパレット_HTML("黄")%'>"
+				LOCALS:11 += @"</font><font color='#FF5555'> NEW!!</font>"
+			ENDIF
+			SELECTCASE DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")
+				CASE "メインシナリオ"
+					IF カテゴリ別ページ数:0 == カテゴリ別表示数:0 / ページ表示数:0
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:1 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:1 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:0 ++
+				CASE "サブイベント"
+					IF カテゴリ別ページ数:1 == カテゴリ別表示数:1 / ページ表示数:1
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:2 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:2 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:1 ++
+				CASE "キャライベント"
+					IF カテゴリ別ページ数:2 == カテゴリ別表示数:2 / ページ表示数:2
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:3 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:3 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:2 ++
+				CASE "突発イベント"
+					IF カテゴリ別ページ数:3 == カテゴリ別表示数:3 / ページ表示数:3
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:4 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:4 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:3 ++
+			ENDSELECT
+		ENDIF
+		IF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント再発生CT") == -2 && DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント完了フラグ") != 0
+			;CT-2は再発生でないと起こり得ないはず
+			LOCALS:10 = 
+			LOCALS:11 = 
+			IF MATCH(NEWフラグ用リスト, @"EVENT%TOSTR(LOCAL)%")
+				LOCALS:10 += @"<font color='#%カラーパレット_HTML("黄")%'>"
+				LOCALS:11 += @"</font><font color='#FF5555'> NEW!!</font>"
+			ENDIF
+			SELECTCASE DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")
+				CASE "メインシナリオ"
+					IF カテゴリ別ページ数:0 == カテゴリ別表示数:0 / ページ表示数:0
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:1 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%　(再発生)'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:1 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:0 ++
+				CASE "サブイベント"
+					IF カテゴリ別ページ数:1 == カテゴリ別表示数:1 / ページ表示数:1
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:2 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%　(再発生)'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:2 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:1 ++
+				CASE "キャライベント"
+					IF カテゴリ別ページ数:2 == カテゴリ別表示数:2 / ページ表示数:2
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:3 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%　(再発生)'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:3 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:2 ++
+				CASE "突発イベント"
+					IF カテゴリ別ページ数:3 == カテゴリ別表示数:3 / ページ表示数:3
+						IF STRLENS(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")) > 30 && OPTION変数:ツールチップ切り替え == 0
+							LOCALS:4 += @"%LOCALS:10%<button value='{LOCAL}' title='%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%　(再発生)'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ELSE
+							LOCALS:4 += @"%LOCALS:10%<button value='{LOCAL}'>[{LOCAL}]%リスト表示名%　(再発生)</button>%LOCALS:11%<br>"
+						ENDIF
+					ENDIF
+					カテゴリ別表示数:3 ++
+			ENDSELECT
+		ENDIF
+	ENDIF
+NEXT
+
+LOCALS = <div rect='81,31,1937,1250' border='31' bcolor='#C0C0C0'></div><div rect='156,156,1837,1250'><nobr>%LOCALS:1%</nobr></div>
+LOCALS += @"<div rect='81,1331,1937,1531' border='31' bcolor='#C0C0C0'></div><div rect='156,1425,1837,1531'><nobr>%LOCALS:4%</nobr></div>"
+LOCALS += @"<div rect='2081,31,1937,2812' border='31' bcolor='#C0C0C0'></div><div rect='2156,156,1837,2812'><nobr>%LOCALS:2%</nobr></div>"
+LOCALS += @"<div rect='4081,31,1937,2812' border='31' bcolor='#C0C0C0'></div><div rect='4156,156,1837,2812'><nobr>%LOCALS:3%</nobr></div>"
+LOCALS += "<div width='750' height='125' xpos='337' ypos='0' color='#101010'>メインシナリオ</div>"
+LOCALS += "<div width='662' height='125' xpos='337' ypos='1300' color='#101010'>突発イベント</div>"
+LOCALS += "<div width='662' height='125' xpos='2337' ypos='0' color='#101010'>サブイベント</div>"
+LOCALS += "<div width='762' height='125' xpos='4337' ypos='0' color='#101010'>キャライベント</div>"
+
+LOCALS += "<div width='1837' height='125' xpos='156' ypos='1100'>"
+IF カテゴリ別ページ数:0 > 0
+	LOCALS += "　　　　<button value='10000'>[≪前へ]</button>"
+ELSE
+	LOCALS += "　　　　    "
+ENDIF
+LOCALS += @"   - {カテゴリ別ページ数:0} -   "
+IF カテゴリ別表示数:0 > (カテゴリ別ページ数:0 + 1) * ページ表示数:0
+	LOCALS += "<button value='10005'>[次へ≫]</button>"
+ENDIF
+LOCALS += "</div>"
+
+LOCALS += "<div width='1837' height='125' xpos='2156' ypos='2662'>"
+IF カテゴリ別ページ数:1 > 0
+	LOCALS += "　　　　<button value='10001'>[≪前へ]</button>"
+ELSE
+	LOCALS += "　　　　    "
+ENDIF
+LOCALS += @"   - {カテゴリ別ページ数:1} -   "
+IF カテゴリ別表示数:1 > (カテゴリ別ページ数:1 + 1) * ページ表示数:1
+	LOCALS += "<button value='10006'>[次へ≫]</button>"
+ENDIF
+LOCALS += "</div>"
+
+LOCALS += "<div width='1837' height='125' xpos='4156' ypos='2662'>"
+IF カテゴリ別ページ数:2 > 0
+	LOCALS += "　　　　<button value='10002'>[≪前へ]</button>"
+ELSE
+	LOCALS += "　　　　    "
+ENDIF
+LOCALS += @"   - {カテゴリ別ページ数:2} -   "
+IF カテゴリ別表示数:2 > (カテゴリ別ページ数:2 + 1) * ページ表示数:2
+	LOCALS += "<button value='10007'>[次へ≫]</button>"
+ENDIF
+LOCALS += "</div>"
+
+LOCALS += "<div width='1837' height='125' xpos='156' ypos='2662'>"
+IF カテゴリ別ページ数:3 > 0
+	LOCALS += "　　　　<button value='10003'>[≪前へ]</button>"
+ELSE
+	LOCALS += "　　　　    "
+ENDIF
+LOCALS += @"   - {カテゴリ別ページ数:3} -   "
+IF カテゴリ別表示数:3 > (カテゴリ別ページ数:3 + 1) * ページ表示数:2
+	LOCALS += "<button value='10008'>[次へ≫]</button>"
+ENDIF
+LOCALS += "</div>"
+
+HTML_PRINT LOCALS
+
+FOR LOCAL, 0, 25
+	PRINTL
+NEXT
+PRINTBUTTON "[9997]システムの説明", 9997
+PRINTL
+PRINTBUTTON "[9999]戻る", 9999
+PRINTL
+
+IF チュートリアルフラグ:イベントリスト == 0
+	LOCAL = 9997
+ELSE
+	BINPUT
+	LOCAL = RESULT
+ENDIF
+SELECTCASE LOCAL
+	CASE IS < 表示候補数
+		IF DT_CELL_GETS("各イベント用変数配列", LOCAL, "特殊イベント") != "" && !FLAG:クリア済み視聴フラグ
+			;特殊カテゴリが設定されている場合、確認を出す
+			CALL 特殊カテゴリイベント_視聴確認(LOCAL)
+			SIF RESULT == -1
+				RESTART
+		ENDIF
+		SELECTCASE DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")
+			CASE "メインシナリオ"
+				CALLFORM イベント関数_メインシナリオ_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%(LOCAL)
+			CASE "サブイベント"
+				CALLFORM イベント関数_サブイベント_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%(LOCAL)
+			CASE "キャライベント"
+				IF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "【汎用】")
+					IF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "恋慕不可]解除")
+						CALL 汎用イベント関数_キャライベント_恋慕不可解除(DT_CELL_GET("各イベント用変数配列", LOCAL, "汎用イベ用_キャラNO保存"))
+					ELSEIF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "セフレ不可]解除")
+						CALL 汎用イベント関数_キャライベント_セフレ不可解除(DT_CELL_GET("各イベント用変数配列", LOCAL, "汎用イベ用_キャラNO保存"))
+					ELSEIF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "結婚イベント")
+						CALL 汎用イベント関数_キャライベント_結婚イベント(DT_CELL_GET("各イベント用変数配列", LOCAL, "汎用イベ用_キャラNO保存"))
+					ENDIF
+				ELSE
+					CALLFORM イベント関数_キャライベント_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%(LOCAL)
+				ENDIF
+			CASE "突発イベント"
+				CALLFORM イベント関数_突発イベント_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%(LOCAL)
+		ENDSELECT
+		IF MATCH(NEWフラグ用リスト, @"EVENT%TOSTR(LOCAL)%")
+			REPLACE TSTR:NEWイベントフラグ, @"EVENT%TOSTR(LOCAL)%_", ""
+			TSTR:NEWイベントフラグ = %RESULTS%
+		ENDIF
+		DRAWLINE
+		CALL イベント発生条件チェック()
+		RESTART
+	CASE 10000 TO 10004
+		カテゴリ別ページ数:(LOCAL - 10000) --
+		RESTART
+	CASE 10005 TO 10009
+		カテゴリ別ページ数:(LOCAL - 10005) ++
+		RESTART
+	CASE 9997
+		CALL イベントリストチュートリアル()
+		RESTART
+	CASE 9998
+		INVERTBIT FLAG:クリア済み視聴フラグ, 0
+		VARSET カテゴリ別ページ数
+		RESTART
+	CASE 9999
+		FLAG:クリア済み視聴フラグ = 0
+		VARSET カテゴリ別ページ数
+		RETURN 0
+ENDSELECT
+
+@イベント発生条件チェック
+#DIM スキップフラグ
+
+FOR LOCAL, 0, DT_ROW_LENGTH("各イベント用変数配列")
+	;初回発生チェック
+	イベント消滅日数渡し = 0
+	イベント消滅確率渡し = 0
+	イベント再発生日数渡し = 0
+	イベント再発生確率渡し = 0
+	IF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント発生フラグ") == 0
+		RESULT = 0
+		SELECTCASE DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")
+			CASE "メインシナリオ"
+				TRYCALLFORM イベント発生条件_メインシナリオ_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+			CASE "サブイベント"
+				TRYCALLFORM イベント発生条件_サブイベント_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+			CASE "キャライベント"
+				TRYCCALLFORM イベント発生条件_キャライベント_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+				CATCH
+					IF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "【汎用】")
+						IF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "恋慕不可]解除")
+							CALL 汎用イベント発生条件_キャライベント_恋慕不可解除(DT_CELL_GET("各イベント用変数配列", LOCAL, "汎用イベ用_キャラNO保存"))
+						ELSEIF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "セフレ不可]解除")
+							CALL 汎用イベント発生条件_キャライベント_セフレ不可解除(DT_CELL_GET("各イベント用変数配列", LOCAL, "汎用イベ用_キャラNO保存"))
+						ELSEIF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "結婚イベント")
+							CALL 汎用イベント発生条件_キャライベント_結婚イベント(DT_CELL_GET("各イベント用変数配列", LOCAL, "汎用イベ用_キャラNO保存"))
+						ENDIF
+					ENDIF
+				ENDCATCH
+			CASE "突発イベント"
+				TRYCALLFORM イベント発生条件_突発イベント_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+		ENDSELECT
+		IF RESULT
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント発生フラグ", 1
+			IF LOCAL:1 == 0
+				PRINTL
+				PRINTL
+				DRAWLINE
+			ENDIF
+			IF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント完了フラグ") == 0
+				SELECTCASE DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")
+					CASE "メインシナリオ"
+						PRINTFORML メインシナリオ［%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%］が新たに発生した！
+					CASE "サブイベント"
+						PRINTFORML サブイベント［%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%］が新たに発生した！
+					CASE "キャライベント"
+						PRINTFORML キャライベント［%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%］が新たに発生した！
+					CASE "突発イベント"
+						PRINTFORML 突発イベント［%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%］が新たに発生した！
+				ENDSELECT
+				FORCEWAIT
+				LOCAL:1 = 1
+				TSTR:NEWイベントフラグ += @"EVENT{LOCAL}_"
+				;消失確率があるなら入れ込む
+				イベント消滅日数渡し = 0
+				イベント消滅確率渡し = 0
+				TRYCALLFORM イベント発生条件_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")%_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+				IF イベント消滅確率渡し
+					DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント消滅CT", イベント消滅日数渡し
+					DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント消滅確率", イベント消滅確率渡し
+				ENDIF
+			ENDIF
+		ENDIF
+	;再発生チェック
+	ELSEIF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント再発生CT") == -1
+		;既に発生済みかつクリア済みの突発イベントの再発生
+		IF LOCAL:1 == 0
+			PRINTL
+			PRINTL
+			DRAWLINE
+		ENDIF
+		PRINTFORML %DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")%［%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%］が再発生した！
+		FORCEWAIT
+		;再発生済みと再発生前を区別するためにCTに-2を入れる
+		DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント再発生CT", -2
+		LOCAL:1 = 1
+		;消失確率があるなら入れ込む
+		イベント消滅日数渡し = 0
+		イベント消滅確率渡し = 0
+		TRYCALLFORM イベント発生条件_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")%_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+		IF イベント消滅確率渡し
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント消滅CT", イベント消滅日数渡し
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント消滅確率", イベント消滅確率渡し
+		ENDIF
+	ENDIF
+
+	スキップフラグ = 0
+	IF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント発生フラグ") == 1 && DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント完了フラグ") == 0
+		;条件消失チェック、単純にフラグを戻すだけなので条件が整った時に即再発生する
+		RESULT = 0
+		TRYCCALLFORM イベント消滅条件_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")%_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+		CATCH
+			IF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "【汎用】")
+				IF STRCOUNT(DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名"), "結婚イベント")
+					CALL 汎用イベント消滅条件_キャライベント_結婚イベント(DT_CELL_GET("各イベント用変数配列", LOCAL, "汎用イベ用_キャラNO保存"))
+				ENDIF
+			ENDIF
+		ENDCATCH
+		IF RESULT
+			;消失文章は出さない
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント発生フラグ", 0
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント消滅CT", 0
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント消滅確率", 0
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント再発生CT", 0
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント再発生確率", 0
+			スキップフラグ = 1
+		ENDIF
+	ENDIF
+	IF DT_CELL_GET("各イベント用変数配列", LOCAL, "イベント消滅CT") == -1 && スキップフラグ == 0
+		;自然消滅チェック、こっちは再発生CTや確率がセット出来る
+		IF LOCAL:1 == 0
+			PRINTL
+			PRINTL
+			DRAWLINE
+		ENDIF
+		PRINTFORML %DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")%［%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%］が消失した…
+		FORCEWAIT
+		;消失済みと消失前を区別するためにCTに-2を入れる
+		DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント消滅CT", -2
+		LOCAL:1 = 1
+		;再発生確率渡しを見て、存在するなら入れ込む
+		イベント再発生日数渡し = 0
+		イベント再発生確率渡し = 0
+		TRYCALLFORM イベント発生条件_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベントカテゴリ")%_%DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+		IF イベント再発生確率渡し
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント再発生CT", イベント再発生日数渡し
+			DT_CELL_SET "各イベント用変数配列", LOCAL, "イベント再発生確率", イベント再発生確率渡し
+		ENDIF
+	ENDIF
+NEXT
+FOR LOCAL, 0, DT_ROW_LENGTH("エンディング用変数配列")
+	IF DT_CELL_GET("エンディング用変数配列", LOCAL, "イベント発生フラグ") == 0
+		RESULT = 0
+		TRYCALLFORM イベント関数_エンディングイベント_%DT_CELL_GETS("エンディング用変数配列", LOCAL, "イベント名")%("発生条件", LOCAL)
+		IF RESULT
+			DT_CELL_SET "エンディング用変数配列", LOCAL, "イベント発生フラグ", 1
+			IF LOCAL:1 == 0
+				PRINTL
+				PRINTL
+				DRAWLINE
+			ENDIF
+				PRINTFORML エンディング［%DT_CELL_GETS("エンディング用変数配列", LOCAL, "イベント名")%］が新たに発生した！
+			FORCEWAIT
+			LOCAL:1 = 1
+			TSTR:NEWイベントフラグ += @"ENDHING{DT_CELL_GET("エンディング用変数配列", LOCAL, "id")}_"
+		ENDIF
+	ENDIF
+NEXT
+
+
+
+@イベント完了フラグ汎用処理(ARGS)
+#DIM 行番号
+
+SIF FLAG:クリア済み視聴フラグ
+	RETURN 0
+
+FOR LOCAL, 0, DT_ROW_LENGTH("各イベント用変数配列")
+	LOCALS = %DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+	IF LOCALS == ARGS
+		行番号 = LOCAL
+		BREAK
+	ENDIF
+NEXT
+DT_CELL_SET "各イベント用変数配列", 行番号, "イベント完了フラグ", 1
+
+;再発生確率渡しを見て、存在するなら入れ込む
+イベント消滅日数渡し = 0
+イベント消滅確率渡し = 0
+イベント再発生日数渡し = 0
+イベント再発生確率渡し = 0
+TRYCALLFORM イベント発生条件_%DT_CELL_GETS("各イベント用変数配列", 行番号, "イベントカテゴリ")%_%DT_CELL_GETS("各イベント用変数配列", 行番号, "イベント名")%
+IF イベント再発生確率渡し
+	DT_CELL_SET "各イベント用変数配列", 行番号, "イベント再発生CT", イベント再発生日数渡し
+	DT_CELL_SET "各イベント用変数配列", 行番号, "イベント再発生確率", イベント再発生確率渡し
+	;再発生処理を毎日呼ぶために消失CTを-2にセット
+	DT_CELL_SET "各イベント用変数配列", 行番号, "イベント消滅CT", -2
+ENDIF
+
+@イベント完了フラグ汎用処理_再視聴不可(ARGS)
+#DIM 行番号
+
+SIF FLAG:クリア済み視聴フラグ
+	RETURN 0
+
+FOR LOCAL, 0, DT_ROW_LENGTH("各イベント用変数配列")
+	LOCALS = %DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+	IF LOCALS == ARGS
+		行番号 = LOCAL
+		BREAK
+	ENDIF
+NEXT
+DT_CELL_SET "各イベント用変数配列", 行番号, "イベント完了フラグ", 2
+
+;再発生確率渡しを見て、存在するなら入れ込む
+イベント消滅日数渡し = 0
+イベント消滅確率渡し = 0
+イベント再発生日数渡し = 0
+イベント再発生確率渡し = 0
+TRYCALLFORM イベント発生条件_%DT_CELL_GETS("各イベント用変数配列", 行番号, "イベントカテゴリ")%_%DT_CELL_GETS("各イベント用変数配列", 行番号, "イベント名")%
+IF イベント再発生確率渡し
+	DT_CELL_SET "各イベント用変数配列", 行番号, "イベント再発生CT", イベント再発生日数渡し
+	DT_CELL_SET "各イベント用変数配列", 行番号, "イベント再発生確率", イベント再発生確率渡し
+	;再発生処理を毎日呼ぶために消失CTを-2にセット
+	DT_CELL_SET "各イベント用変数配列", 行番号, "イベント消滅CT", -2
+ENDIF
+
+
+@イベント完了フラグ確認(ARGS)
+#FUNCTION
+#DIM 行番号
+VARSET LOCAL
+
+FOR LOCAL, 0, DT_ROW_LENGTH("各イベント用変数配列")
+	LOCALS = %DT_CELL_GETS("各イベント用変数配列", LOCAL, "イベント名")%
+	IF LOCALS == ARGS
+		行番号 = LOCAL
+		LOCAL:1 = 1
+		BREAK
+	ENDIF
+NEXT
+IF LOCAL:1
+	RETURNF DT_CELL_GET("各イベント用変数配列", 行番号, "イベント完了フラグ")
+ELSE
+	RETURNF -1
+ENDIF
+
+
+@イベント中戦闘用処理()
+
+;再視聴中は常に勝利を返す
+IF FLAG:クリア済み視聴フラグ
+	PRINTL 視聴パターンを選択してください。
+	PRINTBUTTONLC "[0] 勝利", 0
+	PRINTBUTTONLC "[1] 敗北", 1
+	PRINTBUTTONLC "[-1] 逃走", -1
+	BINPUT
+	RETURN RESULT
+ELSE
+	CALL 雑魚敵遭遇汎用処理()
+	RETURN RESULT
+ENDIF
+
+
+@イベントリスト_リスト名表示補正関数(表示文字列)
+#FUNCTIONS
+#DIMS 表示文字列
+
+;汎用恋慕・セフレ解除時の調整
+IF STRFIND(表示文字列, "【汎用】") >= 0 && (STRFIND(表示文字列, "[恋慕不可]解除") >= 0 || STRFIND(表示文字列, "[セフレ不可]解除") >= 0 || STRFIND(表示文字列, "結婚イベント") >= 0)
+	;二つ名部分を削除
+	RETURNF "【汎用】" + SUBSTRING(表示文字列, STRFIND(表示文字列, "]") + 1, -1)
+ENDIF
+RESULTS = 
+TRYCALLFORMF イベント関数_イベント表示名制御_%表示文字列%
+SIF RESULTS != ""
+	RETURNF RESULTS
+
+RETURNF 表示文字列
+
+
+@特殊カテゴリイベント_視聴確認(行番号)
+#DIM 行番号
+#DIM 候補番号
+#DIM 候補数
+#DIMS カテゴリキー
+
+カテゴリキー '= DT_CELL_GETS("各イベント用変数配列", 行番号, "特殊イベント")
+
+候補数 = DT_SELECT("各イベント用変数配列", @"特殊イベント = '%カテゴリキー%'")
+IF 候補数 < 2
+	;同カテゴリがほかにないなら戻す
+	RETURN 0
+ENDIF
+
+;警告を出す
+PRINTL ※このイベントを視聴すると、以下のイベントが視聴出来なくなります。
+FOR 候補番号, 1, 候補数 + 1
+	;選択イベントは飛ばす
+	SIF RESULT:候補番号 == DT_CELL_GET("各イベント用変数配列", 行番号, "id")
+		CONTINUE
+	;選択イベント以外のものの名前を出す
+	PRINTFORML 　「%DT_CELL_GETS("各イベント用変数配列", RESULT:候補番号, "イベント名", 1)%」
+NEXT
+PRINTL
+PRINTL よろしいですか？
+
+PRINTBUTTONLC "[0] 視聴する", 0
+PRINTBUTTONLC "[1] 戻る", 1
+PRINTL
+
+BINPUT
+IF RESULT == 1
+	RETURN -1
+ENDIF
+
+;再視聴出来ない完了状態にする
+FOR 候補番号, 1, 候補数 + 1
+	;選択イベントは飛ばす
+	SIF RESULT:候補番号 == DT_CELL_GET("各イベント用変数配列", 行番号, "id")
+		CONTINUE
+	;選択イベント以外のものの名前を出す
+	DT_CELL_SET "各イベント用変数配列", RESULT:候補番号, "イベント完了フラグ", 2, 1
+NEXT
+

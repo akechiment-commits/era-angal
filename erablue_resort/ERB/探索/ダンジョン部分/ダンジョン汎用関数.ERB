@@ -1,0 +1,189 @@
+﻿@探索中全体ダメージ_ＨＰ_非致死(ダメージ量)
+#DIM ダメージ量
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:ＨＰ = MAX(1, BATTLE_STATE:LOCAL:ＨＰ - ダメージ量)
+NEXT
+
+@探索中全体ダメージ_ＨＰ_割合(ダメージ割合)
+#DIM ダメージ割合
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:ＨＰ = MAX(1, (BATTLE_STATE:LOCAL:ＨＰ * (100 - ダメージ割合) / 100))
+NEXT
+
+@探索中全体ダメージ_ＨＰ_致死(ダメージ量)
+#DIM ダメージ量
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:ＨＰ = MAX(0, BATTLE_STATE:LOCAL:ＨＰ - ダメージ量)
+NEXT
+
+@探索中全体ダメージ_ＭＰ(ダメージ量)
+#DIM ダメージ量
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:ＭＰ = MAX(1, BATTLE_STATE:LOCAL:ＭＰ - ダメージ量)
+NEXT
+
+@探索中全体回復_ＨＰ(回復量)
+#DIM 回復量
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:ＨＰ = MIN(BATTLE_STATE:LOCAL:最大ＨＰ, BATTLE_STATE:LOCAL:ＨＰ + 回復量)
+NEXT
+
+@探索中全体回復_ＨＰ_蘇生(回復量)
+#DIM 回復量
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:ＨＰ = MIN(BATTLE_STATE:LOCAL:最大ＨＰ, BATTLE_STATE:LOCAL:ＨＰ + 回復量)
+NEXT
+
+@探索中全体回復_ＭＰ(回復量)
+#DIM 回復量
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:ＭＰ = MIN(BATTLE_STATE:LOCAL:最大ＭＰ, BATTLE_STATE:LOCAL:ＭＰ + 回復量)
+NEXT
+
+@探索中全体回復_奥義ゲージ(回復量)
+#DIM 回復量
+
+FOR LOCAL, 0, 14
+	IF LOCAL > 3 && LOCAL < 10
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:キャラ登録番号 < 1
+		CONTINUE
+	ENDIF
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	BATTLE_STATE:LOCAL:奥義ゲージ = MIN(BATTLE_STATE:LOCAL:ゲージ最大値, BATTLE_STATE:LOCAL:奥義ゲージ + 回復量)
+NEXT
+
+@味方ランダム選出(選出範囲 = 0)
+#FUNCTION
+#DIM 選出範囲
+#DIM 隊列番号
+#DIM 選出候補, 10
+#DIM 選出番号
+
+VARSET 選出候補, -1
+選出番号 = 0
+FOR 隊列番号, 0, 14
+	SIF 隊列番号 > 3 && 隊列番号 < 10
+		CONTINUE
+	SIF BATTLE_STATE:隊列番号:キャラ登録番号 < 1
+		CONTINUE
+	;戦闘不能はダメ
+	IF BATTLE_STATE:LOCAL:ＨＰ < 1
+		CONTINUE
+	ENDIF
+	;選出範囲が１なら前の隊列にいるキャラのみ
+	SIF 選出範囲 == 1 && 隊列番号 > 3
+		BREAK
+	;選出範囲が２ならサブ隊列にいるキャラのみ
+	SIF 選出範囲 == 2 && 隊列番号 < 10
+		CONTINUE
+	;選出範囲が３なら陥落済みキャラのみ
+	SIF 選出範囲 == 3 && 陥落チェック(BATTLE_STATE:隊列番号:キャラ登録番号) == 0
+		CONTINUE
+	選出候補:選出番号 = 隊列番号
+	選出番号 ++
+NEXT
+
+SIF 選出番号 < 1
+	RETURNF -1
+
+RETURNF 選出候補:(RAND:選出番号)
+
+@味方ランダム選出_前衛のみ
+#FUNCTION
+RETURNF 味方ランダム選出(1)
+
+@味方ランダム選出_サブのみ
+#FUNCTION
+RETURNF 味方ランダム選出(2)
+
+@味方ランダム選出_陥落済み
+#FUNCTION
+RETURNF 味方ランダム選出(3)
+
+@ＰＴ内最大レベル算出()
+#FUNCTION
+#DIM 最大レベル
+#DIM 隊列番号
+
+最大レベル = 0
+FOR 隊列番号, 0, 14
+	SIF 隊列番号 > 3 && 隊列番号 < 10
+		CONTINUE
+	SIF BATTLE_STATE:隊列番号:キャラ登録番号 < 1
+		CONTINUE
+	SIF BATTLE_STATE:隊列番号:Lv > 最大レベル
+		最大レベル = BATTLE_STATE:隊列番号:Lv
+NEXT
+
+RETURNF 最大レベル

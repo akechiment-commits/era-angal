@@ -1,0 +1,1570 @@
+﻿@PREGNANCY_CHECK(ARG)
+#DIM 種親精液量
+#DIM 妊娠確率
+#DIM 種親
+#DIM 種親妊娠補正
+#DIM 命中強度1
+#DIM 命中強度2
+#DIM 危険度
+#DIM 異種フラグ
+#DIM 異種時カウント
+
+IF GETBIT(CFLAG:ARG:妊娠個別設定フラグ, 0)
+	SIF GETBIT(CFLAG:ARG:妊娠個別設定フラグ, 1)
+		RETURN 0
+ELSE
+	SIF OPTION変数:妊娠切り替え
+		RETURN 0
+ENDIF
+
+;種親の確定
+;条件を満たさない種も妊娠対象選びには参加する(完全な異種でも受精はするらしいので)
+命中強度1 = 0
+命中強度2 = 0
+種親 = -1
+種親精液量 = 0
+FOR LOCAL,0,19
+	SIF 性交相手:ARG:LOCAL == -1
+		CONTINUE
+	SIF 相手ごとの射精量:ARG:LOCAL <= 0
+		CONTINUE
+
+	RESULT = 0
+	TRYCALLFORM 個別妊娠処理_種親制御_{NO:ARG}(ARG, 種親)
+	IF RESULT == 1
+		;この種親で妊娠させる
+		種親 = 性交相手:ARG:LOCAL
+		種親精液量 = 相手ごとの射精量:ARG:LOCAL
+		種親妊娠補正 = 相手ごとの妊娠率補正:ARG:LOCAL
+		BREAK
+	ELSEIF RESULT == -1
+		;この種親では絶対妊娠させない
+		命中強度2 = -1
+	ELSE
+		;通常処理
+		命中強度2 = 1 + RAND:(相手ごとの射精量:ARG:LOCAL)
+	ENDIF
+
+	IF 命中強度2 > 命中強度1
+		命中強度1 = 命中強度2
+		種親 = 性交相手:ARG:LOCAL
+		種親精液量 = 相手ごとの射精量:ARG:LOCAL
+	ENDIF
+NEXT
+SIF 種親精液量 <= 0
+	RETURN 0
+
+IF GETBIT(CFLAG:ARG:妊娠個別設定フラグ, 0)
+	IF GETBIT(CFLAG:ARG:妊娠個別設定フラグ, 2)
+		SIF ARG != MASTER && 種親 != MASTER
+			RETURN 0
+	ENDIF
+ELSE
+	IF OPTION変数:他人妊娠
+		SIF ARG != MASTER && 種親 != MASTER
+			RETURN 0
+	ENDIF
+ENDIF
+
+異種フラグ = 0
+異種時カウント = 0
+;妊娠可能な種かどうかの判定
+IF 種親 < 0 || TALENT:ARG:種族 != TALENT:種親:種族 || (TALENT:ARG:種族 == 種族_その他 && CSTR:ARG:特殊種族 != CSTR:種親:特殊種族)
+	;同じ種族でない場合は条件がある
+	IF ARG == MASTER
+		;あなたが母親の場合 種親が恋慕・セフレでなく、あなたが特異胎質を持たない場合は不可
+		IF あなた特殊能力:特異胎質 <= 0 && (種親 < 0 || !陥落チェック(種親))
+			SIF !異種フラグ
+				異種フラグ = 1
+		ELSE
+			SIF !異種フラグ
+				異種フラグ = 2
+			異種時カウント ++
+		ENDIF
+	ENDIF
+	IF 干渉強化変数:ARG:干渉種類 != 0
+		;era様が母体に干渉している場合は種側のコンディションに関わらず可
+		SIF !異種フラグ
+			異種フラグ = 2
+		異種時カウント ++
+	ENDIF
+	IF 種親 == MASTER
+		;あなたが種親の場合 母親が恋慕・セフレでなければ不可
+		IF !陥落チェック(ARG)
+			SIF !異種フラグ
+				異種フラグ = 1
+		ELSE
+			SIF !異種フラグ
+				異種フラグ = 2
+			異種時カウント ++
+		ENDIF
+	ENDIF
+	IF 種親 < 0
+		;種親が不明の場合 原則不可
+		SIF !異種フラグ
+			異種フラグ = 1
+	ENDIF
+	IF ARG != MASTER && 種親 != MASTER && 種親 >= 0
+		;キャラ同士の場合 両者に恋慕・セフレの関係性が無い場合は不可
+		IF DT_SELECT("関係性データベース", @"(対象キャラ１ = {CFLAG:ARG:人物番号} Or 対象キャラ２ = {CFLAG:ARG:人物番号}) And (対象キャラ１ = {CFLAG:種親:人物番号} Or 対象キャラ２ = {CFLAG:種親:人物番号}) And (関係性種別 = '恋慕' Or 関係性種別 = 'セフレ')") == 0
+			SIF !異種フラグ
+				異種フラグ = 1
+		ELSE
+			SIF !異種フラグ
+				異種フラグ = 2
+			異種時カウント ++
+		ENDIF
+	ENDIF
+ENDIF
+
+;超危険日,20回膣内射精で6割、+好条件で確定くらい
+妊娠確率 = MIN(20, 種親精液量 / 60 + 10)
+SIF CFLAG:ARG:発情期フラグ < 0
+	妊娠確率 += 5
+SIF TALENT:ARG:恋慕
+	妊娠確率 += 5
+SIF CSTR:ARG:着せ替え服 == "バニー服"
+	妊娠確率 += 3
+SIF CSTR:ARG:着せ替え服 == "逆バニー"
+	妊娠確率 -= 3
+
+妊娠確率 += TCVAR:ARG:妊娠率補正 + 種親妊娠補正
+
+;異種フラグ２（異種だが妊娠する）時、条件達成数に応じて妊娠確率変動
+IF 異種フラグ == 2
+	SELECTCASE 異種時カウント
+		CASE 1
+			TIMES 妊娠確率, 0.5
+		CASE 2
+			TIMES 妊娠確率, 1.0
+		CASE 3
+			TIMES 妊娠確率, 1.5
+		CASEELSE
+			TIMES 妊娠確率, 2.5
+	ENDSELECT
+ENDIF
+
+危険度 = RISKY_DAY(ARG) + TCVAR:ARG:排卵誘発薬
+SIF TCVAR:ARG:排卵誘発薬 && 危険度 <= 0
+	危険度 = 1
+SELECTCASE 危険度
+	CASE 3
+		TIMES 妊娠確率, 7.5
+	CASE 2
+		TIMES 妊娠確率, 4.0
+	CASE 1
+		TIMES 妊娠確率, 2.0
+	CASE 0
+		TIMES 妊娠確率, 0.5
+	CASE -1
+		TIMES 妊娠確率, 0.1
+ENDSELECT
+
+LOCAL:0 = RAND:100
+
+LOCALS = \@ INRANGE(種親, 0, CHARANUM - 1)? %CALLNAME:種親%# 得体のしれぬ者\@
+CSTR:ARG:妊娠報告_記録文字列 += @"<font color='#%カラーパレット_HTML("クリーム色")%'>%CALLNAME:ARG%の子宮の中"
+IF TCVAR:ARG:膣内精液量 >= 600
+	CSTR:ARG:妊娠報告_記録文字列 += @"は、注ぎこまれた%LOCALS%の精で満たされている……</font><br>"
+ELSEIF TCVAR:ARG:膣内精液量 >= 300
+	CSTR:ARG:妊娠報告_記録文字列 += @"を、%LOCALS%の精が我が物顔で蹂躙している……</font><br>"
+ELSE
+	CSTR:ARG:妊娠報告_記録文字列 += @"では、%LOCALS%の精が卵子めがけて必死に泳いでいる……</font><br>"
+ENDIF
+
+IF TCVAR:ARG:避妊薬
+	TCVAR:ARG:膣内精液量 = 0
+	RETURN -2
+ENDIF
+IF TALENT:ARG:妊娠
+	TCVAR:ARG:膣内精液量 = 0
+	RETURN -3
+ENDIF
+IF TALENT:ARG:妊娠不可
+	TCVAR:ARG:膣内精液量 = 0
+	RETURN -1
+ENDIF
+
+RESULT = 0
+TRYCALLFORM 個別妊娠処理_妊娠率制御_{NO:ARG}(ARG, 種親)
+IF RESULT == 1
+	;絶対に妊娠させる
+	妊娠確率 = 100
+ELSEIF RESULT == -1
+	;絶対に妊娠させない
+	妊娠確率 = -1
+ELSE
+	;通常処理
+	IF 異種フラグ == 1
+		;異種の時は妊娠させない
+		CSTR:ARG:妊娠報告_記録文字列 += "しかし、異種族の間では妊娠には至らないようだ。<br>"
+		TCVAR:ARG:膣内精液量 = 0
+		RETURN -1
+	ELSEIF 異種フラグ == 2 && LOCAL:0 <= 妊娠確率 && !TALENT:ARG:妊娠
+		CSTR:ARG:妊娠報告_記録文字列 += "星晶獣eraの影響を受けた母体が、異種の子種を受け入れようとしている……！<br>"
+	ENDIF
+ENDIF
+
+;妊娠した
+IF LOCAL:0 <= 妊娠確率 && !TALENT:ARG:妊娠
+	CSTR:ARG:妊娠報告_記録文字列 += "_受精アニメ_"
+	CFLAG:ARG:子の父親 = 種親
+	SIF TCVAR:ARG:膣内精液量 >= 450
+		CSTR:ARG:妊娠報告_記録文字列 += "精液をたっぷりと注がれた"
+	CSTR:ARG:妊娠報告_記録文字列 += @"%CALLNAME:ARG%の\@RISKY_DAY(ARG)?危険日の#\@\@TALENT:ARG:種族 == 種族_ハーヴィン || TALENT:ARG:体格 == -2?小さな#\@子宮が、痺れるように甘く疼く…<br>"
+	;MASTERの子を妊娠した時だけ追加で表示
+	IF 種親 == MASTER
+		IF TALENT:ARG:恋慕 || CFLAG:ARG:恋慕レベル >= 関係閾値:4
+			CSTR:ARG:妊娠報告_記録文字列 += @"%CALLNAME:ARG%の卵子は、愛する%CALLNAME:MASTER%の精子を嬉々として受け入れたようだ…<br>"
+		ELSEIF INRANGE(CFLAG:ARG:恋慕レベル,関係閾値:2,関係閾値:4)
+			CSTR:ARG:妊娠報告_記録文字列 += @"%CALLNAME:ARG%の卵子は淡い憧れを抱いている%CALLNAME:MASTER%の精子を拒み切れず、受精を受け入れてしまった…<br>"
+		ELSEIF CFLAG:ARG:発情期フラグ < 0
+			CSTR:ARG:妊娠報告_記録文字列 += @"発情期の%CALLNAME:ARG%の卵子は勝手に受精の準備を整えており、簡単に%CALLNAME:MASTER%の精子を受け入れてしまった…<br>"
+		ELSEIF 知識素質:ARG:性知識 == -2
+			CSTR:ARG:妊娠報告_記録文字列 += @"%CALLNAME:ARG%の無垢な卵子は、何が起こってるかも分からないままに受精させられてしまった…<br>"
+		ELSE
+			CSTR:ARG:妊娠報告_記録文字列 += @"%CALLNAME:ARG%の卵子は結合を迫る%CALLNAME:MASTER%の精子たちの勢いに流され、\@ 異種妊娠(ARG) ? 異種間 # \@受精を許してしまった…<br>"
+		ENDIF
+		CFLAG:ARG:MASTERの子供妊娠回数 ++
+	ENDIF
+	CSTR:ARG:妊娠報告_記録文字列 += "_受精アニメ_"
+	CSTR:ARG:妊娠報告_記録文字列 += @"<font color='#%カラーパレット_HTML("ピンク")%'>%CALLNAME:ARG%は"
+	IF 種親 >= 0
+		CSTR:ARG:妊娠報告_記録文字列 += @"%CALLNAME:種親%の子供を"
+		LOCALS = 
+		IF 種親 == MASTER
+			;あなたが父親
+			SIF CFLAG:ARG:MASTERの子供妊娠回数 > 1
+				CSTR:ARG:妊娠報告_記録文字列 += "また"
+		ENDIF
+		CALL 関係性テキスト取得(ARG, 種親)
+		CALL 履歴データベース登録(CFLAG:種親:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%RESULTS:0%%CALLNAME:ARG%に子供を孕ませた</font><img src='えっちハート'>","うふふ実績")
+		CALL 履歴データベース登録(CFLAG:ARG:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%RESULTS:1%%CALLNAME:種親%との子供を妊娠した</font><img src='えっちハート'>","うふふ実績")
+	ELSE
+		CSTR:ARG:妊娠報告_記録文字列 += "得体のしれぬ相手の子供を"
+		CALL 履歴データベース登録(CFLAG:ARG:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>父親不明の子供を妊娠した</font><img src='えっちハート'>","うふふ実績")
+	ENDIF
+	CSTR:ARG:妊娠報告_記録文字列 += "妊娠したようです</font><br>"
+	CSTR:ARG:妊娠報告_記録文字列 += "<br>"
+	TALENT:ARG:妊娠 = 1
+	EXP:ARG:妊娠経験 ++
+	SIF 種親 >= 0
+		EXP:種親:孕ませ経験 ++
+	CFLAG:ARG:産後経過日 = 0
+	;今回受胎人数の決定
+	CFLAG:ARG:今回受胎人数 = 1
+	SELECTCASE TALENT:ARG:受胎体質
+		CASE 1
+			;双子胎
+			SIF RAND:2
+				CFLAG:ARG:今回受胎人数 = 2
+			SIF RAND:16 == 0
+				CFLAG:ARG:今回受胎人数 = 3
+		CASE 2
+			;多産
+			CFLAG:ARG:今回受胎人数 = 5 - SQRT(RAND:16)
+		CASE 3
+			;畜生胎
+			CFLAG:ARG:今回受胎人数 = 12 - SQRT(RAND:49)
+		CASEELSE
+			SIF RAND:80 == 0
+				CFLAG:ARG:今回受胎人数 = 2
+			SIF RAND:6400 == 0
+				CFLAG:ARG:今回受胎人数 = 3
+	ENDSELECT
+	TCVAR:ARG:膣内精液量 = 0
+	RETURN 1
+ELSE
+	CSTR:ARG:妊娠報告_記録文字列 += "<br>"
+	TCVAR:ARG:膣内精液量 = 0
+	RETURN -1
+ENDIF
+
+@関係性テキスト取得(母親, 種親)
+;<実行結果>
+; RESULTS:0 = 種親から見た母親との関係
+; RESULTS:1 = 母親から見た種親との関係
+#DIM 母親
+#DIM 種親
+#DIMS DYNAMIC 関係性1F
+#DIMS DYNAMIC 関係性1M
+#DIMS DYNAMIC 関係性2
+#DIMS DYNAMIC 関係性F
+#DIMS DYNAMIC 関係性M
+#DIM PERSON_ID
+
+;種親と母親の関係1(血縁関係)
+IF GET_PERSON_父親(CFLAG:母親:人物番号) == CFLAG:種親:人物番号
+	;種親が父/母親が子供
+	関係性1F = 子供
+	関係性1M = 父親
+ELSEIF GET_PERSON_母親(CFLAG:母親:人物番号) == CFLAG:種親:人物番号
+	;種親が母/母親が子供
+	関係性1F = 子供
+	関係性1M = 母親
+ELSEIF GET_PERSON_父親(CFLAG:種親:人物番号) == CFLAG:母親:人物番号
+	;母親が父/種親が子供
+	関係性1F = 父親
+	関係性1M = 子供
+ELSEIF GET_PERSON_母親(CFLAG:種親:人物番号) == CFLAG:母親:人物番号
+	;母親が母/種親が子供
+	関係性1F = 母親
+	関係性1M = 子供
+ENDIF
+; 子供の性別による表記の変更
+; ・発情による性転換を考慮して現在の性別ではなく「元性別」で判定する
+; ・不明のときは「子供」のまま
+; ・ふたなりは…とりあえず「娘」にしておこう
+IF 関係性1F == "子供"
+	;母親が子供
+	SELECTCASE CFLAG:母親:元性別保存
+		CASE 2
+			関係性1F = 息子
+		CASE 1, 3
+			関係性1F = 娘
+	ENDSELECT
+ENDIF
+IF 関係性1M == "子供"
+	;種親が子供
+	SELECTCASE CFLAG:種親:元性別保存
+		CASE 2
+			関係性1M = 息子
+		CASE 1, 3
+			関係性1M = 娘
+	ENDSELECT
+ENDIF
+
+;種親と母親の関係2(交際状態)
+IF 種親 == MASTER
+	;種親(あなた)と母親
+	IF TALENT:母親:恋慕
+		関係性2 = 恋人
+	ELSEIF TALENT:母親:セフレ
+		関係性2 = セフレ
+	ELSEIF TALENT:母親:浮気
+		関係性2 = 浮気相手
+	ELSEIF 初体験日:母親:初対面 == DAY
+		関係性2 = 初対面
+	ENDIF
+ELSEIF 母親 == MASTER
+	;種親と母親(あなた)
+	IF TALENT:種親:恋慕
+		関係性2 = 恋人
+	ELSEIF TALENT:種親:セフレ
+		関係性2 = セフレ
+	ELSEIF TALENT:種親:浮気
+		関係性2 = 浮気相手
+	ELSEIF 初体験日:種親:初対面 == DAY
+		関係性2 = 初対面
+	ENDIF
+ELSE
+	;あなたは無関係
+	IF DT_SELECT("関係性データベース", @"(対象キャラ１ = {CFLAG:母親:人物番号} Or 対象キャラ２ = {CFLAG:母親:人物番号}) And (対象キャラ１ = {CFLAG:種親:人物番号} Or 対象キャラ２ = {CFLAG:種親:人物番号}) And 関係性種別 = '恋慕'")
+		関係性2 = 恋人
+	ELSEIF DT_SELECT("関係性データベース", @"(対象キャラ１ = {CFLAG:母親:人物番号} Or 対象キャラ２ = {CFLAG:母親:人物番号}) And (対象キャラ１ = {CFLAG:種親:人物番号} Or 対象キャラ２ = {CFLAG:種親:人物番号}) And 関係性種別 = 'セフレ'")
+		関係性2 = セフレ
+	ENDIF
+ENDIF
+
+;表示する関係性の決定
+;・特に関係性がない場合は「知り合い」
+IF 0
+;併記するのは長いのでやめておく
+;ELSEIF 関係性1F != "" && 関係性2 != ""
+;	関係性F = %関係性1F%で%関係性2%の
+ELSEIF 関係性2 != ""
+	関係性F = %関係性2%の
+ELSEIF 関係性1F != ""
+	関係性F = %関係性1F%の
+ELSE
+	関係性F = 知り合いの
+ENDIF
+IF 0
+;併記するのは長いのでやめておく
+;ELSEIF 関係性1M != "" && 関係性2 != ""
+;	関係性M = %関係性1M%で%関係性2%の
+ELSEIF 関係性2 != ""
+	関係性M = %関係性2%の
+ELSEIF 関係性1M != ""
+	関係性M = %関係性1M%の
+ELSE
+	関係性M = 知り合いの
+ENDIF
+RESULTS:0 '= 関係性F
+RESULTS:1 '= 関係性M
+
+;出産 とりあえずの実装
+@BIRTHING(MOTHER)
+#DIM MOTHER
+#DIM FATHER
+#DIM DOMINANT
+#DIM 子供性別候補, 2
+#DIM 子供性別
+#DIM 子供種族
+#DIM 子供人数
+
+IF CFLAG:MOTHER:妊娠経過日 < 妊娠期間
+	PRINTW 出産済みです。
+	RETURN 0
+ENDIF
+
+FATHER = CFLAG:MOTHER:子の父親
+;見た目をよく引き継ぐ側の親を1/2ずつで選択(ただしあなたは優先度低)
+IF FATHER < 0 || FATHER == MASTER || (MOTHER != MASTER && RAND:2 == 0)
+	DOMINANT = MOTHER
+ELSE
+	DOMINANT = FATHER
+ENDIF
+
+;子供の性別・種族の決定
+IF (FATHER == MASTER || MOTHER == MASTER) && あなた特殊能力:潜性の血 > 0
+	;潜性のあなたの場合、常にもう片方の親と同じ性別・種族
+	子供性別 = TALENT:DOMINANT:性別
+	子供種族 = TALENT:DOMINANT:種族
+ELSE
+	;性別 両親の性別のどちらか（父親不明の場合は男性扱いとする）
+	子供性別候補:0 = TALENT:MOTHER:性別
+	IF FATHER < 0
+		子供性別候補:1 = 2
+	ELSE
+		子供性別候補:1 = TALENT:FATHER:性別
+	ENDIF
+	子供性別 = 子供性別候補:(RAND:2)
+
+	;種族 親の種族が一致していればその種族、それ以外はその他
+	IF FATHER < 0 || TALENT:MOTHER:種族 != TALENT:FATHER:種族 || (TALENT:MOTHER:種族 == 種族_その他 && CSTR:MOTHER:特殊種族 == CSTR:FATHER:特殊種族)
+		子供種族 = 6
+	ELSE
+		子供種族 = TALENT:MOTHER:種族
+	ENDIF
+ENDIF
+;男性が許可されてないならふたなり化
+SIF GETBIT(OPTION変数:性別招待制御, 1) && 子供性別 == 2
+	子供性別 = 3
+;ふたなりが許可されてないなら女化
+SIF (素質切り替えOPTION記憶:ふたなり_女性 || GETBIT(OPTION変数:性別招待制御, 2)) && 子供性別 == 3
+	子供性別 = 1
+;その他が許可されてないなら女化
+SIF GETBIT(OPTION変数:性別招待制御, 3) && 子供性別 == 0
+	子供性別 = 1
+;女性が許可されてないなら男化orふたなり化
+IF GETBIT(OPTION変数:性別招待制御, 0) && 子供性別 == 1
+	IF 素質切り替えOPTION記憶:ふたなり_女性 == 0 && GETBIT(OPTION変数:性別招待制御, 2) == 0
+		子供性別 = 3
+	ELSEIF GETBIT(OPTION変数:性別招待制御, 1) == 0
+		子供性別 = 2
+	ENDIF
+ENDIF
+
+;受胎人数判定を妊娠した時に移す対応
+SIF CFLAG:MOTHER:今回受胎人数 == 0
+	CFLAG:MOTHER:今回受胎人数 = 1
+子供人数 = CFLAG:MOTHER:今回受胎人数
+
+DRAWLINE
+IF CFLAG:MOTHER:滞在期間 == -1 && MOTHER != MASTER
+	SETCOLOR カラーパレット("ピンク")
+	PRINTFORML %CALLNAME:MOTHER%が出産したという連絡がありました
+	RESETCOLOR
+
+	;子供の姿の描写
+	PRINTFORML %子供描写(MOTHER, FATHER, DOMINANT, 子供性別, 子供人数)%のようです…
+	PRINTL 
+
+	CALL CREATE_CHILDREN(MOTHER, FATHER, DOMINANT, 子供性別, 子供種族, 子供人数)
+	TRYCALLFORM KOJO_出産_リゾート外_{NO:MOTHER}(MOTHER)
+ELSE
+	SETCOLOR カラーパレット("ピンク")
+	PRINTFORML %CALLNAME:MOTHER%は産気づいた…
+	RESETCOLOR
+	SIF 知識素質:MOTHER:性知識 == -2
+		PRINTFORML %CALLNAME:MOTHER%は何が起こったか分からない様子で、破水の痛みに混乱している…
+	SIF MOTHER != MASTER
+		PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:MOTHER%を\@ TALENT:MASTER:種族 == 種族_ハーヴィン || TALENT:MOTHER:体格 == -2 ? 支えながら # 抱き上げて \@、医務室へと急いだ…
+	PRINTL ……
+	PRINTL …
+	PRINTL 
+	SETCOLOR カラーパレット("ピンク")
+	SIF MOTHER != MASTER && TALENT:MOTHER:恋慕 && CFLAG:MOTHER:子の父親 == MASTER
+		PRINTFORML %CALLNAME:MASTER%と指を絡ませ苦痛に耐えながら、
+	PRINTFORM %CALLNAME:MOTHER%は
+	IF 子供人数 > 2 || (TALENT:MOTHER:種族 == 種族_ハーヴィン || TALENT:MOTHER:体格 <= -2) && (異種妊娠(MOTHER) || 子供人数 > 1)
+		PRINTL 大変な苦労の末、なんとか出産を終えました
+	ELSE
+		PRINTFORML \@ 知識素質:MOTHER:性知識 == -2 ? 大変な混乱と痛みの中で、なんとか # 苦労の末、\@出産を終えました
+	ENDIF
+	RESETCOLOR
+
+	;子供の姿と母親の反応の描写
+	PRINTFORML %子供描写(MOTHER, FATHER, DOMINANT, 子供性別, 子供人数)%です…
+	IF MOTHER == MASTER
+		PRINTFORML %CALLNAME:MOTHER%は優しく自分の子供\@ (子供人数 > 1) ? たち # \@を撫でた…
+	ELSE
+		PRINTFORML %CALLNAME:MOTHER%は疲れ切った様子ながら優しい微笑みを浮かべ、自らの子供\@ (子供人数 > 1) ? たち # \@を撫でている…
+		IF 知識素質:MOTHER:性知識 == -2
+			IF GETBIT(OPTION変数:性知識成長制御, 1)
+				PRINTFORML しかし、%CALLNAME:MOTHER%はなぜ自分が出産することになったのかよく理解していないようだ。
+			ELSE
+				SETCOLOR 0xffd900
+				PRINTFORML %CALLNAME:MOTHER%は出産を経て最低限の性知識を身に着けた！
+				RESETCOLOR
+				知識素質:MOTHER:性知識 = 0
+				性知識経験値:MOTHER:0 = 0
+			ENDIF
+		ENDIF
+	ENDIF
+	PRINTL 
+
+	CALL CREATE_CHILDREN(MOTHER, FATHER, DOMINANT, 子供性別, 子供種族, 子供人数)
+	TRYCALLFORM KOJO_出産_リゾート内_{NO:MOTHER}(MOTHER)
+ENDIF
+
+IF TALENT:MOTHER:子持ち == 0
+	PRINTFORM %CALLNAME:MOTHER%は
+	SETCOLOR カラーパレット("えっちな色")
+	PRINT [子持ち]
+	RESETCOLOR
+	PRINT を得た！
+	TALENT:MOTHER:子持ち = 1
+ENDIF
+
+PRINTFORML 
+PRINTW
+SIF CFLAG:MOTHER:子の父親 == MASTER
+	MASTERの子供の数:0 += 子供人数
+SIF MOTHER == MASTER
+	MASTERの子供の数:1 += 子供人数
+IF CFLAG:MOTHER:特殊妊娠蓄積度 < 500000
+	CFLAG:MOTHER:特殊妊娠蓄積度 += MAX(1, 100 / CFLAG:MOTHER:妊娠経過日) * (4 + 異種妊娠(MOTHER)) / 4
+	SIF 子供人数 >= 2
+		CFLAG:MOTHER:特殊妊娠蓄積度 += 100 * (POWER(2, 子供人数 - 1))
+	CFLAG:MOTHER:特殊妊娠蓄積度 = MIN(CFLAG:MOTHER:特殊妊娠蓄積度, 500000)
+ENDIF
+TALENT:MOTHER:妊娠 = 0
+CFLAG:MOTHER:妊娠経過日 = 0
+CFLAG:MOTHER:子の父親 = -1
+CFLAG:MOTHER:妊娠発覚 = 0
+CFLAG:MOTHER:今回受胎人数 = 0
+EXP:MOTHER:出産経験 += 子供人数
+CFLAG:MOTHER:産後経過日 = 1
+CALL CLOTHES_TODAY(MOTHER)
+CALL CLOTHES_RESET(MOTHER)
+CALL CLOTHES_RESET_TRAIN(MOTHER)
+
+IF FATHER < 0
+	CALL 履歴データベース登録(CFLAG:MOTHER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>父親不明の子供を%TOFULL(TOSTR(子供人数))%人出産した</font><img src='えっちハート'>","うふふ実績")
+ELSE
+	CALL 関係性テキスト取得(MOTHER, FATHER)
+	CALL 履歴データベース登録(CFLAG:FATHER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%RESULTS:0%%CALLNAME:MOTHER%との子供が%TOFULL(TOSTR(子供人数))%人産まれた</font><img src='えっちハート'>","うふふ実績")
+	CALL 履歴データベース登録(CFLAG:MOTHER:人物番号, @"<font color='#%カラーパレット_HTML("薄ピンク")%'>%RESULTS:1%%CALLNAME:FATHER%との子供を%TOFULL(TOSTR(子供人数))%人出産した</font><img src='えっちハート'>","うふふ実績")
+ENDIF
+
+
+@子供描写(MOTHER, FATHER, DOMINANT, 子供性別, 子供人数)
+#FUNCTIONS
+#DIM MOTHER
+#DIM FATHER
+#DIM DOMINANT
+#DIM 子供性別
+#DIM 子供人数
+
+LOCALS '= @"%CALLNAME:DOMINANT%に似て"
+;似てる相手が母親でもあなたでもない場合は名前が唐突に出るので説明を一言加える
+SIF DOMINANT == FATHER && DOMINANT != MASTER
+	LOCALS '= "父親の" + LOCALS
+
+IF GETBIT(子供性別, 1)
+	LOCALS += "元気な"
+ELSE
+	LOCALS += "かわいらしい"
+ENDIF
+
+IF 子供人数 > 2
+	LOCALS += @"%TOFULL(TOSTR(子供人数))%つ子の"
+ELSEIF 子供人数 == 2
+	LOCALS += "双子の"
+ENDIF
+
+IF 子供性別 == 2
+	LOCALS += "男の子"
+ELSE
+	LOCALS += "女の子"
+	SIF 子供性別 != 1
+		LOCALS += "？"
+ENDIF
+
+SIF 子供人数 >= 2
+	LOCALS += "たち"
+
+RETURNF LOCALS
+
+
+;子供たちのデータ作成
+@CREATE_CHILDREN(MOTHER, FATHER, DOMINANT, 子供性別, 子供種族, 子供人数)
+#DIM MOTHER
+#DIM FATHER
+#DIM DOMINANT
+#DIM 子供人数
+#DIM 子供性別
+#DIM 子供種族
+#DIM 命名フラグ
+#DIM 子供ID
+
+IF MOTHER == MASTER || FATHER == MASTER
+	;あなたが親に含まれる場合
+	CALL CHILDREN_NAMING_CHECK(DOMINANT, -1, 子供人数)
+	命名フラグ = RESULT
+ELSE
+	;あなたが親に含まれない場合は名付け出来るか確認
+	CALL IS_NAMING(MOTHER, FATHER)
+	IF RESULT
+		;あなたも名付けに参加できる
+		CALL CHILDREN_NAMING_CHECK(MOTHER, FATHER, 子供人数)
+		命名フラグ = RESULT
+	ELSE
+		;あなたに名付け権利なし
+		命名フラグ = 0
+	ENDIF
+ENDIF
+
+IF 子供人数 >= 2
+	FOR LOCAL, 0, 子供人数
+		CALL CREATE_CHILD(MOTHER, FATHER, DOMINANT, 子供性別, 子供種族, 命名フラグ, LOCAL + 1)
+		SIF LOCAL == 0
+			子供ID = RESULT
+	NEXT
+ELSE
+	CALL CREATE_CHILD(MOTHER, FATHER, DOMINANT, 子供性別, 子供種族, 命名フラグ)
+	子供ID = RESULT
+ENDIF
+
+IF 命名フラグ
+	PRINTFORML %GET_PERSON_呼び名(子供ID)%\@ (子供人数 >= 2) ? たち # \@はリゾート併設の保育園で育てられるようです
+ELSE
+	PRINTFORML 子供\@ (子供人数 >= 2) ? たち # \@は%CALLNAME:MOTHER%の元で育てられるようです
+ENDIF
+
+RETURN 子供人数
+
+
+;子供たちに一人一人名前を付けるかの選択
+@CHILDREN_NAMING_CHECK(PARENT:0, PARENT:1, 子供人数)
+#DIM PARENT, 2
+#DIM 子供人数
+#DIM 命名フラグ
+
+IF PARENT:1 < 0
+	PRINTFORML 子供\@ (子供人数 >= 2) ? たち # \@の名前はどうしようか？
+	PRINTBUTTON "[0] 名付ける", 0
+	PRINTL
+ELSE
+	PRINTFORML %CALLNAME:(PARENT:0)%と%CALLNAME:(PARENT:1)%は、子供\@ (子供人数 >= 2) ? たち # \@の名前をどうするか話し合っている……
+	PRINTBUTTON "[0] 相談に乗る", 0
+	PRINTL
+ENDIF
+PRINTL 　…居住区エリアの保育園で会うことが可能になる。
+PRINTL 　　また、ZPを使用することにより急成長させ、キャラとしてリゾートに迎えることが可能。
+PRINTL 　　（居住区エリア建設前に産まれた子供も、建設後に同様の機能の対象となります）
+PRINTL
+IF PARENT:1 < 0 && PARENT:0 == MASTER
+	PRINTBUTTON "[1] 名付けない", 1
+	PRINTL
+ELSEIF PARENT:1 < 0
+	PRINTBUTTON @"[1] %CALLNAME:(PARENT:0)%の好きにさせる", 1
+	PRINTL
+ELSE
+	PRINTBUTTON "[1] 二人の好きにさせる", 1
+	PRINTL
+ENDIF
+PRINTL 　…両親の血縁関係画面でのみ存在が確認出来る。
+PRINTL 　　成長させることは出来ず、保育園で会うことも出来ない。
+PRINTL
+BINPUT
+DRAWLINE
+SELECTCASE RESULT
+	CASE 0
+		SIF 子供人数 >= 2
+			PRINT 一人ずつ、
+		IF PARENT:1 < 0 && PARENT:0 == MASTER
+			PRINTFORML 自分で考えます
+		ELSEIF PARENT:1 < 0
+			PRINTFORML 自分と%CALLNAME:(PARENT:0)%で考えます
+		ELSE
+			PRINTFORML 自分と%CALLNAME:(PARENT:0)%・%CALLNAME:(PARENT:1)%で考えます
+		ENDIF
+		命名フラグ = 1
+	CASE 1
+		PRINTL 名前を決めず、以降の登場シーンでは「（○○の）子供」とだけ表記します
+		命名フラグ = 0
+ENDSELECT
+
+PRINT よろしいですか？　
+SETCOLOR カラーパレット("真っ赤")
+PRINTL ※後から変更できません！
+RESETCOLOR
+
+PRINTBUTTONLC "[0]はい", 0
+PRINTBUTTONLC "[1]いいえ", 1
+BINPUT
+SELECTCASE RESULT
+	CASE 0
+		RETURN 命名フラグ
+	CASE 1
+		RESTART
+ENDSELECT
+
+
+;あなたが名付け権利を持つなら1を返す
+@IS_NAMING(PARENT:0, PARENT:1)
+#DIM PARENT, 2
+#DIM 口上判定, 2
+#DIM TMP_SELECT, 1
+
+;異なる二人のキャラでなければならない
+SIF PARENT:0 < 0 || PARENT:1 < 0 || PARENT:0 == PARENT:1
+	RETURN 0
+
+;口上個別の条件を参照
+; -1：他の条件を無視して仲人判定を失敗させる（最優先）
+;  0：仲人判定に介入しない
+;  1：仲人判定を成功させる
+TRYCCALLFORM 縁結び仲人判定条件_{NO:(PARENT:0)}(PARENT:0, PARENT:1)
+	口上判定:0 = RESULT
+CATCH
+	口上判定:0 = 0
+ENDCATCH
+TRYCCALLFORM 縁結び仲人判定条件_{NO:(PARENT:1)}(PARENT:1, PARENT:0)
+	口上判定:1 = RESULT
+CATCH
+	口上判定:1 = 0
+ENDCATCH
+IF 口上判定:0 < 0 || 口上判定:1 < 0
+	RETURN 0
+ELSEIF 口上判定:0 > 0 || 口上判定:1 > 0
+	RETURN 1
+ENDIF
+
+;汎用条件
+;姓名診断士なら汎用条件はスキップして名付けに関われる
+SIF あなた特殊能力:姓名診断士
+	RETURN 1
+
+;あなたが恋慕の縁結びをしたペアでなければダメ（関係性データベースではなく縁結びデータベースを見る）
+SIF DT_SELECT("縁結びデータベース", @"((対象キャラ１ = {CFLAG:(PARENT:0):人物番号} And 対象キャラ２ = {CFLAG:(PARENT:1):人物番号}) Or (対象キャラ１ = {CFLAG:(PARENT:1):人物番号} And 対象キャラ２ = {CFLAG:(PARENT:0):人物番号})) And 完遂フラグ = 1 And 縁結び種別 = '恋慕'", , TMP_SELECT) == 0
+	RETURN 0
+;ペアの片方だけに恋慕があるとダメ（ウソ告白などで関係を壊した状態）
+;寝取らせプレイ自体は合意の上なので、ここでは不問とする
+SIF TALENT:(PARENT:0):恋慕 && !TALENT:(PARENT:1):恋慕
+	RETURN 0
+SIF TALENT:(PARENT:1):恋慕 && !TALENT:(PARENT:0):恋慕
+	RETURN 0
+;二人共と仲が良くなければならない（親友以上）
+SIF CFLAG:(PARENT:0):好感度レベル < 1 + 関係閾値:3
+	RETURN 0
+SIF CFLAG:(PARENT:1):好感度レベル < 1 + 関係閾値:3
+	RETURN 0
+RETURN 1
+
+
+;子供のデータ作成
+@CREATE_CHILD(MOTHER, FATHER, DOMINANT, 子供性別, 子供種族, 命名フラグ, 子供順番 = 0)
+#DIM MOTHER
+#DIM FATHER
+#DIM DOMINANT
+#DIM 命名フラグ
+#DIM 子供順番
+#DIM 子供ID
+#DIMS 子供名前
+#DIM 子供性別
+#DIM 子供種族
+#DIMS 子供経歴
+
+子供ID = ADD_PERSON()
+
+;性別/種族
+CALL SET_PERSON_性別(子供ID, 子供性別)
+CALL SET_PERSON_種族(子供ID, 子供種族)
+
+;名前/呼び名
+子供名前 '= ""
+IF 命名フラグ
+	CALL CHILD_NAMING(MOTHER, FATHER, 子供性別, 子供順番)
+	子供名前 '= RESULTS
+	CALL SET_PERSON_名前(子供ID, @"[%CALLNAME:MOTHER%の子供]" + 子供名前)
+	CALL SET_PERSON_呼び名(子供ID, 子供名前)
+ELSE
+	CALL SET_PERSON_名前(子供ID, @"[%CALLNAME:MOTHER%の子供]%CALLNAME:MOTHER%の{DAY}" + ((子供順番 > 0) ? @"-{子供順番}" # ""))
+ENDIF
+
+;プレゼント好み
+CALL SET_PERSON_プレゼント好み(子供ID, ランダムプレゼント好み(-1))
+
+;出会った周回/生年日
+CALL SET_PERSON_出会った周回(子供ID, 周回回数累計:0)
+CALL SET_PERSON_生年日(子供ID, DAY)
+
+;母親/父親
+CALL SET_PERSON_母親(子供ID, CFLAG:MOTHER:人物番号)
+SIF FATHER >= 0
+	CALL SET_PERSON_父親(子供ID, CFLAG:FATHER:人物番号)
+
+;経歴
+子供経歴 '= @"%CALLNAME:MOTHER%が"
+SIF 周回回数累計:0 > 0
+	子供経歴 += @"{周回回数累計:0 + 1}周目の"
+LOCALS = %月算出()%
+子供経歴 += @"{RESULT}年目 %LOCALS% {DAY % 30 + 1}日(%GET_DAY()%)に産んだ"
+CALL SET_PERSON_経歴(子供ID, 子供経歴)
+
+RETURN 子供ID
+
+
+@CHILD_NAMING(MOTHER, FATHER, 子供性別, 子供順番)
+#DIM MOTHER
+#DIM FATHER
+#DIM PARENT, 2
+#DIM 子供性別
+#DIM 子供順番
+#DIMS 子供名前
+#DIM 命名者
+#DIM 命名者種族
+#DIM 案出し回数
+#DIM 子供人数
+#DIM 子供名前表示
+#DIM L_CNT
+
+IF FATHER < 0 || FATHER == MASTER || MOTHER == FATHER
+	PARENT:0 = MOTHER
+	PARENT:1 = -1
+ELSEIF MOTHER == MASTER
+	PARENT:0 = FATHER
+	PARENT:1 = -1
+ELSE
+	PARENT:0 = MOTHER
+	PARENT:1 = FATHER
+ENDIF
+DRAWLINE
+PRINTFORML ・%CALLNAME:MOTHER%の子の名前一覧
+CALL FIND_CHILDREN(CFLAG:MOTHER:人物番号)
+子供人数 = RESULT:0
+子供名前表示 = 0
+IF 子供人数 > 0
+	FOR L_CNT, 1, 子供人数 + 1
+		子供名前 '= GET_PERSON_呼び名(RESULT:L_CNT)
+		IF 子供名前 != ""
+			PRINTFORM 　%"第" + TOSTR(L_CNT + MAX(0, EXP:MOTHER:出産経験 - 子供人数)) + "子", 7, LEFT% 
+			PRINTFORM %子供名前%
+			SELECTCASE GET_PERSON_性別(RESULT:L_CNT)
+				CASE 1
+					PRINT (♀)
+				CASE 2
+					PRINT (♂)
+				CASE 3
+					PRINT (♀?)
+				CASEELSE
+					PRINT (？)
+			ENDSELECT
+			PRINTL
+			子供名前表示 = 1
+		ENDIF
+	NEXT
+ENDIF
+SIF !子供名前表示
+	PRINTL なし
+DRAWLINE
+SELECTCASE OPTION変数:オート名付け関連
+	CASE 0
+		;オート選択をしない
+		PRINTFORML \@ (子供順番 > 0) ? {子供順番}人目の # \@名前は…
+		PRINTBUTTON "[0]自分で考える", 0
+		IF PARENT:0 != MASTER
+			PRINTL 
+			PRINTBUTTON @"[1]%CALLNAME:(PARENT:0)%に考えてもらう", 1
+		ELSE
+			PRINTL 
+			PRINTBUTTON "[1]ふと頭に浮かんできた名前にする", 1
+		ENDIF
+		IF PARENT:1 >= 0
+			PRINTL 
+			PRINTBUTTON @"[2]%CALLNAME:(PARENT:1)%に考えてもらう", 2
+		ENDIF
+		PRINTL 
+		BINPUT
+	CASE 1
+		;常に自分で名付ける
+		RESULT = 0
+	CASE 2
+		;常にキャラが名付ける
+		; PARENT:0 < 0       … 母親が必ず存在する都合、起こりえない。あなた母親＋父親不明の場合も最初の分岐に優先して入る
+		; PARENT:0 == MASTER … あなたの自己受粉の場合しか発生しえない。この場合、PARENT:1も必ず-1になるので特別な分岐は必要ない
+		; PARENT:1 == MASTER … キャラ母親＋あなた父親の場合、最初の分岐に優先して入るようになっているためこれも起こりえない
+		IF PARENT:1 < 0
+			RESULT = 1
+		ELSE
+			RESULT = RAND:2 + 1
+		ENDIF
+ENDSELECT
+SELECTCASE RESULT
+	CASE 0
+		PRINTL 名前を入力してください。（９文字まで）
+		INPUTS
+		IF RESULTS == ""
+			PRINTL 名前が入力されていません
+			RESTART
+		ENDIF
+		子供名前 = %SUBSTRING(RESULTS, 0, 18)%
+		PRINTFORML %子供名前%でよろしいですか？
+		PRINTBUTTONLC "[0]はい", 0
+		PRINTBUTTONLC "[1]いいえ", 1
+		BINPUT
+		SIF RESULT == 1
+			RESTART
+	CASE 1, 2
+		命名者 = PARENT:(RESULT - 1)
+		命名者種族 = TALENT:命名者:種族
+		案出し回数 = 0
+		WHILE 1
+			SIF 案出し回数 == __INT_MAX__
+				案出し回数 = 100
+			IF 案出し回数 < 100
+				TRYCCALLFORM 固有子供命名設定_{NO:命名者}(命名者, 子供性別, 子供順番, 案出し回数)
+					;RESULTSに命名が返ってくる
+					子供名前 = %RESULTS%
+					IF 子供名前 == ""
+						;空の場合は汎用ランダム
+						子供名前 = %ランダムキャラ名前生成(命名者種族, 子供性別)%
+					ELSEIF 子供名前 == ";子供の名前"
+						;テンプレそのままの場合もランダム
+						子供名前 = %ランダムキャラ名前生成(命名者種族, 子供性別)%
+					ELSEIF 名前重複チェック(子供名前) || FIND_PERSON_FROM_CALLNAME(子供名前) > 0
+						案出し回数++
+						CONTINUE
+					ENDIF
+				CATCH
+					子供名前 = %ランダムキャラ名前生成(命名者種族, 子供性別)%
+				ENDCATCH
+			ELSE
+				子供名前 = %ランダムキャラ名前生成(命名者種族, 子供性別)%
+			ENDIF
+
+			;オプションで設定してる場合は選択肢を出さない
+			SIF OPTION変数:オート名付け関連 == 2
+				BREAK
+
+			PRINTFORML %CALLNAME:命名者%は%子供名前%と名付けたいようだ…
+			PRINTBUTTON "[0]それにする", 0
+			PRINTL 
+			PRINTBUTTON "[1]別の名前を考えてもらう", 1
+			PRINTL 
+			PRINTBUTTON "[2]やっぱり自分で考えようかな", 2
+			BINPUT
+			SELECTCASE RESULT
+				CASE 0
+					BREAK
+				CASE 1
+					案出し回数++
+					CONTINUE
+				CASE 2
+					RESTART
+			ENDSELECT
+		WEND
+ENDSELECT
+SIF PARENT:0 != MASTER
+	PRINTFORM %CALLNAME:(PARENT:0)%\@ (PARENT:1 >= 0) ? 、%CALLNAME:(PARENT:1)% # \@と相談した結果、
+PRINTFORML 子供の名前は%子供名前%になりました！
+RESULTS '= 子供名前
+RETURN
+
+
+;危険日とかの設定 一日の初めに呼ばれる
+@SET_PREGNANCY_PALAM(ARG)
+#DIM 消耗度_体力
+;危険日がない場合セット
+
+IF RISKY_DAY(ARG) != -2 && !INRANGE(CFLAG:ARG:危険日,1,10)
+	CFLAG:ARG:危険日 = RAND:PREG_CYCLE(ARG) + 1
+ENDIF
+;危険日がありえない数値なら再設定する
+SIF CFLAG:ARG:危険日 > PREG_CYCLE(ARG) || !CFLAG:ARG:危険日
+	CFLAG:ARG:危険日 = RAND:PREG_CYCLE(ARG) + 1
+
+
+;性交相手のリセット
+VARSET 性交相手:ARG:0, -1
+VARSET 相手ごとの射精量:ARG:0
+SIF !TALENT:ARG:妊娠 && CFLAG:ARG:子の父親 != -1
+	CFLAG:ARG:子の父親 = -1
+;疲れる処理（臨月、産後）
+CALL 体力変動素質適用処理(ARG)
+
+
+;妊娠の進行による諸々 一日の終わりに呼ばれる
+@PREGNANCY_COUNTUP(ARG)
+#DIM 変化前バスト
+#DIM ループ回数
+
+;素の体力を更新
+CALL 体力変動素質適用処理(ARG)
+;色々な経過日時のカウント
+;妊娠経過日 妊娠後それなりに経つと母乳が出る
+LOCAL = 0
+IF TALENT:ARG:妊娠
+	CFLAG:ARG:妊娠経過日  ++
+	IF !CFLAG:ARG:妊娠時バストサイズ増加 && !素質切り替えOPTION記憶:母乳体質_なし && PREGNANCY_PROGRESS(ARG) >= 3
+		CFLAG:ARG:妊娠時バストサイズ増加 = 1
+		;元から最大の場合のフラグ立て
+		SIF TALENT:ARG:バストサイズ == バストサイズ_最大
+			CFLAG:ARG:妊娠時バストサイズ増加 = 2
+		変化前バスト = BASE:ARG:バスト
+		;一旦、どのケースでもTALENTを大きくする
+		TALENT:ARG:バストサイズ ++
+		;BASEが実際に大きくなるまでループ
+		ループ回数 = 0
+		DO
+			CALL SET_BODYSIZE(ARG,2)
+			;なんか知らんけどここで無限ループになるパターンがあるっぽいので１００回ループしてもダメなら変化前バスト+1にする
+			ループ回数 ++
+			IF ループ回数 > 100
+				BASE:ARG:バスト = 変化前バスト + 1
+				BREAK
+			ENDIF
+		LOOP BASE:ARG:バスト < 変化前バスト
+		TALENT:ARG:バストサイズ = LIMIT(TALENT:ARG:バストサイズ, バストサイズ_最小, バストサイズ_最大)
+
+		SIF TALENT:ARG:母乳体質 != 1
+			TALENT:ARG:母乳体質 = 3
+		IF CFLAG:ARG:滞在期間 >= 0
+			IF TALENT:ARG:バストサイズ == 3
+				CSTR:ARG:妊娠報告_記録文字列 += @"母乳をたっぷりと湛えた%CALLNAME:ARG%の乳房は、もはや妊娠前とは見違えたサイズになっている…<br>"
+			ELSE
+				CSTR:ARG:妊娠報告_記録文字列 += @"妊娠して腹部が目立つようになってきた%CALLNAME:ARG%の乳房から、母乳が滲み出てきた…<br>"
+			ENDIF
+			CSTR:ARG:妊娠報告_記録文字列 += @"<font color='#%カラーパレット_HTML("ピンク")%'>%CALLNAME:ARG%の乳房は母乳を蓄えるようになり、より大きくなりました</font><br>"
+			CSTR:ARG:妊娠報告_記録文字列 += "<br>"
+			LOCAL = 1
+		ENDIF
+	ENDIF
+	IF CFLAG:ARG:妊娠経過日 >= 妊娠期間
+		RETURN 2
+	ELSEIF LOCAL
+		RETURN 1
+	ENDIF
+;産後経過日 産後それなりに経つと母乳が止まる
+ELSEIF CFLAG:ARG:産後経過日
+	CFLAG:ARG:産後経過日 ++
+	IF CFLAG:ARG:妊娠時バストサイズ増加 && 妊娠時疲労(ARG) == 0 && CFLAG:ARG:産後経過日 > PREG_DAY(25 + (MAX(5,TALENT:ARG:バストサイズ * 10)))
+		IF CFLAG:ARG:妊娠時バストサイズ増加
+			;元が魔乳未満の場合、TALENTも小さくする（魔乳の場合は下駄履かせて計算させてるのでそのままでOK）
+			SIF CFLAG:ARG:妊娠時バストサイズ増加 == 1
+				TALENT:ARG:バストサイズ --
+			;BASEが実際に小さくなるまでループ
+			変化前バスト = BASE:ARG:バスト
+			ループ回数 = 0
+			DO
+				CALL SET_BODYSIZE(ARG,2)
+				;なんか知らんけどここで無限ループになるパターンがあるっぽいので１００回ループしてもダメなら変化前バスト-1にする
+				ループ回数 ++
+				IF ループ回数 > 100
+					BASE:ARG:バスト = 変化前バスト - 1
+					BREAK
+				ENDIF
+			LOOP BASE:ARG:バスト > 変化前バスト
+		ENDIF
+		TALENT:ARG:バストサイズ = LIMIT(TALENT:ARG:バストサイズ, バストサイズ_最小, バストサイズ_最大)
+		CFLAG:ARG:妊娠時バストサイズ増加 = 0
+
+		CALL バスト変動処理(ARG, "妊娠", 150)
+		CALL ウエスト変動処理(ARG, "妊娠", 100)
+		CALL ヒップ変動処理(ARG, "妊娠", 200)
+
+		SIF TALENT:ARG:母乳体質 != 1
+			TALENT:ARG:母乳体質 = 0
+		IF CFLAG:ARG:滞在期間 >= 0
+			DRAWLINE
+			CSTR:ARG:妊娠報告_記録文字列 += @"授乳を終えた%CALLNAME:ARG%の乳房は元の大きさに戻り\@TALENT:ARG:母乳体質 != 1?、母乳の分泌も止まり#\@ました<br>"
+			IF OPTION変数:妊娠スリーサイズ成長
+				CSTR:ARG:妊娠報告_記録文字列 += @"出産を経験したことで%CALLNAME:ARG%の体型が少し変化したようだ……<br>"
+			ENDIF
+			CSTR:ARG:妊娠報告_記録文字列 += "<br>"
+			LOCAL = 1
+		ENDIF
+		CFLAG:ARG:産後経過日 = 0
+	ENDIF
+	SIF LOCAL
+		RETURN -1
+ENDIF
+
+
+;妊娠時疲労計算処理
+;ARG:0 キャラ
+;ARG:1 0(default)=妊娠時疲労の存在判定 1=計算した体力を返す
+@妊娠時疲労(ARG:0,ARG:1 = 0)
+#FUNCTION
+#DIM 倍率
+倍率 = 0
+IF CFLAG:(ARG:0):産後経過日 > 0
+	IF CFLAG:(ARG:0):産後経過日 < PREG_DAY(4)
+		倍率 = 30
+	ELSEIF CFLAG:(ARG:0):産後経過日 < PREG_DAY(8)
+		倍率 = 10
+	ELSE
+		倍率 = 0
+	ENDIF
+ELSE
+	IF PREGNANCY_PROGRESS(ARG:0) >= 5
+		倍率 = 20
+	ELSEIF PREGNANCY_PROGRESS(ARG:0) == 4
+		倍率 = 10
+	ELSE
+		倍率 = 0
+	ENDIF
+ENDIF
+SELECTCASE ARG:1
+	CASE 0
+		SIF 倍率
+			RETURNF 1
+		RETURNF 0
+	CASE 1
+		RETURNF MAXBASE:(ARG:0):体力 * 倍率 / 100
+	CASEELSE
+		RETURNF 0
+ENDSELECT
+
+
+;危険日と安全日の算出
+;戻り値: 超危険日2,危険日1,通常日0,安全日-1,妊娠しない-2
+@RISKY_DAY(ARG)
+#FUNCTION
+#DIM C_危険日
+#DIM C_安全日
+#DIM 妊娠危険度
+
+IF 発情期存在判定(ARG) == 0
+	SIF GETBIT(TALENT:ARG:性別, 0) == 0
+		RETURNF -2
+	SIF TALENT:ARG:Ｖ感度 == -2
+		RETURNF -2
+ENDIF
+SIF TALENT:ARG:妊娠不可
+	RETURNF -2
+
+C_危険日 = CFLAG:ARG:危険日 % PREG_CYCLE(ARG)
+C_安全日 = (CFLAG:ARG:危険日 + ((PREG_CYCLE(ARG) / 2) -1) % PREG_CYCLE(ARG))
+IF C_危険日 == DAY % PREG_CYCLE(ARG)
+	妊娠危険度 = 2
+ELSEIF (DAY-1) % PREG_CYCLE(ARG) == C_危険日 || (DAY+1) % PREG_CYCLE(ARG) == C_危険日
+	妊娠危険度 = 1
+ELSEIF DAY % PREG_CYCLE(ARG) == C_安全日 || (DAY+1) % PREG_CYCLE(ARG) == C_安全日 || (DAY+2) % PREG_CYCLE(ARG) == C_安全日
+	妊娠危険度 = -1
+ELSE
+	妊娠危険度 = 0
+ENDIF
+RETURNF 妊娠危険度
+
+
+;妊娠の進行度
+;0=非妊娠 1=見た目変化なし（2ヶ月） 2=僅かに腹部に変化（4ヶ月） 3=明確に腹部が膨らみ始める（5ヶ月半） 4=妊婦 5=臨月
+@PREGNANCY_PROGRESS(ARG)
+#FUNCTION
+#DIM 進行度
+IF CFLAG:ARG:妊娠経過日 > PREG_DAY(85)
+	進行度 = 5
+ELSEIF CFLAG:ARG:妊娠経過日 > PREG_DAY(70)
+	進行度 = 4
+ELSEIF CFLAG:ARG:妊娠経過日 > PREG_DAY(55)
+	進行度 = 3
+ELSEIF CFLAG:ARG:妊娠経過日 > PREG_DAY(40)
+	進行度 = 2
+ELSEIF CFLAG:ARG:妊娠経過日 > PREG_DAY(20)
+	進行度 = 1
+ELSE
+	進行度 = 0
+ENDIF
+RETURNF 進行度
+
+
+;特殊な状況でお腹が大きくなる場合なども含めた最終的なお腹の大きさ
+@PREGNANCY_SIZE(ARG)
+#FUNCTION
+#DIM 進行度
+進行度 = PREGNANCY_PROGRESS(ARG)
+;異種妊娠や多胎妊娠したハーヴィンの場合、お腹が一段階大きくなる
+IF (異種妊娠(ARG) || CFLAG:ARG:今回受胎人数 > 1) && TALENT:ARG:種族 == 種族_ハーヴィン && CFLAG:ARG:妊娠経過日 > PREG_DAY(10)
+	進行度 ++
+;ハーヴィン以外体格が子供並以下の場合、異種と同じようにお腹が大きくなる
+ELSEIF TALENT:ARG:種族 != 種族_ハーヴィン && TALENT:ARG:体格 <= 体格_子供 && CFLAG:ARG:妊娠経過日 > PREG_DAY(10)
+	進行度 ++
+;三つ子以上もお腹が大きくなる
+ELSEIF CFLAG:ARG:今回受胎人数 > 3
+	進行度 ++
+ENDIF
+RETURNF 進行度
+
+@異種妊娠(ARG)
+#FUNCTION
+;父親不明は問答無用で異種扱い
+SIF CFLAG:ARG:子の父親 < 0
+	RETURNF 1
+;両親の種族を比較
+SIF TALENT:ARG:種族 != TALENT:(CFLAG:ARG:子の父親):種族
+	RETURNF 1
+;その他種族同士の場合は特殊種族も確認する
+SIF TALENT:ARG:種族 == 種族_その他 && CSTR:ARG:特殊種族 != CSTR:(CFLAG:ARG:子の父親):特殊種族
+	RETURNF 1
+RETURNF 0
+
+
+;妊娠発覚
+@DETECT_PREGNANCY(ARG)
+IF CFLAG:ARG:滞在期間 < 0
+	RETURN 0
+ELSEIF CFLAG:ARG:妊娠発覚
+	PRINTW 妊娠発覚済みです。
+	RETURN 0
+ELSEIF PREGNANCY_SIZE(ARG) >= 2 && CFLAG:ARG:妊娠発覚 == 0
+	IF ARG == MASTER
+		DRAWLINE
+		PRINTFORML %CALLNAME:ARG%はふっくらと膨らみつつある自身のお腹を抱えている…
+		PRINTFORML 腹部はささやかながら明確に膨らんでおり、新たな生命がその奥で芽吹いているのは明らかだ
+	ELSEIF 知識素質:ARG:性知識 == -2
+		;無知シチュ
+		DRAWLINE
+		PRINTFORML %CALLNAME:ARG%が%CALLNAME:MASTER%に話しかけてきた…
+		IF GETBIT(OPTION変数:性知識成長制御, 1)
+			PRINTFORML %CALLNAME:ARG%はふっくらと膨らみつつある自身のお腹を不思議に思っているようだ…
+			PRINTFORML 腹部はささやかながら明確に膨らんでおり、新たな生命がその奥で芽吹いているのは明らかだ…
+			TRYCALLFORM KOJO_無知_妊娠発覚_1_{NO:ARG}(ARG)
+			PRINTFORML %CALLNAME:MASTER%は%CALLNAME:ARG%の頭を撫で、何も問題はないと誤魔化した
+			PRINTFORML %CALLNAME:ARG%は安心したように頷き、自分の部屋へと帰った…
+			TRYCALLFORM KOJO_無知_妊娠発覚_3_{NO:ARG}(ARG)
+		ELSE
+			PRINTFORML %CALLNAME:ARG%はふっくらと膨らみつつある自身のお腹を不思議に思っているようだ…
+			PRINTFORML 腹部はささやかながら明確に膨らんでおり、新たな生命がその奥で芽吹いているのは明らかだ…
+			TRYCALLFORM KOJO_無知_妊娠発覚_1_{NO:ARG}(ARG)
+			PRINTBUTTONLC "[0]正しい性知識を教える", 0
+			PRINTBUTTONLC "[1]誤魔化す", 1
+			$INPUT_LOOP
+			INPUT
+			IF RESULT == 0
+				PRINTFORML %CALLNAME:MASTER%は%CALLNAME:ARG%に、そのお腹の中には%CALLNAME:ARG%の赤ちゃんが居ると教えた
+				PRINTFORML %CALLNAME:ARG%は自分が既に母となりつつある事にとても驚いているようだ…
+				TRYCCALLFORM KOJO_無知_妊娠発覚_2_{NO:ARG}(ARG)
+				CATCH
+					CALL 汎用妊娠反応(ARG)
+				ENDCATCH
+				SETCOLOR 0xffd900
+				PRINTFORML %CALLNAME:ARG%は最低限の性知識を身に着けた！
+				RESETCOLOR
+				知識素質:ARG:性知識 = 0
+				性知識経験値:ARG:0 = 0
+			ELSEIF RESULT == 1
+				PRINTFORML %CALLNAME:MASTER%は%CALLNAME:ARG%の頭を撫で、何も問題はないと誤魔化した
+				PRINTFORML %CALLNAME:ARG%は安心したように頷き、自分の部屋へと帰った…
+				TRYCALLFORM KOJO_無知_妊娠発覚_3_{NO:ARG}(ARG)
+			ELSE
+				GOTO INPUT_LOOP
+			ENDIF
+		ENDIF
+	ELSEIF TALENT:ARG:恋慕
+		;恋慕時
+		DRAWLINE
+		PRINTFORML %CALLNAME:ARG%が%CALLNAME:MASTER%に話しかけてきた…
+		PRINTFORML %CALLNAME:ARG%はふっくらと膨らみつつある自身のお腹を愛おしそうに撫でている…
+		PRINTFORML 腹部はささやかながら明確に膨らんでおり、新たな生命がその奥で芽吹いているのは明らかだ
+		TRYCCALLFORM KOJO_恋慕_妊娠発覚_{NO:ARG}(ARG)
+		CATCH
+			CALL 汎用妊娠反応(ARG)
+		ENDCATCH
+	ELSE
+		;その他時
+		DRAWLINE
+		PRINTFORML %CALLNAME:ARG%が%CALLNAME:MASTER%に話しかけてきた…
+		PRINTFORML %CALLNAME:ARG%はふっくらと膨らみつつある自身のお腹を抱えている…
+		PRINTFORML 腹部はささやかながら明確に膨らんでおり、新たな生命がその奥で芽吹いているのは明らかだ
+		TRYCCALLFORM KOJO_その他_妊娠発覚_{NO:ARG}(ARG)
+		CATCH
+			CALL 汎用妊娠反応(ARG)
+		ENDCATCH
+	ENDIF
+	PRINTW
+	CFLAG:ARG:妊娠発覚 = 1
+	RETURN 1
+ENDIF
+
+
+;招待されたキャラが孕まされてからお腹が大きくなるまでリゾートに来てなかったら特殊メッセージが出る
+@招待時妊娠メッセージ(ARG,ARG:1 = 0)
+#DIM MEMBER,10
+#DIM NUM = 1
+IF ARG:1 == 1
+	SELECTCASE NUM - 1
+		CASE 1
+			SETCOLOR カラーパレット("ピンク")
+			PRINTFORML %CALLNAME:(MEMBER:1)%のお腹が大きく膨らんでいる…！
+			IF 知識素質:(MEMBER:1):性知識 < 0 || TALENT:(MEMBER:1):無関心 > 0
+				PRINTFORML %CALLNAME:(MEMBER:1)%は何事もないかのように挨拶をしてきたが、どうしてもお腹に目が行ってしまう…
+			ELSEIF TALENT:(MEMBER:1):恋慕 && RAND:2
+				PRINTFORML %CALLNAME:(MEMBER:1)%は満面の笑みを浮かべて%CALLNAME:MASTER%に抱き着いた…
+			ELSE
+				SELECTCASE RAND:3
+					CASE 0
+						PRINTFORML %CALLNAME:(MEMBER:1)%は恥ずかしそうに%CALLNAME:MASTER%に手を振った
+					CASE 1
+						PRINTFORML 妊婦らしい服装をした%CALLNAME:(MEMBER:1)%の姿が新鮮で、%CALLNAME:MASTER%はつい目を惹かれてしまった
+					CASE 2
+						PRINTFORML %CALLNAME:MASTER%が%CALLNAME:(MEMBER:1)%のお腹を撫でると、%CALLNAME:(MEMBER:1)%は仕方なさそうに微笑んで身体を寄せてきた…
+				ENDSELECT
+			ENDIF
+		CASE 2
+			SETCOLOR カラーパレット("ピンク")
+			PRINTFORML %CALLNAME:(MEMBER:1)%と%CALLNAME:(MEMBER:2)%のお腹は大きく膨らんでいる…！
+			PRINTFORML %CALLNAME:(MEMBER:1)%と%CALLNAME:(MEMBER:2)%はそれぞれのお腹を押し付けるように、%CALLNAME:MASTER%を左右で挟んでハグしてくれた
+		CASE IS >= 3
+			SETCOLOR カラーパレット("ピンク")
+			LOCALS:0 = 
+			FOR LOCAL,1,10
+				IF MEMBER:LOCAL
+					SIF LOCAL != 1
+						LOCALS:0 += "と"
+					LOCALS:0 += CALLNAME:(MEMBER:LOCAL)
+				ENDIF
+			NEXT
+			PRINTFORML %LOCALS:0%のお腹は大きく膨らんでいる…
+			PRINTFORML %CALLNAME:(MEMBER:1)%達は%CALLNAME:MASTER%にそれぞれのお腹を撫でさせてくれた
+	ENDSELECT
+	RESETCOLOR
+	IF NUM > 1
+		FOR LOCAL, 1, NUM
+			TRYCCALLFORM KOJO_来島時_妊娠発覚_{NO:(MEMBER:NUM)}(MEMBER:NUM)
+				DRAWLINE
+			CATCH
+				CALL 汎用妊娠反応(ARG)
+			ENDCATCH
+		NEXT
+	ENDIF
+	VARSET MEMBER
+	NUM = 1
+ELSE
+	IF !MEMBER:NUM && CFLAG:ARG:妊娠発覚 == 0 && PREGNANCY_SIZE(ARG) >= 3
+		MEMBER:NUM = ARG
+		NUM ++
+		CFLAG:ARG:妊娠発覚 = 1
+	ENDIF
+ENDIF
+
+@汎用妊娠反応(対象キャラ)
+#DIM 対象キャラ
+
+IF CFLAG:対象キャラ:子の父親 == MASTER
+	SELECTCASE CFLAG:対象キャラ:MASTERの子供妊娠回数
+		CASE 1
+			IF TALENT:対象キャラ:恋慕
+				PRINTFORMW %CALLNAME:対象キャラ%は初めて%CALLNAME:MASTER%との子供を授かり、とても喜んでいる
+			ELSEIF TALENT:対象キャラ:セフレ
+				PRINTFORMW %CALLNAME:対象キャラ%は初めての%CALLNAME:MASTER%との子供に、まんざらでもない顔をしている
+			ELSE
+				PRINTFORMW %CALLNAME:対象キャラ%は初めての%CALLNAME:MASTER%との子供に、複雑な顔をしている
+			ENDIF
+		CASE 10
+			IF TALENT:対象キャラ:恋慕
+				PRINTFORMW %CALLNAME:対象キャラ%は%CALLNAME:MASTER%との子供がニ桁の大台に乗ったことに、誇らしげな顔をしている
+			ELSEIF TALENT:対象キャラ:セフレ
+				PRINTFORMW %CALLNAME:対象キャラ%は%CALLNAME:MASTER%との子供がニ桁に届いたことで、何人作るつもりなのかと笑っている
+			ELSE
+				PRINTFORMW %CALLNAME:対象キャラ%は%CALLNAME:MASTER%との子供が二桁を数えたことで、諦めたような顔をしている
+			ENDIF
+	ENDSELECT
+ENDIF
+
+;膣内射精した相手の取得
+@TAKE_SPERM(対象キャラ, 射精した人, 精液量)
+#DIM 対象キャラ
+#DIM 射精した人
+#DIM 精液量
+#DIM 相手カウンタ
+
+SIF 精液量 <= 0
+	RETURN
+
+;濃縮してない希釈精液は戻す
+SIF 射精した人 == MASTER && あなた特殊能力:希釈精液 > 0 && RCVAR:対象キャラ:被精液濃縮 < 1
+	RETURN 
+
+TCVAR:対象キャラ:膣内精液量 += 精液量
+
+;分身の精液は妊娠能力を持たないものとする
+SIF 射精した人 > 0 && TALENT:射精した人:分身
+	RETURN
+
+FOR 相手カウンタ, 0, 19
+	SIF 性交相手:対象キャラ:相手カウンタ == -1
+		性交相手:対象キャラ:相手カウンタ = 射精した人
+	IF 性交相手:対象キャラ:相手カウンタ == 射精した人
+		相手ごとの射精量:対象キャラ:相手カウンタ += 精液量
+		相手ごとの妊娠率補正:対象キャラ:相手カウンタ += TCVAR:対象キャラ:妊娠率補正
+		相手ごとの妊娠率補正:対象キャラ:相手カウンタ += RCVAR:対象キャラ:被精液濃縮 / 10 * 30
+		BREAK
+	ENDIF
+NEXT
+
+
+@CHECK_SPERM(対象キャラ, チェックするキャラ = -1)
+#FUNCTION
+#DIM 対象キャラ
+#DIM チェックするキャラ
+#DIM 相手カウンタ
+
+;チェックするキャラが指定されてない時、相手不問の精液量を返す
+SIF チェックするキャラ == -1
+	RETURNF TCVAR:対象キャラ:膣内精液量
+
+FOR 相手カウンタ, 0, 19
+	IF 性交相手:対象キャラ:相手カウンタ == チェックするキャラ
+		RETURNF 相手ごとの射精量:対象キャラ:相手カウンタ
+	ENDIF
+NEXT
+
+RETURNF 0
+
+;腸内射精した相手の取得
+@TAKE_SPERM_A(対象キャラ, 射精した人, 精液量)
+#DIM 対象キャラ
+#DIM 射精した人
+#DIM 精液量
+#DIM 相手カウンタ
+
+SIF 精液量 <= 0
+	RETURN
+
+TCVAR:対象キャラ:腸内精液量 += 精液量
+
+;妊娠に使わないので相手ごとの記録はしない、ただいずれなんか使うかもしれないので一応引数は残しておく
+
+
+;妊娠の経過度を百分率で返す
+@PREG_DAY(ARG)
+#FUNCTION
+RETURNF MAX(1,ARG * 妊娠期間 / 100)
+
+;指定Noのキャラの妊娠周期を返す
+@PREG_CYCLE(ARG)
+#FUNCTION
+#DIM 妊娠周期
+;デフォルトは10日
+妊娠周期 = 10
+;該当する発情期オプション素質がある、もしくはエルーン、ガレヲンなら8日
+SIF (TALENT:ARG:種族 == 2 || GETBIT(TALENT:ARG:発情期あり,4)) || キャラ一致チェック(ARG, "[六竜の『金』]ガレヲン")
+	妊娠周期 =8
+RETURNF 妊娠周期
+
+
+;口上用。あなたを父親とする子から最初の1人の呼び名を取り出す
+;多胎フラグ 0:そのうち1人だけにする 1:接尾辞を付け足す 2:全部列挙する
+;詳細フラグ 0以外にすると、RESULT:1に子供のIDを返す
+@あなたの子_呼び名_長(キャラ番号, 多胎フラグ = 1, 連結文字 = "たち", 詳細フラグ = 0)
+#FUNCTIONS
+#DIM TMP_SELECT, 12
+#DIM キャラ番号
+#DIM 多胎フラグ
+#DIMS 連結文字
+#DIM 詳細フラグ
+#DIMS FILTER
+#DIM 件数
+#DIM ループ用
+#DIMS 返却文字列
+
+;最初の子供の人物番号を取得するため、昇順ソートでSELECTし1件目を使う
+FILTER '= @"母親 = {CFLAG:キャラ番号:人物番号} And 父親 = {CFLAG:MASTER:人物番号}"
+件数 = DT_SELECT("人物データベース", FILTER, "出生順 DESC, 出会った周回 ASC, 生年日 ASC", TMP_SELECT)
+SIF 件数 <= 0
+	RETURNF ""
+
+;候補の取得
+FILTER += @" And 呼び名 Is Not Null And 出会った周回 = {GET_PERSON_出会った周回(TMP_SELECT:0)} And 生年日 = {GET_PERSON_生年日(TMP_SELECT:0)} And 出生順 Is Null"
+件数 = DT_SELECT("人物データベース", FILTER, , TMP_SELECT)
+SIF 件数 <= 0
+	RETURNF ""
+
+;多胎児の一部だけに名前を付けることはできないので最初に空文字チェック
+返却文字列 '= GET_PERSON_呼び名(TMP_SELECT:0)
+SIF 返却文字列 == ""
+	RETURNF ""
+SIF 詳細フラグ
+	RESULT:1 = TMP_SELECT:0
+
+;多胎児の場合の処理
+IF 件数 > 1
+	SELECTCASE 多胎フラグ
+		CASE 0
+			IF 詳細フラグ
+				RESULT:1 = TMP_SELECT:RAND(件数)
+				返却文字列 '= GET_PERSON_呼び名(RESULT:1)
+			ELSE
+				返却文字列 '= GET_PERSON_呼び名(TMP_SELECT:RAND(件数))
+			ENDIF
+		CASE 1
+			返却文字列 += 連結文字
+		CASE 2
+			FOR ループ用, 1, 件数
+				返却文字列 += 連結文字 + GET_PERSON_呼び名(TMP_SELECT:ループ用)
+			NEXT
+	ENDSELECT
+ENDIF
+
+RETURNF 返却文字列
+
+
+;口上用。あなたを父親とする子から最新の1人の呼び名を取り出す
+;多胎フラグ 0:そのうち1人だけにする 1:接尾辞を付け足す 2:全部列挙する
+;詳細フラグ 0以外にすると、RESULT:1に子供のIDを返す
+@あなたの子_呼び名_末(キャラ番号, 多胎フラグ = 1, 連結文字 = "たち", 詳細フラグ = 0)
+#FUNCTIONS
+#DIM TMP_SELECT, 12
+#DIM キャラ番号
+#DIM 多胎フラグ
+#DIMS 連結文字
+#DIM 詳細フラグ
+#DIMS FILTER
+#DIM 件数
+#DIM ループ用
+#DIMS 返却文字列
+
+;最後の子供の人物番号を取得するため、降順ソートでSELECTし1件目を使う
+FILTER '= @"母親 = {CFLAG:キャラ番号:人物番号} And 父親 = {CFLAG:MASTER:人物番号}"
+件数 = DT_SELECT("人物データベース", FILTER, "出生順 ASC, 出会った周回 DESC, 生年日 DESC", TMP_SELECT)
+SIF 件数 <= 0
+	RETURNF ""
+
+;候補の取得
+FILTER += @" And 呼び名 Is Not Null And 出会った周回 = {GET_PERSON_出会った周回(TMP_SELECT:0)} And 生年日 = {GET_PERSON_生年日(TMP_SELECT:0)} And 出生順 Is Null"
+件数 = DT_SELECT("人物データベース", FILTER, , TMP_SELECT)
+SIF 件数 <= 0
+	RETURNF ""
+
+;多胎児の一部だけに名前を付けることはできないので最初に空文字チェック
+返却文字列 '= GET_PERSON_呼び名(TMP_SELECT:0)
+SIF 返却文字列 == ""
+	RETURNF ""
+SIF 詳細フラグ
+	RESULT:1 = TMP_SELECT:0
+
+;多胎児の場合の処理
+IF 件数 > 1
+	SELECTCASE 多胎フラグ
+		CASE 0
+			IF 詳細フラグ
+				RESULT:1 = TMP_SELECT:RAND(件数)
+				返却文字列 '= GET_PERSON_呼び名(RESULT:1)
+			ELSE
+				返却文字列 '= GET_PERSON_呼び名(TMP_SELECT:RAND(件数))
+			ENDIF
+		CASE 1
+			返却文字列 += 連結文字
+		CASE 2
+			FOR ループ用, 1, 件数
+				返却文字列 += 連結文字 + GET_PERSON_呼び名(TMP_SELECT:ループ用)
+			NEXT
+	ENDSELECT
+ENDIF
+
+RETURNF 返却文字列

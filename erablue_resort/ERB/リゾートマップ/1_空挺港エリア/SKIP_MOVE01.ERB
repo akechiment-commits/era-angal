@@ -1,0 +1,94 @@
+﻿
+;-----------------------------------------------------------
+;遠距離移動処理
+;-----------------------------------------------------------
+
+@SKIP_MOVE_1(目的地, 移動キャラ = 0)
+#DIM スタート地点
+#DIM 目的地
+#DIM 移動キャラ
+#DIM 経由地
+
+;現在位置取得
+SIF 移動キャラ <= 0
+	移動キャラ = MASTER
+スタート地点 = CFLAG:移動キャラ:現在位置
+
+;商業区からは一旦２に出る
+SIF スタート地点 >= 1000
+	RETURN 2
+
+;経由地の取得
+経由地 = GET_DEST(スタート地点, 目的地, NODE_MAP1, NODE_REVERSE_MAP1, NEXT_MAP1)
+IF 経由地 == -1
+	PRINTFORML %RESULTS%
+	JUMP 移動エラー文章表示(移動キャラ, 目的地)
+ENDIF
+;PRINTFORML 【%CALLNAME:移動キャラ%】が、スタート地点:{スタート地点}からゴール地点:{目的地}を目指し、経由地点:{経由地}へ移動…
+RETURN 経由地
+
+@CAN_MOVE_1(ARG, ARG:1)
+;部屋の構造
+;ARG 移動元
+;ARG:1 移動先
+;戻り値はビット管理 & 1で移動可能、 & 2で見通し可能
+;RETURNF 1 移動可能
+;RETURNF 2 移動不可だが見通せる
+;RETURNF 3 直通（移動可能＆見通せる）
+
+#FUNCTION
+
+SELECTCASE ARG
+	CASE 1
+		;入り口～広場
+		SIF ARG:1 == 2
+			RETURNF 3
+		SIF ARG:1 == 11 && 港改造度:11:0 > 0
+			RETURNF 1
+	CASE 2
+		;入り口と広場は見通せるが、店の中は見えない
+		SIF ARG:1 == 1 || ARG:1 == 9
+			RETURNF 3
+		SIF ARG:1 >= 3 && ARG:1 <= 8
+			RETURNF 1
+		SIF ARG:1 == 11 && 港改造度:11:0 > 0
+			RETURNF 1
+	CASE 3 TO 8
+		;広場に出るのみ
+		SIF ARG:1 == 2
+			RETURNF 1
+	CASE 9
+		;広場とよろずや
+		SIF ARG:1 == 2
+			RETURNF 3
+		SIF イベント完了フラグ確認("大拡張！空艇港") > 0 && ARG:1 == 10
+			RETURNF 1
+	CASE 10
+		;港に出るのみ
+		SIF ARG:1 == 9
+			RETURNF 1
+	CASE 11
+		;広場か入り口
+		SIF ARG:1 == 1
+			RETURNF 1
+		SIF ARG:1 == 2
+			RETURNF 1
+ENDSELECT
+RETURNF 0
+
+
+
+@存在しない移動先_1(場所番号)
+#FUNCTION
+#DIM 場所番号
+
+IF イベント完了フラグ確認("大拡張！空艇港") > 0 && 場所番号 == 10
+	RETURNF 0
+ENDIF
+IF 場所番号 >= 1 && 場所番号 <= 9
+	RETURNF 0
+ENDIF
+IF 港改造度:11:0 > 0 && 場所番号 == 11
+	RETURNF 0
+ENDIF
+RETURNF 1

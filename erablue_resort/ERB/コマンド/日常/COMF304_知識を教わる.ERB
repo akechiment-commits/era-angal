@@ -1,0 +1,288 @@
+﻿
+@COMNAME304
+#FUNCTIONS
+TSTR:コマンド名受渡 = 知識を教わる
+
+;===================================================
+;コマンドタイプ
+;===================================================
+@COMTYPE_304
+#FUNCTION
+TFLAG:コマンドタイプ受渡 = COMTYPE("日常")
+
+@COM_TOOLTIP_304
+LOCALS = <br>■知識を教わる<br>
+LOCALS += "自身よりも高い知識を持つ相手から、該当知識を教わるコマンド。一定確率で大成功、成功、失敗に分岐。<br>成功率は双方の知識技能、及び素質に影響される。<br>キャラ一人につき一日一回まで。好感度が一定以上になると二回まで実行可能。<br>"
+LOCALS += "<br>COMタイプ：日常<br>取得ソース：歓楽・征服"
+LOCALS += "<br>固有の取得経験：会話経験(MASTER)<br>"
+TSTR:ツールチップ受渡 = %LOCALS%
+
+
+@COM304
+;知識を教わる
+;知識種類決定
+DRAWLINE
+PRINTL 何を教わりますか？
+DRAWLINE
+CALL 知識種類(TARGET, PLAYER, 1)
+PRINTL
+PRINTBUTTON "[999]戻る", 999
+PRINTL
+DRAWLINE
+$INPUT_LOOP
+BINPUT
+
+LOCAL = RESULT
+SELECTCASE LOCAL
+	CASE 1 TO 100
+		IF ERDNAME(知識素質, LOCAL) == ""
+			REUSELASTLINE 
+			GOTO INPUT_LOOP
+		ENDIF
+		IF 知識素質:PLAYER:LOCAL >= 知識素質:TARGET:LOCAL || 知識素質:PLAYER:LOCAL < 0
+			REUSELASTLINE 
+			GOTO INPUT_LOOP
+		ENDIF
+		;知識種類を格納
+		RFLAG:コマンド結果受渡し変数２ = LOCAL
+	CASE 999
+		RETURN -1
+	CASEELSE
+		REUSELASTLINE 
+		GOTO INPUT_LOOP
+ENDSELECT
+
+LOCAL:2 = RAND:100
+LOCAL:1 = 教える上手さ(TARGET, PLAYER, RFLAG:コマンド結果受渡し変数２)
+IF LOCAL:2 <= LOCAL:1 / 2
+	;上手さ / 2以下で超成功
+	RFLAG:コマンド結果受渡し変数 = 1
+	EXP:MASTER:会話経験 ++
+	LOCAL:3 = RAND:20 + 25
+	知識素質:PLAYER:(LOCAL + 100) += LOCAL:3
+ELSEIF LOCAL:2 <= LOCAL:1
+	;上手さ以下で成功
+	RFLAG:コマンド結果受渡し変数 = 0
+	LOCAL:3 = RAND:10 + 15
+	知識素質:PLAYER:(LOCAL + 100) += LOCAL:3
+ELSE
+	;残りは失敗
+	RFLAG:コマンド結果受渡し変数 = -1
+	LOCAL:3 = RAND:5
+	知識素質:PLAYER:(LOCAL + 100) += LOCAL:3
+ENDIF
+
+;歓楽強度
+LOCAL:0 = 100
+;征服強度
+LOCAL:1 = 200
+
+IF RFLAG:コマンド結果受渡し変数 == -1
+	TIMES LOCAL:0 , 0.10
+	TIMES LOCAL:1 , 0.50
+ELSEIF RFLAG:コマンド結果受渡し変数 == 0
+	TIMES LOCAL:0 , 1.00
+	TIMES LOCAL:1 , 1.00
+ELSE
+	TIMES LOCAL:0 , 2.00
+	TIMES LOCAL:1 , 2.00
+ENDIF
+
+
+CALL SOURCE_CALC_歓楽(TARGET, PLAYER, LOCAL:0)
+CALL SOURCE_CALC_征服(TARGET, PLAYER, LOCAL:1)
+CALL SOURCE_CALC_好感度要素_友情度UP(TARGET, PLAYER, LOCAL:0 / 2)
+CALL SOURCE_CALC_好感度要素_信頼度UP(TARGET, PLAYER, LOCAL:0 / 2)
+
+TCVAR:TARGET:学習フラグ += 80
+
+TIME += 60
+EXP:MASTER:会話経験 ++
+RETURN 1
+;-------------------------------------------------
+;知識種類
+;-------------------------------------------------
+@知識種類(ARG, ARG:1, 表示フラグ)
+#DIM 表示フラグ
+;ARG=教えるキャラ番号
+;ARG:1=教えてもらうキャラ番号
+LOCAL = 0
+
+;自身がマイナス知識の場合は教われない
+
+IF 知識素質:ARG:調合知識 > 知識素質:(ARG:1):調合知識 && 知識素質:(ARG:1):調合知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[1]調合知識", 1
+ENDIF
+IF 知識素質:ARG:魔法知識 > 知識素質:(ARG:1):魔法知識 && 知識素質:(ARG:1):魔法知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[2]魔法知識", 2
+ENDIF
+IF 知識素質:ARG:機械知識 > 知識素質:(ARG:1):機械知識 && 知識素質:(ARG:1):機械知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[3]機械知識", 3
+ENDIF
+IF 知識素質:ARG:錬金知識 > 知識素質:(ARG:1):錬金知識 && 知識素質:(ARG:1):錬金知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[4]錬金知識", 4
+ENDIF
+IF 知識素質:ARG:魔物知識 > 知識素質:(ARG:1):魔物知識 && 知識素質:(ARG:1):魔物知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[5]魔物知識", 5
+ENDIF
+IF 知識素質:ARG:絵師 > 知識素質:(ARG:1):絵師 && 知識素質:(ARG:1):絵師 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[6]絵の心得", 6
+ENDIF
+IF 知識素質:ARG:高貴 > 知識素質:(ARG:1):高貴 && 知識素質:(ARG:1):高貴 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[7]マナー作法", 7
+ENDIF
+IF 知識素質:ARG:釣り好き > 知識素質:(ARG:1):釣り好き && 知識素質:(ARG:1):釣り好き >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[8]釣り知識", 8
+ENDIF
+IF 知識素質:ARG:踊り子 > 知識素質:(ARG:1):踊り子 && 知識素質:(ARG:1):踊り子 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[9]踊り技能", 9
+ENDIF
+IF 知識素質:ARG:歌唱技能 > 知識素質:(ARG:1):歌唱技能 && 知識素質:(ARG:1):歌唱技能 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[10]歌唱技能", 10
+ENDIF
+IF 知識素質:ARG:料理人 > 知識素質:(ARG:1):料理人 && 知識素質:(ARG:1):料理人 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[11]料理技能", 11
+ENDIF
+IF 知識素質:ARG:歴史知識 > 知識素質:(ARG:1):歴史知識 && 知識素質:(ARG:1):歴史知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[12]歴史知識", 12
+ENDIF
+IF 知識素質:ARG:経営知識 > 知識素質:(ARG:1):経営知識 && 知識素質:(ARG:1):経営知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[13]経営知識", 13
+ENDIF
+IF 知識素質:ARG:水泳技能 > 知識素質:(ARG:1):水泳技能 && 知識素質:(ARG:1):水泳技能 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[14]水泳技能", 14
+ENDIF
+IF 知識素質:ARG:農業知識 > 知識素質:(ARG:1):農業知識 && 知識素質:(ARG:1):農業知識 >= 0
+	LOCAL += 1
+	SIF 表示フラグ
+		PRINTBUTTONLC "[15]農業知識", 15
+ENDIF
+
+RETURN LOCAL
+;-------------------------------------------------
+;学習効率
+;-------------------------------------------------
+@教える上手さ(ARG, ARG:1, 知識番号)
+#FUNCTION
+#DIM 知識番号
+;ARG=教えるキャラ番号
+;ARG:1=教えてもらうキャラ番号
+
+;教える側と教えられる側の知識
+LOCAL = 知識素質:ARG:知識番号 * 40
+LOCAL += 知識素質:(ARG:1):知識番号 * 10
+
+;教える側の影響素質
+;あなたの場合は素質じゃなく技能で増減
+IF ARG:1 == PLAYER
+	LOCAL += (ABL:PLAYER:話術技能 - 2) * 5
+ELSE
+	LOCAL += TALENT:(ARG:1):会話資質 * 10
+ENDIF
+LOCAL += TALENT:ARG:精神的余裕 * 10
+IF TALENT:ARG:性別嗜好 == 3
+	LOCAL += -20
+ELSEIF TALENT:ARG:性別嗜好 == 1 && TALENT:(ARG:1):性別 == 2
+	LOCAL += -20
+ELSEIF TALENT:ARG:性別嗜好 == 2 && TALENT:(ARG:1):性別 == 1
+	LOCAL += -20
+ENDIF
+
+;教えられる側の影響素質
+LOCAL += TALENT:(ARG:1):態度 * -10
+LOCAL += TALENT:(ARG:1):プライド * -5
+;あなたの場合は素質じゃなく技能で増減
+IF ARG:1 == PLAYER
+	LOCAL += (ABL:PLAYER:話術技能 - 2) * 5
+ELSE
+	LOCAL += TALENT:(ARG:1):会話資質 * 10
+ENDIF
+IF TALENT:(ARG:1):性別嗜好 == 3
+	LOCAL += -20
+ELSEIF TALENT:(ARG:1):性別嗜好 == 1 && TALENT:ARG:性別 == 2
+	LOCAL += -20
+ELSEIF TALENT:(ARG:1):性別嗜好 == 2 && TALENT:ARG:性別 == 1
+	LOCAL += -20
+ENDIF
+
+RETURNF LOCAL
+
+;-------------------------------------------------
+;実行判定
+;-------------------------------------------------
+@COM_ABLE304
+;会話実行判定
+SIF SAVESTR:ゲームフェイズ管理 != "通常モード"
+	RETURN 0
+;一括管理
+SIF GLOBAL_COMABLE(304)
+	RETURN RESULT
+;睡眠中
+SIF CFLAG:睡眠
+	RETURN 0
+;口を何かに使ってるなら無理
+SIF TEQUIP:PLAYER:口
+	RETURN 0
+SIF TEQUIP:TARGET:口
+	RETURN 0
+;ある程度好感度が必要
+SIF CFLAG:TARGET:好感度レベル <= 50
+	RETURN 0
+;隠密中はダメ
+SIF CFLAG:PLAYER:隠密
+	RETURN 0
+;友人は一日一回まで、親友になると２回まで教えてくれる
+SIF CFLAG:TARGET:好感度レベル <= TCVAR:TARGET:学習フラグ
+	RETURN 0
+;相手が知識持ち必須
+CALL 知識種類(TARGET, PLAYER, 0)
+SIF !RESULT
+	RETURN 0
+RETURN 1
+
+;-------------------------------------------------
+;実行時メッセージ
+;-------------------------------------------------
+@MESSAGE_COM304
+;RFLAG:コマンド結果受渡し変数=１大成功　０成功　-１失敗
+;RFLAG:コマンド結果受渡し変数２=知識種類
+
+PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:TARGET%から%ERDNAME(知識素質,RFLAG:コマンド結果受渡し変数２)%について教えてもらった
+SELECTCASE RFLAG:コマンド結果受渡し変数
+	CASE 1
+		PRINTFORML %CALLNAME:TARGET%の教え方は非常にわかりやすく、大きく理解を進めることが出来た！
+	CASE 0
+		PRINTFORML いくつかの疑問点について、%CALLNAME:PLAYER%は正しい知識を得ることが出来た
+	CASE -1
+		PRINTFORML あまり集中できず、%CALLNAME:PLAYER%は殆ど勉強が進まなかった…
+ENDSELECT
+
+

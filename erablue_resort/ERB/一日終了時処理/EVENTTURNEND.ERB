@@ -1,0 +1,195 @@
+﻿@EVENTTURNEND
+#DIM ダウン状態フラグ
+#DIM 配列番号
+
+FOR LOCAL,1,CHARANUM
+	ダウン状態フラグ = 0
+	;体力限界を消去
+	SIF CFLAG:LOCAL:体力限界
+		ダウン状態フラグ = 1
+	CFLAG:LOCAL:体力限界 = 0
+
+	;デート状態もリセット
+	CFLAG:LOCAL:デート = 0
+	CFLAG:LOCAL:デートスコア = 0
+	CFLAG:LOCAL:キャラ同士うふふ = 0
+	CFLAG:LOCAL:マッサージ助手 = 0
+
+	;一日のコマンド初回フラグをリセット
+	コマンド初回フラグ:LOCAL:通常コマンド_一日単位 = 
+	コマンド初回フラグ_PLAYER:LOCAL:通常コマンド_一日単位 = 
+
+	;滞在してないキャラは専用処理へ
+	IF CFLAG:LOCAL:滞在期間 == -1 && CFLAG:LOCAL:招待不可フラグ == 0
+		CALL 一日終了時_非滞在キャラ処理(LOCAL)
+		CONTINUE
+	ENDIF
+	IF CFLAG:LOCAL:不機嫌
+		CFLAG:LOCAL:不機嫌 --
+		IF !CFLAG:LOCAL:不機嫌
+			SIF MARK:LOCAL:反発刻印
+				CFLAG:LOCAL:不機嫌 = -- MARK:LOCAL:反発刻印
+		ENDIF
+	ENDIF
+	
+	;元気になる薬日数経過
+	SIF CFLAG:LOCAL:元気になる薬フラグ > 0
+		CFLAG:LOCAL:元気になる薬フラグ -= 1
+
+	;素質変化による体力の向上
+	CALL 体力変動素質適用処理(LOCAL)
+
+	;精力の回復
+	SIF 干渉強化変数:LOCAL:干渉種類 == 11
+		CALL 干渉強化関数_11("実補正処理", LOCAL)
+	CALL 精力ゲージ_一日終了時回復処理(LOCAL)
+
+	LOCAL:1 = 1000
+	SIF 施設改造度:7:1
+		LOCAL:1 += 300
+	SIF ダウン状態フラグ && 施設改造度:7:2
+		LOCAL:1 += 1000
+	;回復早い、回復遅い
+	LOCAL:1 = LOCAL:1 * 3 / (3 - TALENT:LOCAL:回復速度)
+	;温泉立ててると体力半分以下の時回復倍
+	SIF 施設改造度:7:0 && BASE:LOCAL:体力 * 2 <= MAXBASE:LOCAL:体力
+		LOCAL:1 = LOCAL:1 * 2
+	BASE:LOCAL:体力 = MIN(MAXBASE:LOCAL:体力, BASE:LOCAL:体力 + LOCAL:1)
+
+	;中毒があるなら欲求不満を加算
+	SIF MAXARRAY(性癖素質:LOCAL:0, 1) >= 3
+		CFLAG:LOCAL:中毒欲求不満フラグ += 1
+
+	;定住追い出し処理
+	IF CFLAG:LOCAL:定住追い出しフラグ
+		;追い出すために滞在期間をセット
+		CFLAG:LOCAL:滞在期間 = 1
+		IF TALENT:LOCAL:定住者 == 1
+			CALL 滞在者部屋割り配列削除処理(LOCAL)
+		ELSE
+			FOR 配列番号, 0, VARSIZE("同棲部屋割り配列")
+				IF 同棲部屋割り配列:配列番号 == LOCAL
+					同棲部屋割り配列:配列番号 = 0
+					BREAK
+				ENDIF
+			NEXT
+		ENDIF
+		TALENT:LOCAL:定住者 = 0
+		CFLAG:LOCAL:定住追い出しフラグ = 0
+	ENDIF
+
+	;摂取カロリーの計算
+	IF TCVAR:LOCAL:摂取カロリー > 1000
+		CALL バスト変動処理(LOCAL, "食事", (TCVAR:LOCAL:摂取カロリー - 1000) / 20)
+		CALL ウエスト変動処理(LOCAL, "食事", (TCVAR:LOCAL:摂取カロリー - 1000) / 10)
+		CALL ヒップ変動処理(LOCAL, "食事", (TCVAR:LOCAL:摂取カロリー - 1000) / 15)
+	ELSEIF TCVAR:LOCAL:摂取カロリー < 0
+		CALL バスト変動処理(LOCAL, "食事",TCVAR:LOCAL:摂取カロリー / 30)
+		CALL ウエスト変動処理(LOCAL, "食事", TCVAR:LOCAL:摂取カロリー / 15)
+		CALL ヒップ変動処理(LOCAL, "食事", TCVAR:LOCAL:摂取カロリー / 20)
+	ENDIF
+NEXT
+
+;摂取カロリーの計算
+IF TCVAR:MASTER:摂取カロリー > 1000
+	CALL バスト変動処理(MASTER, "食事", (TCVAR:MASTER:摂取カロリー - 1000) / 20)
+	CALL ウエスト変動処理(MASTER, "食事", (TCVAR:MASTER:摂取カロリー - 1000) / 10)
+	CALL ヒップ変動処理(MASTER, "食事", (TCVAR:MASTER:摂取カロリー - 1000) / 15)
+ELSEIF TCVAR:MASTER:摂取カロリー < 0
+	CALL バスト変動処理(MASTER, "食事",TCVAR:MASTER:摂取カロリー / 30)
+	CALL ウエスト変動処理(MASTER, "食事", TCVAR:MASTER:摂取カロリー / 15)
+	CALL ヒップ変動処理(MASTER, "食事", TCVAR:MASTER:摂取カロリー / 20)
+ENDIF
+
+;モードもリセット
+DT_CLEAR "体位モードデータベース"
+
+;フラグリセット
+CALL うふふ終了処理
+CALL 飲み会終了処理
+VARSET カットイン一日一回フラグ
+あなた追跡キャラ = 0
+CFLAG:PLAYER:デート = 0
+
+;日付更新
+IF CFLAG:MASTER:就寝時刻 % (DAY * 1440) > CFLAG:MASTER:起床予定時刻
+	DAY ++
+	TIME = 0
+ENDIF
+
+SAVESTR:前日お祭り記録 = 
+;お祭り終了
+IF 開催予定日取り < DAY
+	;イベント用に記録
+	SAVESTR:前日お祭り記録 = %開催予定祭り名%
+	開催予定日取り = 0
+	開催予定祭り名 = 
+	;祭りマップにいるヤツがいたら自室にワープ
+	FOR LOCAL, 0, CHARANUM
+		IF CFLAG:LOCAL:現在マップ種別 == 100
+			CFLAG:LOCAL:現在位置 = キャラクター部屋検索(LOCAL)
+			CFLAG:LOCAL:現在マップ種別 = 部屋検索_マップ種別
+		ENDIF
+	NEXT
+ENDIF
+
+;素材相場の変動
+FOR COUNT, 0, DT_ROW_LENGTH("所持素材データベース")
+	LOCAL = DT_CELL_GET("所持素材データベース", COUNT, "素材値相場")
+	IF LOCAL > 130
+		LOCAL:1 = -10
+	ELSEIF LOCAL < 80
+		LOCAL:1 = 5
+	ENDIF
+	LOCAL = LIMIT(RAND(85 + LOCAL:1, 115 + LOCAL:1) * LOCAL / 100, 50, 200)
+	DT_CELL_SET "所持素材データベース", COUNT, "素材値相場", LOCAL
+NEXT
+
+FLAG:0 = 0
+
+;バグり防止のため毎日計算する
+CALL 滞在可能キャラ数再計算
+
+;変数初期化
+CALL TRAIN_VAR_RESET
+CALL TURN_RESET
+VARSET 学校利用者
+
+;画像リソースを全解放
+SPRITEDISPOSEALL 0
+;口上用に作ったグラフィックも解放
+FOR LOCAL, 20000, 20000 + TFLAG:口上用画像表示番号
+	GDISPOSE LOCAL
+NEXT
+
+BEGIN SHOP
+
+
+
+@一日終了時_非滞在キャラ処理(キャラ番号)
+#DIM キャラ番号
+
+;発情期による性欲最低値保証・最大値上昇処理
+IF CFLAG:キャラ番号:発情期フラグ < 0
+	MAXBASE:キャラ番号:性欲 = MIN(MAXBASE:キャラ番号:体力 * 3 / 2, 9999)
+	IF TALENT:キャラ番号:種族 == 2 || GETBIT(TALENT:キャラ番号:発情期あり, 1)
+		BASE:キャラ番号:性欲 = MAX(BASE:キャラ番号:性欲, MAXBASE:キャラ番号:性欲 * 8 / 10)
+	ELSEIF TALENT:キャラ番号:種族 == 3 || キャラ一致チェック(キャラ番号, "[六竜の『金』]ガレヲン") || TALENT:キャラ番号:発情期あり
+		BASE:キャラ番号:性欲 = MAX(BASE:キャラ番号:性欲, MAXBASE:キャラ番号:性欲 * 6 / 10)
+	ENDIF
+ENDIF
+
+;一度でもリゾートに訪れたことがあるキャラを対象
+IF 初体験日:キャラ番号:リゾート初来訪 > 0 && TALENT:キャラ番号:性欲 > -2
+	;性欲の微上昇
+	BASE:キャラ番号:性欲 = MIN(BASE:キャラ番号:性欲 + 50, MAXBASE:キャラ番号:性欲)
+	;もし性欲が一定値以上だったら自慰行為を行う（性知識必要）
+	IF BASE:キャラ番号:性欲 > 1000 && (知識素質:キャラ番号:性知識 > 0 || EXP:キャラ番号:自慰経験 > 0)
+		BASE:キャラ番号:性欲 -= BASE:キャラ番号:性欲 / 1000 * 500
+		EXP:キャラ番号:自慰経験 += BASE:キャラ番号:性欲 / 1000
+		EXP:キャラ番号:絶頂経験 += BASE:キャラ番号:性欲 / 1000
+	ENDIF
+
+	;精力の回復
+	CALL 精力ゲージ_一日終了時回復処理(キャラ番号)
+ENDIF

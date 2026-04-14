@@ -1,0 +1,400 @@
+﻿
+;-----------------------------------------------------------
+;遠距離移動処理
+;-----------------------------------------------------------
+
+@SKIP_MOVE_0(目的地, 移動キャラ = 0)
+#DIM スタート地点
+#DIM 目的地
+#DIM 移動キャラ
+#DIM 経由地
+
+;現在位置取得
+SIF 移動キャラ <= 0
+	移動キャラ = MASTER
+スタート地点 = CFLAG:移動キャラ:現在位置
+
+;経由地の取得
+IF 施設利用性別(移動キャラ) == 性別_男性
+	;男性
+	経由地 = GET_DEST(スタート地点, 目的地, NODE_MAP0, NODE_REVERSE_MAP0, NEXT_MALE_MAP0)
+ELSE
+	;女性
+	経由地 = GET_DEST(スタート地点, 目的地, NODE_MAP0, NODE_REVERSE_MAP0, NEXT_FEMALE_MAP0)
+ENDIF
+IF 経由地 == -1
+	PRINTFORML %RESULTS%
+	JUMP 移動エラー文章表示(移動キャラ, 目的地)
+ENDIF
+;PRINTFORML 【%CALLNAME:移動キャラ%】が、スタート地点:{スタート地点}からゴール地点:{目的地}を目指し、経由地点:{経由地}へ移動…
+RETURN 経由地
+
+@CAN_MOVE_0(ARG, ARG:1)
+;部屋の構造
+;ARG 移動元
+;ARG:1 移動先
+;戻り値はビット管理 & 1で移動可能、 & 2で見通し可能
+;RETURNF 1 移動可能
+;RETURNF 2 移動不可だが見通せる
+;RETURNF 3 直通（移動可能＆見通せる）
+
+#FUNCTION
+SELECTCASE ARG
+	;玄関
+	CASE 1
+		;ロビー直通
+		SIF ARG:1 == 2
+			RETURNF 3
+	;ロビー
+	CASE 2
+		;玄関直通
+		SIF ARG:1 == 1
+			RETURNF 3
+		;庭直通
+		SIF ARG:1 == 3 && !施設改造度:3:0
+			RETURNF 3
+		SIF ARG:1 == 303 && 施設改造度:3:0
+			RETURNF 1
+		;食堂移動可
+		SIF ARG:1 == 4 && !施設改造度:4:0
+			RETURNF 1
+		SIF ARG:1 == 403 && 施設改造度:4:0
+			RETURNF 1
+		SIF ARG:1 == 404 && 施設改造度:4:0
+			RETURNF 1
+		;遊戯場移動可
+		SIF ARG:1 == 5 && !施設改造度:5:0
+			RETURNF 1
+		SIF ARG:1 == 503 && 施設改造度:5:0
+			RETURNF 1
+		;廊下直通
+		SIF ARG:1 == 6
+			RETURNF 3
+		;男子更衣室移動可
+		SIF ARG:1 == 13
+			RETURNF 1
+		;女子更衣室移動可
+		SIF ARG:1 == 14
+			RETURNF 1
+		;スタッフルーム移動可
+		SIF ARG:1 == 16
+			RETURNF 1
+	;庭
+	CASE 3
+		;ロビー直通
+		SIF ARG:1 == 2
+			RETURNF 3
+	;食堂
+	CASE 4
+		;ロビー移動可
+		SIF ARG:1 == 2
+			RETURNF 1
+	;遊戯場
+	CASE 5
+		;ロビー移動可
+		SIF ARG:1 == 2
+			RETURNF 1
+	;廊下
+	CASE 6
+		;ロビー直通
+		SIF ARG:1 == 2
+			RETURNF 3
+		;男子脱衣所移動可
+		SIF ARG:1 == 7 && !施設改造度:7:0
+			RETURNF 1
+		SIF ARG:1 == 702 && 施設改造度:7:0
+			RETURNF 1
+		;女子脱衣所移動可
+		SIF ARG:1 == 8 && !施設改造度:8:0
+			RETURNF 1
+		SIF ARG:1 == 802 && 施設改造度:8:0
+			RETURNF 1
+		;自室移動可
+		SIF ARG:1 == 20
+			RETURNF 1
+		SIF ARG:1 == 2001 && 施設改造度:20:0
+			RETURNF 1
+	;男子脱衣所
+	CASE 7
+		;廊下移動可
+		SIF ARG:1 == 6
+			RETURNF 1
+		;男湯移動可
+		SIF ARG:1 == 9
+			RETURNF 1
+	;女子脱衣所
+	CASE 8
+		;廊下移動可
+		SIF ARG:1 == 6
+			RETURNF 1
+		;女湯移動可
+		SIF ARG:1 == 11
+			RETURNF 1
+	;男湯
+	CASE 9
+		;男子脱衣所移動可
+		SIF ARG:1 == 7
+			RETURNF 1
+		;男露天風呂直通
+		SIF ARG:1 == 10
+			RETURNF 3
+	;男露天風呂
+	CASE 10
+		;男湯直通
+		SIF ARG:1 == 9
+			RETURNF 3
+	;女湯
+	CASE 11
+		;女子脱衣所移動可
+		SIF ARG:1 == 8
+			RETURNF 1
+		;女露天風呂直通
+		SIF ARG:1 == 12
+			RETURNF 3
+	;女露天風呂
+	CASE 12
+		;女湯直通
+		SIF ARG:1 == 11
+			RETURNF 3
+	;男更衣室
+	CASE 13
+		;ロビー移動可
+		SIF ARG:1 == 2
+			RETURNF 1
+		;プール移動可
+		SIF ARG:1 == 15 && !施設改造度:15:0
+			RETURNF 1
+		SIF ARG:1 == 1503 && 施設改造度:15:0
+			RETURNF 1
+	;女更衣室
+	CASE 14
+		;ロビー移動可
+		SIF ARG:1 == 2
+			RETURNF 1
+		;プール移動可
+		SIF ARG:1 == 15 && !施設改造度:15:0
+			RETURNF 1
+		SIF ARG:1 == 1503 && 施設改造度:15:0
+			RETURNF 1
+	;プール
+	CASE 15
+		;男更衣室移動可
+		SIF ARG:1 == 13
+			RETURNF 1
+		;女更衣室移動可
+		SIF ARG:1 == 14
+			RETURNF 1
+	;スタッフルーム
+	CASE 16
+		;ロビー移動可
+		SIF ARG:1 == 2
+			RETURNF 1
+	;自室
+	CASE 20
+		;廊下移動可
+		SIF ARG:1 == 6
+			RETURNF 1
+	;キャンプ場の場合、どこからでもどこへでも行ける
+	;ただし遠いので見通せない
+	CASE 303 TO 308
+		SIF ARG:1 >= 303 && ARG:1 <= 307
+			RETURNF 1
+		SIF 施設改造度:3:8 && ARG:1 == 308
+			RETURNF 1
+		SIF ARG:1 == 2
+			RETURNF 1
+	;レストランは入口付近にあるのはテーブルとカウンター
+	CASE 403
+		SIF ARG:1 == 2
+			RETURNF 1
+		SIF ARG:1 >= 404 && ARG:1 <= 405
+			RETURNF 1
+	CASE 404
+		SIF ARG:1 == 2
+			RETURNF 1
+		SIF ARG:1 >= 403 && ARG:1 <= 406
+			RETURNF 1
+	CASE 405
+		SIF ARG:1 >= 403 && ARG:1 <= 404
+			RETURNF 1
+	CASE 406
+		SIF ARG:1 >= 403 && ARG:1 <= 404
+			RETURNF 1
+	;遊戯場内部
+	;バーエリア、どのエリアにも行ける
+	CASE 503
+		SIF ARG:1 == 2 || ARG:1 == 504 || ARG:1 == 505 
+			RETURNF 1
+		SIF 施設改造度:5:6 && ARG:1 == 506
+			RETURNF 1
+	;卓球・ボドゲからはバーエリアのみ
+	CASE 504 TO 506
+		SIF ARG:1 == 503
+			RETURNF 1
+	;温泉施設内部
+	;脱衣所からはどのエリアにも行ける
+	CASE 702
+		SIF ARG:1 == 6 || (ARG:1 >= 703 && ARG:1 <= 711)
+			RETURNF 1
+	;温泉内部からは脱衣所＋内部ならどこへでも、反対側の隠し通路もOK
+	CASE 703 TO 709
+		SIF ARG:1 == 702
+			RETURNF 1
+		SIF ARG:1 >= 703 && ARG:1 <= 710
+			RETURNF 3
+	;隠し通路は相互に移動可能
+	CASE 710
+		SIF ARG:1 == 702
+			RETURNF 1
+		SIF ARG:1 >= 703 && ARG:1 <= 710
+			RETURNF 3
+		SIF ARG:1 >= 809 && ARG:1 <= 810
+			RETURNF 1
+	;マッサージ施設は脱衣所と外
+	CASE 711
+		SIF ARG:1 == 6 || ARG:1 == 702
+			RETURNF 1
+	;脱衣所からはどのエリアにも行ける
+	CASE 802
+		SIF ARG:1 == 6 || (ARG:1 >= 803 && ARG:1 <= 811)
+			RETURNF 1
+	;温泉内部からは脱衣所＋内部ならどこへでも
+	CASE 803 TO 809
+		SIF ARG:1 == 802
+			RETURNF 1
+		SIF ARG:1 >= 803 && ARG:1 <= 810
+			RETURNF 3
+	;隠し通路は相互に移動可能
+	CASE 810
+		SIF ARG:1 == 802
+			RETURNF 1
+		SIF ARG:1 >= 803 && ARG:1 <= 810
+			RETURNF 3
+		SIF ARG:1 >= 709 && ARG:1 <= 710
+			RETURNF 1
+	;マッサージ施設は脱衣所と外
+	CASE 811
+		SIF ARG:1 == 6 || ARG:1 == 802
+			RETURNF 1
+	;プール内部の場合、どこへでも行ける
+	CASE 1503 TO 1515
+		SIF ARG:1 >= 1503 && ARG:1 <= 1515
+			RETURNF 1
+		SIF ARG:1 == 13 || ARG:1 == 14
+			RETURNF 1
+	CASE 2001
+		SIF GROUPMATCH(ARG:1, 6, 2003, 2005, 2006, 2007, 2013, 2011, 2012, 2020)
+			RETURNF 1
+	CASE 2003
+		SIF GROUPMATCH(ARG:1, 2001, 2005, 2006, 2007, 2013, 2011, 2012, 2020)
+			RETURNF 1
+	CASE 2004
+		SIF ARG:1 == 2005
+			RETURNF 1
+	CASE 2005
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2004, 2006, 2007, 2009, 2013, 2011, 2012, 2020)
+			RETURNF 1
+		SIF 施設改造度:20:0 == 2 && GROUPMATCH(ARG:1, 2016, 2017)
+			RETURNF 1
+	CASE 2016
+		SIF GROUPMATCH(ARG:1, 2005, 2009, 2017)
+			RETURNF 1
+	CASE 2017
+		SIF GROUPMATCH(ARG:1, 2005, 2009, 2016)
+			RETURNF 1
+	CASE 2006
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2007, 2013, 2011, 2012, 2020)
+			RETURNF 1
+	CASE 2007
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2006, 2008, 2013, 2011, 2012, 2020)
+			RETURNF 1
+	CASE 2008
+		SIF ARG:1 == 2007
+			RETURNF 1
+	CASE 2009
+		SIF ARG:1 == 2005
+			RETURNF 1
+		SIF 施設改造度:20:0 == 2 && GROUPMATCH(ARG:1, 2016, 2017)
+			RETURNF 1
+	CASE 2011
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2006, 2007, 2013, 2012, 2020)
+			RETURNF 1
+		SIF 施設改造度:20:0 == 2 && GROUPMATCH(ARG:1, 2014, 2015)
+			RETURNF 1
+	CASE 2012
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2006, 2007, 2013, 2011, 2020)
+			RETURNF 1
+		SIF 施設改造度:20:0 == 2 && GROUPMATCH(ARG:1, 2014, 2015)
+			RETURNF 1
+	CASE 2013
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2006, 2007, 2012, 2011, 2020)
+			RETURNF 1
+		SIF 施設改造度:20:0 == 2 && GROUPMATCH(ARG:1, 2014, 2015)
+			RETURNF 1
+	CASE 2014
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2006, 2007, 2012, 2011, 2013, 2015, 2020)
+			RETURNF 1
+	CASE 2015
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2006, 2007, 2012, 2011, 2013, 2014, 2020)
+			RETURNF 1
+	CASE 2020
+		SIF GROUPMATCH(ARG:1, 2001, 2003, 2005, 2006, 2007, 2013, 2011, 2012)
+			RETURNF 1
+		SIF 施設改造度:20:0 == 2 && GROUPMATCH(ARG:1, 2014, 2015)
+			RETURNF 1
+ENDSELECT
+RETURNF 0
+
+@存在しない移動先_0(場所番号)
+#FUNCTION
+#DIM 場所番号
+
+IF 場所番号 < 50
+	IF 施設改造度:場所番号:0 > 0
+		;改装済みの場合、改装前の部屋は存在しない
+		RETURNF 1
+	ENDIF
+	IF GROUPMATCH(場所番号, 9, 10, 11, 12) && 施設改造度:7:0
+		;温泉改装済みの場合、改装前の風呂場は存在しない
+		RETURNF 1
+	ENDIF
+ENDIF
+IF (場所番号 >= 1 && 場所番号 <= 16) || 場所番号 == 20
+	;基本マップ
+	RETURNF 0
+ELSEIF 場所番号 >= 303 && 場所番号 <= 307 && 施設改造度:3:0
+	;キャンプ場
+	RETURNF 0
+ELSEIF 場所番号 == 308 && 施設改造度:3:8
+	;訓練場
+	RETURNF 0
+ELSEIF 場所番号 >= 403 && 場所番号 <= 406 && 施設改造度:4:0
+	;レストラン
+	RETURNF 0
+ELSEIF 場所番号 >= 503 && 場所番号 <= 505 && 施設改造度:5:0
+	;遊戯室
+	RETURNF 0
+ELSEIF 場所番号 == 506 && 施設改造度:5:6
+	;遊戯室
+	RETURNF 0
+ELSEIF 場所番号 >= 702 && 場所番号 <= 711 && 施設改造度:7:0
+	SIF 場所番号 == 709
+		RETURNF 1
+	;温泉男湯
+	RETURNF 0
+ELSEIF 場所番号 >= 802 && 場所番号 <= 811 && 施設改造度:8:0
+	SIF 場所番号 == 809
+		RETURNF 1
+	;温泉女湯
+	RETURNF 0
+ELSEIF 場所番号 >= 1503 && 場所番号 <= 1506 && 施設改造度:15:0
+	;プール
+	RETURNF 0
+ELSEIF GROUPMATCH(場所番号, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2011, 2012, 2013, 2020) && 施設改造度:20:0
+	;自宅
+	RETURNF 0
+ELSEIF GROUPMATCH(場所番号, 2014, 2015, 2016, 2017) && 施設改造度:20:0 == 2
+	;自宅拡張
+	RETURNF 0
+ENDIF
+RETURNF 1

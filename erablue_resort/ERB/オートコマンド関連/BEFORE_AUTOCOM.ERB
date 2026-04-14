@@ -1,0 +1,910 @@
+﻿@BEFORE_AUTOCOM()
+#DIM 行動候補, 500
+#DIMS 行動候補文字列, 500
+#DIM 同室者番号
+#DIM キャラ番号
+#DIM 候補者数
+#DIM 候補総数
+#DIMS AUTOCOM_候補情報, キャラクタ数上限
+#DIMS 候補者_AUTO番号_文字列分割, 3
+#DIM ランダム格納
+#DIM PREAUTO候補者数
+#DIM AUTO候補者数
+#DIM REVERSEAUTO候補者数
+#DIM REVERSECOM番号
+#DIM ALLAUTOCOM番号
+#DIM COM番号
+#DIM 派生番号
+#DIM オート行動キャラ
+#DIM 行動対象キャラ
+#DIM うふふのみフラグ
+
+;行動対象をセット
+CALL TARGET_SET()
+
+うふふのみフラグ = 0
+行動対象キャラ = MASTER
+IF OPTION変数:キャラ同士オートコマンド禁止 == 0
+	IF CFLAG:PLAYER:うふふ && ((TFLAG:オートコマンドフラグ > 0 && TFLAG:オートコマンドフラグ < 100000) || RAND:2)
+		;通常オートの直後はキャラ＞キャラの行動パターンを判定する、うふふ時のみ発動
+		VARSET 行動候補
+		候補総数 = 0
+		FOR LOCAL, 1, CHARANUM
+			SIF TARGET:LOCAL < 1
+				BREAK
+			SIF CFLAG:(TARGET:LOCAL):体力限界
+				CONTINUE
+			;あなたの分身は除外
+			SIF TALENT:(TARGET:LOCAL):分身 == 2
+				CONTINUE
+			IF CFLAG:(TARGET:LOCAL):うふふ
+				;うふふキャラのみ
+				行動候補:候補総数 = TARGET:LOCAL
+				候補総数 ++
+			ENDIF
+		NEXT
+		;２人以上必須、かつ発生率は50%
+		IF 候補総数 >= 2 && RAND:2
+			うふふのみフラグ = 1
+			行動対象キャラ = 行動候補:(RAND:候補総数)
+			;処理を動作させるため現在のフラグをリセット
+			TFLAG:オートコマンドフラグ = 0
+			;連続発動の数を維持するため＋
+			TFLAG:オートコマンド連続発動 ++
+		ENDIF
+	ENDIF
+ENDIF
+
+VARSET AUTOCOM_候補情報
+PREAUTO候補者数 = 0
+AUTO候補者数 = 0
+REVERSEAUTO候補者数 = 0
+AUTOCOM_派生保存 = 
+
+;次ターンがキャラの自動行動かどうかの判定処理
+;RETURNの数値をそのままフラグに入れ込むので、0を返せば動かない、他を返せば動く
+;ついでにフラグにAUTOCOM番号を入れといて行動内容も保存しとく
+;タゲなしの場合は戻る
+IF !TARGET && 行動対象キャラ == MASTER
+	IF RFLAG:休憩選択フラグ
+		;休憩時TARGETが居ない場合に特殊処理に派生する
+		RETURN -1
+	ELSEIF RFLAG:自慰選択フラグ && CFLAG:MASTER:現在位置 == CFLAG:MASTER:自室位置
+		;休憩時TARGETが居ない場合に特殊処理に派生する
+		CALL 自宅訪問からの目撃者決定
+		RETURN RESULT
+	ELSEIF RFLAG:客待ち選択フラグ
+		;マッサージ室での客待ち時の来店処理に派生する
+		RETURN -2
+	ENDIF
+	GOTO 非同室AUTOCOM
+ENDIF
+
+;逆オナホ時はオプションに関係なく専用のオートコマンドを走らせる
+IF TFLAG:オートコマンド連続発動_逆オナホ && 行動対象キャラ == MASTER
+	AUTOCOM_実行番号保存 = DT_CELL_GET("体位モードデータベース", MODE_確認_ターゲット側("ハーヴィンオナホ系", MASTER), "実行キャラ")
+	AUTOCOM_対象番号保存 = MASTER
+	RETURN 10
+ENDIF
+
+;SIF FLAG:オートコマンド切り替えオプション == 15
+;	RETURN 0
+
+;なんかバグりそうなので封印
+; ;二人同時にオートコマンドの対象になる場合、もう一人を予約する
+; ;現状、射精後の精飲or乳間見せつけのみ
+; IF GROUPMATCH(TFLAG:オートコマンドフラグ, 1, 2) && !RFLAG:フィニッシュ相手番号 && TFLAG:フィニッシュ相手番号2
+; 	AUTOCOM_実行番号保存 = TFLAG:フィニッシュ相手番号2
+; 	TFLAG:フィニッシュ相手番号2 = 0
+; 	RETURN TFLAG:オートコマンドフラグ
+; ENDIF
+
+;飲み会時は飲み会TARGETが動く
+IF CFLAG:PLAYER:飲み会
+	候補者数 = GET_飲み会TARGETNUM() + 1
+ELSE
+	候補者数 = GET_TARGETNUM() + 1
+ENDIF
+
+FOR 同室者番号, 1, 候補者数
+
+	;判定用に代入
+	IF CFLAG:MASTER:飲み会
+		オート行動キャラ = 飲み会TARGET:同室者番号
+	ELSE
+		オート行動キャラ = TARGET:同室者番号
+	ENDIF
+	PLAYER = 行動対象キャラ
+
+	;あなたは動かない
+	SIF オート行動キャラ == MASTER
+		CONTINUE
+	;指示モード時、PLYAERは動かない
+	SIF オート行動キャラ == PLAYER
+		CONTINUE
+	;行動対象もスキップ
+	SIF オート行動キャラ == 行動対象キャラ
+		CONTINUE
+	SIF FLAG:オートコマンド切り替えオプション == 15 && TALENT:オート行動キャラ:自由奔放 < 2
+		CONTINUE
+	;うふふのみフラグ時はうふふキャラのみ
+	SIF うふふのみフラグ && CFLAG:オート行動キャラ:うふふ == 0
+		CONTINUE
+	;相手が寝てる場合は次へ
+	SIF CFLAG:オート行動キャラ:睡眠
+		CONTINUE
+	;相手が緊縛されてる場合は次へ
+	SIF MODE_存在判定_ターゲット側("触手緊縛", オート行動キャラ)
+		CONTINUE
+	;相手が強い絶頂してる時は動かない
+	SIF NOWEX:オート行動キャラ:多重絶頂 > 1
+		CONTINUE
+	;食いしばり中は動かない
+	SIF TCVAR:オート行動キャラ:食いしばりフラグ
+		CONTINUE
+	;体力限界中も動かない
+	SIF CFLAG:オート行動キャラ:体力限界
+		CONTINUE
+	;あなたの分身も動かない
+	SIF CFLAG:TALENT:分身 == 2
+		CONTINUE
+	;ハーヴィンオナホ
+	SIF MODE_存在判定_ターゲット側("ハーヴィンオナホ系", オート行動キャラ)
+		CONTINUE
+	;全裸散歩
+	SIF MODE_存在判定_ターゲット側("全裸散歩", オート行動キャラ)
+		CONTINUE
+
+	VARSET 行動候補
+	VARSET 行動候補文字列
+
+	;オプション制御
+	SIF GETBIT(FLAG:オートコマンド切り替えオプション, 0) && TALENT:オート行動キャラ:自由奔放 < 2
+		GOTO オート一般コマンド
+
+	LOCAL:1 = 0
+	;優先コマンドの有無（あらゆる反応に優先して発生する特殊オートコマンド）
+	;PRE_AUTOCOMを全部見て行って条件とマッチしたCOM番号を登録しておく
+	FOR COM番号, 1, 100
+		TRYCCALLFORM PRE_AUTOCOM_ABLE{COM番号}(オート行動キャラ)
+			IF RESULT
+				;既に現在のサイクルが優先オートコマンドだった場合、連続で同じものは発動しない
+				SIF TFLAG:オートコマンドフラグ == COM番号
+					CONTINUE
+				行動候補:(LOCAL:1) = COM番号
+				LOCAL:1 += 1
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+
+	;登録したCOM番号からランダムで選出
+	IF 行動候補:0
+		IF AUTO候補者数 || REVERSEAUTO候補者数
+			;最優先コマンドが優先のため通常AUTOCOMは削除
+			VARSET AUTOCOM_候補情報
+			AUTO候補者数 = 0
+			REVERSEAUTO候補者数 = 0
+		ENDIF
+		ランダム格納 = RAND:(LOCAL:1)
+		AUTOCOM_候補情報:PREAUTO候補者数 = {オート行動キャラ}_{行動候補:ランダム格納}
+		PREAUTO候補者数 += 1
+	ENDIF
+
+	;最優先コマンドが一人でも候補に入っている場合、同じく最優先コマンドしか候補に上がらせないためCONTINUE
+	SIF PREAUTO候補者数 > 0
+		CONTINUE
+
+	;既に現在のサイクルがオートコマンドだった場合、最優先コマンド以外は発動しない
+	SIF TFLAG:オートコマンドフラグ && TFLAG:オートコマンド連続発動 == 0
+		RETURN 0
+
+	LOCAL:1 = 0
+	;反応コマンドの有無（通常優先度の反応コマンド）
+	;AUTOCOMを全部見て行って条件とマッチしたCOM番号+1000を登録しておく
+	FOR COM番号, 1, 100
+		TRYCCALLFORM AUTOCOM_ABLE{COM番号}(オート行動キャラ)
+			IF RESULT
+				行動候補:(LOCAL:1) = COM番号 + 1000
+				LOCAL:1 += 1
+			ENDIF
+		CATCH
+		ENDCATCH
+	NEXT
+
+	;登録したCOM番号からランダムで選出
+	IF 行動候補:0
+		IF REVERSEAUTO候補者数
+			;通常オートコマンドが優先のため逆COMは削除
+			VARSET AUTOCOM_候補情報
+			REVERSEAUTO候補者数 = 0
+		ENDIF
+		ランダム格納 = RAND:(LOCAL:1)
+		AUTOCOM_候補情報:AUTO候補者数 = {オート行動キャラ}_{行動候補:ランダム格納}
+		AUTO候補者数 += 1
+	ENDIF
+
+	$オート一般コマンド
+	;既に現在のサイクルがオートコマンドだった場合、最優先コマンド以外は発動しない
+	SIF TFLAG:オートコマンドフラグ && TFLAG:オートコマンド連続発動 == 0
+		RETURN 0
+
+	;通常のオートコマンドを優先して発動
+	SIF AUTO候補者数 > 0
+		CONTINUE
+
+	;現状うふふでしか動かないように制限
+	SIF CFLAG:オート行動キャラ:うふふ == 0
+		CONTINUE
+	;性知識が無知の場合、あちらからは動かない
+	SIF 知識素質:オート行動キャラ:性知識 < -1
+		CONTINUE
+	;恋愛対象性別の時のみ動かす
+	SIF 恋愛対象外チェック(オート行動キャラ, 行動対象キャラ, 1)
+		CONTINUE
+
+	自慰ターゲット保存 = オート行動キャラ
+	LOCAL:1 = 0
+	PLAYER = オート行動キャラ
+	TARGET = 行動対象キャラ
+	;反応コマンドの有無（通常優先度の反応コマンド）
+	;許可されたCOMを全部見て行って条件とマッチしたCOM番号+3000を登録しておく
+	FOR COM番号, 0, 500
+		SIF COM番号 >= 370 && COM番号 <= 390
+			CONTINUE
+		;順転オート判定
+		FOR 派生番号, 1, 50
+			オートコマンド許可 = 0
+			連続オート許可 = 0
+			TRYCALLFORMF COMTYPE_S_{COM番号}_{派生番号}
+			;オートなしならダメ
+			SIF オートコマンド許可 == 0
+				CONTINUE
+			;履歴にあるならダメ
+			IF 連続オート許可 == 0
+				SIF CSTR:PLAYER:オートコマンド履歴０ == @"{COM番号 + 3000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴１ == @"{COM番号 + 3000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴２ == @"{COM番号 + 3000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴３ == @"{COM番号 + 3000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴４ == @"{COM番号 + 3000}_{派生番号}"
+					CONTINUE
+			ENDIF
+			;無知の場合、やったことないならダメ
+			SIF 知識素質:PLAYER:性知識 == -2 && STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-{COM番号}_{派生番号}-") < 0
+				CONTINUE
+			;オプションによる制御
+			IF TALENT:PLAYER:自由奔放 < 2
+				SIF オートコマンド許可 == 1 && GETBIT(FLAG:オートコマンド切り替えオプション, 1)
+					CONTINUE
+				SIF オートコマンド許可 == 2 && GETBIT(FLAG:オートコマンド切り替えオプション, 2)
+					CONTINUE
+				SIF オートコマンド許可 == 3 && GETBIT(FLAG:オートコマンド切り替えオプション, 3)
+					CONTINUE
+			ENDIF
+			;自慰中は自慰しない
+			SIF オートコマンド許可 == 2 && MODE_存在判定_ターゲット側("自慰系", PLAYER)
+				CONTINUE
+			;なすがままの時は自慰しない
+			SIF オートコマンド許可 == 2 && TFLAG:オートコマンド連続発動
+				CONTINUE
+
+			TRYCALLFORM COM_ABLE_S{COM番号}_{派生番号}
+			;IF RESULT
+			;	行動候補文字列:(LOCAL:1) = {COM番号 + 3000}_{派生番号}
+			;	LOCAL:1 += 1
+			;ENDIF
+			IF RESULT
+				TRYCCALLFORM CAN_COM_S{COM番号}_{派生番号}(1)
+				CATCH
+					RESULT = 1
+				ENDCATCH
+				IF RESULT
+					行動候補文字列:(LOCAL:1) = {COM番号 + 3000}_{派生番号}
+					LOCAL:1 += 1
+				ENDIF
+			ENDIF
+		NEXT
+		;反転オート判定
+		FOR 派生番号, 1, 50
+			反転オート許可 = 0
+			連続オート許可 = 0
+			TRYCALLFORMF COMTYPE_S_{COM番号}_{派生番号}
+			;反転なしならダメ
+			SIF 反転オート許可 == 0
+				CONTINUE
+			;履歴にあるならダメ
+			IF 連続オート許可 == 0
+				SIF CSTR:PLAYER:オートコマンド履歴０ == @"{COM番号 + 4000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴１ == @"{COM番号 + 4000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴２ == @"{COM番号 + 4000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴３ == @"{COM番号 + 4000}_{派生番号}"
+					CONTINUE
+				SIF CSTR:PLAYER:オートコマンド履歴４ == @"{COM番号 + 4000}_{派生番号}"
+					CONTINUE
+			ENDIF
+			;無知の場合、やったことないならダメ
+			SIF 知識素質:PLAYER:性知識 == -2 && STRFIND(コマンド初回フラグ:PLAYER:0, @"-{COM番号}_{派生番号}-") < 0
+				CONTINUE
+			;オプションによる制御
+			IF TALENT:PLAYER:自由奔放 < 2
+				SIF 反転オート許可 == 1 && GETBIT(FLAG:オートコマンド切り替えオプション, 1)
+					CONTINUE
+				SIF 反転オート許可 == 2 && GETBIT(FLAG:オートコマンド切り替えオプション, 2)
+					CONTINUE
+				SIF 反転オート許可 == 3 && GETBIT(FLAG:オートコマンド切り替えオプション, 3)
+					CONTINUE
+			ENDIF
+			;自慰中は自慰しない
+			SIF 反転オート許可 == 2 && MODE_存在判定_ターゲット側("自慰系", PLAYER)
+				CONTINUE
+			;なすがままの時は自慰しない
+			SIF 反転オート許可 == 2 && TFLAG:オートコマンド連続発動
+				CONTINUE
+
+			SWAP PLAYER, TARGET
+			TRYCALLFORM COM_ABLE_S{COM番号}_{派生番号}
+			;IF RESULT
+			;	行動候補文字列:(LOCAL:1) = {COM番号 + 4000}_{派生番号}
+			;	LOCAL:1 += 1
+			;ENDIF
+			IF RESULT
+				TRYCCALLFORM CAN_COM_S{COM番号}_{派生番号}(1)
+				CATCH
+					RESULT = 1
+				ENDCATCH
+				IF RESULT
+					行動候補文字列:(LOCAL:1) = {COM番号 + 4000}_{派生番号}
+					LOCAL:1 += 1
+				ENDIF
+			ENDIF
+			SWAP PLAYER, TARGET
+		NEXT
+	NEXT
+
+	;順転オート判定
+	FOR COM番号, 0, 700
+		オートコマンド許可 = 0
+		連続オート許可 = 0
+		TRYCALLFORMF COMTYPE_{COM番号}
+		;オートなしならダメ
+		SIF オートコマンド許可 == 0
+			CONTINUE
+		;履歴にあるならダメ
+		IF 連続オート許可 == 0
+			SIF CSTR:PLAYER:オートコマンド履歴０ == @"{COM番号 + 3000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴１ == @"{COM番号 + 3000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴２ == @"{COM番号 + 3000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴３ == @"{COM番号 + 3000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴４ == @"{COM番号 + 3000}"
+				CONTINUE
+		ENDIF
+		;無知の場合、やったことないならダメ
+		SIF 知識素質:PLAYER:性知識 == -2 && STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-{COM番号}-") < 0
+			CONTINUE
+		;オプションによる制御
+		IF TALENT:PLAYER:自由奔放 < 2
+			SIF オートコマンド許可 == 1 && GETBIT(FLAG:オートコマンド切り替えオプション, 1)
+				CONTINUE
+			SIF オートコマンド許可 == 2 && GETBIT(FLAG:オートコマンド切り替えオプション, 2)
+				CONTINUE
+			SIF オートコマンド許可 == 3 && GETBIT(FLAG:オートコマンド切り替えオプション, 3)
+				CONTINUE
+		ENDIF
+
+		TRYCALLFORM COM_ABLE{COM番号}
+		;IF RESULT
+		;	行動候補文字列:(LOCAL:1) = {COM番号 + 3000}
+		;	LOCAL:1 += 1
+		;ENDIF
+		IF RESULT
+			SELECTCASE COM番号
+			CASE 60
+				TRYCALLFORM CAN_体位5(1)
+			CASE 62
+				TRYCALLFORM CAN_Ａ体位5(1)
+			CASEELSE
+				TRYCCALLFORM CAN_COM{COM番号}(1)
+				CATCH
+					RESULT = 1
+				ENDCATCH
+			ENDSELECT
+			IF RESULT
+				行動候補文字列:(LOCAL:1) = {COM番号 + 3000}
+				LOCAL:1 += 1
+			ENDIF
+		ENDIF
+	NEXT
+	;反転モード判定
+	FOR COM番号, 0, 700
+		反転オート許可 = 0
+		連続オート許可 = 0
+		TRYCALLFORMF COMTYPE_{COM番号}
+		;反転なしならダメ
+		SIF 反転オート許可 == 0
+			CONTINUE
+		;履歴にあるならダメ
+		IF 連続オート許可 == 0
+			SIF CSTR:PLAYER:オートコマンド履歴０ == @"{COM番号 + 4000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴１ == @"{COM番号 + 4000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴２ == @"{COM番号 + 4000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴３ == @"{COM番号 + 4000}"
+				CONTINUE
+			SIF CSTR:PLAYER:オートコマンド履歴４ == @"{COM番号 + 4000}"
+				CONTINUE
+		ENDIF
+		;無知の場合、やったことないならダメ
+		SIF 知識素質:PLAYER:性知識 == -2 && STRFIND(コマンド初回フラグ_PLAYER:PLAYER:0, @"-{COM番号}-") < 0
+			CONTINUE
+		;オプションによる制御
+		IF TALENT:PLAYER:自由奔放 < 2
+			SIF 反転オート許可 == 1 && GETBIT(FLAG:オートコマンド切り替えオプション, 1)
+				CONTINUE
+			SIF 反転オート許可 == 2 && GETBIT(FLAG:オートコマンド切り替えオプション, 2)
+				CONTINUE
+			SIF 反転オート許可 == 3 && GETBIT(FLAG:オートコマンド切り替えオプション, 3)
+				CONTINUE
+		ENDIF
+
+		SWAP PLAYER, TARGET
+		RESULT = 0
+		TRYCALLFORM COM_ABLE{COM番号}
+		;IF RESULT
+		;	行動候補文字列:(LOCAL:1) = {COM番号 + 4000}
+		;	LOCAL:1 += 1
+		;ENDIF
+		IF RESULT
+			; SELECTCASE COM番号
+			; CASE 60
+			; 	TRYCALLFORM CAN_体位5(1)
+			; CASE 62
+			; 	TRYCALLFORM CAN_Ａ体位5(1)
+			; CASEELSE
+				TRYCCALLFORM CAN_COM{COM番号}(1)
+				CATCH
+					RESULT = 1
+				ENDCATCH
+			; ENDSELECT
+			IF RESULT
+				行動候補文字列:(LOCAL:1) = {COM番号 + 4000}
+				LOCAL:1 += 1
+			ENDIF
+		ENDIF
+		SWAP PLAYER, TARGET
+	NEXT
+
+	;登録したCOM番号からランダムで選出
+	IF LOCAL:1 > 0
+		REVERSECOM番号 = RAND:(LOCAL:1)
+		;一定の条件時、特定コマンドを優先
+		SELECTCASE 連れ込みパターン
+			;中毒連れ込み時は該当のものを優先させる
+			CASE "膣内射精"
+				SIF MATCH(行動候補文字列, "4060")
+					REVERSECOM番号 = FINDELEMENT(行動候補文字列, "4060", , , 1)
+			CASE "腸内射精"
+				SIF MATCH(行動候補文字列, "4062")
+					REVERSECOM番号 = FINDELEMENT(行動候補文字列, "4062", , , 1)
+			CASE "精飲"
+				SIF MATCH(行動候補文字列, "3081")
+					REVERSECOM番号 = FINDELEMENT(行動候補文字列, "3081", , , 1)
+			CASEELSE
+				IF 性癖素質:オート行動キャラ:膣内射精 > 1
+					;愛好以上だととりあえず挿入させようとしてくる
+					SIF MATCH(行動候補文字列, "4060")
+						REVERSECOM番号 = FINDELEMENT(行動候補文字列, "4060", , , 1)
+				ENDIF
+				IF 性癖素質:オート行動キャラ:腸内射精 > 1
+					;愛好以上だととりあえず挿入させようとしてくる
+					SIF MATCH(行動候補文字列, "4062")
+						REVERSECOM番号 = FINDELEMENT(行動候補文字列, "4062", , , 1)
+				ENDIF
+				IF 性癖素質:オート行動キャラ:精飲 > 1
+					;愛好以上だととりあえず挿入させようとしてくる
+					SIF MATCH(行動候補文字列, "3081")
+						REVERSECOM番号 = FINDELEMENT(行動候補文字列, "3081", , , 1)
+				ENDIF
+				IF GETBIT(TALENT:オート行動キャラ:非童貞, 0) == 0
+					;童貞はとりあえず入れようとしてくる
+					SIF MATCH(行動候補文字列, "3060")
+						REVERSECOM番号 = FINDELEMENT(行動候補文字列, "3060", , , 1)
+				ENDIF
+		ENDSELECT
+
+		ランダム格納 = REVERSECOM番号
+		AUTOCOM_候補情報:REVERSEAUTO候補者数 = {オート行動キャラ}_%行動候補文字列:ランダム格納%
+		REVERSEAUTO候補者数 += 1
+	ENDIF
+NEXT
+
+自慰ターゲット保存 = -1
+
+;同室者全員分見終わったら同一優先度からRAND
+VARSET 候補者_AUTO番号_文字列分割
+IF PREAUTO候補者数 > 0
+	ランダム格納 = RAND:PREAUTO候補者数
+	SPLIT AUTOCOM_候補情報:ランダム格納, "_", 候補者_AUTO番号_文字列分割
+	AUTOCOM_実行番号保存 = TOINT(候補者_AUTO番号_文字列分割:0)
+	AUTOCOM_対象番号保存 = 行動対象キャラ
+	RETURN TOINT(候補者_AUTO番号_文字列分割:1)
+ELSEIF AUTO候補者数 > 0
+	ランダム格納 = RAND:AUTO候補者数
+	SPLIT AUTOCOM_候補情報:ランダム格納, "_", 候補者_AUTO番号_文字列分割
+	AUTOCOM_実行番号保存 = TOINT(候補者_AUTO番号_文字列分割:0)
+	AUTOCOM_対象番号保存 = 行動対象キャラ
+	RETURN TOINT(候補者_AUTO番号_文字列分割:1)
+ELSEIF REVERSEAUTO候補者数 > 0
+	ランダム格納 = RAND:REVERSEAUTO候補者数
+	SPLIT AUTOCOM_候補情報:ランダム格納, "_", 候補者_AUTO番号_文字列分割
+	AUTOCOM_実行番号保存 = TOINT(候補者_AUTO番号_文字列分割:0)
+	IF 候補者_AUTO番号_文字列分割:2 != ""
+		AUTOCOM_派生保存 = %候補者_AUTO番号_文字列分割:2%
+		CALL オートコマンド履歴保存(@"%候補者_AUTO番号_文字列分割:1%_%候補者_AUTO番号_文字列分割:2%")
+	ELSE
+		CALL オートコマンド履歴保存(@"%候補者_AUTO番号_文字列分割:1%")
+	ENDIF
+	AUTOCOM_対象番号保存 = 行動対象キャラ
+	RETURN TOINT(候補者_AUTO番号_文字列分割:1)
+ENDIF
+
+;同室者にオートコマンドが無い時、非同室オートコマンドの判定へ
+
+$非同室AUTOCOM
+SIF 行動対象キャラ != MASTER
+	RETURN 0
+
+VARSET AUTOCOM_候補情報
+VARSET 行動候補
+PREAUTO候補者数 = 0
+AUTO候補者数 = 0
+
+;既に現在のサイクルがオートコマンドだった場合、最優先コマンド以外は発動しない
+SIF TFLAG:オートコマンドフラグ
+	RETURN 0
+
+;うふふ時、飲み会時は非同室オートコマンドは発生しない
+SIF CFLAG:MASTER:うふふ || TFLAG:調教モード == 2 || TFLAG:調教モード == 3
+	RETURN 0
+
+;隠密時は発動しない
+SIF CFLAG:行動対象キャラ:隠密
+	RETURN 0
+
+;イベントうふふ時は発動しない
+SIF FLAG:イベントうふふ中フラグ
+	RETURN 0
+
+;処理の単純化・高速化のためリストは作らず、先頭から順番に判定して引っかかったらそこで止める
+;ALLAUTOCOMを作る時は条件設定に注意すること
+
+LOCAL = ENUMFUNCBEGINSWITH("ALLAUTOCOM_ABLE")
+
+FOR キャラ番号, 1, CHARANUM
+	SIF CFLAG:キャラ番号:滞在期間 < 0
+		CONTINUE
+	SIF CFLAG:キャラ番号:体力限界
+		CONTINUE
+	SIF CFLAG:キャラ番号:睡眠
+		CONTINUE
+	SIF CFLAG:キャラ番号:隠密
+		CONTINUE
+	SIF CFLAG:キャラ番号:現在位置 == CFLAG:行動対象キャラ:現在位置 && CFLAG:キャラ番号:現在マップ種別 == CFLAG:行動対象キャラ:現在マップ種別
+		CONTINUE
+	FOR ALLAUTOCOM番号, 0, LOCAL
+		CALLFORM %RESULTS:ALLAUTOCOM番号%(キャラ番号)
+		IF RESULT
+			AUTOCOM_実行番号保存 = キャラ番号
+			AUTOCOM_対象番号保存 = 行動対象キャラ
+			LOCALS = %SUBSTRING(RESULTS:ALLAUTOCOM番号, 15, -1)%
+			RETURN TOINT(LOCALS) + 2000
+		ENDIF
+	NEXT
+NEXT
+
+RETURN 0
+
+@AUTOCOM用変数リセット()
+VARSET TIME_胸部チラ見せ
+VARSET TIME_遊びに誘う
+VARSET TIME_管理人を労う
+VARSET TIME_いちゃつく
+VARSET TIME_ボディタッチ
+VARSET TIME_挿入時反応
+VARSET TIME_うふふお誘い
+VARSET TIME_自室訪問
+
+
+@AUTOCOM_相手判別関数(キャラ番号)
+#FUNCTION
+#DIM キャラ番号
+#DIM 同室者番号
+#DIM 相手判別変数
+相手判別変数 = 0
+
+;ビット演算で返す
+;ビット０：１であなたがいる、０でいない ビット１：１で貴方以外の他人がいる、０でいない
+
+;まずあなたがいるかどうか＝隠密状態のチェック
+IF CFLAG:PLAYER:隠密
+	IF CFLAG:キャラ番号:隠密
+		SETBIT 相手判別変数, 0
+	ELSE
+		CLEARBIT 相手判別変数, 0
+	ENDIF
+ELSE
+	IF CFLAG:キャラ番号:隠密
+		CLEARBIT 相手判別変数, 0
+	ELSE
+		SETBIT 相手判別変数, 0
+	ENDIF
+ENDIF
+
+;あなた以外がいるかどうか
+IF CFLAG:キャラ番号:隠密
+	;同時に複数キャラは隠密しないはずなので、隠密時はいない扱い
+	CLEARBIT 相手判別変数, 1
+ELSE
+	CLEARBIT 相手判別変数, 1
+	;同室者を見る
+	FOR 同室者番号, 1, GET_TARGETNUM() + 1
+		SIF キャラ番号 == TARGET:同室者番号
+			CONTINUE
+		SETBIT 相手判別変数, 1
+		BREAK
+	NEXT
+ENDIF
+
+RETURNF 相手判別変数
+
+@オートコマンド履歴保存(記録文字列)
+#DIMS 記録文字列
+;オートコマンド履歴の保存
+;要求を断った時にも記録出来るよう、種別決定時点で記録する
+
+;うふふ中のみ記録する
+IF CFLAG:AUTOCOM_実行番号保存:うふふ
+	CSTR:AUTOCOM_実行番号保存:オートコマンド履歴４ '= CSTR:AUTOCOM_実行番号保存:オートコマンド履歴３
+	CSTR:AUTOCOM_実行番号保存:オートコマンド履歴３ '= CSTR:AUTOCOM_実行番号保存:オートコマンド履歴２
+	CSTR:AUTOCOM_実行番号保存:オートコマンド履歴２ '= CSTR:AUTOCOM_実行番号保存:オートコマンド履歴１
+	CSTR:AUTOCOM_実行番号保存:オートコマンド履歴１ '= CSTR:AUTOCOM_実行番号保存:オートコマンド履歴０
+	CSTR:AUTOCOM_実行番号保存:オートコマンド履歴０ '= 記録文字列
+ENDIF
+
+@オートコマンド許可取り(反転フラグ = 0)
+#DIM 反転フラグ
+#DIM 実行キャラ
+#DIM 対象キャラ
+;許可が必要な場合のオートコマンドの許可表示処理
+
+;相手があなたじゃないなら許可出し無し
+IF 反転フラグ
+	実行キャラ = TARGET
+	対象キャラ = PLAYER
+ELSE
+	実行キャラ = PLAYER
+	対象キャラ = TARGET
+ENDIF
+
+SIF 対象キャラ != MASTER
+	RETURN 0
+
+;TALENT:自由奔放、または中毒連れ込み時で該当のものだと許可出し無し
+SIF TALENT:実行キャラ:自由奔放
+	RETURN 0
+SELECTCASE 連れ込みパターン
+	CASE "膣内射精"
+		SIF TFLAG:オートコマンドフラグ == 4060
+			RETURN 0
+	CASE "腸内射精"
+		SIF TFLAG:オートコマンドフラグ == 4062
+			RETURN 0
+	CASE "精飲"
+		SIF TFLAG:オートコマンドフラグ == 3081
+			RETURN 0
+	CASE "キス"
+		SIF TFLAG:オートコマンドフラグ == 4020 || TFLAG:オートコマンドフラグ == 3020
+			RETURN 0
+ENDSELECT
+
+許可取り文章 = 
+IF RSTR:SELECTCOM_S受け渡し != ""
+	;派生コマンド
+	CALLFORMF COMNAME_S%RSTR:SELECTCOM_S受け渡し%
+	LOCALS = %RSTR:SELECTCOM_S受け渡し%
+ELSE
+	;通常コマンド
+	CALLFORMF COMNAME{SELECTCOM}
+	LOCALS = {SELECTCOM}
+ENDIF
+
+DRAWLINE
+IF 許可取り文章 != ""
+	PRINTPLAINFORM %許可取り文章%
+ELSEIF 反転フラグ
+	PRINTPLAINFORM %CALLNAME:実行キャラ%が%CALLNAME:対象キャラ%に[%TSTR:コマンド名受渡%]を実行しようとしているようだ。
+ELSE
+	PRINTPLAINFORM %CALLNAME:実行キャラ%が%CALLNAME:対象キャラ%に[%TSTR:コマンド名受渡%]を要求しているようだ。
+ENDIF
+PRINTL
+PRINTL 許可しますか？
+PRINTBUTTON "[0] はい", 0
+PRINTL 
+PRINTBUTTON "[1] いいえ", 1
+PRINTL
+
+BINPUT
+
+IF RESULT == 0
+	RETURN 0
+ELSE
+	CALL 中毒連続判定(実行キャラ, LOCALS)
+	IF RESULT
+		RETURN 0
+	ELSE
+		PRINTFORMW %CALLNAME:対象キャラ%は%CALLNAME:実行キャラ%の要求を断った…
+		RETURN -1
+	ENDIF
+ENDIF
+
+
+@中毒連続判定(判定キャラ, COM番号)
+#DIM 判定キャラ
+#DIMS COM番号
+
+SELECTCASE COM番号
+	CASE "24"
+		;首絞めされる側
+		IF TFLAG:オートコマンドフラグ >= 4000 && 性癖素質:判定キャラ:首絞め >= 2
+			PRINTFORML %CALLNAME:判定キャラ%はもう一度要求してきた…
+			PRINTL 許可しますか？
+			PRINTBUTTON "[0] はい", 0
+			PRINTL 
+			PRINTBUTTON "[1] いいえ", 1
+			PRINTL
+			BINPUT
+			IF RESULT == 0
+				RETURN 1
+			ELSE
+				IF TFLAG:オートコマンドフラグ >= 4000 && 性癖素質:判定キャラ:首絞め >= 3
+					PRINTFORML %CALLNAME:判定キャラ%はどうしてもやりたいようだ…
+					PRINTL 許可しますか？
+					PRINTBUTTON "[0] はい", 0
+					PRINTL 
+					PRINTBUTTON "[1] いいえ", 1
+					PRINTL
+					BINPUT
+					IF RESULT == 0
+						RETURN 1
+					ELSE
+						RETURN 0
+					ENDIF
+				ELSE
+					RETURN 0
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE "60"
+		;V挿入される側
+		IF TFLAG:オートコマンドフラグ >= 4000 && 性癖素質:判定キャラ:膣内射精 >= 2
+			PRINTFORML %CALLNAME:判定キャラ%はもう一度要求してきた…
+			PRINTL 許可しますか？
+			PRINTBUTTON "[0] はい", 0
+			PRINTL 
+			PRINTBUTTON "[1] いいえ", 1
+			PRINTL
+			BINPUT
+			IF RESULT == 0
+				RETURN 1
+			ELSE
+				IF TFLAG:オートコマンドフラグ >= 4000 && 性癖素質:判定キャラ:膣内射精 >= 3
+					PRINTFORML %CALLNAME:判定キャラ%はどうしてもやりたいようだ…
+					PRINTL 許可しますか？
+					PRINTBUTTON "[0] はい", 0
+					PRINTL 
+					PRINTBUTTON "[1] いいえ", 1
+					PRINTL
+					BINPUT
+					IF RESULT == 0
+						RETURN 1
+					ELSE
+						RETURN 0
+					ENDIF
+				ELSE
+					RETURN 0
+				ENDIF
+			ENDIF
+		ELSEIF TFLAG:オートコマンドフラグ >= 3000 && TFLAG:オートコマンドフラグ < 4000
+			;する側
+			IF GETBIT(TALENT:判定キャラ:非童貞, 0) == 0
+			PRINTFORML %CALLNAME:判定キャラ%はもう一度要求してきた…
+			PRINTL 許可しますか？
+			PRINTBUTTON "[0] はい", 0
+			PRINTL 
+			PRINTBUTTON "[1] いいえ", 1
+			PRINTL
+			BINPUT
+			IF RESULT == 0
+				RETURN 1
+			ELSE
+				RETURN 0
+			ENDIF
+			ENDIF
+		ENDIF
+	CASE "62"
+		;A挿入される側
+		IF TFLAG:オートコマンドフラグ >= 4000 && 性癖素質:判定キャラ:腸内射精 >= 2
+			PRINTFORML %CALLNAME:判定キャラ%はもう一度要求してきた…
+			PRINTL 許可しますか？
+			PRINTBUTTON "[0] はい", 0
+			PRINTL 
+			PRINTBUTTON "[1] いいえ", 1
+			PRINTL
+			BINPUT
+			IF RESULT == 0
+				RETURN 1
+			ELSE
+				IF TFLAG:オートコマンドフラグ >= 4000 && 性癖素質:判定キャラ:腸内射精 >= 3
+					PRINTFORML %CALLNAME:判定キャラ%はどうしてもやりたいようだ…
+					PRINTL 許可しますか？
+					PRINTBUTTON "[0] はい", 0
+					PRINTL 
+					PRINTBUTTON "[1] いいえ", 1
+					PRINTL
+					BINPUT
+					IF RESULT == 0
+						RETURN 1
+					ELSE
+						RETURN 0
+					ENDIF
+				ELSE
+					RETURN 0
+				ENDIF
+			ENDIF
+		ENDIF
+	CASE "81"
+		;フェラする側
+		IF TFLAG:オートコマンドフラグ >= 3000 && TFLAG:オートコマンドフラグ < 4000 && 性癖素質:判定キャラ:精飲 >= 2
+			PRINTFORML %CALLNAME:判定キャラ%はもう一度要求してきた…
+			PRINTL 許可しますか？
+			PRINTBUTTON "[0] はい", 0
+			PRINTL 
+			PRINTBUTTON "[1] いいえ", 1
+			PRINTL
+			BINPUT
+			IF RESULT == 0
+				RETURN 1
+			ELSE
+				IF TFLAG:オートコマンドフラグ >= 4000 && TFLAG:オートコマンドフラグ < 4000 && 性癖素質:判定キャラ:精飲 >= 3
+					PRINTFORML %CALLNAME:判定キャラ%はどうしてもやりたいようだ…
+					PRINTL 許可しますか？
+					PRINTBUTTON "[0] はい", 0
+					PRINTL 
+					PRINTBUTTON "[1] いいえ", 1
+					PRINTL
+					BINPUT
+					IF RESULT == 0
+						RETURN 1
+					ELSE
+						RETURN 0
+					ENDIF
+				ELSE
+					RETURN 0
+				ENDIF
+			ENDIF
+		ENDIF
+ENDSELECT
+
+RETURN 0

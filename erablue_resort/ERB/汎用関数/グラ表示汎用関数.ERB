@@ -1,0 +1,1390 @@
+﻿
+;********************************************************************************************
+;2023/6/xx 作成 rsp暇人
+;関数が増えてきたので別ファイル化
+;********************************************************************************************
+
+;********************************************************************************************
+;@スプライト作成(ARGS, ARG, mode = 0)
+;  グラフィックID(ARG)からARGSという名前のスプライトを、アスペクト比不適な画像処理の設定に応じた方法で作成する
+;  mode 0：正方形 1；縦長
+;  ※ グラフィックID(ARG)にはTEMP_gID以外の値を指定すること
+;********************************************************************************************
+
+@スプライト作成(ARGS, ARG, mode = 0)
+#FUNCTION
+#DIM mode;0:正方形 1:縦長
+#DIM 縦幅
+#DIM 横幅
+#DIM 横始点
+
+SIF ARGS == ""
+	THROW スプライト名が指定されていません
+SIF !GCREATED(ARG)
+	THROW グラフィックID{ARG}は作成されていません
+; グラフィックID(ARG) == TEMP_gIDの場合、拡大縮小処理が誤動作するのでエラー通知
+; 切り抜き処理の場合は問題なく動作するが、設定で使用可能なグラフィックIDが変わるのもおかしいので設定に関わらず通知する
+SIF ARG == TEMP_gID
+	THROW グラフィックIDにはTEMP_gID({TEMP_gID})以外の数値を指定してください
+
+横幅 = GWIDTH(ARG)
+縦幅 = GHEIGHT(ARG)
+mode ++
+
+IF 画像サイズ切り替えOPTION記憶:1
+	;拡大縮小処理
+	横始点 = 0
+	GDISPOSE TEMP_gID
+	IF 横幅 * mode > 縦幅
+		;横長の場合、縦にサイズを広げて再描画
+		GCREATE TEMP_gID, 横幅, 横幅 * mode
+		GDRAWG TEMP_gID, ARG, 0, (横幅 * mode - 縦幅) / 2, 横幅, 縦幅, 0, 0, 横幅, 縦幅
+		横幅 = GWIDTH(TEMP_gID)
+		縦幅 = GHEIGHT(TEMP_gID)
+		GDISPOSE ARG
+		GCREATE ARG, 横幅, 縦幅
+		GDRAWG ARG,TEMP_gID, 0, 0, 横幅, 縦幅, 0, 0, 横幅, 縦幅
+		GDISPOSE TEMP_gID
+	ELSEIF 横幅 * mode < 縦幅
+		;縦長の場合、横にサイズを広げて再描画
+		GCREATE TEMP_gID, 縦幅 / mode, 縦幅
+		GDRAWG TEMP_gID, ARG, (縦幅 - 横幅 * mode) / (2 * mode), 0, 横幅, 縦幅, 0, 0, 横幅, 縦幅
+		横幅 = GWIDTH(TEMP_gID)
+		縦幅 = GHEIGHT(TEMP_gID)
+		GDISPOSE ARG
+		GCREATE ARG, 横幅, 縦幅
+		GDRAWG ARG,TEMP_gID, 0, 0, 横幅, 縦幅, 0, 0, 横幅, 縦幅
+		GDISPOSE TEMP_gID
+	ENDIF
+ELSE
+	;切り抜き処理
+	IF 横幅 * 100 * mode > 縦幅 * 105
+		;横長の場合、はみ出した左右を切る
+		横始点 = (横幅 - 縦幅 / mode) / 2
+		横幅 = 縦幅 / mode
+	ELSEIF 横幅 * 105 * mode < 縦幅 * 100
+		;縦長の場合、はみ出した下を切るだけ
+		横始点 = 0
+		縦幅 = 横幅 * mode
+	ELSE
+		横始点 = 0
+	ENDIF
+ENDIF
+
+SPRITECREATE ARGS, ARG, 横始点, 0, 横幅, 縦幅
+RETURNF 1
+
+;********************************************************************************************
+;@CLOTHES_TODAY(ARG)
+;  キャラARGがその日着る普段着をデフォルトの中から設定する。好感度レベルか恋慕レベルが高いとおしゃれ着を含む
+;********************************************************************************************
+
+@CLOTHES_TODAY(ARG)
+#DIM CNT
+#DIM C_CNT
+#DIMS C_CHOICE, 22
+
+;滞在していないキャラは着替えない
+SIF CFLAG:ARG:滞在期間 == -1
+	RETURN
+
+VARSET LOCALS
+LOCALS = デフォルト
+SIF MAX(CFLAG:ARG:好感度レベル, CFLAG:ARG:恋慕レベル) > 関係閾値:4
+	LOCALS:1 = おしゃれ着
+
+今日の服装:ARG:衣装 = %GRAP_RAND(ARG, "顔_", LOCALS, LOCALS:1)%
+
+VARSET LOCALS
+LOCALS = 水着
+IF ENUMFILES("resources/" + CSTR:ARG:画像フォルダ, "顔_水着-*-?.*")
+	LOCALS:1 = 水着-*-?
+ENDIF
+
+今日の服装:ARG:水着 = %GRAP_RAND(ARG, "顔_", LOCALS, LOCALS:1)%
+
+今日の服装:ARG:湯上がり '= GRAP_RAND(ARG, "顔_", "浴衣", "バスローブ")
+今日の服装:ARG:浴衣 '= GRAP_RAND(ARG, "顔_", "浴衣")
+今日の服装:ARG:従業員制服 '= 従業員制服グラ選定(ARG)
+
+;********************************************************************************************
+;@GRAP_RAND(ARG, TYPE, PATRN, PATRN:1)
+;  キャラARGのTYPE+PATRNで始まるファイル名を持つ画像を抽出し、その中からランダムで１つ選び
+;  TYPEと拡張子を除いたファイル名を返す
+;  TYPE "顔_" または "短冊_"
+;********************************************************************************************
+
+@GRAP_RAND(ARG, TYPE, PATRN, PATRN:1)
+#FUNCTIONS
+#DIMS FOLDER
+#DIMS TYPE
+#DIMS PATRN, 2
+#DIMS 妊娠用PATRN保存, 2
+#DIMS 全裸用PATRN保存, 3
+#DIM L_CNT
+#DIMS 画像配列保存, 2000
+
+SIF !INRANGE(ARG, 0, CHARANUM-1)
+	RETURNF
+
+SIF CSTR:ARG:画像フォルダ == ""
+	CSTR:ARG:画像フォルダ '= GET_RESOURCES_BASE_FOLDER(ARG)
+
+FOLDER '= "resources/" + CSTR:ARG:画像フォルダ
+VARSET 全裸用PATRN保存
+全裸用PATRN保存:2 '= CSTR:ARG:脱ぐ前の服
+SIF 全裸用PATRN保存:2 == ""
+	全裸用PATRN保存:2 '= 今日の服装:ARG:衣装
+IF PATRN == "全裸" && 全裸用PATRN保存:2 != "デフォルト" && ENUMFILES(FOLDER, TYPE + PATRN + "（" +全裸用PATRN保存:2 + "）*.*")
+	全裸用PATRN保存 '= PATRN
+	PATRN '= PATRN + "（" + 全裸用PATRN保存:2 + "）"
+;	DEBUGPRINTFORM 全裸なので%PATRN%
+	IF PATRN:1 != "" && !STRCOUNT(PATRN:1, "差分")
+		全裸用PATRN保存:1 '= PATRN:1
+		PATRN:1 '= PATRN:1 + "（" + 全裸用PATRN保存:2 + "）"
+;		DEBUGPRINTFORM と%PATRN:1%
+	ENDIF
+;	DEBUGPRINTFORM で探すよ…
+ENDIF
+
+$全裸差分用_LOOP
+
+VARSET 妊娠用PATRN保存
+IF TALENT:ARG:妊娠 && PREGNANCY_SIZE(ARG) >= 2
+	妊娠用PATRN保存 '= PATRN
+	PATRN '= "妊娠" + PATRN
+;	DEBUGPRINTFORM 妊娠中なので%PATRN%
+	IF PATRN:1 != "" && !STRCOUNT(PATRN:1, "差分")
+		妊娠用PATRN保存:1 '= PATRN:1
+		PATRN:1 '= "妊娠" + PATRN:1
+;		DEBUGPRINTFORM と%PATRN:1%
+	ENDIF
+;	DEBUGPRINTFORM で探すよ…
+ENDIF
+
+$妊娠差分用_LOOP
+
+VARSET LOCAL
+VARSET 画像配列保存
+VARSET RESULTS
+
+LOCAL = ENUMFILES(FOLDER, TYPE + PATRN + "*.*")
+FOR L_CNT, 0, LOCAL
+	IF STRCOUNT(RESULTS:L_CNT, "差分") == 0 || STRCOUNT(PATRN, "差分")
+		SIF STRCOUNT(RESULTS:L_CNT, "射精") && !STRCOUNT(PATRN, "射精")
+			CONTINUE
+		SIF STRCOUNT(RESULTS:L_CNT, "全裸（") && (!STRCOUNT(TYPE, "全裸（") && !STRCOUNT(PATRN, "全裸（"))
+			CONTINUE
+		画像配列保存:(LOCAL:10) '= RESULTS:L_CNT
+		LOCAL:10 += 1
+	ELSE
+		LOCAL:11 += 1
+	ENDIF
+NEXT
+LOCAL = LOCAL:11 + LOCAL:10
+LOCAL:11 = LOCAL:10
+IF PATRN:1 != ""
+	LOCAL:1 = ENUMFILES(FOLDER, TYPE + PATRN:1 + "*.*")
+	FOR L_CNT, LOCAL, LOCAL + LOCAL:1
+		IF STRCOUNT(RESULTS:(L_CNT - LOCAL), "差分") == 0 || STRCOUNT(PATRN:1, "差分")
+			;こっちの除外は必要なさそうだけど一応
+			SIF STRCOUNT(RESULTS:(L_CNT - LOCAL), "射精") && !STRCOUNT(PATRN:1, "射精")
+				CONTINUE
+			SIF STRCOUNT(RESULTS:(L_CNT - LOCAL), "全裸（") && (!STRCOUNT(TYPE, "全裸（") && !STRCOUNT(PATRN, "全裸（"))
+				CONTINUE
+			画像配列保存:(LOCAL:11) '= RESULTS:(L_CNT - LOCAL)
+			LOCAL:11 += 1
+		ELSE
+		ENDIF
+	NEXT
+ENDIF
+LOCAL = LOCAL:10
+LOCAL:1 = LOCAL:11 - LOCAL:10
+IF LOCAL + LOCAL:1 < 1
+	IF 全裸用PATRN保存 != ""
+		PATRN '= 全裸用PATRN保存
+		全裸用PATRN保存 '= ""
+		IF 全裸用PATRN保存:1 != ""
+			PATRN:1 '= 全裸用PATRN保存:1
+			全裸用PATRN保存:1 '= ""
+		ENDIF
+		GOTO 全裸差分用_LOOP
+	ELSEIF PATRN == "妊娠デフォルト"
+;		DEBUGPRINTFORM %PATRN%無し…
+		;妊娠デフォルトが無いならデフォルトに戻してもういっかい
+		PATRN = デフォルト
+		;分岐用に一時保存にも入れておく
+		妊娠用PATRN保存 = デフォルト
+		IF STRCOUNT(PATRN:1, "妊娠") > 0
+;			DEBUGPRINTFORM %PATRN:1%も無し…
+			;追加パターンの妊娠差分もないなら戻す
+			PATRN:1 '= 妊娠用PATRN保存:1
+			妊娠用PATRN保存:1 = 
+		ENDIF
+		GOTO 妊娠差分用_LOOP
+	ELSEIF STRCOUNT(PATRN, "妊娠") > 0
+;		DEBUGPRINTFORM %PATRN%無し…
+		;着せ替えの妊娠差分がないなら戻して最初から
+		PATRN '= 妊娠用PATRN保存
+		妊娠用PATRN保存 = 
+		IF STRCOUNT(PATRN:1, "妊娠") > 0
+;			DEBUGPRINTFORM %PATRN:1%も無し…
+			;追加パターンの妊娠差分もないなら戻す
+			PATRN:1 '= 妊娠用PATRN保存:1
+			妊娠用PATRN保存:1 = 
+		ENDIF
+		GOTO 妊娠差分用_LOOP
+	ELSE
+		IF TALENT:ARG:妊娠 && PREGNANCY_SIZE(ARG) >= 2 && 妊娠用PATRN保存 == "" && 妊娠用PATRN保存:1 == ""
+			;妊娠しててPATRN保存が空っぽ = 現在衣装のグラが妊娠も通常も無いパターン
+			;なので通常妊娠画像を見に行く
+			PATRN = 妊娠デフォルト
+;			DEBUGPRINTFORM %PATRN%に変更…
+			GOTO 妊娠差分用_LOOP
+		ELSE
+			RETURNF "デフォルト"
+		ENDIF
+	ENDIF
+ENDIF
+L_CNT = RAND(LOCAL + LOCAL:1)
+RESULTS '= 画像配列保存:L_CNT
+
+IF !STRCOUNT(PATRN, "差分") && !STRCOUNT(PATRN:1, "差分")
+	CSTR:ARG:表示グラフィックカテゴリ '= PATRN
+	SIF L_CNT >= LOCAL
+		CSTR:ARG:表示グラフィックカテゴリ '= PATRN:1
+ENDIF
+
+SUBSTRING RESULTS, 1 +STRLENS(FOLDER) + STRLENS(TYPE), -1
+REPLACE RESULTS, "\.png", ""
+REPLACE RESULTS, "\.webp", ""
+;		DEBUGPRINTFORML %RESULTS%に決定
+
+
+RETURNF RESULTS
+
+;********************************************************************************************
+;@GRAP_COM_RAND(ARG, TYPE, PATRN, PATRN:1)
+;  キャラARGのTYPE+PATRNで始まるファイル名を持つ画像を抽出し、その中からランダムで１つ選び
+;  TYPEと拡張子を除いたファイル名を返す
+;  TYPE "コマンド実行時_"
+;********************************************************************************************
+
+@GRAP_COM_RAND(対象キャラ, TYPE, PATRN, COM名前)
+#FUNCTIONS
+#DIMS FOLDER
+#DIMS TYPE
+#DIMS PATRN
+#DIMS 妊娠用PATRN保存
+#DIMS COM名前
+#DIM 対象キャラ
+#DIM L_CNT
+#DIMS 画像配列保存, 2000
+
+SIF !INRANGE(対象キャラ, 0, CHARANUM-1)
+	RETURNF
+
+SIF CSTR:対象キャラ:画像フォルダ == ""
+	CSTR:対象キャラ:画像フォルダ '= GET_RESOURCES_BASE_FOLDER(対象キャラ)
+
+妊娠用PATRN保存 = 
+IF TALENT:対象キャラ:妊娠 && PREGNANCY_SIZE(対象キャラ) >= 2
+	妊娠用PATRN保存 '= PATRN
+	PATRN '= "妊娠" + PATRN
+ENDIF
+
+$妊娠差分用_LOOP
+
+VARSET LOCAL
+VARSET 画像配列保存
+VARSET RESULTS
+FOLDER '= "resources/" + CSTR:対象キャラ:画像フォルダ
+
+;静止画
+IF PATRN != ""
+	IF COM名前 != ""
+		LOCAL = ENUMFILES(FOLDER, TYPE + PATRN + "_" + COM名前 + "*.*")
+	ELSE
+		LOCAL = ENUMFILES(FOLDER, TYPE + PATRN + "*.*")
+	ENDIF
+ELSE
+	LOCAL = ENUMFILES(FOLDER, TYPE + COM名前 + "*.*")
+ENDIF
+FOR L_CNT, 0, LOCAL
+	画像配列保存:(LOCAL:10) '= RESULTS:L_CNT
+	LOCAL:10 += 1
+NEXT
+
+;動画
+IF PATRN != ""
+	IF COM名前 != ""
+		IF ENUMFILES(FOLDER + "/" + TYPE + PATRN + "_" + COM名前, "*.*") > 0
+			画像配列保存:(LOCAL:10) '= "動画_" + FOLDER + "/" + TYPE + PATRN + "_" + COM名前
+			LOCAL:10 += 1
+		ENDIF
+	ELSE
+		IF ENUMFILES(FOLDER + "/" + TYPE + PATRN, "*.*") > 0
+			画像配列保存:(LOCAL:10) '= "動画_" + FOLDER + "/" + TYPE + PATRN
+			LOCAL:10 += 1
+		ENDIF
+	ENDIF
+ELSE
+	IF ENUMFILES(FOLDER + "/" + TYPE + COM名前, "*.*") > 0
+		画像配列保存:(LOCAL:10) '= "動画_" + FOLDER + "/" + TYPE + COM名前
+		LOCAL:10 += 1
+	ENDIF
+ENDIF
+
+IF LOCAL:10 < 1
+	IF PATRN == "妊娠デフォルト"
+		;妊娠デフォルトが無いならデフォルトに戻してもういっかい
+		PATRN = デフォルト
+		;分岐用に一時保存にも入れておく
+		妊娠用PATRN保存 = デフォルト
+		GOTO 妊娠差分用_LOOP
+	ELSEIF STRCOUNT(PATRN, "妊娠") > 0
+		;着せ替えの妊娠差分がないなら戻して最初から
+		PATRN '= 妊娠用PATRN保存
+		妊娠用PATRN保存 = 
+		GOTO 妊娠差分用_LOOP
+	ELSE
+		IF TALENT:対象キャラ:妊娠 && PREGNANCY_SIZE(対象キャラ) >= 2 && 妊娠用PATRN保存 == ""
+			;妊娠しててPATRN保存が空っぽ = 現在衣装のグラが妊娠も通常も無いパターン
+			;なので通常妊娠画像を見に行く
+			PATRN = 妊娠デフォルト
+			GOTO 妊娠差分用_LOOP
+		ELSEIF PATRN != ""
+			;なんにも見つからなかったようなので衣装指定なしを見に行く
+			PATRN = 
+			GOTO 妊娠差分用_LOOP
+		ELSE
+			;それでもないなら空っぽを返す
+			RETURNF 
+		ENDIF
+	ENDIF
+ENDIF
+L_CNT = RAND(LOCAL:10)
+RESULTS '= 画像配列保存:L_CNT
+
+IF STRCOUNT(RESULTS, "動画_") > 0
+	REPLACE RESULTS, "resources/", ""
+ELSE
+	SUBSTRING RESULTS, 1 + STRLENS(FOLDER) + STRLENS(TYPE), -1
+	REPLACE RESULTS, "\.png", ""
+	REPLACE RESULTS, "\.webp", ""
+ENDIF
+
+RETURNF RESULTS
+
+;********************************************************************************************
+;@画像フォルダ選択(対象キャラ)
+;  対象キャラの画像フォルダ内で"顔_デフォルト"という名前の画像を含むフォルダ（親フォルダ、サブフォルダ含む）を
+;  探して、そのフォルダ内の画像ファイルを一覧で表示し、どのフォルダの画像を使用するかを選択させる
+;********************************************************************************************
+
+@画像フォルダ選択(対象キャラ)
+#DIM 対象キャラ
+#DIM L_CNT, 3
+#DIM LNCOUNT
+#DIM G_NUM
+#DIM C_NUM
+#DIM F_NUM
+#DIM T_REDRAW
+#DIMS G_NAME
+#DIMS FOLDER, 10
+#DIM CONST FOLDER_NUM_MAX = 10
+
+LNCOUNT = LINECOUNT
+VARSET LOCAL
+VARSET FOLDER
+T_REDRAW = CURRENTREDRAW()
+REDRAW 0
+
+; 画像フォルダ数を取得
+F_NUM = GET_ALL_RESOURCES_FOLDERS(対象キャラ)
+; 取得した結果を退避
+FOR L_CNT, 0, MIN(F_NUM, FOLDER_NUM_MAX)
+	FOLDER:L_CNT '= RESULTS:L_CNT
+NEXT
+
+SELECTCASE F_NUM
+	CASE IS < 1
+		;- 有効な画像フォルダなし
+		IF NO:対象キャラ == 999
+			CALL 別キャラ画像フォルダ選択(対象キャラ)
+			SIF RESULT == 1
+				RETURN
+		ENDIF
+		; 画像フォルダ設定の修正
+		CALL FIX_RESOURCES_FOLDER(対象キャラ)
+		IF RESULT
+			; 有効な画像フォルダなしでデフォルト設定に変更した場合
+			PRINTL 有効な画像フォルダがありません
+			PRINTFORMW 画像フォルダの設定を%CSTR:対象キャラ:画像フォルダ%に変更しました
+		ELSE
+			; 有効な画像フォルダなしで元々デフォルト設定だった場合
+			PRINTW 有効な画像フォルダがありません
+		ENDIF
+		; 以降の処理で表示する画像フォルダがないので終了
+		RETURN
+	CASE 1
+		;- 有効な画像フォルダが1個
+		; 画像フォルダ設定の修正
+		CALL FIX_RESOURCES_FOLDER(対象キャラ)
+		IF RESULT
+			; 設定中の画像フォルダを修正した場合
+			PRINTL 現在設定されている画像フォルダが無効なため、
+			PRINTFORMW 画像フォルダの設定を%CSTR:対象キャラ:画像フォルダ%に変更しました
+		ELSE
+			; 設定中の画像フォルダを修正していない場合
+			; 表示なし
+		ENDIF
+	CASE 2 TO FOLDER_NUM_MAX
+		;- 有効な画像フォルダが複数
+		; 処理なし
+	CASE IS > FOLDER_NUM_MAX
+		;- 有効な画像フォルダが多すぎる
+		; 表示するフォルダ数を制限
+		PRINTFORMW 有効な画像フォルダが多すぎます。最初に見つかった{FOLDER_NUM_MAX}個のみが有効となります。
+		F_NUM = FOLDER_NUM_MAX
+ENDSELECT
+
+PRINTL
+DRAWLINE
+PRINTL 使用する画像フォルダを選択してください
+PRINTL ※例としてデフォルト画像＋ランダムな画像を４つ表示中
+DRAWLINE
+CALL ランダム画像表示(FOLDER, F_NUM)
+G_NUM = RESULT
+
+; 5枚以上画像がある場合はリロールボタンを表示
+SIF G_NUM > 5
+	PRINTL [200] 画像のランダム表示をリロール
+PRINTL [100] 戻る
+BINPUT
+LOCAL = RESULT
+IF INRANGE(LOCAL, 0, F_NUM)
+	CSTR:対象キャラ:画像フォルダ '= FOLDER:LOCAL
+	PRINTFORMW 画像フォルダを%CSTR:対象キャラ:画像フォルダ%に変更しました
+	SUBSTRING CSTR:対象キャラ:画像フォルダ, STRLENS(TOSTR(NO:対象キャラ) + CALLNAME:対象キャラ), -1
+ENDIF
+
+CALL ランダム画像表示_リソース解放(F_NUM)
+
+CLEARLINE LINECOUNT - LNCOUNT
+REDRAW T_REDRAW
+SIF LOCAL == 200
+	RESTART
+;PRINTFORML 現在の画像フォルダは%CSTR:対象キャラ:画像フォルダ%です
+CALL CLOTHES_TODAY(対象キャラ)
+RETURN
+
+;********************************************************************************************
+;@親画像フォルダ(対象キャラ)
+;  親の画像フォルダを使えるかどうか、ダメなら-2を返す
+;********************************************************************************************
+
+@親画像フォルダ(対象キャラ)
+#FUNCTION
+#DIM 対象キャラ
+
+RESULT = FIND_MOTHER_CHARA_FROM_PERSON_ID(CFLAG:対象キャラ:人物番号)
+RESULT:1 = FIND_FATHER_CHARA_FROM_PERSON_ID(CFLAG:対象キャラ:人物番号)
+IF RESULT < 0 && RESULT:1 < 0
+	RETURNF -2
+ELSE
+	RETURNF RESULT
+ENDIF
+
+;********************************************************************************************
+;@別キャラ画像フォルダ選択(対象キャラ)
+;  別キャラ(親)の画像フォルダ内で"顔_デフォルト"という名前の画像を含むフォルダ（親フォルダ、サブフォルダ含む）を
+;  探して、そのフォルダ内の画像ファイルを一覧で表示し、どのフォルダの画像を使用するかを選択させる
+;********************************************************************************************
+
+@別キャラ画像フォルダ選択(対象キャラ, ARG=0)
+#DIM 対象キャラ
+#DIM 画像キャラ,2
+#DIM L_CNT, 3
+#DIM LNCOUNT
+#DIM G_NUM
+#DIM C_NUM
+#DIM F_NUM,2
+#DIM T_REDRAW
+#DIMS G_NAME
+#DIMS FOLDER, 20
+#DIM CONST FOLDER_NUM_MAX = 10
+
+IF ARG
+	; 画像フォルダ数を取得
+	SIF GET_ALL_RESOURCES_FOLDERS(対象キャラ) > 0
+		RETURN
+ENDIF
+
+画像キャラ = 親画像フォルダ(対象キャラ)
+画像キャラ:1 = RESULT:1
+SIF 画像キャラ < 0 && 画像キャラ:1 < 0
+	RETURN
+
+LNCOUNT = LINECOUNT
+VARSET LOCAL
+VARSET F_NUM
+VARSET FOLDER
+T_REDRAW = CURRENTREDRAW()
+REDRAW 0
+
+IF 画像キャラ >= 0
+	; 画像フォルダ数を取得
+	F_NUM = GET_ALL_RESOURCES_FOLDERS(画像キャラ)
+	; 取得した結果を退避
+	FOR L_CNT, 0, MIN(F_NUM, FOLDER_NUM_MAX)
+		FOLDER:L_CNT '= RESULTS:L_CNT
+	NEXT
+ENDIF
+IF 画像キャラ:1 >= 0
+	; 画像フォルダ数を取得
+	F_NUM:1 = GET_ALL_RESOURCES_FOLDERS(画像キャラ:1)
+	; 取得した結果を退避
+	FOR L_CNT, 0, MIN(F_NUM:1, FOLDER_NUM_MAX)
+		FOLDER:(F_NUM + L_CNT) '= RESULTS:L_CNT
+	NEXT
+ENDIF
+
+SIF F_NUM < 1 && F_NUM:1 < 1
+	RETURN
+
+$LOOP
+PRINTL
+DRAWLINE
+PRINTL 使用する画像フォルダを選択してください
+PRINTL ※親の画像フォルダを使用可能です
+IF F_NUM > FOLDER_NUM_MAX
+	PRINTFORML (%CALLNAME:画像キャラ%の有効な画像フォルダが多すぎます。最初に見つかった{FOLDER_NUM_MAX}個のみが有効となります。)
+	F_NUM = FOLDER_NUM_MAX
+ENDIF
+IF F_NUM:1 > FOLDER_NUM_MAX
+	PRINTFORML (%CALLNAME:(画像キャラ:1)%の有効な画像フォルダが多すぎます。最初に見つかった{FOLDER_NUM_MAX}個のみが有効となります。)
+	F_NUM:1 = FOLDER_NUM_MAX
+ENDIF
+PRINTL ※例としてデフォルト画像＋ランダムな画像を４つ表示中
+DRAWLINE
+CALL ランダム画像表示(FOLDER, F_NUM + F_NUM:1)
+G_NUM = RESULT
+
+; 5枚以上画像がある場合はリロールボタンを表示
+SIF G_NUM > 5
+	PRINTL [200] 画像のランダム表示をリロール
+PRINTL [100] ランダムキャラ画像を使う(個別の画像があればそちら優先)
+BINPUT
+LOCAL = RESULT
+IF INRANGE(LOCAL, 0, F_NUM - 1)
+	CSTR:対象キャラ:画像フォルダ '= FOLDER:LOCAL
+	CSTR:対象キャラ:フォルダ判定キー '= CALLNAME:画像キャラ
+	PRINTFORMW %CSTR:対象キャラ:画像フォルダ%の画像フォルダを使用します
+	SUBSTRING CSTR:対象キャラ:画像フォルダ, STRLENS(TOSTR(NO:画像キャラ) + CALLNAME:画像キャラ), -1
+ELSEIF INRANGE(LOCAL, F_NUM, F_NUM + F_NUM:1 - 1)
+	CSTR:対象キャラ:画像フォルダ '= FOLDER:LOCAL
+	CSTR:対象キャラ:フォルダ判定キー '= CALLNAME:(画像キャラ:1)
+	PRINTFORMW %CSTR:対象キャラ:画像フォルダ%の画像フォルダを使用します
+	SUBSTRING CSTR:対象キャラ:画像フォルダ, STRLENS(TOSTR(NO:(画像キャラ:1)) + CALLNAME:(画像キャラ:1)), -1
+ELSEIF LOCAL == 100
+	PRINTFORMW ランダムキャラ画像を使用します
+	CSTR:対象キャラ:フォルダ判定キー = 
+	CSTR:対象キャラ:画像フォルダ = 
+ENDIF
+
+CALL ランダム画像表示_リソース解放(F_NUM)
+
+CLEARLINE LINECOUNT - LNCOUNT
+REDRAW T_REDRAW
+SIF LOCAL == 200
+	GOTO LOOP
+CALL CLOTHES_TODAY(対象キャラ)
+RETURN 1
+
+;********************************************************************************************
+;@グラ表示用文字列算出(ARG, TYPE="顔_")
+;  キャラARGのパラメータなどの条件を元に、差分ファイルがあればそれを返す
+;  こちらは条件式による振り分けのみ行い、差分ファイルのサーチ自体は@差分抽出で行う
+;  条件設定は上にあるほど優先度が高い
+;  TYPE "顔_" または "短冊_"
+;********************************************************************************************
+
+@グラ表示用文字列算出(ARG, TYPE="顔_")
+#FUNCTIONS
+#DIM 立ち絵乱数
+#DIMS TYPE
+#DIMS 文字列記憶,3
+#DIM 文字列番号
+#DIMS D_NAME
+#DIMS 射精先文字列
+#DIM 再確認
+
+VARSET 差分エフェクト
+
+立ち絵乱数 = RAND:2
+D_NAME '= ""
+LOCALS '= CSTR:ARG:顔グラ表示切り替え用文字列
+SIF TYPE == "短冊_"
+	LOCALS '= CSTR:ARG:短冊グラ表示切り替え用文字列
+
+IF 全裸チェック(ARG) == 2 && (CSTR:ARG:着せ替え服 != "リゾート従業員制服" || CSTR:ARG:着せ替え服追加名 != "ﾄｯﾌﾟﾚｽ･ﾎﾞﾄﾑﾚｽ")
+	IF ENUMFILES(@"resources/%CSTR:ARG:画像フォルダ%",  @"%TYPE%全裸*")
+		CSTR:ARG:表示グラフィックカテゴリ = 全裸
+		LOCALS = %TYPE + CSTR:ARG:表示グラフィックカテゴリ%
+	ENDIF
+ENDIF
+
+IF LOCALS == ""
+	SIF CSTR:ARG:表示グラフィックカテゴリ == ""
+		CSTR:ARG:表示グラフィックカテゴリ = デフォルト
+	LOCALS = %TYPE + CSTR:ARG:表示グラフィックカテゴリ%
+ENDIF
+
+;設定グラの差分を見る
+IF CFLAG:ARG:体力限界
+	;ダウン時
+	SIF 差分抽出(ARG, TYPE, LOCALS, "ダウン") && D_NAME == ""
+		D_NAME '= RESULTS
+ENDIF
+IF CFLAG:ARG:睡眠
+	;睡眠時
+	SIF 差分抽出(ARG, TYPE, LOCALS, "睡眠") && D_NAME == ""
+		D_NAME '= RESULTS
+ENDIF
+
+IF D_NAME == "" && MODE_存在判定_ターゲット側("Ｖ挿入系", ARG)
+	;各体位の挿入差分があればそれを表示する
+	FOR LOCAL, 0, VARSIZE("V_FRONT")
+		IF 再確認 || MODE_存在判定_ターゲット側(V_FRONT:LOCAL, ARG)
+			VARSET 文字列記憶
+			文字列番号 = 0
+			IF TCVAR:ARG:前ターン被射精位置 == 1 && D_NAME == ""
+				IF 差分抽出(ARG, TYPE, LOCALS, @"%V_FRONT:LOCAL%膣内射精")
+					文字列記憶:文字列番号 '= RESULTS
+					文字列番号 ++
+					IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+						IF 差分抽出(ARG, TYPE, LOCALS, "膣内射精")
+							文字列記憶:文字列番号 '= RESULTS
+							文字列番号 ++
+						ENDIF
+					ENDIF
+				ELSEIF 差分抽出(ARG, TYPE, LOCALS, "膣内射精")
+					文字列記憶:文字列番号 '= RESULTS
+					文字列番号 ++
+				ENDIF
+				IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+					IF 差分抽出(ARG, TYPE, LOCALS, V_FRONT:LOCAL) && STRCOUNT(RESULTS, V_FRONT:LOCAL)
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+					ENDIF
+				ENDIF
+			ENDIF
+			IF !文字列番号
+				SIF 差分抽出(ARG, TYPE, LOCALS, V_FRONT:LOCAL, "挿入") && STRCOUNT(RESULTS, V_FRONT:LOCAL)
+					D_NAME '= RESULTS
+			ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+				D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+			ELSE
+				D_NAME '= 文字列記憶:0
+			ENDIF
+			IF TCVAR:ARG:前ターン被射精位置 == 1 && !STRCOUNT(D_NAME, "膣内射精")
+				IF TALENT:ARG:妊娠 && PREGNANCY_SIZE(ARG) >= 2
+					差分エフェクト:0 '= "エフェクト_" + TYPE + "妊娠膣内射精"
+				ELSE
+					差分エフェクト:0 '= "エフェクト_" + TYPE + "膣内射精"
+				ENDIF
+			ENDIF
+			;なかったor膣内射精しかなかった場合は正常位を探す
+			IF LOCAL && (D_NAME == "" || (文字列番号 == 1 && !STRCOUNT(D_NAME, V_FRONT:LOCAL)))
+				VARSET 差分エフェクト
+				D_NAME = 
+				LOCAL = -1
+				再確認 = 1
+			ELSE
+				再確認 = 0
+				BREAK
+			ENDIF
+		ENDIF
+	NEXT
+	IF D_NAME == ""
+		FOR LOCAL, 0, VARSIZE("V_BACK")
+			IF 再確認 || MODE_存在判定_ターゲット側(V_BACK:LOCAL, ARG)
+				VARSET 文字列記憶
+				文字列番号 = 0
+				IF TCVAR:ARG:前ターン被射精位置 == 1 && D_NAME == ""
+					IF 差分抽出(ARG, TYPE, LOCALS, @"%V_BACK:LOCAL%膣内射精")
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+						IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+							IF 差分抽出(ARG, TYPE, LOCALS, "膣内射精")
+								文字列記憶:文字列番号 '= RESULTS
+								文字列番号 ++
+							ENDIF
+						ENDIF
+					ELSEIF 差分抽出(ARG, TYPE, LOCALS, "膣内射精")
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+					ENDIF
+					IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+						IF 差分抽出(ARG, TYPE, LOCALS, V_BACK:LOCAL) && STRCOUNT(RESULTS, V_BACK:LOCAL)
+							文字列記憶:文字列番号 '= RESULTS
+							文字列番号 ++
+						ENDIF
+					ENDIF
+				ENDIF
+				IF !文字列番号
+					SIF 差分抽出(ARG, TYPE, LOCALS, V_BACK:LOCAL, "挿入") && STRCOUNT(RESULTS, V_BACK:LOCAL)
+						D_NAME '= RESULTS
+				ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+					D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+				ELSE
+					D_NAME '= 文字列記憶:0
+				ENDIF
+				IF TCVAR:ARG:前ターン被射精位置 == 1 && !STRCOUNT(D_NAME, "膣内射精")
+					IF TALENT:ARG:妊娠 && PREGNANCY_SIZE(ARG) >= 2
+						差分エフェクト:0 '= "エフェクト_" + TYPE + "妊娠膣内射精"
+					ELSE
+						差分エフェクト:0 '= "エフェクト_" + TYPE + "膣内射精"
+					ENDIF
+				ENDIF
+				IF LOCAL && (D_NAME == "" || (文字列番号 == 1 && !STRCOUNT(D_NAME, V_BACK:LOCAL)))
+					VARSET 差分エフェクト
+					D_NAME = 
+					LOCAL = -1
+					再確認 = 1
+				ELSE
+					再確認 = 0
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+IF D_NAME == "" && MODE_存在判定_ターゲット側("Ａ挿入系", ARG)
+	;各体位の挿入差分があればそれを表示する
+	FOR LOCAL, 0, VARSIZE("A_FRONT")
+		IF 再確認 || MODE_存在判定_ターゲット側(A_FRONT:LOCAL, ARG)
+			VARSET 文字列記憶
+			文字列番号 = 0
+			IF TCVAR:ARG:前ターン被射精位置 == 2 && D_NAME == ""
+				IF 差分抽出(ARG, TYPE, LOCALS, @"%A_FRONT:LOCAL%腸内射精")
+					文字列記憶:文字列番号 '= RESULTS
+					文字列番号 ++
+					IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+						IF 差分抽出(ARG, TYPE, LOCALS, "腸内射精")
+							文字列記憶:文字列番号 '= RESULTS
+							文字列番号 ++
+						ENDIF
+					ENDIF
+				ELSEIF 差分抽出(ARG, TYPE, LOCALS, "腸内射精")
+					文字列記憶:文字列番号 '= RESULTS
+					文字列番号 ++
+				ENDIF
+				IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+					IF 差分抽出(ARG, TYPE, LOCALS, A_FRONT:LOCAL) && STRCOUNT(RESULTS, A_FRONT:LOCAL)
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+					ENDIF
+				ENDIF
+			ENDIF
+			IF !文字列番号
+				SIF 差分抽出(ARG, TYPE, LOCALS, A_FRONT:LOCAL, "Ａ挿入") && STRCOUNT(RESULTS, A_FRONT:LOCAL)
+					D_NAME '= RESULTS
+			ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+				D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+			ELSE
+				D_NAME '= 文字列記憶:0
+			ENDIF
+			SIF TCVAR:ARG:前ターン被射精位置 == 2 && !STRCOUNT(D_NAME, "腸内射精")
+				差分エフェクト:0 '= "エフェクト_" + TYPE + "腸内射精"
+			IF LOCAL && (D_NAME == "" || (文字列番号 == 1 && !STRCOUNT(D_NAME, A_FRONT:LOCAL)))
+				SIF STRCOUNT(差分エフェクト:0, "腸内射精") || STRCOUNT(差分エフェクト:0, "Ａ挿入")
+					VARSET 差分エフェクト
+				D_NAME = 
+				LOCAL = -1
+				再確認 = 1
+			ELSE
+				再確認 = 0
+				BREAK
+			ENDIF
+		ENDIF
+	NEXT
+	IF D_NAME == ""
+		FOR LOCAL, 0, VARSIZE("A_BACK")
+			IF 再確認 || MODE_存在判定_ターゲット側(A_BACK:LOCAL, ARG)
+				VARSET 文字列記憶
+				文字列番号 = 0
+				IF TCVAR:ARG:前ターン被射精位置 == 2 && D_NAME == ""
+					IF 差分抽出(ARG, TYPE, LOCALS, @"%A_BACK:LOCAL%腸内射精")
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+						IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+							IF 差分抽出(ARG, TYPE, LOCALS, "腸内射精")
+								文字列記憶:文字列番号 '= RESULTS
+								文字列番号 ++
+							ENDIF
+						ENDIF
+					ELSEIF 差分抽出(ARG, TYPE, LOCALS, "腸内射精")
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+					ENDIF
+					IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+						IF 差分抽出(ARG, TYPE, LOCALS, A_BACK:LOCAL) && STRCOUNT(RESULTS, A_BACK:LOCAL)
+							文字列記憶:文字列番号 '= RESULTS
+							文字列番号 ++
+						ENDIF
+					ENDIF
+				ENDIF
+				IF !文字列番号
+					SIF 差分抽出(ARG, TYPE, LOCALS, A_BACK:LOCAL, "Ａ挿入") && STRCOUNT(RESULTS, A_BACK:LOCAL)
+						D_NAME '= RESULTS
+				ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+					D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+				ELSE
+					D_NAME '= 文字列記憶:0
+				ENDIF
+				SIF TCVAR:ARG:前ターン被射精位置 == 2 && !STRCOUNT(D_NAME, "腸内射精")
+					差分エフェクト:0 '= "エフェクト_" + TYPE + "腸内射精"
+				IF LOCAL && (D_NAME == "" || (文字列番号 == 1 && !STRCOUNT(D_NAME, A_BACK:LOCAL)))
+					SIF STRCOUNT(差分エフェクト:0, "腸内射精") || STRCOUNT(差分エフェクト:0, "Ａ挿入")
+						VARSET 差分エフェクト
+					D_NAME = 
+					LOCAL = -1
+					再確認 = 1
+				ELSE
+					再確認 = 0
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+
+IF D_NAME == "" && MODE_存在判定_プレイヤー側("Ｖ挿入系", ARG)
+	;各体位の挿入差分があればそれを表示する
+	FOR LOCAL, 0, VARSIZE("V_FRONT")
+		IF 再確認 || MODE_存在判定_プレイヤー側(V_FRONT:LOCAL, ARG)
+			SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "攻め" + V_FRONT:LOCAL)
+				D_NAME '= RESULTS
+			IF LOCAL && D_NAME == ""
+				LOCAL = -1
+				再確認 = 1
+			ELSE
+				再確認 = 0
+				BREAK
+			ENDIF
+		ENDIF
+	NEXT
+	IF D_NAME == ""
+		FOR LOCAL, 0, VARSIZE("V_BACK")
+			IF 再確認 || MODE_存在判定_プレイヤー側(V_BACK:LOCAL, ARG)
+				SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "攻め" + V_BACK:LOCAL)
+					D_NAME '= RESULTS
+				IF LOCAL && D_NAME == ""
+					LOCAL = -1
+					再確認 = 1
+				ELSE
+					再確認 = 0
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+IF D_NAME == "" && MODE_存在判定_プレイヤー側("Ａ挿入系", ARG)
+	;各体位の挿入差分があればそれを表示する
+	FOR LOCAL, 0, VARSIZE("A_FRONT")
+		IF 再確認 || MODE_存在判定_プレイヤー側(A_FRONT:LOCAL, ARG)
+			SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "攻め" + A_FRONT:LOCAL)
+				D_NAME '= RESULTS
+			IF LOCAL && D_NAME == ""
+				LOCAL = -1
+				再確認 = 1
+			ELSE
+				再確認 = 0
+				BREAK
+			ENDIF
+		ENDIF
+	NEXT
+	IF D_NAME == ""
+		FOR LOCAL, 0, VARSIZE("A_BACK")
+			IF 再確認 || MODE_存在判定_プレイヤー側(A_BACK:LOCAL, ARG)
+				SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "攻め" + A_BACK:LOCAL)
+					D_NAME '= RESULTS
+				IF LOCAL && D_NAME == ""
+					LOCAL = -1
+					再確認 = 1
+				ELSE
+					再確認 = 0
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+
+IF D_NAME == "" && (MODE_存在判定_プレイヤー側("フェラチオ系", ARG) || MODE_存在判定_プレイヤー側("パイズリ系", ARG))
+	射精先文字列 = 
+	SELECTCASE TCVAR:ARG:前ターン被射精位置
+		CASE 3
+			射精先文字列 = 口内射精
+		CASE 4
+			射精先文字列 = 乳内射精
+		CASE 5
+			射精先文字列 = 顔射
+	ENDSELECT
+	IF MODE_存在判定_プレイヤー側("パイズリ系", ARG)
+		FOR LOCAL, 0, VARSIZE("PAIZURI")
+			IF 再確認 || MODE_存在判定_プレイヤー側(PAIZURI:LOCAL, ARG)
+				VARSET 文字列記憶
+				文字列番号 = 0
+				IF D_NAME == "" && 射精先文字列 != ""
+					IF 差分抽出(ARG, TYPE, LOCALS, @"%PAIZURI:LOCAL%%射精先文字列%", "")
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+						IF OPTION変数:射精後のモード時立ち絵制御 && 立ち絵乱数
+							IF 差分抽出(ARG, TYPE, LOCALS, 射精先文字列)
+								文字列記憶:文字列番号 '= RESULTS
+								文字列番号 ++
+							ENDIF
+						ENDIF
+					ELSEIF 差分抽出(ARG, TYPE, LOCALS, 射精先文字列)
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+					ENDIF
+					IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+						IF 差分抽出(ARG, TYPE, LOCALS, PAIZURI:LOCAL) && STRCOUNT(RESULTS, PAIZURI:LOCAL)
+							文字列記憶:文字列番号 '= RESULTS
+							文字列番号 ++
+						ENDIF
+					ENDIF
+				ENDIF
+				IF !文字列番号
+					SIF 差分抽出(ARG, TYPE, LOCALS, PAIZURI:LOCAL, @"パイズリ{LIMIT(TALENT:ARG:バストサイズ, 0, 4)}") && STRCOUNT(RESULTS, PAIZURI:LOCAL)
+						D_NAME '= RESULTS
+				ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+					D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+				ELSE
+					D_NAME '= 文字列記憶:0
+				ENDIF
+				SIF 射精先文字列 != "" && !STRCOUNT(D_NAME, 射精先文字列)
+					差分エフェクト:0 '= "エフェクト_" + TYPE + 射精先文字列
+				IF LOCAL && (D_NAME == "" || (文字列番号 == 1 && !STRCOUNT(D_NAME, PAIZURI:LOCAL)))
+					SIF STRCOUNT(差分エフェクト:0, 射精先文字列) || STRCOUNT(差分エフェクト:0, "パイズリ")
+						VARSET 差分エフェクト
+					D_NAME = 
+					LOCAL = -1
+					再確認 = 1
+				ELSE
+					再確認 = 0
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+	IF MODE_存在判定_プレイヤー側("フェラチオ系", ARG)
+		FOR LOCAL, 0, VARSIZE("FERATIO")
+			IF 再確認 || MODE_存在判定_プレイヤー側(FERATIO:LOCAL, ARG)
+				VARSET 文字列記憶
+				文字列番号 = 0
+				IF D_NAME == "" && 射精先文字列 != ""
+					IF 差分抽出(ARG, TYPE, LOCALS, @"%FERATIO:LOCAL%%射精先文字列%", "")
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+						IF OPTION変数:射精後のモード時立ち絵制御 && 立ち絵乱数
+							IF 差分抽出(ARG, TYPE, LOCALS, 射精先文字列)
+								文字列記憶:文字列番号 '= RESULTS
+								文字列番号 ++
+							ENDIF
+						ENDIF
+					ELSEIF 差分抽出(ARG, TYPE, LOCALS, 射精先文字列)
+						文字列記憶:文字列番号 '= RESULTS
+						文字列番号 ++
+					ENDIF
+					IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+						IF 差分抽出(ARG, TYPE, LOCALS, FERATIO:LOCAL) && STRCOUNT(RESULTS, FERATIO:LOCAL)
+							文字列記憶:文字列番号 '= RESULTS
+							文字列番号 ++
+						ENDIF
+					ENDIF
+				ENDIF
+				IF !文字列番号
+					SIF 差分抽出(ARG, TYPE, LOCALS, FERATIO:LOCAL, "フェラチオ") && STRCOUNT(RESULTS, FERATIO:LOCAL)
+						D_NAME '= RESULTS
+				ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+					D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+				ELSE
+					D_NAME '= 文字列記憶:0
+				ENDIF
+				SIF 射精先文字列 != "" && !STRCOUNT(D_NAME, 射精先文字列)
+					差分エフェクト:0 '= "エフェクト_" + TYPE + 射精先文字列
+				IF LOCAL && (D_NAME == "" || (文字列番号 == 1 && !STRCOUNT(D_NAME, FERATIO:LOCAL)))
+					SIF STRCOUNT(差分エフェクト:0, 射精先文字列) || STRCOUNT(差分エフェクト:0, "フェラチオ")
+						VARSET 差分エフェクト
+					D_NAME = 
+					LOCAL = -1
+					再確認 = 1
+				ELSE
+					再確認 = 0
+					BREAK
+				ENDIF
+			ENDIF
+		NEXT
+	ENDIF
+ENDIF
+
+IF D_NAME == "" && MODE_存在判定_プレイヤー側("授乳手コキ", ARG)
+	VARSET 文字列記憶
+	文字列番号 = 0
+	IF TCVAR:ARG:前ターン被射精位置 == 9
+		IF 差分抽出(ARG, TYPE, LOCALS, "授乳手コキ手に射精")
+			文字列記憶:文字列番号 '= RESULTS
+			文字列番号 ++
+			IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+				IF 差分抽出(ARG, TYPE, LOCALS, "手に射精")
+					文字列記憶:文字列番号 '= RESULTS
+					文字列番号 ++
+				ENDIF
+			ENDIF
+		ELSEIF 差分抽出(ARG, TYPE, LOCALS, "手に射精")
+			文字列記憶:文字列番号 '= RESULTS
+			文字列番号 ++
+		ENDIF
+		IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+			IF 差分抽出(ARG, TYPE, LOCALS, "授乳手コキ") && STRCOUNT(RESULTS, "授乳手コキ")
+				文字列記憶:文字列番号 '= RESULTS
+				文字列番号 ++
+			ENDIF
+		ENDIF
+	ENDIF
+	IF !文字列番号
+		SIF 差分抽出(ARG, TYPE, LOCALS, "授乳手コキ", "授乳手こき") && STRCOUNT(RESULTS, "授乳手コキ")
+			D_NAME '= RESULTS
+	ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+		D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+	ELSE
+		D_NAME '= 文字列記憶:0
+	ENDIF
+	SIF TCVAR:ARG:前ターン被射精位置 == 1 && !STRCOUNT(D_NAME, "手に射精")
+		差分エフェクト:0 '= "エフェクト_" + TYPE + "手に射精"
+ENDIF
+
+;授乳手コキで見つからなかった場合手コキも探す
+IF D_NAME == "" && (MODE_存在判定_プレイヤー側("手コキ", ARG) || MODE_存在判定_プレイヤー側("授乳手コキ", ARG))
+	VARSET 文字列記憶
+	文字列番号 = 0
+	IF TCVAR:ARG:前ターン被射精位置 == 9
+		IF 差分抽出(ARG, TYPE, LOCALS, "手コキ手に射精")
+			文字列記憶:文字列番号 '= RESULTS
+			文字列番号 ++
+			IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+				IF 差分抽出(ARG, TYPE, LOCALS, "手に射精")
+					文字列記憶:文字列番号 '= RESULTS
+					文字列番号 ++
+				ENDIF
+			ENDIF
+		ELSEIF 差分抽出(ARG, TYPE, LOCALS, "手に射精")
+			文字列記憶:文字列番号 '= RESULTS
+			文字列番号 ++
+		ENDIF
+		IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+			IF 差分抽出(ARG, TYPE, LOCALS, "手コキ") && STRCOUNT(RESULTS, "手コキ")
+				文字列記憶:文字列番号 '= RESULTS
+				文字列番号 ++
+			ENDIF
+		ENDIF
+	ENDIF
+	IF !文字列番号
+		SIF 差分抽出(ARG, TYPE, LOCALS, "手コキ", "手コキ") && STRCOUNT(RESULTS, "手コキ")
+			D_NAME '= RESULTS
+	ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+		D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+	ELSE
+		D_NAME '= 文字列記憶:0
+	ENDIF
+	SIF TCVAR:ARG:前ターン被射精位置 == 1 && !STRCOUNT(D_NAME, "手に射精")
+		差分エフェクト:0 '= "エフェクト_" + TYPE + "手に射精"
+ENDIF
+
+IF D_NAME == "" && MODE_存在判定_プレイヤー側("足コキ", ARG)
+	VARSET 文字列記憶
+	文字列番号 = 0
+	IF TCVAR:ARG:前ターン被射精位置 == 10
+		IF 差分抽出(ARG, TYPE, LOCALS, "足コキ足に射精")
+			文字列記憶:文字列番号 '= RESULTS
+			文字列番号 ++
+			IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+				IF 差分抽出(ARG, TYPE, LOCALS, "足に射精")
+					文字列記憶:文字列番号 '= RESULTS
+					文字列番号 ++
+				ENDIF
+			ENDIF
+		ELSEIF 差分抽出(ARG, TYPE, LOCALS, "足に射精")
+			文字列記憶:文字列番号 '= RESULTS
+			文字列番号 ++
+		ENDIF
+		IF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数
+			IF 差分抽出(ARG, TYPE, LOCALS, "足コキ") && STRCOUNT(RESULTS, "足コキ")
+				文字列記憶:文字列番号 '= RESULTS
+				文字列番号 ++
+			ENDIF
+		ENDIF
+	ENDIF
+	IF !文字列番号
+		SIF 差分抽出(ARG, TYPE, LOCALS, "足コキ", "足コキ") && STRCOUNT(RESULTS, "足コキ")
+			D_NAME '= RESULTS
+	ELSEIF OPTION変数:射精後の挿入系立ち絵制御 && 立ち絵乱数 && 文字列番号 > 1
+		D_NAME '= 文字列記憶:(RAND:(文字列番号 - 1) + 1)
+	ELSE
+		D_NAME '= 文字列記憶:0
+	ENDIF
+	SIF TCVAR:ARG:前ターン被射精位置 == 1 && !STRCOUNT(D_NAME, "足に射精")
+		差分エフェクト:0 '= "エフェクト_" + TYPE + "足に射精"
+ENDIF
+
+;エフェクト制御
+IF OPTION変数:射精エフェクト制御 && D_NAME != "" && STRCOUNT(差分エフェクト:0, "射精")
+	VARSET 差分エフェクト
+ELSE
+	FOR LOCAL, 0, VARSIZE("差分エフェクト種類")
+		IF STRCOUNT(差分エフェクト:0, 差分エフェクト種類:LOCAL)
+			SIF GETBIT(OPTION変数:差分エフェクト制御, LOCAL)
+				VARSET 差分エフェクト
+			BREAK
+		ENDIF
+	NEXT
+ENDIF
+
+IF MODE_存在判定_ターゲット側("キス", ARG)
+	SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "キス")
+		D_NAME '= RESULTS
+ENDIF
+
+IF MODE_存在判定_ターゲット側("肩組み乳揉み", ARG)
+	SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "肩組み乳揉み")
+		D_NAME '= RESULTS
+ENDIF
+
+IF MODE_存在判定_ターゲット側("尻揉み", ARG)
+	SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "尻揉み")
+		D_NAME '= RESULTS
+ENDIF
+
+IF TCVAR:ARG:前ターン絶頂
+	;前ターン絶頂時
+	IF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "絶頂")
+		D_NAME '= RESULTS
+	ENDIF
+	IF !OPTION変数:絶頂エフェクト制御 || (OPTION変数:絶頂エフェクト制御 == 1 && !STRCOUNT(D_NAME, "絶頂"))
+		差分エフェクト:1 '= "エフェクト_" + TYPE + "絶頂"
+	ENDIF
+ENDIF
+
+IF TCVAR:ARG:トランス残り時間 > 0
+	;トランス時
+	SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "トランス")
+		D_NAME '= RESULTS
+ENDIF
+
+IF SAVESTR:ゲームフェイズ管理 == "マッサージモード"
+	IF TCVAR:TARGET:マッサージ_うつ伏せフラグ
+		;うつ伏せ時
+		SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "マッサージうつ伏せ")
+			D_NAME '= RESULTS
+	ELSE
+		;仰向け時
+		SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "マッサージ仰向け")
+			D_NAME '= RESULTS
+	ENDIF
+ENDIF
+
+IF GETPALAMLV(PALAM:ARG:欲情,15) > 3
+	;欲情時
+	IF D_NAME == ""
+		IF CFLAG:ARG:怒り && 差分抽出(ARG, TYPE, LOCALS, "怒り欲情")
+			;怒り時
+			D_NAME '= RESULTS
+			;通常欲情より怒り＋欲情エフェクトを優先度高くする
+			SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "怒り時")
+				D_NAME '= RESULTS
+		ENDIF
+		IF 差分抽出(ARG, TYPE, LOCALS, "欲情") && D_NAME == ""
+			;通常欲情
+			D_NAME '= RESULTS
+		ENDIF
+	ENDIF
+	IF 差分エフェクト:1 == "" && (!OPTION変数:欲情エフェクト制御 || (OPTION変数:欲情エフェクト制御 == 1 && !STRCOUNT(D_NAME, "欲情")))
+		差分エフェクト:1 '= "エフェクト_" + TYPE + "欲情"
+	ENDIF
+ENDIF
+
+IF CFLAG:ARG:怒り
+	;怒り時
+	SIF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "怒り時")
+		D_NAME '= RESULTS
+ENDIF
+
+IF TALENT:ARG:妊娠 && PREGNANCY_SIZE(ARG) >= 2 && !STRCOUNT(LOCALS, "妊娠") && FLAG_妊娠エフェクトフィルタ
+	;妊娠時
+	LOCALS:1 = 妊娠{FLAG_妊娠エフェクトフィルタ}
+	SIF FLAG_妊娠エフェクトフィルタ == 3
+		LOCALS:1 += @"_{LIMIT(PREGNANCY_SIZE(ARG), 2, 5)}"
+	IF D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "妊娠", , , , LOCALS:1)
+		D_NAME '= RESULTS
+	ENDIF
+ENDIF
+
+SIF !RAND:2 && D_NAME == "" && 差分抽出(ARG, TYPE, LOCALS, "表情")
+	D_NAME '= RESULTS
+
+;差分が見つかればそれを、なければ差分無しを返す
+SIF D_NAME != ""
+	RETURNF D_NAME
+RETURNF LOCALS
+
+;********************************************************************************************
+;@差分抽出(ARG, TYPE="顔_", TYPE:1, DIFF, DIFF:1="", DIFF:2="")
+;  @グラ表示用文字列算出から呼び出されて条件に合うファイルからランダムに抽出する
+;  TYPE:0 "顔_" または "短冊_"
+;  TYPE:1 基本的にはその時のグラ表示切り替え用文字列。空欄なら表示グラフィックカテゴリまたはデフォルトが入っているはず
+;  DIFF:0 サーチする差分区分名。「顔_デフォルト_◯◯」の◯◯部分
+;  DIFF:1、2 見つからなかった場合に表示する差分エフェクト名。1と2でレイヤー別で重ねて表示可能
+;  TYPE:2 間に挟むキーワード、「顔_デフォルト[_差分_]〇〇」の[]内の文字列。省略した場合「_差分_」が使用される
+;********************************************************************************************
+
+@差分抽出(ARG, TYPE="顔_", TYPE:1, DIFF, DIFF:1="", DIFF:2="", TYPE:2="_差分_", DIFF:3="")
+#FUNCTION
+#DIMS TYPE, 3
+#DIMS DIFF, 4
+
+IF ENUMFILES(@"resources/%CSTR:ARG:画像フォルダ%/", @"%TYPE:1 + TYPE:2 +DIFF%*.*")
+	;現在表示してるグラの差分があるか見る
+	RESULTS '= TYPE:1 + GRAP_RAND(ARG, TYPE:1, TYPE:2 + DIFF)
+	RETURNF 1
+;ELSEIF ENUMFILES(@"resources/%CSTR:ARG:画像フォルダ%/", @"%TYPE + CSTR:ARG:表示グラフィックカテゴリ + TYPE:2 + DIFF%*.*")
+;	;現在表示してるグラの、基本画像の差分があるか見る
+;	RESULTS '= TYPE + GRAP_RAND(ARG, TYPE, CSTR:ARG:表示グラフィックカテゴリ + TYPE:2 + DIFF)
+;	RETURNF 1
+ENDIF
+RESULTS '= TYPE:1
+
+;見つからなかった場合、エフェクトが既に設定されていなければエフェクトを追加
+SIF 差分エフェクト:0 == "" && DIFF:1 != ""
+	差分エフェクト:0 '= "エフェクト_" + TYPE + DIFF:1
+SIF 差分エフェクト:1 == "" && DIFF:2 != ""
+	差分エフェクト:1 '= "エフェクト_" + TYPE + DIFF:2
+SIF 差分エフェクト:2 == "" && DIFF:3 != ""
+	差分エフェクト:2 '= "エフェクト_" + TYPE + DIFF:3
+
+RETURNF 0
+
+
+;********************************************************************************************
+;スプライト合成
+;指定した元スプライトにリソース名のスプライトを重ねて合成する関数
+;横幅か縦幅に0が入っている場合には自動で元スプライトのサイズを取得してサイズを合わせる
+;********************************************************************************************
+@スプライト合成(元スプライト, グラフィックID, リソース名, POS_X = 0, POS_Y = 0, 横幅 = 0, 縦幅 = 0)
+#FUNCTION
+#DIM グラフィックID		;合成先のグラフィックID
+#DIMS 元スプライト		;合成先のスプライト名
+#DIMS リソース名			;合成元のリソースID
+#DIM POS_X					;リソースを配置するX座標
+#DIM POS_Y					;リソースを配置するY座標
+#DIM 元横幅					;合成する元スプライトの横幅
+#DIM 元縦幅					;合成する元スプライトの縦幅
+#DIM 横幅					;合成するリソースの横幅
+#DIM 縦幅					;合成するリソースの縦幅
+
+SIF !SPRITECREATED(リソース名)
+	;リソースが存在しない場合0を返す
+	RETURNF 0
+SIF !SPRITECREATED(元スプライト)
+	;元スプライトが存在しない場合0を返す
+	RETURNF 0
+
+元横幅 = SPRITEWIDTH(元スプライト)
+元縦幅 = SPRITEHEIGHT(元スプライト)
+
+IF 横幅 == 0 || 縦幅 == 0
+	横幅 = SPRITEWIDTH(元スプライト)
+	縦幅 = SPRITEHEIGHT(元スプライト)
+ENDIF
+
+GDISPOSE TEMP_gID
+
+CBGCLEAR
+
+;元スプライトをグラフィック化
+GCREATE TEMP_gID, 元横幅, 元縦幅
+GDRAWSPRITE TEMP_gID, 元スプライト, 0, 0, 元横幅, 元縦幅
+;CBGSETG TEMP_gID, 0, -1*元縦幅, 1
+
+;グラフィックIDに転写
+GDISPOSE グラフィックID
+GCREATE グラフィックID, 元横幅, 元縦幅
+GDRAWG グラフィックID, TEMP_gID, 0, 0, 元横幅, 元縦幅, 0, 0, 元横幅, 元縦幅
+;CBGSETG グラフィックID, 元横幅, -1*元縦幅, 1
+
+GDISPOSE TEMP_gID
+SPRITEDISPOSE 元スプライト
+GDRAWSPRITE グラフィックID, リソース名, POS_X, POS_Y,  横幅, 縦幅
+;CBGSETG グラフィックID, 0, 0, 1
+SPRITECREATE 元スプライト, グラフィックID, 0, 0, 元横幅, 元縦幅
+;CBGSETSPRITE  元スプライト, 元横幅, 0, 1
+
+RETURNF
+
+@GCREATE_拡張子(作成レイヤー, ファイルパス)
+#DIMS ファイルパス
+#DIM 作成レイヤー
+
+SIF STRFIND(ファイルパス, ".png") >= 0
+	ファイルパス '= REPLACE(ファイルパス, ".png", "")
+SIF STRFIND(ファイルパス, ".webp") >= 0
+	ファイルパス '= REPLACE(ファイルパス, ".webp", "")
+
+IF EXISTFILE(@"resources/%ファイルパス%.webp")
+	GCREATEFROMFILE 作成レイヤー, ファイルパス + ".webp"
+ELSE
+	GCREATEFROMFILE 作成レイヤー, ファイルパス + ".png"
+ENDIF
+
+RETURN RESULT
+
+@GCREATE_拡張子F(作成レイヤー, ファイルパス)
+#FUNCTION
+#DIMS ファイルパス
+#DIM 作成レイヤー
+
+SIF STRFIND(ファイルパス, ".png") >= 0
+	ファイルパス '= REPLACE(ファイルパス, ".png", "")
+SIF STRFIND(ファイルパス, ".webp") >= 0
+	ファイルパス '= REPLACE(ファイルパス, ".webp", "")
+
+IF EXISTFILE(@"resources/%ファイルパス%.webp")
+	GCREATEFROMFILE 作成レイヤー, ファイルパス + ".webp"
+ELSE
+	GCREATEFROMFILE 作成レイヤー, ファイルパス + ".png"
+ENDIF
+
+RETURNF RESULT
+
+
+@EXIST画像FILE(ファイルパス)
+#FUNCTION
+#DIMS ファイルパス
+
+SIF STRFIND(ファイルパス, ".png") >= 0
+	ファイルパス '= REPLACE(ファイルパス, ".png", "")
+SIF STRFIND(ファイルパス, ".webp") >= 0
+	ファイルパス '= REPLACE(ファイルパス, ".webp", "")
+SIF STRFIND(ファイルパス, "resources/") < 0
+	ファイルパス '= "resources/" + ファイルパス
+
+IF EXISTFILE(@"%ファイルパス%.webp")
+	RETURNF 1
+ELSE
+	RETURNF EXISTFILE(@"%ファイルパス%.png")
+ENDIF
