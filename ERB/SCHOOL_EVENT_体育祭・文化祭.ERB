@@ -13,11 +13,15 @@ IF TIME:1 == 60 && FLAG:50 != DAY:3 && TIME == 0
 	PRINTFORML 　　　　今日は体育祭の日です！
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTL
-	IF TARGET >= 0
-		CALL SPORTS_FESTIVAL
-	ELSE
-		PRINTFORMW パートナーがいないため体育祭を見学するだけになった。
+	CALL SELECT_EVENT_PARTNER, 54
+	IF RESULT == 0
+		PRINTFORMW 体育祭は見学するだけになった。
 		FLAG:50 = DAY:3
+	ELSE
+		A = RESULT
+		CALL SETUP_EVENT_TARGET, A
+		CALL SPORTS_FESTIVAL
+		CALL RESTORE_EVENT_TARGET
 	ENDIF
 	BEGIN TURNEND
 	RETURN 1
@@ -31,11 +35,15 @@ IF TIME:1 == 61 && FLAG:51 != DAY:3 && TIME == 0
 	PRINTFORML 　　　　今日は文化祭の日です！
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTL
-	IF TARGET >= 0
-		CALL CULTURE_FESTIVAL
-	ELSE
-		PRINTFORMW パートナーがいないため文化祭を見学するだけになった。
+	CALL SELECT_EVENT_PARTNER, 55
+	IF RESULT == 0
+		PRINTFORMW 文化祭は見学するだけになった。
 		FLAG:51 = DAY:3
+	ELSE
+		A = RESULT
+		CALL SETUP_EVENT_TARGET, A
+		CALL CULTURE_FESTIVAL
+		CALL RESTORE_EVENT_TARGET
 	ENDIF
 	BEGIN TURNEND
 	RETURN 1
@@ -49,11 +57,15 @@ IF TIME:1 == 62 && FLAG:54 != DAY:3 && TIME == 0
 	PRINTFORML 　　　　今日は学力コンテストの日です！
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTL
-	IF TARGET >= 0
-		CALL KNOWLEDGE_CONTEST
-	ELSE
-		PRINTFORMW パートナーがいないため学力コンテストを見学するだけになった。
+	CALL SELECT_EVENT_PARTNER, 98
+	IF RESULT == 0
+		PRINTFORMW 学力コンテストは見学するだけになった。
 		FLAG:54 = DAY:3
+	ELSE
+		A = RESULT
+		CALL SETUP_EVENT_TARGET, A
+		CALL KNOWLEDGE_CONTEST
+		CALL RESTORE_EVENT_TARGET
 	ENDIF
 	BEGIN TURNEND
 	RETURN 1
@@ -410,3 +422,104 @@ WAIT
 
 FLAG:54 = DAY:3
 RETURN 1
+
+;---------------------------------------------------------
+; イベント参加キャラ選択
+; ARG:0 = 関連素質ABL番号（54=運動 / 55=表現 / 98=学力）
+; RESULT = 選択したChara番号(1-71)、0=参加しない
+;---------------------------------------------------------
+@SELECT_EVENT_PARTNER, ARG
+TFLAG:100 = 0
+$SEP_LOOP
+CALL SHOW_EVENT_PARTNER_LIST, TFLAG:100, ARG
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT == 1
+	IF TFLAG:100 > 0
+		TFLAG:100 -= 1
+	ENDIF
+	GOTO SEP_LOOP
+ELSEIF RESULT == 9
+	IF TFLAG:100 < 2
+		TFLAG:100 += 1
+	ENDIF
+	GOTO SEP_LOOP
+ELSE
+	A = RESULT - 99
+	IF A < 1 || A > 71
+		GOTO SEP_LOOP
+	ENDIF
+	SIF FLAG:(999+A) == 0
+		GOTO SEP_LOOP
+	RETURN A
+ENDIF
+
+;---------------------------------------------------------
+; イベント参加キャラ一覧表示
+; ARG:0 = ページ（0～2: 1-25 / 26-50 / 51-71）
+; ARG:1 = 関連素質ABL番号
+;---------------------------------------------------------
+@SHOW_EVENT_PARTNER_LIST, ARG, ARG:1
+DRAWLINE
+PRINTFORML 　誰と一緒に参加しますか？（素質が高いほど有利）
+PRINTL
+LOCAL:2 = 0
+FOR LOCAL, 1, 72
+	SIF LOCAL <= (25 * ARG) || LOCAL > (25 * (ARG + 1))
+		CONTINUE
+	IF FLAG:(999 + LOCAL)
+		CSVABL LOCAL, ARG:1, 0
+		LOCAL:3 = RESULT
+		PRINTFORM [{LOCAL + 99}]%CSVNAME(LOCAL, 0),14,LEFT%(素質:{LOCAL:3})
+		LOCAL:2 += 1
+		IF LOCAL:2 % 2 == 0
+			PRINTL
+		ELSE
+			PRINT 　
+		ENDIF
+	ENDIF
+NEXT
+SIF LOCAL:2 % 2 != 0
+	PRINTL
+PRINTL
+DRAWLINE
+IF ARG > 0
+	PRINTC [1]前ページ
+ELSE
+	PRINTC 　　　　　
+ENDIF
+PRINTC [0]参加しない
+SIF ARG < 2
+	PRINTC [9]次ページ
+PRINTL
+RETURN
+
+;---------------------------------------------------------
+; イベント用TARGETを一時設定
+; ARG:0 = Chara番号(1-71)
+; FLAG:198 = 元のTARGET登録番号（-1=パートナーなし）
+; FLAG:199 = 1なら一時追加済み（復元時にDELCHARAする）
+;---------------------------------------------------------
+@SETUP_EVENT_TARGET, ARG
+FLAG:198 = TARGET
+LOCAL = GETCHARA(ARG)
+IF LOCAL >= 0
+	TARGET = LOCAL
+	FLAG:199 = 0
+ELSE
+	ADDCHARA ARG
+	TARGET = CHARANUM - 1
+	FLAG:199 = 1
+ENDIF
+RETURN
+
+;---------------------------------------------------------
+; イベント終了後にTARGETを復元
+;---------------------------------------------------------
+@RESTORE_EVENT_TARGET
+IF FLAG:199 == 1
+	DELCHARA TARGET
+ENDIF
+TARGET = FLAG:198
+RETURN
