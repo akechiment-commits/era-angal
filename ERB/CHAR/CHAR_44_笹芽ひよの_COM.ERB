@@ -1,17 +1,21 @@
 ;==============================================================
-; キャラ別コマンド反応テンプレート
-; @KOJO_MESSAGE_COM_44  ← NN = キャラ番号
+; キャラ別コマンド反応テンプレート  @KOJO_MESSAGE_COM_44
 ;
 ; 【分岐構造】
-;   3ティア: TALENT:TARGET:153(恋人) / ABL:TARGET:0>=6(親密) / 通常
-;   2ティア: TALENT:TARGET:153(恋人) / 通常
-;   RAND:3: ランダム3パターン（あまり使わないコマンド）
+;   3tier+SF: 初回 / 失敗(恋人/通常) / 成功(恋人×3, 親密×3, 通常×3)
+;   3tier:    初回 / 恋人×3 / 親密×3 / 通常×3
+;   2tier+SF: 初回 / 失敗(恋人/通常) / 成功(恋人×3, 通常×3)
+;   2tier:    初回 / 恋人×3 / 通常×3
+;   ecchi2t:  恋人×3 / 通常×3
+;   other:    恋人1行 / 通常1行
 ;
-; 【CFLAG:TARGET初回フラグ割り当て】
-;   200=遭遇  210=勉強  211=会話  212=プレゼント  213=スキンシップ
-;   214=まったり  215=掃除  216=髪梳き  217=デート系
-;   218=初詣  219=炬燵  220=散歩  221=学食  222=遊び・ライブ
-;   223=素材  224=調合  225=縁側  229=キス
+; 【成功/失敗: TFLAG:18】  -1=失敗  0=通常  1=大成功
+; 【関係: TALENT:TARGET:153=恋人  ABL:TARGET:0>=6=親密】
+;
+; 【CFLAG:TARGET初回フラグ】
+;   210=勉強 211=会話 212=プレゼント 213=スキンシップ 214=まったり
+;   215=掃除 216=髪梳き 217=デート系 218=初詣 219=炬燵 220=散歩
+;   221=学食 222=遊び・ライブ 223=素材 224=調合 225=縁側 229=キス
 ;   230-248: ウフフ系各コマンド
 ;==============================================================
 @KOJO_MESSAGE_COM_44
@@ -20,14 +24,12 @@ SIF TEQUIP:45 && SELECTCOM != 45
 
 ;==============================================================
 ; 純愛コミュニケーション系（COM300-325）
-; よく使うコマンド: 恋人/親密/通常の3ティア + 初回
-; まあまあ使う: 恋人/通常の2ティア + 初回
 ;==============================================================
 ;--- COM300 一緒に勉強する ---
 IF SELECTCOM == 300
 	IF CFLAG:TARGET:210 == 0
 		CFLAG:TARGET:210 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
 		;--- 恋人 ---
@@ -39,7 +41,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 親密（ABL6以上） ---
+		;--- 親密 ---
 		ELSEIF ABL:TARGET:0 >= 6
 			IF A == 0
 				PRINTFORMW 「」
@@ -65,7 +67,7 @@ ENDIF
 IF SELECTCOM == 301
 	IF CFLAG:TARGET:211 == 0
 		CFLAG:TARGET:211 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
 		;--- 恋人 ---
@@ -77,7 +79,7 @@ IF SELECTCOM == 301
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 親密（ABL6以上） ---
+		;--- 親密 ---
 		ELSEIF ABL:TARGET:0 >= 6
 			IF A == 0
 				PRINTFORMW 「」
@@ -103,35 +105,45 @@ ENDIF
 IF SELECTCOM == 302
 	IF CFLAG:TARGET:212 == 0
 		CFLAG:TARGET:212 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 親密（ABL6以上） ---
-		ELSEIF ABL:TARGET:0 >= 6
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
-			ELSE
-				PRINTFORMW 「」
-			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 通常 ---
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -141,35 +153,45 @@ ENDIF
 IF SELECTCOM == 303
 	IF CFLAG:TARGET:213 == 0
 		CFLAG:TARGET:213 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 親密（ABL6以上） ---
-		ELSEIF ABL:TARGET:0 >= 6
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
-			ELSE
-				PRINTFORMW 「」
-			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 通常 ---
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -179,7 +201,7 @@ ENDIF
 IF SELECTCOM == 304
 	IF CFLAG:TARGET:214 == 0
 		CFLAG:TARGET:214 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
 		;--- 恋人 ---
@@ -191,7 +213,7 @@ IF SELECTCOM == 304
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 親密（ABL6以上） ---
+		;--- 親密 ---
 		ELSEIF ABL:TARGET:0 >= 6
 			IF A == 0
 				PRINTFORMW 「」
@@ -217,10 +239,9 @@ ENDIF
 IF SELECTCOM == 305
 	IF CFLAG:TARGET:215 == 0
 		CFLAG:TARGET:215 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -229,7 +250,6 @@ IF SELECTCOM == 305
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -246,10 +266,9 @@ ENDIF
 IF SELECTCOM == 306
 	IF CFLAG:TARGET:216 == 0
 		CFLAG:TARGET:216 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -258,7 +277,6 @@ IF SELECTCOM == 306
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -275,10 +293,9 @@ ENDIF
 IF SELECTCOM == 307
 	IF CFLAG:TARGET:217 == 0
 		CFLAG:TARGET:217 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -287,7 +304,6 @@ IF SELECTCOM == 307
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -304,10 +320,9 @@ ENDIF
 IF SELECTCOM == 309
 	IF CFLAG:TARGET:223 == 0
 		CFLAG:TARGET:223 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -316,7 +331,6 @@ IF SELECTCOM == 309
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -333,10 +347,9 @@ ENDIF
 IF SELECTCOM == 310
 	IF CFLAG:TARGET:224 == 0
 		CFLAG:TARGET:224 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -345,7 +358,6 @@ IF SELECTCOM == 310
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -362,35 +374,45 @@ ENDIF
 IF SELECTCOM == 311
 	IF CFLAG:TARGET:216 == 0
 		CFLAG:TARGET:216 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 親密（ABL6以上） ---
-		ELSEIF ABL:TARGET:0 >= 6
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
-			ELSE
-				PRINTFORMW 「」
-			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 通常 ---
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -400,35 +422,45 @@ ENDIF
 IF SELECTCOM == 312
 	IF CFLAG:TARGET:217 == 0
 		CFLAG:TARGET:217 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 親密（ABL6以上） ---
-		ELSEIF ABL:TARGET:0 >= 6
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
-			ELSE
-				PRINTFORMW 「」
-			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 通常 ---
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -438,10 +470,9 @@ ENDIF
 IF SELECTCOM == 313
 	IF CFLAG:TARGET:218 == 0
 		CFLAG:TARGET:218 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -450,7 +481,6 @@ IF SELECTCOM == 313
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -467,10 +497,9 @@ ENDIF
 IF SELECTCOM == 314
 	IF CFLAG:TARGET:219 == 0
 		CFLAG:TARGET:219 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -479,7 +508,6 @@ IF SELECTCOM == 314
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -496,7 +524,7 @@ ENDIF
 IF SELECTCOM == 315
 	IF CFLAG:TARGET:220 == 0
 		CFLAG:TARGET:220 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
 		;--- 恋人 ---
@@ -508,7 +536,7 @@ IF SELECTCOM == 315
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 親密（ABL6以上） ---
+		;--- 親密 ---
 		ELSEIF ABL:TARGET:0 >= 6
 			IF A == 0
 				PRINTFORMW 「」
@@ -534,10 +562,9 @@ ENDIF
 IF SELECTCOM == 316
 	IF CFLAG:TARGET:217 == 0
 		CFLAG:TARGET:217 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -546,7 +573,6 @@ IF SELECTCOM == 316
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -563,7 +589,7 @@ ENDIF
 IF SELECTCOM == 320
 	IF CFLAG:TARGET:221 == 0
 		CFLAG:TARGET:221 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
 		;--- 恋人 ---
@@ -575,7 +601,7 @@ IF SELECTCOM == 320
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 親密（ABL6以上） ---
+		;--- 親密 ---
 		ELSEIF ABL:TARGET:0 >= 6
 			IF A == 0
 				PRINTFORMW 「」
@@ -601,7 +627,7 @@ ENDIF
 IF SELECTCOM == 321
 	IF CFLAG:TARGET:222 == 0
 		CFLAG:TARGET:222 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
 		;--- 恋人 ---
@@ -613,7 +639,7 @@ IF SELECTCOM == 321
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 親密（ABL6以上） ---
+		;--- 親密 ---
 		ELSEIF ABL:TARGET:0 >= 6
 			IF A == 0
 				PRINTFORMW 「」
@@ -639,10 +665,9 @@ ENDIF
 IF SELECTCOM == 322
 	IF CFLAG:TARGET:222 == 0
 		CFLAG:TARGET:222 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -651,7 +676,6 @@ IF SELECTCOM == 322
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -668,35 +692,45 @@ ENDIF
 IF SELECTCOM == 323
 	IF CFLAG:TARGET:217 == 0
 		CFLAG:TARGET:217 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 親密（ABL6以上） ---
-		ELSEIF ABL:TARGET:0 >= 6
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
-			ELSE
-				PRINTFORMW 「」
-			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 通常 ---
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -706,10 +740,9 @@ ENDIF
 IF SELECTCOM == 325
 	IF CFLAG:TARGET:225 == 0
 		CFLAG:TARGET:225 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -718,7 +751,6 @@ IF SELECTCOM == 325
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -732,33 +764,40 @@ IF SELECTCOM == 325
 ENDIF
 
 ;==============================================================
-; キス系（COM340-342）
-; 2ティア（恋人/通常）+ 初回 ※初回フラグはCFLAG:TARGET:229共有
+; キス系（COM340-342）成功/失敗分岐あり
 ;==============================================================
 ;--- COM340 バードキス ---
 IF SELECTCOM == 340
 	IF CFLAG:TARGET:229 == 0
 		CFLAG:TARGET:229 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -768,26 +807,34 @@ ENDIF
 IF SELECTCOM == 341
 	IF CFLAG:TARGET:229 == 0
 		CFLAG:TARGET:229 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -797,26 +844,34 @@ ENDIF
 IF SELECTCOM == 342
 	IF CFLAG:TARGET:229 == 0
 		CFLAG:TARGET:229 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -824,16 +879,14 @@ ENDIF
 
 ;==============================================================
 ; ウフフ系（COM360-381）
-; 2ティア（恋人/通常）+ 初回
 ;==============================================================
 ;--- COM360 胸愛撫 ---
 IF SELECTCOM == 360
 	IF CFLAG:TARGET:230 == 0
 		CFLAG:TARGET:230 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -842,7 +895,6 @@ IF SELECTCOM == 360
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -859,10 +911,9 @@ ENDIF
 IF SELECTCOM == 361
 	IF CFLAG:TARGET:231 == 0
 		CFLAG:TARGET:231 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -871,7 +922,6 @@ IF SELECTCOM == 361
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -888,10 +938,9 @@ ENDIF
 IF SELECTCOM == 362
 	IF CFLAG:TARGET:232 == 0
 		CFLAG:TARGET:232 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -900,7 +949,6 @@ IF SELECTCOM == 362
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -917,10 +965,9 @@ ENDIF
 IF SELECTCOM == 363
 	IF CFLAG:TARGET:233 == 0
 		CFLAG:TARGET:233 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -929,7 +976,6 @@ IF SELECTCOM == 363
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -946,10 +992,9 @@ ENDIF
 IF SELECTCOM == 364
 	IF CFLAG:TARGET:234 == 0
 		CFLAG:TARGET:234 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -958,7 +1003,6 @@ IF SELECTCOM == 364
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -975,10 +1019,9 @@ ENDIF
 IF SELECTCOM == 365
 	IF CFLAG:TARGET:235 == 0
 		CFLAG:TARGET:235 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -987,7 +1030,6 @@ IF SELECTCOM == 365
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1004,10 +1046,9 @@ ENDIF
 IF SELECTCOM == 366
 	IF CFLAG:TARGET:236 == 0
 		CFLAG:TARGET:236 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1016,7 +1057,6 @@ IF SELECTCOM == 366
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1033,10 +1073,9 @@ ENDIF
 IF SELECTCOM == 367
 	IF CFLAG:TARGET:237 == 0
 		CFLAG:TARGET:237 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1045,7 +1084,6 @@ IF SELECTCOM == 367
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1062,10 +1100,9 @@ ENDIF
 IF SELECTCOM == 368
 	IF CFLAG:TARGET:238 == 0
 		CFLAG:TARGET:238 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1074,7 +1111,6 @@ IF SELECTCOM == 368
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1091,10 +1127,9 @@ ENDIF
 IF SELECTCOM == 370
 	IF CFLAG:TARGET:239 == 0
 		CFLAG:TARGET:239 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1103,7 +1138,6 @@ IF SELECTCOM == 370
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1120,10 +1154,9 @@ ENDIF
 IF SELECTCOM == 371
 	IF CFLAG:TARGET:240 == 0
 		CFLAG:TARGET:240 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1132,7 +1165,6 @@ IF SELECTCOM == 371
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1149,10 +1181,9 @@ ENDIF
 IF SELECTCOM == 372
 	IF CFLAG:TARGET:241 == 0
 		CFLAG:TARGET:241 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1161,7 +1192,6 @@ IF SELECTCOM == 372
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1178,10 +1208,9 @@ ENDIF
 IF SELECTCOM == 373
 	IF CFLAG:TARGET:242 == 0
 		CFLAG:TARGET:242 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1190,7 +1219,6 @@ IF SELECTCOM == 373
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1207,10 +1235,9 @@ ENDIF
 IF SELECTCOM == 380
 	IF CFLAG:TARGET:243 == 0
 		CFLAG:TARGET:243 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1219,7 +1246,6 @@ IF SELECTCOM == 380
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1236,10 +1262,9 @@ ENDIF
 IF SELECTCOM == 381
 	IF CFLAG:TARGET:244 == 0
 		CFLAG:TARGET:244 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1248,7 +1273,6 @@ IF SELECTCOM == 381
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1268,10 +1292,9 @@ ENDIF
 IF SELECTCOM == 391
 	IF CFLAG:TARGET:245 == 0
 		CFLAG:TARGET:245 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1280,7 +1303,6 @@ IF SELECTCOM == 391
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1297,10 +1319,9 @@ ENDIF
 IF SELECTCOM == 392
 	IF CFLAG:TARGET:246 == 0
 		CFLAG:TARGET:246 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
 				PRINTFORMW 「」
@@ -1309,7 +1330,6 @@ IF SELECTCOM == 392
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 通常 ---
 		ELSE
 			IF A == 0
 				PRINTFORMW 「」
@@ -1326,7 +1346,7 @@ ENDIF
 IF SELECTCOM == 393
 	IF CFLAG:TARGET:247 == 0
 		CFLAG:TARGET:247 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
 		;--- 恋人 ---
@@ -1338,7 +1358,7 @@ IF SELECTCOM == 393
 			ELSE
 				PRINTFORMW 「」
 			ENDIF
-		;--- 親密（ABL6以上） ---
+		;--- 親密 ---
 		ELSEIF ABL:TARGET:0 >= 6
 			IF A == 0
 				PRINTFORMW 「」
@@ -1364,35 +1384,45 @@ ENDIF
 IF SELECTCOM == 399
 	IF CFLAG:TARGET:248 == 0
 		CFLAG:TARGET:248 = 1
-		PRINTFORMW 「」	;初回（関係が浅い段階）
+		PRINTFORMW 「」	;初回
 	ELSE
 		A = RAND:3
-		;--- 恋人 ---
-		IF TALENT:TARGET:153
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				PRINTFORMW 「」	;恋人・失敗
 			ELSE
-				PRINTFORMW 「」
+				PRINTFORMW 「」	;失敗
 			ENDIF
-		;--- 親密（ABL6以上） ---
-		ELSEIF ABL:TARGET:0 >= 6
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
-			ELSE
-				PRINTFORMW 「」
-			ENDIF
-		;--- 通常 ---
+		;--- 成功時 ---
 		ELSE
-			IF A == 0
-				PRINTFORMW 「」
-			ELSEIF A == 1
-				PRINTFORMW 「」
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
+			;--- 通常 ---
 			ELSE
-				PRINTFORMW 「」
+				IF A == 0
+					PRINTFORMW 「」
+				ELSEIF A == 1
+					PRINTFORMW 「」
+				ELSE
+					PRINTFORMW 「」
+				ENDIF
 			ENDIF
 		ENDIF
 	ENDIF
@@ -1400,7 +1430,6 @@ ENDIF
 
 ;==============================================================
 ; 口上独自ウフフ（COM280-284）/ 口上独自純愛（COM410-414）
-; ※CSTRで定義したキャラ固有コマンド
 ;==============================================================
 ;--- COM280-284 独自ウフフ ---
 IF SELECTCOM >= 280 && SELECTCOM <= 284
@@ -1421,12 +1450,11 @@ IF SELECTCOM >= 410 && SELECTCOM <= 414
 ENDIF
 
 ;==============================================================
-; えっち系・よく使うコマンド（2ティア 恋人/通常）
+; えっち系・よく使うコマンド（恋人/通常 各RAND:3）
 ;==============================================================
 ;--- COM0 愛撫 ---
 IF SELECTCOM == 0
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1435,7 +1463,6 @@ IF SELECTCOM == 0
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1450,7 +1477,6 @@ ENDIF
 ;--- COM1 クンニ ---
 IF SELECTCOM == 1
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1459,7 +1485,6 @@ IF SELECTCOM == 1
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1474,7 +1499,6 @@ ENDIF
 ;--- COM2 アナル愛撫 ---
 IF SELECTCOM == 2
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1483,7 +1507,6 @@ IF SELECTCOM == 2
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1498,7 +1521,6 @@ ENDIF
 ;--- COM5 胸愛撫 ---
 IF SELECTCOM == 5
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1507,7 +1529,6 @@ IF SELECTCOM == 5
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1522,7 +1543,6 @@ ENDIF
 ;--- COM6 キスする ---
 IF SELECTCOM == 6
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1531,7 +1551,6 @@ IF SELECTCOM == 6
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1546,7 +1565,6 @@ ENDIF
 ;--- COM20 正常位 ---
 IF SELECTCOM == 20
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1555,7 +1573,6 @@ IF SELECTCOM == 20
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1570,7 +1587,6 @@ ENDIF
 ;--- COM21 後背位 ---
 IF SELECTCOM == 21
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1579,7 +1595,6 @@ IF SELECTCOM == 21
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1594,7 +1609,6 @@ ENDIF
 ;--- COM22 アナルセックス ---
 IF SELECTCOM == 22
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1603,7 +1617,6 @@ IF SELECTCOM == 22
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1618,7 +1631,6 @@ ENDIF
 ;--- COM23 逆レイプ ---
 IF SELECTCOM == 23
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1627,7 +1639,6 @@ IF SELECTCOM == 23
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1642,7 +1653,6 @@ ENDIF
 ;--- COM24 対面座位 ---
 IF SELECTCOM == 24
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1651,7 +1661,6 @@ IF SELECTCOM == 24
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1666,7 +1675,6 @@ ENDIF
 ;--- COM25 背面座位 ---
 IF SELECTCOM == 25
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1675,7 +1683,6 @@ IF SELECTCOM == 25
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1690,7 +1697,6 @@ ENDIF
 ;--- COM30 手淫 ---
 IF SELECTCOM == 30
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1699,7 +1705,6 @@ IF SELECTCOM == 30
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1714,7 +1719,6 @@ ENDIF
 ;--- COM31 フェラチオ ---
 IF SELECTCOM == 31
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1723,7 +1727,6 @@ IF SELECTCOM == 31
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1738,7 +1741,6 @@ ENDIF
 ;--- COM32 パイズリ ---
 IF SELECTCOM == 32
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1747,7 +1749,6 @@ IF SELECTCOM == 32
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1762,7 +1763,6 @@ ENDIF
 ;--- COM33 素股 ---
 IF SELECTCOM == 33
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1771,7 +1771,6 @@ IF SELECTCOM == 33
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1786,7 +1785,6 @@ ENDIF
 ;--- COM34 騎乗位 ---
 IF SELECTCOM == 34
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1795,7 +1793,6 @@ IF SELECTCOM == 34
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1810,7 +1807,6 @@ ENDIF
 ;--- COM36 騎乗位アナル ---
 IF SELECTCOM == 36
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1819,7 +1815,6 @@ IF SELECTCOM == 36
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1834,7 +1829,6 @@ ENDIF
 ;--- COM40 スパンキング ---
 IF SELECTCOM == 40
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1843,7 +1837,6 @@ IF SELECTCOM == 40
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1858,7 +1851,6 @@ ENDIF
 ;--- COM41 鞭 ---
 IF SELECTCOM == 41
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1867,7 +1859,6 @@ IF SELECTCOM == 41
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1882,7 +1873,6 @@ ENDIF
 ;--- COM44 縄 ---
 IF SELECTCOM == 44
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1891,7 +1881,6 @@ IF SELECTCOM == 44
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1906,7 +1895,6 @@ ENDIF
 ;--- COM50 ローション ---
 IF SELECTCOM == 50
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1915,7 +1903,6 @@ IF SELECTCOM == 50
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1930,7 +1917,6 @@ ENDIF
 ;--- COM51 媚薬 ---
 IF SELECTCOM == 51
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1939,7 +1925,6 @@ IF SELECTCOM == 51
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1954,7 +1939,6 @@ ENDIF
 ;--- COM52 利尿剤 ---
 IF SELECTCOM == 52
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1963,7 +1947,6 @@ IF SELECTCOM == 52
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -1978,7 +1961,6 @@ ENDIF
 ;--- COM120 キス正常位 ---
 IF SELECTCOM == 120
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -1987,7 +1969,6 @@ IF SELECTCOM == 120
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2002,7 +1983,6 @@ ENDIF
 ;--- COM121 キス後背位 ---
 IF SELECTCOM == 121
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2011,7 +1991,6 @@ IF SELECTCOM == 121
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2026,7 +2005,6 @@ ENDIF
 ;--- COM122 キス対面座位 ---
 IF SELECTCOM == 122
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2035,7 +2013,6 @@ IF SELECTCOM == 122
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2050,7 +2027,6 @@ ENDIF
 ;--- COM123 キス背面座位 ---
 IF SELECTCOM == 123
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2059,7 +2035,6 @@ IF SELECTCOM == 123
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2074,7 +2049,6 @@ ENDIF
 ;--- COM124 キス騎乗位 ---
 IF SELECTCOM == 124
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2083,7 +2057,6 @@ IF SELECTCOM == 124
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2098,7 +2071,6 @@ ENDIF
 ;--- COM190 優しくする ---
 IF SELECTCOM == 190
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2107,7 +2079,6 @@ IF SELECTCOM == 190
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2122,7 +2093,6 @@ ENDIF
 ;--- COM191 手淫する ---
 IF SELECTCOM == 191
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2131,7 +2101,6 @@ IF SELECTCOM == 191
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2146,7 +2115,6 @@ ENDIF
 ;--- COM192 パイズリする ---
 IF SELECTCOM == 192
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2155,7 +2123,6 @@ IF SELECTCOM == 192
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2170,7 +2137,6 @@ ENDIF
 ;--- COM193 正常位させる ---
 IF SELECTCOM == 193
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2179,7 +2145,6 @@ IF SELECTCOM == 193
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2194,7 +2159,6 @@ ENDIF
 ;--- COM194 後背位させる ---
 IF SELECTCOM == 194
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2203,7 +2167,6 @@ IF SELECTCOM == 194
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2218,7 +2181,6 @@ ENDIF
 ;--- COM195 騎乗位する ---
 IF SELECTCOM == 195
 	A = RAND:3
-	;--- 恋人 ---
 	IF TALENT:TARGET:153
 		IF A == 0
 			PRINTFORMW 「」
@@ -2227,7 +2189,6 @@ IF SELECTCOM == 195
 		ELSE
 			PRINTFORMW 「」
 		ENDIF
-	;--- 通常 ---
 	ELSE
 		IF A == 0
 			PRINTFORMW 「」
@@ -2240,7 +2201,7 @@ IF SELECTCOM == 195
 ENDIF
 
 ;==============================================================
-; その他コマンド（RAND:3）
+; その他コマンド（恋人/通常 各1行）
 ;==============================================================
 ;--- COM3 自慰 ---
 IF SELECTCOM == 3
@@ -2790,8 +2751,5 @@ IF SELECTCOM == 390
 		PRINTFORMW 「」	;通常
 	ENDIF
 ENDIF
-
-;--- REVMODE系 ---
-;--- COM500+ REVMODE用（必要時に追加） ---
 
 RETURN 0
