@@ -49,9 +49,31 @@ IF TIME:1 == 61 && FLAG:51 != DAY:3 && TIME == 0
 	RETURN 1
 ENDIF
 
-;--- 学力コンテスト（冬1月 Day10、TIME:1=62） ---
+;--- クイズ選手権（冬1月 Day10、TIME:1=62） ---
 ;授業時間(TIME==0)に発動
 IF TIME:1 == 62 && FLAG:54 != DAY:3 && TIME == 0
+	PRINTL
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　　　　今日はクイズ選手権の日です！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTL
+	CALL SELECT_EVENT_PARTNER, 98
+	IF RESULT == 0
+		PRINTFORMW クイズ選手権は見学するだけになった。
+		FLAG:54 = DAY:3
+	ELSE
+		A = RESULT
+		CALL SETUP_EVENT_TARGET, A
+		CALL KNOWLEDGE_CONTEST
+		CALL RESTORE_EVENT_TARGET
+	ENDIF
+	BEGIN TURNEND
+	RETURN 1
+ENDIF
+
+;--- 学力コンテスト（夏7月 Day10、TIME:1=63） ---
+;授業時間(TIME==0)に発動
+IF TIME:1 == 63 && FLAG:117 != DAY:3 && TIME == 0
 	PRINTL
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTFORML 　　　　今日は学力コンテストの日です！
@@ -60,11 +82,11 @@ IF TIME:1 == 62 && FLAG:54 != DAY:3 && TIME == 0
 	CALL SELECT_EVENT_PARTNER, 98
 	IF RESULT == 0
 		PRINTFORMW 学力コンテストは見学するだけになった。
-		FLAG:54 = DAY:3
+		FLAG:117 = DAY:3
 	ELSE
 		A = RESULT
 		CALL SETUP_EVENT_TARGET, A
-		CALL KNOWLEDGE_CONTEST
+		CALL ACADEMIC_CONTEST
 		CALL RESTORE_EVENT_TARGET
 	ENDIF
 	BEGIN TURNEND
@@ -321,11 +343,11 @@ RETURN 1
 ;---------------------------------------------------------
 @KNOWLEDGE_CONTEST
 DRAWLINE
-PRINTFORML 【学力コンテスト】
+PRINTFORML 【クイズ選手権】
 PRINTL
 
 IF FLAG:54 == DAY:3
-	PRINTFORMW 今年の学力コンテストはすでに終わりました。来年また頑張ろう。
+	PRINTFORMW 今年のクイズ選手権はすでに終わりました。来年また頑張ろう。
 	RETURN 0
 ENDIF
 
@@ -334,8 +356,8 @@ IF TARGET < 0
 	RETURN 0
 ENDIF
 
-PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%はペアを組んで学力コンテストに挑む！
-PRINTFORML 知識技能と知識素質が高いほど良い成績が出る。
+PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%はペアを組んでクイズ選手権に挑む！
+PRINTFORML 知識技能と知識素質が高いほど良い成績が出る。幅広い知識が問われる！
 PRINTL
 
 ;--- スコア計算 ---
@@ -421,6 +443,113 @@ WAIT
 
 
 FLAG:54 = DAY:3
+RETURN 1
+
+;---------------------------------------------------------
+;学力コンテスト（夏7月 Day10）
+;---------------------------------------------------------
+@ACADEMIC_CONTEST
+DRAWLINE
+PRINTFORML 【学力コンテスト】
+PRINTL
+
+IF FLAG:117 == DAY:3
+	PRINTFORMW 今年の学力コンテストはすでに終わりました。来年また頑張ろう。
+	RETURN 0
+ENDIF
+
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%はペアを組んで学力コンテストに挑む！
+PRINTFORML 学力と学力素質が高いほど良い成績が出る。日頃の勉強の成果が問われる！
+PRINTL
+
+;--- スコア計算 ---
+;主人公: 学力 + 学力素質/2 + RAND:15
+LOCAL:0 = ABL:MASTER:88 + ABL:MASTER:98 / 2 + RAND:15
+;パートナー: 学力 + 学力素質/2 + RAND:10
+LOCAL:1 = ABL:TARGET:88 + ABL:TARGET:98 / 2 + RAND:10
+;知識部パートナーボーナス
+IF CFLAG:TARGET:25 == 3
+	LOCAL:1 += 15
+	PRINTFORML ★%CALLNAME:TARGET%は知識部！試験問題を見事に解き切った！
+ENDIF
+LOCAL:2 = LOCAL:0 + LOCAL:1
+
+PRINTFORML ─────────────────────
+PRINTFORML あなたのスコア     : {LOCAL:0}点
+PRINTFORML %CALLNAME:TARGET%のスコア: {LOCAL:1}点
+PRINTFORML ペア合計スコア     : {LOCAL:2}点
+PRINTFORML ─────────────────────
+WAIT
+
+;--- ランク判定 ---
+;1位閾値 = 300 + 優勝回数×30（FLAG:118で管理）
+	LOCAL:3 = 300 + FLAG:118 * 30
+	LOCAL:4 = 220 + FLAG:118 * 22
+	LOCAL:5 = 140 + FLAG:118 * 14
+	PRINTFORML （1位:{LOCAL:3}点　2位:{LOCAL:4}点　3位:{LOCAL:5}点）
+DRAWLINE
+IF LOCAL:2 >= LOCAL:3
+	PRINTFORML 　　　★★★ 優勝！！★★★
+	PRINTFORML 会場に割れんばかりの拍手が響く。
+	PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は互いにハイタッチした。
+	PRINTL
+	CFLAG:TARGET:2 += 300
+	ABL:MASTER:98 += 5
+	SIF ABL:MASTER:98 > 100
+		ABL:MASTER:98 = 100
+	FLAG:118 = FLAG:118 + 1
+	FLAG:116 += 5
+	ITEM:93 += 3
+	ITEM:91 += 3
+	FLAG:112 += 10
+	PRINTFORML 好感度 +300　学力素質 +5　プラチナチケット×5　パフェ×3　カレー×3　ダイヤ×10
+	ELSEIF LOCAL:2 >= LOCAL:4
+	PRINTFORML 　　　準優勝！
+	PRINTFORML 惜しくも2位。でも堂々たる結果だった。
+	PRINTFORML %CALLNAME:TARGET%は「次は絶対1位を取ろう」と力強く言った。
+	PRINTL
+	CFLAG:TARGET:2 += 100
+	ABL:MASTER:98 += 3
+	SIF ABL:MASTER:98 > 100
+		ABL:MASTER:98 = 100
+	FLAG:116 += 1
+	ITEM:93 += 2
+	ITEM:91 += 2
+	FLAG:112 += 5
+	PRINTFORML 好感度 +100　学力素質 +3　プラチナチケット×1　パフェ×2　カレー×2　ダイヤ×5
+	ELSEIF LOCAL:2 >= LOCAL:5
+	PRINTFORML 　　　3位入賞！
+	PRINTFORML 表彰状をもらった。%CALLNAME:TARGET%と一緒に記念写真を撮った。
+	PRINTL
+	CFLAG:TARGET:2 += 50
+	ABL:MASTER:98 += 1
+	SIF ABL:MASTER:98 > 100
+		ABL:MASTER:98 = 100
+	FLAG:115 += 5
+	ITEM:93 += 1
+	ITEM:91 += 1
+	FLAG:112 += 3
+	PRINTFORML 好感度 +50　学力素質 +1　ゴールドチケット×5　パフェ×1　カレー×1　ダイヤ×3
+ELSE
+	PRINTFORML 　　　参加賞
+	PRINTFORML 今回は実力を出し切れなかった。
+	PRINTFORML でも%CALLNAME:TARGET%は「一緒に挑めてよかった」と笑ってくれた。
+	PRINTL
+	ITEM:92 += 1
+	PRINTFORML ドーナツ×1
+ENDIF
+
+PRINTL
+TRYCALLFORM CHAR_ACADEMIC_CONTEST_{NO:TARGET}
+WAIT
+
+
+FLAG:117 = DAY:3
 RETURN 1
 
 ;---------------------------------------------------------
