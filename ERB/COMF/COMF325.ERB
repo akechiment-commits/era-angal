@@ -321,10 +321,6 @@ ENDIF
 ;回復処理
 CALL HEALING_COM325
 
-;色々な素質変動イベント(あなた様が助手且つ恋慕、失敗時のみ)
-SIF TFLAG:17 == 3 && TFLAG:18 == -1
-	CALL REIMUSAMA_EVENT_COM325
-
 ;地の文
 CALL TRAIN_MESSAGE_B
 
@@ -576,38 +572,8 @@ ELSEIF TFLAG:17 == 3
 		PRINTW ……どうやらこれは覚悟を決めねばならないようだ
 		PRINTFORML 暫し二人でお茶らしきモノを睨んでいたが、呼吸を整えると意を決して飲み込んだ
 		PRINTL 
-		;改行多いわ…クリックも多いわ…三点リーダーも多いわ…
-		;両者不死者
-		IF TALENT:128 && TALENT:MASTER:128
-			PRINTW 見た目に反して何とも無かったようだ……？
-			PRINTL 
-			PRINTW 何かがおかしい……急に身体が重くなり、悪寒が止まらない…
-			PRINTFORMW 見れば%CALLNAME:TARGET%も小刻みに震えている
-			PRINTL 
-			PRINTFORMW 酷い倦怠感に%CALLNAME:MASTER%と%CALLNAME:TARGET%は徐々に動けなくなり、遂に意識を失った…
-			PRINTL 
-		;パートナーが不死者
-		ELSEIF TALENT:MASTER:128 == 0 && TALENT:128
-			PRINTL 飲んで暫くすると全身を稲妻が駆け抜けたような衝撃に襲われ
-			PRINTFORMW %CALLNAME:MASTER%は意識を手放した
-			PRINTL 
-			PRINTFORMW %CALLNAME:TARGET%が小刻みに震えていた事が気になる……
-			PRINTL 
-		;主人公が不死者
-		ELSEIF TALENT:128 == 0 && TALENT:MASTER:128
-			PRINTW 見た目に反して何とも無かったようだ……？
-			PRINTL 
-			PRINTFORML 暫くすると%CALLNAME:TARGET%が短い悲鳴と共にぱたりと倒れ込んだ
-			PRINTFORMW %CALLNAME:ASSI%に詰め寄ろうとするが……何かがおかしい
-			PRINTW 急に身体が重くなり、悪寒が止まらない…
-			PRINTL 
-			PRINTFORMW 酷い倦怠感に%CALLNAME:MASTER%は徐々に動けなくなり、遂に意識を失った…
-			PRINTL 
-		;それ以外
-		ELSE
-			PRINTL 飲んで暫くすると全身を稲妻が駆け抜けたような衝撃に襲われ、
-			PRINTFORMW %CALLNAME:MASTER%と%CALLNAME:TARGET%は意識を手放した…
-		ENDIF
+		PRINTL 飲んで暫くすると全身を稲妻が駆け抜けたような衝撃に襲われ、
+		PRINTFORMW %CALLNAME:MASTER%と%CALLNAME:TARGET%は意識を手放した…
 		CALL TRAIN_MESSAGE_COM325B
 	;成功
 	ELSEIF TFLAG:18 == 0
@@ -791,131 +757,6 @@ ELSE
 ENDIF
 
 RETURN 0
-
-;------------------------------
-;此処だけややこしい事しているので分割
-;不死者が消えるって不死になってないな……と言う事でコメントアウト(使いたい方は個別で御利用くださいまし)
-;助手はあなた様のみ。被害者は主人、パートナーのみに限定
-;使用変数:A、G、K
-;------------------------------
-@REIMUSAMA_EVENT_COM325
-;不死者消去有無を記録
-G = 0
-;主人、パートナーが不死者の場合は素質変動
-;IF TALENT:128 || TALENT:MASTER:128
-;	;直後に戻ったりもするけど、そこのフラグ弄るのはやりすぎなので自重
-;	IF TALENT:MASTER:128
-;		PRINTFORM %CALLNAME:MASTER%
-;		SIF TALENT:128
-;			PRINTFORM と
-;	ENDIF
-;	SIF TALENT:128
-;		PRINTFORM %CALLNAME:TARGET%
-;	PRINTFORM は【%TALENTNAME:128%】ではなくなった…
-;ENDIF
-
-;主人公が不死者の場合、謎の魅力と、回復早いも消去
-IF TALENT:MASTER:128
-;	TALENT:MASTER:128 = 0
-;	IF TALENT:MASTER:92
-;		TALENT:MASTER:92 = 0
-;		PRINTFORMW %CALLNAME:MASTER%は【%TALENTNAME:92%】を失った…
-;	ENDIF
-;	IF TALENT:MASTER:111
-;		TALENT:MASTER:111 = 0
-;		PRINTFORMW %CALLNAME:MASTER%は【%TALENTNAME:111%】を失った…
-;	ENDIF
-	G = 1
-	A += 1
-ENDIF
-
-;パートナーが不死者の場合は素質変動(主人はソース取得に関係なし)
-;固定で獲得するソース
-IF TALENT:128
-;	TALENT:128 = 0
-	SOURCE:14 = 3000
-	SOURCE:23 += 50000
-ELSE
-	SOURCE:6 = 20000
-	SOURCE:14 = 500
-ENDIF
-
-;ビデオカメラがなければ、テープがあっても不可
-SIF ITEM:6
-	K = ITEM:28
-
-;しかしそれは巧妙な罠だった
-;あなた様が挿入可能部位を持っている場合、ｱｯｰｰｰｰｰ!!(肉棒、角、ペニスバンド)…角持つ可能性ありませんが一応判定
-IF TALENT:ASSI:121 || TALENT:ASSI:122 || TALENT:ASSI:119 || ITEM:4 == 1
-	;縄があれば緊縛経験、異常経験を＋
-	IF ITEM:14
-		A += 1
-		EXP:MASTER:51 += 5
-	ENDIF
-	;A、絶頂、苦痛快楽、放尿経験、異常経験を＋(A挿入、放尿で1ずつ)
-	A += 2
-	EXP:MASTER:1 += 10
-	EXP:MASTER:2 += 10
-	EXP:MASTER:30 += 50
-	EXP:MASTER:31 += 10
-
-	;あなた様がふたなり、オトコだと射精
-	IF TALENT:ASSI:121 || TALENT:ASSI:122
-		EXP:ASSI:3 += 20
-		EXP:MASTER:20 += 20
-	ELSE
-		EXP:ASSI:2 += 10
-	ENDIF
-	;主人公がふたなり、オトコだと射精
-	IF TALENT:MASTER:121 || TALENT:MASTER:122
-		EXP:MASTER:3 += 20
-		EXP:ASSI:20 += 20
-	ELSE
-		EXP:MASTER:2 += 10
-	ENDIF
-
-	;ビデオテープ、カメラがある場合、撮影開始
-	IF K > 0
-		;消費量は最大で10
-		SIF K >= 10
-			K = 10
-		A += 1
-		;テープの消費と経験の増加
-		ITEM:28 -= K
-		EXP:ASSI:91 += K
-		EXP:MASTER:92 += K
-
-		;弱味ゲット(相手は身に覚えがない事なので弱味にはならない)
-;		IF TALENT:37 == 0
-;			TALENT:37 = 1
-;		PRINTFORML %CALLNAME:ASSI%は%CALLNAME:TARGET%の【%TALENTNAME:37%】を得た
-;		ENDIF
-	ENDIF
-
-	;あなた様のサドっ気変動
-	IF ABL:ASSI:15 <= 4
-		ABL:ASSI:15 = 5
-	ELSEIF ABL:ASSI:15 < 15
-		ABL:ASSI:15 += 1
-	ENDIF
-ENDIF
-;異常経験取得あり
-IF A > 0
-	EXP:MASTER:50 += A
-ENDIF
-;;パートナーの不死者を消去
-;IF TALENT:128
-;	TALENT:128 = 0
-;	PRINTL 
-;	EXP:MASTER:50 += 1
-;	PRINTFORML %EXPNAME:50%+1 (%CALLNAME:TARGET%)
-;ENDIF
-;コレが無いとオチがつかないので、所持品関係なし。←気絶させた上での暴挙なので必要ないと判断
-;EXP:TARGET:98 += 1
-;PRINTFORML %EXPNAME:98%＋1 (%CALLNAME:TARGET%)
-
-RETURN 0
-
 ;-------------------------------------------------
 ;固有の実行判定
 ;-------------------------------------------------

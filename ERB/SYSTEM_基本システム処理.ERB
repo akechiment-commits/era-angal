@@ -242,85 +242,6 @@ ENDIF
 
 @EVENTCOMEND
 #PRI
-IF BASE:0 <= 0 && TALENT:128
-	PRINTW ＜リザレクション＞
-	EXP:50 += 3
-	PRINTL 異常経験＋３
-	BASE:0 = 1
-	IF MARK:4 <= 1
-		MARK:3 = 2
-		MARK:4 = 2
-		TFLAG:21 = 2
-		PRINTL 反発感情LV2を取得
-		;感情乏しいの場合は反発感情による従順ダウンはなし
-		IF ABL:0 > 0 && ABL:0 <= 3 && TALENT:22 == 0
-			ABL:0 -= 2
-			SIF ABL:0 < 0
-				ABL:0 = 0
-			PRINTFORML そして親密がLV{ABL:0}に下がった
-		ELSEIF ABL:0 <= 6 && TALENT:22 == 0
-			ABL:0 -= 2
-			SIF ABL:0 < 0
-				ABL:0 = 0
-			PRINTFORML そして親密がLV{ABL:0}に下がった
-		ELSE
-			WAIT
-		ENDIF
-	ENDIF
-	PRINTFORMW （体力が限界に来ています。%CALLNAME:MASTER%は%CALLNAME:TARGET%にゆっくり休むよう伝えてから、一旦別れました）
-	BEGIN AFTERTRAIN
-ELSEIF BASE:0 <= 0
-	BASE:0 = 1
-	IF MARK:4 <= 2
-		MARK:3 = 3
-		MARK:4 = 3
-		TFLAG:21 = 3
-		PRINTL 反発感情LV3を取得
-		;感情乏しいの場合は反発感情による従順ダウンはなし
-		IF ABL:0 > 0 && ABL:0 <= 6 && TALENT:22 == 0
-			ABL:0 -= 4
-			SIF ABL:0 < 0
-				ABL:0 = 0
-			PRINTFORML そして親密がLV{ABL:0}に下がった
-		ELSEIF ABL:0 > 0 && ABL:0 <= 9 && TALENT:22 == 0
-			ABL:0 -= 2
-			SIF ABL:0 < 0
-				ABL:0 = 0
-			PRINTFORML そして親密がLV{ABL:0}に下がった
-		ENDIF
-	ENDIF
-
-	PRINTFORMW （%CALLNAME:TARGET%は疲れ果てて気絶してしまった。%CALLNAME:MASTER%は%CALLNAME:TARGET%を寝床まで運び、一旦別れました）
-	IF ABL:0 > 0 && TALENT:153 == 0
-		ABL:0 -= 1
-		PRINTFORML %CALLNAME:TARGET%の親密が１下がった
-	ENDIF
-	BEGIN AFTERTRAIN
-ELSEIF BASE:0 < 500
-	PRINTFORMW （体力が限界に来ています。%CALLNAME:MASTER%は%CALLNAME:TARGET%にゆっくり休むよう伝えてから、一旦別れました）
-	BEGIN AFTERTRAIN
-ELSEIF TFLAG:44 == 0 && BASE:1 <= 300 && CFLAG:27
-	PRINTFORMW （%CALLNAME:TARGET%は何か用事があるようです。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
-	BEGIN AFTERTRAIN
-ELSEIF TFLAG:44 == 0 && BASE:1 <= 0
-	;襲われ判定
-	;IF ASSIPLAY == 0 && (ABL:1 >= 7 || PALAM:3 >= 3000 || PALAM:5 >= 3000 || CFLAG:2 >= 10000)
-	;	CALL PUSH_OVER
-	;	SIF RESULT
-	;		RETURN 1
-	;ENDIF
-
-	IF TIME == 0
-		IF DAY:5 <= 4
-			PRINTFORMW （授業が終わりました。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
-		ELSE
-			PRINTFORMW （そろそろ夕方です。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
-		ENDIF
-	ELSE
-		PRINTFORMW （そろそろ眠る時間です。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
-	ENDIF
-	BEGIN AFTERTRAIN
-ENDIF
 
 
 @EVENTTURNEND
@@ -489,22 +410,16 @@ REPEAT CHARANUM
 		ENDIF
 	ENDIF
 
-	;回復早い、回復遅い、吸血鬼、不死者
-	IF TALENT:COUNT:128
-		A *= 3
-		B *= 3
-	ELSEIF TALENT:COUNT:111 || (TALENT:COUNT:114 && TALENT:COUNT:218 == 0)
+	;回復早い、回復遅い
+	IF TALENT:COUNT:111
 		A *= 2
 		B *= 2
-	ELSEIF TALENT:COUNT:114 && TALENT:COUNT:218
-		TIMES A , 1.5
-		TIMES B , 1.5
 	ELSEIF TALENT:COUNT:112
 		A /= 2
 		B /= 2
 	ENDIF
 	
-	;日光浴、月光浴、吸血鬼
+	;日光浴、月光浴
 	IF TIME == 0
 		IF TALENT:COUNT:115 && TIME:5 == 1
 			A += 400
@@ -514,20 +429,12 @@ REPEAT CHARANUM
 			B += 200
 		ENDIF
 	ELSE
-		IF (TALENT:COUNT:114 || TALENT:COUNT:116) && TIME:5 == 1
+		IF TALENT:COUNT:116 && TIME:5 == 1
 			A += 400
 			B += 400
-			IF TALENT:COUNT:114 && TALENT:COUNT:218
-				A -= 200
-				B -= 200
-			ENDIF
-		ELSEIF (TALENT:COUNT:114 || TALENT:COUNT:116) && TIME:5 == 0
+		ELSEIF TALENT:COUNT:116 && TIME:5 == 0
 			A += 200
 			B += 200
-			IF TALENT:COUNT:114 && TALENT:COUNT:218
-				A -= 100
-				B -= 100
-			ENDIF
 		ENDIF
 	ENDIF
 
@@ -831,12 +738,8 @@ MONEY += LOCAL:1
 SIF LOCAL:1 > 0
 	PRINTFORML バイトで${LOCAL:1}入手しました
 
-;キャラ独自イベント
-TRYCALL SANAESAMA_EVENT
 ;恋慕等取得
 CALL EVENTCHECK_M
-;吸血鬼化チェック
-CALL EVENTCHECK_V
 ;体力回復計算に使う休憩フラグを初期化
 FLAG:0 = 0
 
