@@ -1,6 +1,6 @@
 # eraあんガル 技術改造計画書
 
-最終更新：2026-04-17（J-20 東方遺物素質・吸血鬼メカニクス完全削除）
+最終更新：2026-04-15（特殊能力選択廃止 GET_FEAT系デッドコード削除）
 
 ---
 
@@ -349,37 +349,6 @@ HTML_PRINT LOCALS
 - SR: シアン色 + "★★★★ SR ！！！"
 - UR以上は常にWAIT（10連中も止まる）; SR以下は10連中スキップ
 - `ERB/GACHA_ガチャシステム.ERB` (@GACHA_ACQUIRE_CARD) を更新
-
-### J-20: 東方遺物素質・吸血鬼メカニクスの完全削除 ✅ 完了（2026-04-17）
-
-過去Claudeセッションがデッドコード化に留めていた東方由来の素質と吸血鬼システムを**完全削除**（単なるコメントアウトではなく行自体を除去）。
-
-**削除した素質（Talent.csv / _Rename.csv 行削除）**:
-90 妖狐, 93 狐, 119 半人半妖, 120 不思議な根, 127 具現, 128 蓬莱人, 129 狂気の目,
-201 あなた様補正, 213 羽, 214 角, 215 しっぽ, 216 奇跡,
-114 吸血鬼, 218 眷属
-
-**削除したファイル**:
-- `ERB/SANAESAMA_EVENT_東方固有イベント（未使用）.ERB`（384行・全削除）
-- `ERB/EVENT_V_ビデオイベント.ERB`（158行・吸血鬼化処理全削除）
-
-**主要な構造変更**:
-- `SYSTEM_基本システム処理.ERB`: 休憩回復計算から TALENT:128/114/218 分岐除去。@EVENTCOMEND の蓬莱人蘇生ブロックと吸血鬼化チェックCALL削除
-- `ADDIN-FUNC_追加関数ライブラリ.ERB`: GET_STRAINCORRECT/GET_STRAINCORR_VALUE を簡素化（種族補正はハクタク化のみ）
-- `CONFIG_EX_設定拡張.ERB`: ヴァンパイア化機能トグル削除（TSTR:1/101/201 空欄化、@CONFIGURE_62_ON_1 削除）
-- `COMF325.ERB`: 蓬莱人4分岐を統合、REIMUSAMA_EVENT_COM325削除（125行）
-- `TRACHECK_調教チェック.ERB`: あなた様補正式（TALENT:201倍率）を全面除去
-- `TREASURE_宝物システム.ERB`: TALENT:213/215（羽・しっぽ）取得分岐削除
-- 11ファイルのTALENT:119参照を正規表現で除去
-- `DAILY_LIFE_日常生活イベント.ERB` / `COMABLE.ERB` / `COMF18.ERB` / `COMF197.ERB` / `COMF257.ERB` / `COMF310.ERB` / `COMF315.ERB` / `FAKETION_フェイク関数.ERB` 等の吸血鬼分岐除去
-
-**保護対象（削除せず）**:
-- `CSV/Card.csv` L511: `511,[吸血鬼]鶴海ひまり` ← コスプレカード名
-- `ERB/CARD_DATA_カードデータ定義.ERB` L3090: 同上
-
-**検証**:
-- 吸血鬼・ヴァンパイア・眷属・TALENT:114/218・TURN_TO_VAMPIRE・EVENTCHECK_V・EXP57_CHECK 全ゼロ残存（コスプレカード2件のみ残置）
-- 全変更ERBファイルでIF/ENDIF/SELECTCASE/FOR/REPEAT バランス検証済み
 
 ---
 
