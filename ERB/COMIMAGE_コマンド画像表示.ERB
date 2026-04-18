@@ -1,12 +1,6 @@
 ;---------------------------------------------------------
 ; コマンド実行時画像表示システム
 ;---------------------------------------------------------
-
-;---------------------------------------------------------
-; @SHOW_COM_IMAGE
-; コマンド実行時に対象キャラの顔グラを表示
-; 画像: resources/face_{charanum2桁}.png
-;---------------------------------------------------------
 @SHOW_COM_IMAGE
 SIF TARGET < 0
 	RETURN 0
@@ -14,30 +8,40 @@ A = NO:TARGET
 SIF A <= 0 || A > 71
 	RETURN 0
 
-; パス: resources/ 内のファイル名のみ (flag なし = resources/ 相対)
 LOCALS = "face_"
 IF A < 10
 	LOCALS += "0"
 ENDIF
 LOCALS += TOSTR(A) + ".png"
 
-; ロード (GCREATEFROMFILE は2引数・resources/相対パス)
+; 既存スプライト解放
 SPRITEDISPOSE "face_img"
-GCREATEFROMFILE 0, LOCALS
-SIF RESULT == 0
-	RETURN 0
 
-; スプライト作成 → HTML描画
-SPRITECREATE "face_img", 0, 0, 0, GWIDTH(0), GHEIGHT(0)
-HTML_PRINT "<img src='face_img' height='150px'>", 1
-REPEAT 10
-	PRINTL
-REND
+; 試行1: resources/ 相対パス (EmueraEE デフォルト)
+GCREATEFROMFILE 0, LOCALS
+IF GCREATED(0)
+	SPRITECREATE "face_img", 0, 0, 0, GWIDTH(0), GHEIGHT(0)
+	HTML_PRINT "<img src='face_img' height='150px'>", 1
+	REPEAT 10
+		PRINTL
+	REND
+	RETURN 0
+ENDIF
+
+; 試行2: exe 相対パス (resources/ プレフィックス付き)
+GCREATEFROMFILE 1, "resources/" + LOCALS, 1
+IF GCREATED(1)
+	SPRITECREATE "face_img", 1, 0, 0, GWIDTH(1), GHEIGHT(1)
+	HTML_PRINT "<img src='face_img' height='150px'>", 1
+	REPEAT 10
+		PRINTL
+	REND
+	RETURN 0
+ENDIF
+
+; 両方失敗: 診断表示
+PRINTFORML [画像NG: %LOCALS%]
 RETURN 0
 
-;---------------------------------------------------------
-; @HAS_COMIMG
-; コマンド固有画像の有無（将来実装用）
-;---------------------------------------------------------
 @HAS_COMIMG
 RETURN 0
