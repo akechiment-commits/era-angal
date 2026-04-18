@@ -12,7 +12,7 @@
 ;---------------------------------------------------------
 ; @SHOW_COM_IMAGE
 ; コマンド実行時に対象キャラの画像を表示
-; コマンド固有画像があればそれを、なければ顔グラを表示
+; 画像が存在する場合のみ出力（存在確認失敗時は何もしない）
 ;---------------------------------------------------------
 @SHOW_COM_IMAGE
 SIF TARGET < 0
@@ -21,11 +21,10 @@ A = NO:TARGET
 SIF A <= 0 || A > 71
 	RETURN 0
 
-LOCALS = ""
 CALL HAS_COMIMG, A, SELECTCOM
 IF RESULT
-	;コマンド固有画像
-	LOCALS = "<img src='comimg_"
+	; コマンド固有画像のリソース名を構築
+	LOCALS = "comimg_"
 	IF A < 10
 		LOCALS += "0"
 	ENDIF
@@ -37,19 +36,26 @@ IF RESULT
 		LOCALS += "0"
 	ENDIF
 	LOCALS += TOSTR(SELECTCOM)
-	LOCALS += "' height='200px'>"
+	; 画像存在チェック（存在しなければ何もしない）
+	SPRITELOAD LOCALS
+	SIF SPRITECREATED(LOCALS) == 0
+		RETURN 0
+	LOCALS:1 = "<img src='" + LOCALS + "' height='200px'><br><br><br><br><br><br><br><br><br><br>"
+	HTML_PRINT LOCALS:1
 ELSE
-	;フォールバック: 顔グラ
-	LOCALS = "<img src='face_"
+	; フォールバック: 顔グラリソース名を構築
+	LOCALS = "face_"
 	IF A < 10
 		LOCALS += "0"
 	ENDIF
 	LOCALS += TOSTR(A)
-	LOCALS += "' height='150px'>"
+	; 画像存在チェック（存在しなければ何もしない）
+	SPRITELOAD LOCALS
+	SIF SPRITECREATED(LOCALS) == 0
+		RETURN 0
+	LOCALS:1 = "<img src='" + LOCALS + "' height='150px'><br><br><br><br><br><br><br><br><br><br>"
+	HTML_PRINT LOCALS:1
 ENDIF
-;回り込み防止
-LOCALS += "<br><br><br><br><br><br><br><br><br><br>"
-HTML_PRINT LOCALS
 RETURN 0
 
 ;---------------------------------------------------------
