@@ -6,7 +6,7 @@
 ;
 ; 画像の追加方法:
 ;   1. resources/comimg.csv に追加: comimg_01_203,yourfile.png
-;   2. @HAS_COMIMG に追記: SIF ARG:0 == 1 && ARG:1 == 203  RETURN 1
+;   2. @HAS_COMIMG に追記: SIF NO:TARGET==1 && SELECTCOM==203  RETURN 1
 ;---------------------------------------------------------
 
 ;---------------------------------------------------------
@@ -21,9 +21,9 @@ A = NO:TARGET
 SIF A <= 0 || A > 71
 	RETURN 0
 
-CALL HAS_COMIMG, A, SELECTCOM
+CALL HAS_COMIMG
 IF RESULT
-	; コマンド固有画像のリソース名を構築
+	; コマンド固有画像のリソース名を構築（NO:TARGET・SELECTCOMから）
 	LOCALS = "comimg_"
 	IF A < 10
 		LOCALS += "0"
@@ -36,7 +36,6 @@ IF RESULT
 		LOCALS += "0"
 	ENDIF
 	LOCALS += TOSTR(SELECTCOM)
-	; 画像存在チェック（存在しなければ何もしない）
 	SPRITELOAD LOCALS
 	SIF SPRITECREATED(LOCALS) == 0
 		RETURN 0
@@ -49,7 +48,6 @@ ELSE
 		LOCALS += "0"
 	ENDIF
 	LOCALS += TOSTR(A)
-	; 画像存在チェック（存在しなければ何もしない）
 	SPRITELOAD LOCALS
 	SIF SPRITECREATED(LOCALS) == 0
 		RETURN 0
@@ -60,10 +58,11 @@ RETURN 0
 
 ;---------------------------------------------------------
 ; @HAS_COMIMG
-; ARG:0=cno  ARG:1=comid
+; NO:TARGET と SELECTCOM をそのまま参照（引数なし）
 ; RETURN 1 = コマンド固有画像あり / 0 = なし（顔グラにフォールバック）
 ;
-; 画像を追加したら下に SIF ARG:0==cno && ARG:1==comid  RETURN 1 を追記
+; 画像を追加したら下に追記:
+;   SIF NO:TARGET == cno && SELECTCOM == comid  RETURN 1
 ;---------------------------------------------------------
 @HAS_COMIMG
 ; === 登録済みコマンド画像 ===
