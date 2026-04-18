@@ -1,5 +1,7 @@
 ;---------------------------------------------------------
 ; コマンド実行時画像表示システム
+; EVENT_S の顔グラ表示と同じく CSV リソース名 + HTML_PRINT 方式
+; （資料/EmueraEE_リファレンス.md 第3節 推奨方式）
 ;---------------------------------------------------------
 @SHOW_COM_IMAGE
 SIF TARGET < 0
@@ -8,43 +10,20 @@ A = NO:TARGET
 SIF A <= 0 || A > 71
 	RETURN 0
 
-; 2桁ゼロ埋めで "face_XX.png" を構築（'= で書式代入）
+; "<img src='face_XX' height='150px'>" を組み立てる
+; += は式モードなのでクォートは剥がれる。= "..." は罠なので使わない
+LOCALS = ""
+LOCALS += "<img src='face_"
 IF A < 10
-	LOCALS '= @"face_0{A}.png"
-ELSE
-	LOCALS '= @"face_{A}.png"
+	LOCALS += "0"
 ENDIF
-
-; 既存スプライト解放
-SPRITEDISPOSE "face_img"
-
-; 試行1: resources/ 相対パス (EmueraEE デフォルト)
-GCREATEFROMFILE 0, LOCALS
-IF GCREATED(0)
-	SPRITECREATE "face_img", 0, 0, 0, GWIDTH(0), GHEIGHT(0)
-	LOCALS:1 '= @"<img src='face_img' height='150px'>"
-	HTML_PRINT LOCALS:1, 1
-	REPEAT 10
-		PRINTL
-	REND
-	RETURN 0
-ENDIF
-
-; 試行2: exe 相対パス (resources/ プレフィックス付き)
-LOCALS:2 '= @"resources/%LOCALS%"
-GCREATEFROMFILE 1, LOCALS:2, 1
-IF GCREATED(1)
-	SPRITECREATE "face_img", 1, 0, 0, GWIDTH(1), GHEIGHT(1)
-	LOCALS:1 '= @"<img src='face_img' height='150px'>"
-	HTML_PRINT LOCALS:1, 1
-	REPEAT 10
-		PRINTL
-	REND
-	RETURN 0
-ENDIF
-
-; 両方失敗: 診断表示
-PRINTFORML [画像NG: %LOCALS%]
+LOCALS += TOSTR(A)
+LOCALS += "' height='150px'>"
+; 回り込み対策（画像高さ150px なら <br> を 12個ほど）
+REPEAT 12
+	LOCALS += "<br>"
+REND
+HTML_PRINT LOCALS
 RETURN 0
 
 @HAS_COMIMG
