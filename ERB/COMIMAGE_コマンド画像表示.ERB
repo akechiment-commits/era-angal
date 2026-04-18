@@ -1,17 +1,11 @@
 ;---------------------------------------------------------
 ; コマンド実行時画像表示システム
-;
-; 命名規則: comimg_{cno2桁}_{comid3桁}
-;   例) comimg_01_203 = かなえ(cno:1)の騎乗位(com:203)
-;
-; 画像の追加方法:
-;   1. resources/comimg.csv に追加: comimg_01_203,yourfile.png
-;   2. @HAS_COMIMG に追記: SIF NO:TARGET==1 && SELECTCOM==203  RETURN 1
 ;---------------------------------------------------------
 
 ;---------------------------------------------------------
 ; @SHOW_COM_IMAGE
-; コマンド実行時に対象キャラの画像を表示
+; コマンド実行時に対象キャラの顔グラを表示
+; 画像: resources/face_{charanum2桁}.png
 ;---------------------------------------------------------
 @SHOW_COM_IMAGE
 SIF TARGET < 0
@@ -20,50 +14,31 @@ A = NO:TARGET
 SIF A <= 0 || A > 71
 	RETURN 0
 
-CALL HAS_COMIMG
-IF RESULT
-	; コマンド固有画像
-	LOCALS = "<img src='comimg_"
-	IF A < 10
-		LOCALS += "0"
-	ENDIF
-	LOCALS += TOSTR(A) + "_"
-	IF SELECTCOM < 100
-		LOCALS += "0"
-	ENDIF
-	IF SELECTCOM < 10
-		LOCALS += "0"
-	ENDIF
-	LOCALS += TOSTR(SELECTCOM)
-	LOCALS += "' height='200px'>"
-	HTML_PRINT LOCALS, 1
-	REPEAT 12
-		PRINTL
-	REND
-ELSE
-	; フォールバック: 顔グラ
-	LOCALS = "<img src='face_"
-	IF A < 10
-		LOCALS += "0"
-	ENDIF
-	LOCALS += TOSTR(A)
-	LOCALS += "' height='150px'>"
-	HTML_PRINT LOCALS, 1
-	REPEAT 10
-		PRINTL
-	REND
+; ファイルパス構築: resources/face_29.png のような形式
+LOCALS = "resources/face_"
+IF A < 10
+	LOCALS += "0"
 ENDIF
+LOCALS += TOSTR(A) + ".png"
+
+; 既存スプライトを解放してからロード
+SPRITEDISPOSE "face_img"
+GCREATEFROMFILE 0, LOCALS, 1
+SIF GCREATED(0) == 0
+	RETURN 0
+
+; スプライト作成 → HTML描画
+SPRITECREATE "face_img", 0, 0, 0, GWIDTH(0), GHEIGHT(0)
+HTML_PRINT "<img src='face_img' height='150px'>", 1
+REPEAT 10
+	PRINTL
+REND
 RETURN 0
 
 ;---------------------------------------------------------
 ; @HAS_COMIMG
-; NO:TARGET と SELECTCOM を参照（引数なし）
-; RETURN 1 = コマンド固有画像あり / 0 = なし（顔グラにフォールバック）
-;
-; 画像を追加したら: SIF NO:TARGET == cno && SELECTCOM == comid  RETURN 1
+; コマンド固有画像の有無（将来実装用スタブ）
+; SIF NO:TARGET == cno && SELECTCOM == comid  RETURN 1
 ;---------------------------------------------------------
 @HAS_COMIMG
-; === 登録済みコマンド画像 ===
-; （ここに追記していく）
-
 RETURN 0
