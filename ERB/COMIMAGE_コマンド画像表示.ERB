@@ -1,0 +1,66 @@
+;---------------------------------------------------------
+; コマンド実行時画像表示システム
+;
+; 命名規則: comimg_{cno2桁}_{comid3桁}
+;   例) comimg_01_203 = かなえ（cno:1）の騎乗位（com:203）
+;
+; 画像の追加方法:
+;   1. resources/comimg.csv に追加: comimg_01_203,yourfile.png
+;   2. @HAS_COMIMG に追記: SIF ARG:0 == 1 && ARG:1 == 203  RETURN 1
+;---------------------------------------------------------
+
+;---------------------------------------------------------
+; @SHOW_COM_IMAGE
+; コマンド実行時に対象キャラの画像を表示
+; コマンド固有画像があればそれを、なければ顔グラを表示
+;---------------------------------------------------------
+@SHOW_COM_IMAGE
+SIF TARGET < 0
+	RETURN 0
+A = NO:TARGET
+SIF A <= 0 || A > 71
+	RETURN 0
+
+LOCALS = ""
+CALL HAS_COMIMG, A, SELECTCOM
+IF RESULT
+	;コマンド固有画像
+	LOCALS = "<img src='comimg_"
+	IF A < 10
+		LOCALS += "0"
+	ENDIF
+	LOCALS += TOSTR(A) + "_"
+	IF SELECTCOM < 100
+		LOCALS += "0"
+	ENDIF
+	IF SELECTCOM < 10
+		LOCALS += "0"
+	ENDIF
+	LOCALS += TOSTR(SELECTCOM)
+	LOCALS += "' height='200px'>"
+ELSE
+	;フォールバック: 顔グラ
+	LOCALS = "<img src='face_"
+	IF A < 10
+		LOCALS += "0"
+	ENDIF
+	LOCALS += TOSTR(A)
+	LOCALS += "' height='150px'>"
+ENDIF
+;回り込み防止
+LOCALS += "<br><br><br><br><br><br><br><br><br><br>"
+HTML_PRINT LOCALS
+RETURN 0
+
+;---------------------------------------------------------
+; @HAS_COMIMG
+; ARG:0=cno  ARG:1=comid
+; RETURN 1 = コマンド固有画像あり / 0 = なし（顔グラにフォールバック）
+;
+; 画像を追加したら下に SIF ARG:0==cno && ARG:1==comid  RETURN 1 を追記
+;---------------------------------------------------------
+@HAS_COMIMG
+; === 登録済みコマンド画像 ===
+; （ここに追記していく）
+
+RETURN 0
