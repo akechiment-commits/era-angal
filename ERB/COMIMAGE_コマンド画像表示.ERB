@@ -8,11 +8,12 @@ A = NO:TARGET
 SIF A <= 0 || A > 71
 	RETURN 0
 
-LOCALS = "face_"
+; 2桁ゼロ埋めで "face_XX.png" を構築（'= で書式代入）
 IF A < 10
-	LOCALS += "0"
+	LOCALS '= @"face_0{A}.png"
+ELSE
+	LOCALS '= @"face_{A}.png"
 ENDIF
-LOCALS += TOSTR(A) + ".png"
 
 ; 既存スプライト解放
 SPRITEDISPOSE "face_img"
@@ -21,7 +22,8 @@ SPRITEDISPOSE "face_img"
 GCREATEFROMFILE 0, LOCALS
 IF GCREATED(0)
 	SPRITECREATE "face_img", 0, 0, 0, GWIDTH(0), GHEIGHT(0)
-	HTML_PRINT "<img src='face_img' height='150px'>", 1
+	LOCALS:1 '= @"<img src='face_img' height='150px'>"
+	HTML_PRINT LOCALS:1, 1
 	REPEAT 10
 		PRINTL
 	REND
@@ -29,10 +31,12 @@ IF GCREATED(0)
 ENDIF
 
 ; 試行2: exe 相対パス (resources/ プレフィックス付き)
-GCREATEFROMFILE 1, "resources/" + LOCALS, 1
+LOCALS:2 '= @"resources/%LOCALS%"
+GCREATEFROMFILE 1, LOCALS:2, 1
 IF GCREATED(1)
 	SPRITECREATE "face_img", 1, 0, 0, GWIDTH(1), GHEIGHT(1)
-	HTML_PRINT "<img src='face_img' height='150px'>", 1
+	LOCALS:1 '= @"<img src='face_img' height='150px'>"
+	HTML_PRINT LOCALS:1, 1
 	REPEAT 10
 		PRINTL
 	REND
