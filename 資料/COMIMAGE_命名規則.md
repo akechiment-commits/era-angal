@@ -17,7 +17,22 @@ resources/chara_01/kaiwa_renbo.png
 
 ---
 
-## コマンドID → ファイル名語幹 対応表
+## 恋慕分岐ルール
+
+- `TALENT:TARGET:85`（恋慕）が 1 のとき → `{名前}_renbo.png` を優先
+- `_renbo.png` が存在しない場合 → `{名前}.png` にフォールバック
+- `{名前}.png` も存在しない場合 → 何も表示しない（エラーなし）
+
+将来追加予定の分岐軸（未実装）:
+- ランダムバリエーション（`_01` / `_02` / `_03` サフィックス）
+- 恋人フラグ（`TALENT:TARGET:153`）
+- コマンド成否（`TFLAG:18`）
+
+---
+
+## コマンドID → ファイル名語幹 対応表（全147コマンド）
+
+### 純愛コミュニケーション系 (COM300-399)
 
 | SELECTCOM | コマンド名 | ファイル名語幹 |
 |---|---|---|
@@ -44,26 +59,140 @@ resources/chara_01/kaiwa_renbo.png
 | 340 | バードキス | `bird_kiss` |
 | 341 | ソフトキス | `soft_kiss` |
 | 342 | ディープキス | `deep_kiss` |
+| 360 | 胸愛撫（着衣） | `mune_aibu_cha` |
+| 361 | 愛撫（着衣） | `aibu_cha` |
+| 362 | 指挿入れ（着衣） | `yubi_cha` |
+| 363 | 着衣挿入 | `insert_cha` |
+| 364 | 着衣Ｇスポット刺激 | `gspot_cha` |
+| 365 | 着衣後背位 | `doggy_cha` |
+| 366 | 着衣騎乗位 | `cowgirl_cha` |
+| 367 | 着衣ローター | `roter_cha` |
+| 368 | 炬燵かがり | `kotatsu_kagari` |
 | 370 | 抱き合う | `dakiawu` |
+| 371 | オムツ | `omutsu` |
+| 372 | 尻愛撫 | `shiri_aibu_cha` |
+| 373 | フェラチオ（着衣） | `fellatio_cha` |
+| 380 | フェラする（着衣） | `fellatio_s` |
+| 381 | セックスさせる（着衣） | `sex_s` |
+| 390 | ゲームセンター | `game_center` |
 | 391 | 衣装替え | `ishou` |
+| 392 | 衣装破り | `ishou_yaburi` |
 | 393 | 見つめあう | `mitsumeau` |
 | 399 | 告白する | `kokuhaku` |
 
-上記以外のコマンドは現在未定義。ファイルを置いても表示されない。
-追加する場合は `ERB/COMIMAGE_コマンド画像表示.ERB` の SELECTCASE に追記する。
+### ウフフ通常系 (COM0-257)
 
----
+| SELECTCOM | コマンド名 | ファイル名語幹 |
+|---|---|---|
+| 0 | 愛撫 | `aibu` |
+| 1 | クンニ | `kunni` |
+| 2 | アナル愛撫 | `anal_aibu` |
+| 3 | 自慰 | `jii` |
+| 4 | フェラする | `fela` |
+| 5 | 胸愛撫 | `mune_aibu` |
+| 6 | キスする | `kisu` |
+| 7 | 何もしない | `nanimosinai` |
+| 8 | 指挿入れ | `yubi` |
+| 9 | アナル舐め | `anal_name` |
+| 10 | ローター | `roter` |
+| 18 | シャワー | `shower` |
+| 19 | アナルビーズ | `anal_beads` |
+| 20 | 正常位 | `missionary` |
+| 21 | 後背位 | `doggy` |
+| 22 | アナルセックス | `anal_sex` |
+| 23 | 逆レイプ | `gyaku_rape` |
+| 24 | 対面座位 | `taimen` |
+| 25 | 背面座位 | `haimen` |
+| 26 | 正常位アナル | `missionary_anal` |
+| 27 | 後背位アナル | `doggy_anal` |
+| 28 | 対面座位アナル | `taimen_anal` |
+| 29 | 背面座位アナル | `haimen_anal` |
+| 30 | 手淫 | `shuin` |
+| 31 | フェラチオ | `fellatio` |
+| 32 | パイズリ | `paizuri` |
+| 33 | 素股 | `sumata` |
+| 34 | 騎乗位 | `cowgirl` |
+| 35 | 泡踊り | `awa_odori` |
+| 36 | 騎乗位アナル | `cowgirl_anal` |
+| 37 | 足扱き | `ashidaki` |
+| 38 | 尻素股 | `shiri_sumata` |
+| 39 | オナホ手淫 | `onaho` |
+| 40 | スパンキング | `spanking` |
+| 41 | 鞭 | `muchi` |
+| 42 | 針 | `hari` |
+| 43 | アイマスク | `eyemask` |
+| 44 | 縄 | `nawa` |
+| 45 | ボールギャグ | `ball_gag` |
+| 46 | 浣腸器＋プラグ | `kanchou` |
+| 50 | ローション | `lotion` |
+| 51 | 媚薬 | `biyaku` |
+| 52 | 利尿剤 | `rinyou` |
+| 53 | ビデオカメラ | `video` |
+| 54 | 野外プレイ | `outdoor` |
+| 56 | 助手を犯す | `joshu_okasu` |
+| 57 | 羞恥プレイ | `shuchi` |
+| 58 | お風呂場プレイ | `ofuro` |
+| 59 | 新妻プレイ | `niizuma` |
+| 61 | クンニ強制 | `kunni_kyosei` |
+| 63 | 貝あわせ | `kaiawase` |
+| 65 | 助手を犯させる | `joshu_okasaseru` |
+| 66 | Ｗフェラ | `w_fela` |
+| 67 | 足コキする | `ashikoki` |
+| 68 | ダブルフェラ | `double_fela` |
+| 71 | 秘貝開帳 | `hikaichoukai` |
+| 75 | 言葉責め | `kotoba_seme` |
+| 80 | イラマチオ | `irrumatio` |
+| 85 | 放尿 | `hounyou` |
+| 90 | アナル愛撫させる | `anal_aibu_sase` |
+| 110 | クスコ | `kusuko` |
+| 120 | キス正常位 | `kiss_missionary` |
+| 121 | キス後背位 | `kiss_doggy` |
+| 122 | キス対面座位 | `kiss_taimen` |
+| 123 | キス背面座位 | `kiss_haimen` |
+| 124 | キス騎乗位 | `kiss_cowgirl` |
+| 130 | 目隠しされる | `mekakushi` |
+| 131 | 拘束される | `kousoku` |
+| 132 | 口枷される | `kuchikase` |
+| 181 | コンドーム | `condom` |
+| 182 | コンドーム精飲(P) | `condom_seiin_p` |
+| 183 | コンドーム精飲(A) | `condom_seiin_a` |
+| 184 | コンドーム精飲(M) | `condom_seiin_m` |
+| 185 | 口移し | `kuchiwatashi` |
+| 186 | 排卵誘発剤 | `hairan` |
+| 187 | 緊急避妊薬 | `hinin` |
+| 190 | 優しくする | `yasashiku` |
+| 191 | 手淫する | `shuin_suru` |
+| 192 | パイズリする | `paizuri_suru` |
+| 193 | 正常位させる | `missionary_sase` |
+| 194 | 後背位させる | `doggy_sase` |
+| 195 | 騎乗位する | `cowgirl_suru` |
+| 196 | ペニバン挿入 | `peniban` |
+| 197 | お風呂を楽しむ | `ofuro_enjoy` |
+| 198 | お外を楽しむ | `outdoor_enjoy` |
+| 199 | お嫁さんで楽しむ | `niizuma_enjoy` |
+| 200 | 乳の揉み合い | `chichi_momi` |
+| 201 | 指フェラ | `yubi_fela` |
+| 203 | クスコされる | `kusuko_sareru` |
+| 204 | アナルに入れさせる | `anal_iresa` |
+| 205 | 自慰見せつけ | `jii_misetsuke` |
+| 255 | 挿入Ｇスポ責め | `insert_gspot` |
+| 256 | 挿入子宮口責め | `insert_shikyu` |
+| 257 | 剃毛プレイ | `teimou` |
 
-## 恋慕分岐ルール
+### 独自コマンド (キャラ個別)
 
-- `TALENT:TARGET:85`（恋慕）が 1 のとき → `{名前}_renbo.png` を優先
-- `_renbo.png` が存在しない場合 → `{名前}.png` にフォールバック
-- `{名前}.png` も存在しない場合 → 何も表示しない（エラーなし）
-
-将来追加予定の分岐軸（未実装）:
-- ランダムバリエーション（`_01` / `_02` / `_03` サフィックス）
-- 恋人フラグ（`TALENT:TARGET:153`）
-- コマンド成否（`TFLAG:18`）
+| SELECTCOM | コマンド名 | ファイル名語幹 |
+|---|---|---|
+| 280 | 独自ウフフ① | `com280` |
+| 281 | 独自ウフフ② | `com281` |
+| 282 | 独自ウフフ③ | `com282` |
+| 283 | 独自ウフフ④ | `com283` |
+| 284 | 独自ウフフ⑤ | `com284` |
+| 410 | 独自純愛① | `com410` |
+| 411 | 独自純愛② | `com411` |
+| 412 | 独自純愛③ | `com412` |
+| 413 | 独自純愛④ | `com413` |
+| 414 | 独自純愛⑤ | `com414` |
 
 ---
 
@@ -73,3 +202,4 @@ resources/chara_01/kaiwa_renbo.png
 - 画像サイズ: 高さ 150px で表示（それ以外のサイズでも自動スケール）
 - 実装ファイル: `ERB/COMIMAGE_コマンド画像表示.ERB`
 - 呼び出し元: `ERB/EVENT_M_マスターイベント.ERB` → `@TRAIN_MESSAGE_B`
+- COM325 は名称未定義のため対応表から除外
