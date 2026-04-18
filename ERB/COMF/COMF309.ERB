@@ -186,8 +186,19 @@ CALL REFERENCE_BOOK_GET
 E = 0
 U = 0
 W = 0
-D = 0
 F = 0
+
+;抽選回数D (技能+才能ベース、上限9)
+D = 1 + RAND:2 + RAND:(ABL:TARGET:2 + ABL:PLAYER:2)/6
+SIF TALENT:PLAYER:55 == 1
+	D += 1
+SIF TALENT:TARGET:55 == 1
+	D += 1
+SIF D >= 9
+	D = 9
+
+;D回抽選
+REPEAT D
 ;TFLAG初期化
 TFLAG:17 = 0
 TFLAG:18 = 0
@@ -261,26 +272,16 @@ ENDIF
 CALL SOZAI_ITEM_CHECK
 SIF RESULT
 	GOTO SOZAI_SEARCH
+REND
 
 
 
 @SOZAI_ITEM_CHECK
 VARSET LOCAL, 0
 
-;実行者と相手の技巧の合計でアイテム入手数設定。また、相手と自分の調合知識でそれぞれランダム追加
-D = 1 + RAND:2 + RAND:(ABL:TARGET:2 + ABL:PLAYER:2)/6
-
-SIF TALENT:PLAYER:55 == 1
-	D += 1
-SIF TALENT:TARGET:55 == 1
-	D += 1
-
-SIF D >= 9
-	D = 9
-
 IF TFLAG:800
-	PRINTFORMW 探索の結果、[レシピの断片]を{D}個手に入れました
-	ITEM:800 += D
+	PRINTFORMW 探索の結果、[レシピの断片]を1個手に入れました
+	ITEM:800 += 1
 	RETURN 0
 ENDIF
 
@@ -289,8 +290,8 @@ FOR LOCAL, 900, 1000
 	IF TFLAG:LOCAL && ITEM:LOCAL >= 99
 		TFLAG:LOCAL = 0
 	ELSEIF TFLAG:LOCAL
-		PRINTFORMW 探索の結果、[%ITEMNAME:LOCAL%]を{D}個手に入れました
-		ITEM:LOCAL += D
+		PRINTFORMW 探索の結果、[%ITEMNAME:LOCAL%]を1個手に入れました
+		ITEM:LOCAL += 1
 		RETURN 0
 	ENDIF
 NEXT
