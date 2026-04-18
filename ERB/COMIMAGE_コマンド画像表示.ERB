@@ -1,7 +1,22 @@
 ;---------------------------------------------------------
 ; コマンド実行時画像表示システム
-; EVENT_S の顔グラ表示と同じく CSV リソース名 + HTML_PRINT 方式
-; （資料/EmueraEE_リファレンス.md 第3節 推奨方式）
+; resources/chara_XX/コマンド名.png を GCREATEFROMFILE で読み込んで表示
+;
+; 【ファイル配置規則】
+;   resources/chara_01/benkyou.png        ← 通常
+;   resources/chara_01/benkyou_renbo.png  ← 恋慕時（あれば優先）
+;
+; 【コマンド名対応表 (SELECTCOM → ファイル名語幹)】
+;   300=benkyou   301=kaiwa    302=present   303=skinship
+;   304=mattari   305=souji    306=kamisuki  307=kushi
+;   309=sozai     310=chogou   311=amaikotoba 312=atama
+;   313=negai     314=kotatsu  315=osanpo    316=kamikashite
+;   320=gakushoku 321=asobi    322=live      323=date
+;   340=bird_kiss 341=soft_kiss 342=deep_kiss
+;   370=dakiawu   391=ishou    393=mitsumeau 399=kokuhaku
+;
+; 【恋慕判定】TALENT:TARGET:85 == 1 で _renbo サフィックスを優先使用
+;             ファイルが存在しない場合は通常版にフォールバック
 ;---------------------------------------------------------
 @SHOW_COM_IMAGE
 SIF TARGET < 0
@@ -10,20 +25,105 @@ A = NO:TARGET
 SIF A <= 0 || A > 71
 	RETURN 0
 
-; "<img src='face_XX' height='150px'>" を組み立てる
-; += は式モードなのでクォートは剥がれる。= "..." は罠なので使わない
-LOCALS = ""
-LOCALS += "<img src='face_"
+; コマンド別ファイル名語幹を LOCALS:1 に設定
+LOCALS:1 = ""
+SELECTCASE SELECTCOM
+	CASE 300
+		LOCALS:1 = benkyou
+	CASE 301
+		LOCALS:1 = kaiwa
+	CASE 302
+		LOCALS:1 = present
+	CASE 303
+		LOCALS:1 = skinship
+	CASE 304
+		LOCALS:1 = mattari
+	CASE 305
+		LOCALS:1 = souji
+	CASE 306
+		LOCALS:1 = kamisuki
+	CASE 307
+		LOCALS:1 = kushi
+	CASE 309
+		LOCALS:1 = sozai
+	CASE 310
+		LOCALS:1 = chogou
+	CASE 311
+		LOCALS:1 = amaikotoba
+	CASE 312
+		LOCALS:1 = atama
+	CASE 313
+		LOCALS:1 = negai
+	CASE 314
+		LOCALS:1 = kotatsu
+	CASE 315
+		LOCALS:1 = osanpo
+	CASE 316
+		LOCALS:1 = kamikashite
+	CASE 320
+		LOCALS:1 = gakushoku
+	CASE 321
+		LOCALS:1 = asobi
+	CASE 322
+		LOCALS:1 = live
+	CASE 323
+		LOCALS:1 = date
+	CASE 340
+		LOCALS:1 = bird_kiss
+	CASE 341
+		LOCALS:1 = soft_kiss
+	CASE 342
+		LOCALS:1 = deep_kiss
+	CASE 370
+		LOCALS:1 = dakiawu
+	CASE 391
+		LOCALS:1 = ishou
+	CASE 393
+		LOCALS:1 = mitsumeau
+	CASE 399
+		LOCALS:1 = kokuhaku
+ENDSELECT
+
+; 未定義コマンドはスキップ
+SIF LOCALS:1 == ""
+	RETURN 0
+
+; フォルダパス: chara_XX/
 IF A < 10
-	LOCALS += "0"
+	LOCALS '= @"chara_0{A}/"
+ELSE
+	LOCALS '= @"chara_{A}/"
 ENDIF
-LOCALS += TOSTR(A)
-LOCALS += "' height='150px'>"
-; 回り込み対策（画像高さ150px なら <br> を 12個ほど）
+
+; 恋慕時は _renbo サフィックスを優先（TALENT:TARGET:85 == 1）
+LOCALS:2 = ""
+IF TALENT:TARGET:85
+	LOCALS:2 '= @"resources/%LOCALS%%LOCALS:1%_renbo.png"
+	IF EXISTFILE(LOCALS:2)
+		LOCALS:1 '= @"%LOCALS%%LOCALS:1%_renbo.png"
+	ELSE
+		LOCALS:1 '= @"%LOCALS%%LOCALS:1%.png"
+	ENDIF
+ELSE
+	LOCALS:1 '= @"%LOCALS%%LOCALS:1%.png"
+ENDIF
+
+; ファイルが存在しない場合はスキップ（画像未設定コマンド）
+LOCALS:2 '= @"resources/%LOCALS:1%"
+SIF !EXISTFILE(LOCALS:2)
+	RETURN 0
+
+; 画像ロード → スプライト作成 → HTML描画
+SPRITEDISPOSE "comimg"
+GCREATEFROMFILE 0, LOCALS:1
+SIF !GCREATED(0)
+	RETURN 0
+SPRITECREATE "comimg", 0, 0, 0, GWIDTH(0), GHEIGHT(0)
+LOCALS:3 '= @"<img src='comimg' height='150px'>"
+HTML_PRINT LOCALS:3, 1
 REPEAT 12
-	LOCALS += "<br>"
+	PRINTL
 REND
-HTML_PRINT LOCALS
 RETURN 0
 
 @HAS_COMIMG
