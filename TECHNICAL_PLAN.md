@@ -27,7 +27,7 @@
 | Phase J | **バランス調整・UI改修** | ✅ **随時完了** |
 | Phase D | **キャラクター口上フレームワーク** | ⚙️ **進行中**（テンプレート・フック整備済み、キャラ個別実装中） |
 | Phase E | シナリオ・イベント実装 | ⬜ データ準備済み |
-| Phase F | 顔グラ・画像対応 | ⬜ 未着手 |
+| Phase F | 顔グラ・画像対応 | ⚙️ **進行中**（基盤完成、画像ファイル追加中） |
 
 ---
 
@@ -53,7 +53,7 @@
 
 | タスク | 概要 |
 |---|---|
-| **顔グラ対応** | EmueraEM+EEへ移行後、resources/フォルダに画像を置いて表示（後述 Phase K） |
+| **顔グラ対応** | ~~EmueraEM+EEへ移行後~~ 基盤完成済み。コマンド別・恋慕分岐画像の追加のみ残存（後述 Phase K） |
 | **シナリオ実装** | 個別イベント（エンディング基盤は完成済み、個別テキスト追加待ち） |
 | **カードアルバム（図鑑）** | コンプ率表示・全カード一覧 |
 | **エリア上限設定** | イベントボードのエリア番号が現状無限に上昇 |
@@ -61,11 +61,55 @@
 
 ---
 
-## Phase K: 顔グラ表示（EmueraEM+EE）⬜ 画像ファイル待ち
+## Phase K: 顔グラ・コマンド画像表示（EmueraEM+EE）⚙️ 基盤完成・画像追加中
 
 ### 現状
 
-`resources/face.csv` のスプライト定義は完成済み。画像ファイル（`face_XX.png`）を `resources/` に置けば即動作する。
+- **顔グラ表示**：`resources/face.csv` + `resources/face_XX.png` → パートナー選択時・会話時に動作済み
+- **コマンド別画像**：`ERB/COMIMAGE_コマンド画像表示.ERB` で全147コマンド対応済み。画像を置けば即表示
+- **キャラ別フォルダ**：`resources/chara_01/`〜`resources/chara_71/` 作成済み
+
+### コマンド画像の追加手順
+
+1. 画像ファイルをキャラフォルダ（`resources/chara_XX/`）に入れる
+2. `python tools/rename_comimg.py scan XX` で現状確認
+3. `python tools/rename_comimg.py rename XX <元ファイル名> <語幹> [renbo]` でリネーム
+4. ゲーム再起動不要（次回コマンド実行時に自動ロード）
+
+### ファイル命名規則
+
+- 通常：`resources/chara_XX/コマンド語幹.png`（例: `chara_01/kaiwa.png`）
+- 恋慕時：`resources/chara_XX/コマンド語幹_renbo.png`（存在すれば優先、なければ通常版を使用）
+- 語幹一覧：`資料/COMIMAGE_命名規則.md` 参照
+- リネームツール：`tools/rename_comimg.py`（下記参照）
+
+### rename_comimg.py の使い方
+
+```bash
+# コマンド名と語幹の一覧確認
+python tools/rename_comimg.py list
+
+# キャラ1のフォルダを確認（どれが命名済みか）
+python tools/rename_comimg.py scan 1
+
+# 1ファイルをリネーム（通常）
+python tools/rename_comimg.py rename 1 img001.png kaiwa
+
+# 1ファイルをリネーム（恋慕バリエーション）
+python tools/rename_comimg.py rename 1 img002.png kaiwa renbo
+
+# CSVで一括リネーム（my_renames.csv の中身: 元ファイル名,語幹[,renbo]）
+python tools/rename_comimg.py batch 1 tools/my_renames.csv
+```
+
+### 分岐軸（実装済み）
+
+| 条件 | ファイルサフィックス |
+|---|---|
+| 通常 | なし |
+| 恋慕（TALENT:TARGET:85）| `_renbo` |
+
+将来追加予定：ランダムバリエーション（`_01`〜`_03`）、恋人フラグ（`_koibito`）、成否分岐（`_fail`）
 
 ### エンジン比較
 
