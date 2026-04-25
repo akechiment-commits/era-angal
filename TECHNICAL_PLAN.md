@@ -1,6 +1,6 @@
 # eraあんガル 技術改造計画書
 
-最終更新：2026-04-18（口上フレームワーク整備・素材システム71キャラ専用化・東方遺物完全削除）
+最終更新：2026-04-25（COMIMAGEシステム3枚ランダム化・D&DGUIツール追加・TROPHY上級編復活）
 
 ---
 
@@ -27,7 +27,7 @@
 | Phase J | **バランス調整・UI改修** | ✅ **随時完了** |
 | Phase D | **キャラクター口上フレームワーク** | ⚙️ **進行中**（テンプレート・フック整備済み、キャラ個別実装中） |
 | Phase E | シナリオ・イベント実装 | ⬜ データ準備済み |
-| Phase F | 顔グラ・画像対応 | ⚙️ **進行中**（基盤完成、画像ファイル追加中） |
+| Phase F | 顔グラ・画像対応 | ⚙️ **進行中**（3枚ランダム・GUIツール完成、画像ファイル追加中） |
 
 ---
 
@@ -68,48 +68,52 @@
 - **顔グラ表示**：`resources/face.csv` + `resources/face_XX.png` → パートナー選択時・会話時に動作済み
 - **コマンド別画像**：`ERB/COMIMAGE_コマンド画像表示.ERB` で全147コマンド対応済み。画像を置けば即表示
 - **キャラ別フォルダ**：`resources/chara_01/`〜`resources/chara_71/` 作成済み
+- **GUIツール**：`tools/comimage_gui.py` で D&D による画像登録が可能
 
-### コマンド画像の追加手順
+### コマンド画像ファイル命名規則（2026-04-25 改訂）
 
-1. 画像ファイルをキャラフォルダ（`resources/chara_XX/`）に入れる
-2. `python tools/rename_comimg.py scan XX` で現状確認
-3. `python tools/rename_comimg.py rename XX <元ファイル名> <語幹> [renbo]` でリネーム
-4. ゲーム再起動不要（次回コマンド実行時に自動ロード）
+```
+resources/chara_XX/
+  {語幹}_1.png        ← 通常ランダム枠1
+  {語幹}_2.png        ← 通常ランダム枠2
+  {語幹}_3.png        ← 通常ランダム枠3
+  {語幹}_renbo_1.png  ← 恋慕ランダム枠1
+  {語幹}_renbo_2.png  ← 恋慕ランダム枠2
+  {語幹}_renbo_3.png  ← 恋慕ランダム枠3
+```
 
-### ファイル命名規則
+**選択ロジック:**
+- 恋慕時（TALENT:TARGET:85）: `_renbo_N` が1枚以上あればその中からランダム、なければ通常枠にフォールバック
+- 通常時: `_N` が存在するものの中からランダム選択（1〜3枚に対応）
+- 旧形式（番号なし `stem.png` / `stem_renbo.png`）は使用しない
 
-- 通常：`resources/chara_XX/コマンド語幹.png`（例: `chara_01/kaiwa.png`）
-- 恋慕時：`resources/chara_XX/コマンド語幹_renbo.png`（存在すれば優先、なければ通常版を使用）
-- 語幹一覧：`資料/COMIMAGE_命名規則.md` 参照
-- リネームツール：`tools/rename_comimg.py`（下記参照）
+詳細仕様: `資料/COMIMAGE_命名規則.md` 参照
 
-### rename_comimg.py の使い方
+### GUIツール（推奨）
 
 ```bash
-# コマンド名と語幹の一覧確認
-python tools/rename_comimg.py list
+pip install tkinterdnd2 Pillow   # 初回のみ
+python tools/comimage_gui.py
+```
 
-# キャラ1のフォルダを確認（どれが命名済みか）
-python tools/rename_comimg.py scan 1
+- キャラ（71名）とバリアント（通常_1/2/3・恋慕_1/2/3）を上部で選択
+- コマンドスロットに画像をドラッグ＆ドロップ → `resources/chara_XX/{語幹}_{サフィックス}.ext` へ自動コピー
+- `tkinterdnd2` なしでもダブルクリックでファイルダイアログ使用可
 
-# 1ファイルをリネーム（通常）
-python tools/rename_comimg.py rename 1 img001.png kaiwa
+### CLIツール
 
-# 1ファイルをリネーム（恋慕バリエーション）
-python tools/rename_comimg.py rename 1 img002.png kaiwa renbo
-
-# CSVで一括リネーム（my_renames.csv の中身: 元ファイル名,語幹[,renbo]）
-python tools/rename_comimg.py batch 1 tools/my_renames.csv
+```bash
+python tools/rename_comimg.py list          # 語幹一覧
+python tools/rename_comimg.py scan 29       # キャラ29の設定状況確認
+python tools/rename_comimg.py rename 29 img001.png missionary   # リネーム
 ```
 
 ### 分岐軸（実装済み）
 
-| 条件 | ファイルサフィックス |
+| 条件 | ファイルパターン |
 |---|---|
-| 通常 | なし |
-| 恋慕（TALENT:TARGET:85）| `_renbo` |
-
-将来追加予定：ランダムバリエーション（`_01`〜`_03`）、恋人フラグ（`_koibito`）、成否分岐（`_fail`）
+| 通常（最大3枚ランダム） | `{語幹}_1.png` / `_2.png` / `_3.png` |
+| 恋慕（TALENT:TARGET:85、最大3枚ランダム） | `{語幹}_renbo_1.png` / `_renbo_2.png` / `_renbo_3.png` |
 
 ### エンジン比較
 
@@ -431,6 +435,19 @@ HTML_PRINT LOCALS
 - `ERB/CHAR/CHAR_TEMPLATE.ERB`, `ERB/CHAR/CHAR_1_かなえ.ERB` を更新
 
 ### J-25: エンジン警告解消 ✅ 完了（2026-04-18）
+### J-26: TROPHY実績システム改修（2026-04-25）
+
+- `eratohoJ+` 表記を `eraあんガル+` に統一（GLOBAL:200 系）
+- `GLOBAL:202` を「イベント編-上級編-」として復活（旧ルナティック → 上級編に名称変更）
+  - 好感度200000以上で自動解放（隠しカテゴリ）
+  - `TROPHY_CHECK_202` で好感度一括ループ + TRYCALLFORM での個別達成判定
+  - 上級編デビュー / 大額所持金 / 好感度200000〜999999 等の実績を定義
+- `完全制覇` 条件を更新: 上級編全実績 ＋ イベント編全制覇（GLOBAL:200 bit0）＋ 全カード収集（GLOBAL:212 bit0）
+- `CHAR_TEMPLATE_COM.ERB` の COM190/191/192 注釈を正確な内容に修正
+  - COM190: プレイヤーがパートナーに優しくするコマンド
+  - COM191: プレイヤーがふたなりパートナーのペニスを手淫
+  - COM192: 女性プレイヤー/助手がふたなりパートナーのペニスをパイズリ
+
 
 - 起動時警告（未定義参照等）を解消
 - 入れ子REPEAT警告を解消
