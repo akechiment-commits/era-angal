@@ -215,17 +215,27 @@ def cmd_scan(args):
         print(f"{folder} に画像ファイルがありません")
         return
 
+    import re
     known_stems = {stem for _, _, stem in COMMANDS}
-    print(f"{'ファイル名':<35}  状態")
-    print("-" * 55)
+    SUFFIX_RE = re.compile(r'(_renbo_[123]|_[123]|_renbo)$')
+    SUFFIX_LABELS = {
+        "_1": "通常_1", "_2": "通常_2", "_3": "通常_3",
+        "_renbo_1": "恋慕_1", "_renbo_2": "恋慕_2", "_renbo_3": "恋慕_3",
+        "_renbo": "恋慕(旧)",
+    }
+    print(f"{'ファイル名':<38}  状態")
+    print("-" * 60)
     for f in files:
-        stem = os.path.splitext(f)[0].removesuffix("_renbo")
+        base = os.path.splitext(f)[0]
+        m = SUFFIX_RE.search(base)
+        suffix_str = m.group(0) if m else ""
+        stem = base[:m.start()] if m else base
         if stem in known_stems:
             cid, jname = STEM_TO_INFO[stem]
-            suffix = "（恋慕）" if f.endswith("_renbo" + os.path.splitext(f)[1]) else ""
-            print(f"  {f:<33}  ✓ COM{cid} {jname}{suffix}")
+            slot = SUFFIX_LABELS.get(suffix_str, suffix_str or "番号なし(旧)")
+            print(f"  {f:<36}  ✓ COM{cid} {jname} [{slot}]")
         else:
-            print(f"  {f:<33}  ？ 未マッピング")
+            print(f"  {f:<36}  ？ 未マッピング")
 
 
 def do_rename(src_path, dst_path):

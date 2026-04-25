@@ -1,13 +1,19 @@
 ;---------------------------------------------------------
 ; コマンド実行時画像表示システム
-; resources/chara_XX/コマンド名.png を GCREATEFROMFILE で読み込んで表示
+; resources/chara_XX/コマンド名_N.png を GCREATEFROMFILE で読み込んで表示
 ;
 ; 【ファイル配置規則】
-;   resources/chara_01/benkyou.png        ← 通常
-;   resources/chara_01/benkyou_renbo.png  ← 恋慕時（あれば優先）
+;   resources/chara_01/benkyou_1.png        ← 通常ランダム枠1
+;   resources/chara_01/benkyou_2.png        ← 通常ランダム枠2
+;   resources/chara_01/benkyou_3.png        ← 通常ランダム枠3
+;   resources/chara_01/benkyou_renbo_1.png  ← 恋慕ランダム枠1
+;   resources/chara_01/benkyou_renbo_2.png  ← 恋慕ランダム枠2
+;   resources/chara_01/benkyou_renbo_3.png  ← 恋慕ランダム枠3
 ;
-; 【恋慕判定】TALENT:TARGET:85 == 1 で _renbo サフィックスを優先使用
-;             ファイルが存在しない場合は通常版にフォールバック
+; 【選択ルール】
+;   恋慕時(TALENT:TARGET:85): renbo_N があればその中からランダム選択
+;                              なければ通常 _N にフォールバック
+;   通常時: _N から最大3枚でランダム選択
 ; 【命名規則】資料/COMIMAGE_命名規則.md 参照
 ;---------------------------------------------------------
 @SHOW_COM_IMAGE
@@ -327,39 +333,75 @@ ELSE
 	LOCALS '= @"chara_{LOCAL}/"
 ENDIF
 
-; ランダムバリアント（_2.png があれば _1.png または 無印 とランダム切替）
-LOCALS:4 '= @"resources/%LOCALS%%LOCALS:1%_2.png"
-IF EXISTFILE(LOCALS:4)
-	IF RAND:2
-		LOCALS:1 '= @"%LOCALS%%LOCALS:1%_2.png"
-	ELSE
-		LOCALS:4 '= @"resources/%LOCALS%%LOCALS:1%_1.png"
-		IF EXISTFILE(LOCALS:4)
-			LOCALS:1 '= @"%LOCALS%%LOCALS:1%_1.png"
-		ELSE
-			LOCALS:1 '= @"%LOCALS%%LOCALS:1%.png"
-		ENDIF
+; 候補ファイルを最大3つ収集してランダム選択
+; 恋慕時は _renbo_N を優先、なければ通常 _N にフォールバック（N=1,2,3）
+LOCAL:2 = 0
+
+; 恋慕候補収集（TALENT:TARGET:85 のとき）
+IF TALENT:TARGET:85
+	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_renbo_1.png"
+	IF EXISTFILE(LOCALS:9)
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_renbo_1.png"
 	ENDIF
-	GOTO FILE_CHECK
+	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_renbo_2.png"
+	IF EXISTFILE(LOCALS:9)
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_renbo_2.png"
+	ENDIF
+	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_renbo_3.png"
+	IF EXISTFILE(LOCALS:9)
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_renbo_3.png"
+	ENDIF
 ENDIF
 
-; 恋慕時は _renbo サフィックスを優先（TALENT:TARGET:85 == 1）
-LOCALS:2 = ""
-IF TALENT:TARGET:85
-	LOCALS:2 '= @"resources/%LOCALS%%LOCALS:1%_renbo.png"
-	IF EXISTFILE(LOCALS:2)
-		LOCALS:1 '= @"%LOCALS%%LOCALS:1%_renbo.png"
+; 恋慕候補がなければ通常候補を収集
+IF LOCAL:2 == 0
+	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_1.png"
+	IF EXISTFILE(LOCALS:9)
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_1.png"
+	ENDIF
+	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_2.png"
+	IF EXISTFILE(LOCALS:9)
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_2.png"
+	ENDIF
+	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_3.png"
+	IF EXISTFILE(LOCALS:9)
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_3.png"
+	ENDIF
+ENDIF
+
+; 候補なし → 表示スキップ
+SIF LOCAL:2 == 0
+	RETURN 0
+
+; ランダム選択（LOCALS:5～:7 の中から1つ）
+IF LOCAL:2 == 1
+	LOCALS:1 = LOCALS:5
+ELSEIF LOCAL:2 == 2
+	IF RAND:2
+		LOCALS:1 = LOCALS:5
 	ELSE
-		LOCALS:1 '= @"%LOCALS%%LOCALS:1%.png"
+		LOCALS:1 = LOCALS:6
 	ENDIF
 ELSE
-	LOCALS:1 '= @"%LOCALS%%LOCALS:1%.png"
+	LOCAL:3 = RAND:3
+	IF LOCAL:3 == 0
+		LOCALS:1 = LOCALS:5
+	ELSEIF LOCAL:3 == 1
+		LOCALS:1 = LOCALS:6
+	ELSE
+		LOCALS:1 = LOCALS:7
+	ENDIF
 ENDIF
 
-$FILE_CHECK
-; ファイルが存在しない場合はスキップ（画像未設定コマンド）
-LOCALS:2 '= @"resources/%LOCALS:1%"
-SIF !EXISTFILE(LOCALS:2)
+; 存在確認
+LOCALS:9 '= @"resources/%LOCALS:1%"
+SIF !EXISTFILE(LOCALS:9)
 	RETURN 0
 
 ; 画像ロード → スプライト作成 → HTML描画

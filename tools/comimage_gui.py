@@ -68,10 +68,12 @@ CHARAS: list[tuple[int, str]] = [
 ]
 
 VARIANTS: list[tuple[str, str]] = [
-    ("通常",    ""),
-    ("_1",     "_1"),
-    ("_2",     "_2"),
-    ("恋慕",   "_renbo"),
+    ("通常_1", "_1"),
+    ("通常_2", "_2"),
+    ("通常_3", "_3"),
+    ("恋慕_1", "_renbo_1"),
+    ("恋慕_2", "_renbo_2"),
+    ("恋慕_3", "_renbo_3"),
 ]
 
 CATEGORIES: list[tuple[str, list]] = [
@@ -252,7 +254,7 @@ class App:
         root.option_add("*TCombobox*Listbox.font", ("", 9))
 
         self.cno: int = 1
-        self.variant_suffix: str = ""
+        self.variant_suffix: str = "_1"
         self._slots: list[SlotWidget] = []
 
         self._build_topbar()
@@ -278,14 +280,18 @@ class App:
 
         tk.Label(bar, text="バリアント:", bg=C_BAR, fg=C_FG,
                  font=("", 9)).pack(side=tk.LEFT, padx=(18, 4))
-        self._var_var = tk.StringVar(value="")
+        self._var_var = tk.StringVar(value="_1")
+        sep = True
         for label, suffix in VARIANTS:
+            if sep and suffix.startswith("_renbo"):
+                tk.Label(bar, text="|", bg=C_BAR, fg="#666").pack(side=tk.LEFT, padx=2)
+                sep = False
             rb = tk.Radiobutton(bar, text=label, variable=self._var_var,
                                 value=suffix, bg=C_BAR, fg=C_FG,
                                 selectcolor="#444", activebackground=C_BAR,
-                                activeforeground=C_FG, font=("", 9),
+                                activeforeground=C_FG, font=("", 8),
                                 command=self._on_variant)
-            rb.pack(side=tk.LEFT, padx=3)
+            rb.pack(side=tk.LEFT, padx=2)
 
         tk.Button(bar, text="↺ 更新", bg="#404040", fg=C_FG,
                   relief=tk.FLAT, padx=6, font=("", 8), cursor="hand2",
