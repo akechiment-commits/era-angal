@@ -327,6 +327,22 @@ ELSE
 	LOCALS '= @"chara_{LOCAL}/"
 ENDIF
 
+; ランダムバリアント（_2.png があれば _1.png または 無印 とランダム切替）
+LOCALS:4 '= @"resources/%LOCALS%%LOCALS:1%_2.png"
+IF EXISTFILE(LOCALS:4)
+	IF RAND:2
+		LOCALS:1 '= @"%LOCALS%%LOCALS:1%_2.png"
+	ELSE
+		LOCALS:4 '= @"resources/%LOCALS%%LOCALS:1%_1.png"
+		IF EXISTFILE(LOCALS:4)
+			LOCALS:1 '= @"%LOCALS%%LOCALS:1%_1.png"
+		ELSE
+			LOCALS:1 '= @"%LOCALS%%LOCALS:1%.png"
+		ENDIF
+	ENDIF
+	GOTO FILE_CHECK
+ENDIF
+
 ; 恋慕時は _renbo サフィックスを優先（TALENT:TARGET:85 == 1）
 LOCALS:2 = ""
 IF TALENT:TARGET:85
@@ -340,6 +356,7 @@ ELSE
 	LOCALS:1 '= @"%LOCALS%%LOCALS:1%.png"
 ENDIF
 
+$FILE_CHECK
 ; ファイルが存在しない場合はスキップ（画像未設定コマンド）
 LOCALS:2 '= @"resources/%LOCALS:1%"
 SIF !EXISTFILE(LOCALS:2)
