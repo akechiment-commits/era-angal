@@ -9,13 +9,12 @@
 ;実績一覧では200～使用。ビット演算で実績取得済みか判定
 ;200:イベント編
 ;201:ウフフ編
-;202:イベント編-Lunatic-
+;202:廃止（イベント編に統合済み）
 ;203:ウフフ編-Lunatic-
 ;FLAG:57 どの実績を開いていたかの記録に使用
 ;--------------------------------------------------
 @TROPHY
 CALL TROPHY_CHECK_200
-CALL TROPHY_CHECK_202
 CALL TROPHY_CHECK_CARDS
 
 VARSET B, 0
@@ -33,8 +32,6 @@ IF FLAG:57 == 0
 	PRINTFORML イベント編　　
 ELSEIF FLAG:57 == 1
 	PRINTFORML ウフフ編　　
-ELSEIF FLAG:57 == 2
-	PRINTFORML イベント編-Lunatic-　　
 ELSEIF FLAG:57 == 3
 	PRINTFORML キャラ編
 ELSEIF FLAG:57 == 4
@@ -73,12 +70,7 @@ FOR LOCAL, 0, 50
 		RESULTS:1 = ？？？
 	SIF RESULT == 0 && (RESULTS:0 == "ゴールド" || RESULTS:0 == "プラチナ")
 		RESULTS:2 = ？？？
-	;イベント編-Lunatic-は実績名長
-	IF FLAG:57 == 2
-		PRINTFORM %RESULTS:1,28,LEFT%%RESULTS:2%
-	ELSE
-		PRINTFORM %RESULTS:1,22,LEFT%%RESULTS:2%
-	ENDIF
+	PRINTFORM %RESULTS:1,22,LEFT%%RESULTS:2%
 	;実績によっては現在の達成率をパーセント表示
 	IF RESULT:1 && RESULT == 0
 		PRINT [ 現在
@@ -123,8 +115,6 @@ CALL TROPHY_COUNT_PRINT
 DRAWLINE
 PRINTFORML [  0] イベント編
 PRINTFORML [  1] ウフフ編
-SIF GLOBAL:202
-	PRINTFORML [  2] イベント編-Lunatic-
 PRINTFORML [  3] キャラ編
 ;PRINTFORML [  3] ウフフ編-Lunatic-
 PRINTFORML [  4] カード編
@@ -140,10 +130,6 @@ ELSEIF RESULT == 99
 	CALL TROPHY_CHECK_CARDS
 	GOTO PRINT_LIST
 ELSEIF RESULT >= 0 && RESULT <= 1
-	FLAG:57 = RESULT
-	LOCAL:2 = 200+FLAG:57
-	GOTO PRINT_LIST
-ELSEIF RESULT == 2 && GLOBAL:202
 	FLAG:57 = RESULT
 	LOCAL:2 = 200+FLAG:57
 	GOTO PRINT_LIST
@@ -167,7 +153,6 @@ PRINTFORML 実績をリセットしますか？
 PRINTL 
 PRINTFORML [  0] イベント編のみ
 PRINTFORML [  1] ウフフ編のみ
-PRINTFORML [  2] イベント編-Lunatic-のみ
 PRINTFORML [  4] カード編のみ
 PRINTFORML [ 99] 全実績
 PRINTFORML [100] 戻る
@@ -183,7 +168,6 @@ ELSEIF RESULT == 99
 		PRINTFORMW 全実績をリセットしました
 		GLOBAL:200 = 0
 		GLOBAL:201 = 0
-		GLOBAL:202 = 0
 		GLOBAL:206 = 0
 		GLOBAL:207 = 0
 		GLOBAL:208 = 0
@@ -211,15 +195,6 @@ ELSEIF RESULT == 1
 		GLOBAL:201 = 0
 	ELSE
 		PRINTFORMW ウフフ編の実績リセットを中止しました
-	ENDIF
-ELSEIF RESULT == 2
-	PRINTFORML イベント編-Lunatic-の実績をリセットしますか？
-	CALL TROPHY_RESET_CHECK
-	IF RESULT == 0
-		PRINTFORMW イベント編-Lunatic-の実績をリセットしました
-		GLOBAL:202 = 0
-	ELSE
-		PRINTFORMW イベント編-Lunatic-の実績リセットを中止しました
 	ENDIF
 ELSEIF RESULT == 4
 	PRINTFORML カード編の実績をリセットしますか？
@@ -298,7 +273,7 @@ NEXT
 #DIM LCOUNT, 1
 VARSET LOCAL, 0
 
-FOR LCOUNT, 200, 203
+FOR LCOUNT, 200, 202
 	CALL TROPHY_COUNT(LCOUNT)
 	LOCAL:0 += B:0
 	LOCAL:1 += S:0
@@ -385,6 +360,14 @@ VARSET T, 0
 VARSET LOCAL, 0
 ;経験～～以上等の実績はここで一括して判定
 FOR LOCAL, 1, CHARANUM
+	SIF CFLAG:LOCAL:2 >= 200000
+		GLOBAL:200 |= 1p20
+	SIF CFLAG:LOCAL:2 >= 300000
+		GLOBAL:200 |= 1p21
+	SIF CFLAG:LOCAL:2 >= 500000
+		GLOBAL:200 |= 1p22
+	SIF CFLAG:LOCAL:2 >= 999999
+		GLOBAL:200 |= 1p23
 NEXT
 
 VARSET LOCAL, 0
@@ -421,14 +404,14 @@ SAVEGLOBAL
 
 @TROPHY_200_0
 RESULTS:0 = プラチナ
-RESULTS:1 = eratohoJ+制覇
+RESULTS:1 = eraあんガル+制覇
 RESULTS:2 = イベント編全実績取得
 ;達成判定は別
 
 @TROPHY_200_1
 RESULTS:0 = ブロンズ
-RESULTS:1 = eratohoJ+デビュー
-RESULTS:2 = eratohoJ+をプレイした
+RESULTS:1 = eraあんガル+デビュー
+RESULTS:2 = eraあんガルをプレイした
 ;達成判定
 RETURN 1
 
@@ -550,6 +533,67 @@ SIF LOCAL:1 < LOCAL:2
 
 ;全て調合していれば達成
 SIF LOCAL:1 == LOCAL:2
+	RETURN 1
+
+@TROPHY_200_20
+RESULTS:0 = ブロンズ
+RESULTS:1 = プラトニック・ラブ
+RESULTS:2 = 好感度200000以上
+;達成判定は一括
+
+
+@TROPHY_200_21
+RESULTS:0 = ブロンズ
+RESULTS:1 = ハッピー・デイズ
+RESULTS:2 = 好感度300000以上
+;達成判定は一括
+
+
+@TROPHY_200_22
+RESULTS:0 = シルバー
+RESULTS:1 = スウィート・メモリーズ
+RESULTS:2 = 好感度500000以上
+;達成判定は一括
+
+
+
+@TROPHY_200_23
+RESULTS:0 = ゴールド
+RESULTS:1 = 変わらぬ愛
+RESULTS:2 = 好感度999999以上
+;達成判定は一括
+
+
+@TROPHY_200_30
+RESULTS:0 = ブロンズ
+RESULTS:1 = ゴールデン・セレクション
+RESULTS:2 = 所持金$999999999999999達成
+;達成判定
+SIF MONEY >= 999999999999999
+	RETURN 1
+
+@TROPHY_200_31
+RESULTS:0 = ブロンズ
+RESULTS:1 = プラチナ・ハート
+RESULTS:2 = 所持金$9999999999999999達成
+;達成判定
+SIF MONEY >= 9999999999999999
+	RETURN 1
+
+@TROPHY_200_32
+RESULTS:0 = シルバー
+RESULTS:1 = ダイヤモンド・ウェディング
+RESULTS:2 = 所持金$99999999999999999達成
+;達成判定
+SIF MONEY >= 99999999999999999
+	RETURN 1
+
+@TROPHY_200_33
+RESULTS:0 = ゴールド
+RESULTS:1 = GOLD RUSH!!
+RESULTS:2 = 所持金$999999999999999999(最大値)達成
+;達成判定
+SIF MONEY >= 999999999999999999
 	RETURN 1
 
 @TROPHY_CHECK_201(ARG, ARG:1)
@@ -748,249 +792,6 @@ RESULTS:2 = M絶頂100回以上を達成する
 ;達成判定
 SIF TARGET > 0 && EX:6 >= 100
 	RETURN 1
-
-
-
-;--------------------------------------------------
-;判定（GLOBAL:202　イベント編-Lunatic-）
-;--------------------------------------------------
-@TROPHY_CHECK_202
-LOADGLOBAL
-
-VARSET T, 0
-VARSET LOCAL, 0
-;経験～～以上等の実績はここで一括して判定
-FOR LOCAL, 1, CHARANUM
-	;好感度
-	SIF CFLAG:LOCAL:2 >= 200000
-		GLOBAL:202 |= 1p20
-	SIF CFLAG:LOCAL:2 >= 300000
-		GLOBAL:202 |= 1p21
-	SIF CFLAG:LOCAL:2 >= 500000
-		GLOBAL:202 |= 1p22
-	SIF CFLAG:LOCAL:2 >= 999999
-		GLOBAL:202 |= 1p23
-NEXT
-
-VARSET LOCAL, 0
-FOR LOCAL, 0, 50
-	;条件をクリアしているか
-	TRYCALLFORM TROPHY_202_{LOCAL}
-	SIF RESULT
-		SETBIT GLOBAL:202, LOCAL
-NEXT
-
-SIF GLOBAL:202
-	GLOBAL:202 |= 1p1
-
-SAVEGLOBAL
-
-;全実績取得判定
-;実績数カウント
-CALL TROPHY_COUNT(202)
-LOCAL:0 = B:0 + S:0 + G:0
-LOCAL:1 = B:1 + S:1 + G:1
-SIF LOCAL:0 == LOCAL:1
-	GLOBAL:202 |= 1p0
-
-SAVEGLOBAL
-
-;--------------------------------------------------
-;イベント編-Lunatic-実績（GLOBAL:202）
-;--------------------------------------------------
-;例
-;@TROPHY_202_X
-;RESULTS:0 = 実績のランク
-;RESULTS:1 = 実績名
-;RESULTS:2 = 説明文
-;;達成判定(条件を達成したらRETURN 1)
-;SIF 1
-;	RETURN 1
-
-@TROPHY_202_0
-RESULTS:0 = プラチナ
-RESULTS:1 = eratohoJ+完全制覇
-RESULTS:2 = イベント編-Lunatic-全実績取得
-;達成判定は別
-
-@TROPHY_202_1
-RESULTS:0 = ブロンズ
-RESULTS:1 = Lunaticデビュー
-RESULTS:2 = イベント編全実績取得orイベント編-Lunatic-の実績取得
-;達成判定
-GETBIT GLOBAL:200, 0
-SIF RESULT
-	RETURN 1
-
-;@TROPHY_202_2
-;RESULTS:0 = ブロンズ
-;RESULTS:1 = 千里の道も一歩から
-;RESULTS:2 = Stage1をクリア
-;;達成判定
-;SIF FLAG:42 > 1
-;	RETURN 1
-
-;@TROPHY_202_3
-;RESULTS:0 = ブロンズ
-;RESULTS:1 = 異変解決！
-;RESULTS:2 = 異変を解決する
-;;達成判定
-;SIF FLAG:42 > 6
-;	RETURN 1
-
-;@TROPHY_202_4
-;RESULTS:0 = ブロンズ
-;RESULTS:1 = まだ終わらない
-;RESULTS:2 = Stage10をクリア
-;;達成判定
-;SIF FLAG:42 > 10
-;	RETURN 1
-
-;@TROPHY_202_5
-;RESULTS:0 = シルバー
-;RESULTS:1 = 戦いは永遠に
-;RESULTS:2 = Stage50をクリア
-;;達成判定
-;SIF FLAG:42 > 50
-;	RETURN 1
-
-@TROPHY_202_10
-RESULTS:0 = ブロンズ
-RESULTS:1 = ゴールデン・セレクション
-RESULTS:2 = 所持金$999999999999999達成
-;達成判定
-SIF MONEY >= 999999999999999
-	RETURN 1
-
-@TROPHY_202_11
-RESULTS:0 = ブロンズ
-RESULTS:1 = プラチナ・ハート
-RESULTS:2 = 所持金$9999999999999999達成
-;達成判定
-SIF MONEY >= 9999999999999999
-	RETURN 1
-
-@TROPHY_202_12
-RESULTS:0 = シルバー
-RESULTS:1 = ダイヤモンド・ウェディング
-RESULTS:2 = 所持金$99999999999999999達成
-;達成判定
-SIF MONEY >= 99999999999999999
-	RETURN 1
-
-@TROPHY_202_13
-RESULTS:0 = ゴールド
-RESULTS:1 = GOLD RUSH!!
-RESULTS:2 = 所持金$999999999999999999(最大値)達成
-;達成判定
-SIF MONEY >= 999999999999999999
-	RETURN 1
-
-;@TROPHY_202_14
-;RESULTS:0 = ブロンズ
-;RESULTS:1 = 見習い錬金術師
-;RESULTS:2 = 調合を行う
-;;達成判定
-;VARSET LOCAL, 0
-;FOR LOCAL, 2001, 2700
-;	;調合済みレシピ数確認
-;	SIF FLAG:LOCAL == 1
-;		LOCAL:1 += 1
-;NEXT
-;;1種調合していれば達成
-;SIF LOCAL:1 >= 1
-;	RETURN 1
-
-;@TROPHY_202_15
-;RESULTS:0 = ブロンズ
-;RESULTS:1 = 普通の錬金術師
-;RESULTS:2 = 50種類調合する
-;;達成判定
-;VARSET LOCAL, 0
-;FOR LOCAL, 2001, 2700
-;	;調合済みレシピ数確認
-;	SIF FLAG:LOCAL == 1
-;		LOCAL:1 += 1
-;NEXT
-;;50種調合していれば達成
-;SIF LOCAL:1 >= 50
-;	RETURN 1
-
-;@TROPHY_202_16
-;RESULTS:0 = シルバー
-;RESULTS:1 = ベテラン錬金術師
-;RESULTS:2 = 100種類調合する
-;;達成判定
-;VARSET LOCAL, 0
-;FOR LOCAL, 2001, 2700
-;	;調合済みレシピ数確認
-;	SIF FLAG:LOCAL == 1
-;		LOCAL:1 += 1
-;NEXT
-;;100種調合していれば達成
-;SIF LOCAL:1 >= 100
-;	RETURN 1
-
-;@TROPHY_202_17
-;RESULTS:0 = シルバー
-;RESULTS:1 = アンビリーバボー！
-;RESULTS:2 = 奇跡の薬を調合する
-;;達成判定
-;SIF FLAG:2666
-;	RETURN 1
-
-;@TROPHY_202_18
-;RESULTS:0 = シルバー
-;RESULTS:1 = 禁断の知識
-;RESULTS:2 = 蓬莱の薬を調合する
-;;達成判定
-;SIF FLAG:2002 == 1
-;	RETURN 1
-
-;@TROPHY_202_19
-;RESULTS:0 = ゴールド
-;RESULTS:1 = 偉業達成
-;RESULTS:2 = 全種類調合する
-;;達成判定
-;CALL RECIPE_NAME
-;VARSET LOCAL, 0
-;FOR LOCAL, 2001, 2700
-;	;レシピが設定されていて調合してなければダメ
-;	SIF STR:LOCAL != "" && FLAG:LOCAL != 1
-;		LOCAL:1 = 1
-;NEXT
-;;全て調合していれば達成
-;SIF LOCAL:1 == 0
-;	RETURN 1
-
-@TROPHY_202_20
-RESULTS:0 = ブロンズ
-RESULTS:1 = プラトニック・ラブ
-RESULTS:2 = 好感度200000以上
-;達成判定は一括
-
-
-@TROPHY_202_21
-RESULTS:0 = ブロンズ
-RESULTS:1 = ハッピー・デイズ
-RESULTS:2 = 好感度300000以上
-;達成判定は一括
-
-
-@TROPHY_202_22
-RESULTS:0 = シルバー
-RESULTS:1 = スウィート・メモリーズ
-RESULTS:2 = 好感度500000以上
-;達成判定は一括
-
-
-
-@TROPHY_202_23
-RESULTS:0 = ゴールド
-RESULTS:1 = 変わらぬ愛
-RESULTS:2 = 好感度999999以上
-;達成判定は一括
-
 
 @TROPHY_CHECK_203(ARG, ARG:1)
 LOADGLOBAL
