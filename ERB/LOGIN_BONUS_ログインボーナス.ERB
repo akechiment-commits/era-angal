@@ -1,40 +1,63 @@
 ;-------------------------------------------------
 ; ログインボーナスシステム
-;   GLOBAL:230 = 最終ログイン日 (YYYYMMDD)
+;   GLOBAL:230 = 最終ログイン日 (YYYYMMDD) または -1（セッション済みフラグ）
 ;   GLOBAL:231 = 連続ログイン日数
+;
+; 呼び出し箇所（1セッションにつき1回だけ通る）:
+;   ・新ゲーム: @EVENTFIRST の BEGIN SHOP 直前
+;   ・セーブロード: @EVENTSHOP #PRI の LOADGAME 直後
 ;-------------------------------------------------
 
 @LOGIN_BONUS_CHECK
-; リアル日付を取得
+; ── 日付取得 ──────────────────────────────────────
+; Emuera1820: GETTIME は A=年 B=月 C=日 に格納（旧eramakerスタイル）
 GETTIME
-LOCAL = RESULT:0 * 10000 + RESULT:1 * 100 + RESULT:2
+LOCAL:0 = A * 10000 + B * 100 + C
+; A/B/C が 0 なら RESULT 方式を試す（Emuera拡張）
+SIF LOCAL:0 == 0
+	LOCAL:0 = RESULT:0 * 10000 + RESULT:1 * 100 + RESULT:2
 
-; 今日すでに受け取り済みなら終了
-SIF GLOBAL:230 == LOCAL
-	RETURN 0
-
-; 連続ログイン判定
-IF GLOBAL:230 == 0
-	GLOBAL:231 = 1
+; ── 重複防止チェック ──────────────────────────────
+; 日付が有効な範囲（2000～2099年）ならその日付で判定
+IF LOCAL:0 >= 20000101 && LOCAL:0 <= 20991231
+	; 今日すでに受け取り済みなら終了
+	SIF GLOBAL:230 == LOCAL:0
+		RETURN 0
 ELSE
-	LOCAL:1 = LOCAL / 100
-	LOCAL:2 = LOCAL % 100
-	LOCAL:3 = GLOBAL:230 / 100
-	LOCAL:4 = GLOBAL:230 % 100
+	; GETTIME が使えない: セッション単位で1回のみ（GLOBAL:230 = -1 でフラグ）
+	SIF GLOBAL:230 == -1
+		RETURN 0
+	LOCAL:0 = -1
+ENDIF
+
+; ── 連続ログイン日数計算 ──────────────────────────
+IF GLOBAL:230 <= 0
+	; 初回または GETTIME 使えない場合
+	GLOBAL:231 = 1
+ELSEIF LOCAL:0 == -1
+	; GETTIME 使えない: 毎セッションを1日扱い
+	GLOBAL:231 += 1
+ELSE
+	; 前回の日付から連続かチェック
+	LOCAL:1 = LOCAL:0 / 100		; 今日のYYYYMM
+	LOCAL:2 = LOCAL:0 % 100		; 今日のDD
+	LOCAL:3 = GLOBAL:230 / 100	; 前回のYYYYMM
+	LOCAL:4 = GLOBAL:230 % 100	; 前回のDD
 	; 同月で1日差
 	IF LOCAL:1 == LOCAL:3 && LOCAL:2 == LOCAL:4 + 1
 		GLOBAL:231 += 1
 	ELSEIF LOCAL:2 == 1 && LOCAL:1 > LOCAL:3
-		; 月またぎ（今日が1日）
+		; 月またぎ（今日が1日、前回が先月）
 		GLOBAL:231 += 1
 	ELSE
 		GLOBAL:231 = 1
 	ENDIF
 ENDIF
 
-GLOBAL:230 = LOCAL
+; 日付を更新して保存
+GLOBAL:230 = LOCAL:0
 
-; 報酬テーブル（7日サイクル）
+; ── 報酬テーブル（7日サイクル） ───────────────────
 LOCAL:5 = ((GLOBAL:231 - 1) % 7) + 1
 
 DRAWLINE
@@ -64,7 +87,7 @@ CASE 6
 	PRINTFORML 報酬：シルバーガチャチケット ×1
 CASE 7
 	FLAG:115 += 1
-	PRINTFORML 報酬：ゴールドガチャチケット ×1　 ← 週間ボーナス！
+	PRINTFORML 報酬：ゴールドガチャチケット ×1　← 週間ボーナス！
 ENDSELECT
 
 PRINTL
