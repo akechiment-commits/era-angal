@@ -86,7 +86,6 @@ LOCALS += TOSTR(A) + ".png"
 
 - **コードを読まずに書かない。必ず既存コードを確認してから変更する**
 - **コンテキストが残り少ない場合、その旨を伝えて区切りを提案する**
-- **Agentツール（サブエージェント）の使用は絶対禁止。遅すぎて実用にならない。直接Grep/Read/Bashで調査する**
 - **調査の前に必ずリポジトリ内のデータを確認する**
   - キャラ情報: `tools/character_data.csv`, `tools/debug_list.html`（cno→キャラ名マッピング全71件収録）
   - カードデータ: `tools/card_data.csv`, `tools/all_bundles.txt`
