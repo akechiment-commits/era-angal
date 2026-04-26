@@ -1,61 +1,57 @@
 ;-------------------------------------------------
 ; ログインボーナスシステム
-;   GLOBAL:230 = 最終受取日 (YYYYMMDD)
-;   GLOBAL:231 = 連続ログイン日数
-;   FLAG:119   = セッション内受取済みフラグ (GETTIMEが使えない場合のフォールバック)
-;               → @EVENTFIRST / @EVENTSHOP #PRI(LOADGAME後) で毎回 0 にリセットされる
+;   FLAG:119  = 最終受取日 (YYYYMMDD、セーブ別)
+;   FLAG:231  = 連続ログイン日数 (セーブ別)
 ;-------------------------------------------------
 
 @LOGIN_BONUS_CHECK
-; ── 日付取得 ──────────────────────────────────────
+; ── 日付取得 ──────────────────────────────────
 GETTIME
 ; EmueraEM+EE: RESULT:0 = YYYYMMDDHHMMSSmmm (17桁) → /1000000000 でYYYYMMDD取得
+PRINTFORML [DEBUG] LOGIN_BONUS: RESULT:0={RESULT:0} FLAG:119={FLAG:119} FLAG:231={FLAG:231}
 IF RESULT:0 >= 10000000000000000
 	LOCAL:0 = RESULT:0 / 1000000000
 ELSEIF RESULT:0 >= 2000 && RESULT:0 <= 2099
 	LOCAL:0 = RESULT:0 * 10000 + RESULT:1 * 100 + RESULT:2
 ELSE
-	; GETTIME が使えない → FLAG:119 でセッション単位管理
-	SIF FLAG:119 == 1
-		RETURN 0
-	FLAG:119 = 1
-	GOTO GIVE_BONUS
+	PRINTFORML [DEBUG] GETTIME完全無効 → スキップ
+	RETURN 0
 ENDIF
+PRINTFORML [DEBUG] 今日={LOCAL:0} 前回受取={FLAG:119}
 
-; ── 今日すでに受け取り済みなら終了 ───────────────
-SIF GLOBAL:230 == LOCAL:0
+; ── 今日すでに受け取り済みなら終了 (FLAG:119 = 最終受取日) ──
+SIF FLAG:119 == LOCAL:0
 	RETURN 0
 
-; ── 連続ログイン日数計算 ──────────────────────────
-$GIVE_BONUS
-IF GLOBAL:230 <= 0
-	GLOBAL:231 = 1
+; ── 連続ログイン日数計算 ──────────────────
+
+IF FLAG:119 <= 0
+	FLAG:231 = 1
 ELSE
 	LOCAL:1 = LOCAL:0 / 100		; 今日のYYYYMM
 	LOCAL:2 = LOCAL:0 % 100		; 今日のDD
-	LOCAL:3 = GLOBAL:230 / 100	; 前回のYYYYMM
-	LOCAL:4 = GLOBAL:230 % 100	; 前回のDD
+	LOCAL:3 = FLAG:119 / 100	; 前回のYYYYMM
+	LOCAL:4 = FLAG:119 % 100	; 前回のDD
 	; 同月で1日差
 	IF LOCAL:1 == LOCAL:3 && LOCAL:2 == LOCAL:4 + 1
-		GLOBAL:231 += 1
+		FLAG:231 += 1
 	ELSEIF LOCAL:2 == 1 && LOCAL:1 > LOCAL:3
-		GLOBAL:231 += 1
+		FLAG:231 += 1
 	ELSE
-		GLOBAL:231 = 1
+		FLAG:231 = 1
 	ENDIF
 ENDIF
 
-; 日付を更新（GETTIME が有効な場合のみ。LOCAL:0=0ならスキップ）
-SIF LOCAL:0 > 0
-	GLOBAL:230 = LOCAL:0
+; 受取日を更新
+FLAG:119 = LOCAL:0
 
-; ── 報酬テーブル（7日サイクル） ───────────────────
-LOCAL:5 = ((GLOBAL:231 - 1) % 7) + 1
+; ── 報酬テーブル（7日サイクル） ─────────────────
+LOCAL:5 = ((FLAG:231 - 1) % 7) + 1
 
 DRAWLINE
 PRINTFORML ★ ログインボーナス ★
 DRAWLINE
-PRINTFORML 連続ログイン：{GLOBAL:231} 日目
+PRINTFORML 連続ログイン：{FLAG:231} 日目
 PRINTL
 ; 毎日確定: キミサキダイヤ ×5
 FLAG:112 += 5
@@ -91,7 +87,6 @@ ENDSELECT
 PRINTL
 SIF LOCAL:5 < 7
 	PRINTFORML （週間ボーナスまで あと {7 - LOCAL:5} 日）
-SAVEGLOBAL
 DRAWLINE
 WAIT
 RETURN 0
