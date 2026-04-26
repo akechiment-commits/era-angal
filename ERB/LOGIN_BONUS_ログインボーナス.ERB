@@ -1,32 +1,25 @@
 ;-------------------------------------------------
 ; ログインボーナスシステム
-;   GLOBAL:230 = 最終受取日 (YYYYMMDD) または -1（セッション済みフラグ）
+;   GLOBAL:230 = 最終受取日 (YYYYMMDD)
 ;   GLOBAL:231 = 連続ログイン日数
-;
-; 呼び出し箇所:
-;   ・@SHOW_SHOP（毎ショップ表示 → 日付変更を随時検知）
-;   ・@EVENTSHOP #PRI のLOADGAME直後（ロード時確実発火）
-;   ・@EVENTFIRST の BEGIN SHOP 直前（新ゲーム時）
-; 日付が変わらない限り GLOBAL:230 == 今日の日付 になるので2回は発火しない
+;   FLAG:119   = セッション内受取済みフラグ (GETTIMEが使えない場合のフォールバック)
+;               → @EVENTFIRST / @EVENTSHOP #PRI(LOADGAME後) で毎回 0 にリセットされる
 ;-------------------------------------------------
 
 @LOGIN_BONUS_CHECK
 ; ── 日付取得 ──────────────────────────────────────
-; Emuera1820: GETTIME 後に RESULT:0=年 RESULT:1=月 RESULT:2=日
-; eramaker旧式: A=年 B=月 C=日
-; どちらが有効かを年の範囲（2000～2099）で自動判定
+; Emuera1820: GETTIME → RESULT:0=年 RESULT:1=月 RESULT:2=日
+; eramaker旧式の場合: RESULT:0 が 0 のまま → ELSEIF で A/B/C を試す
 GETTIME
 IF RESULT:0 >= 2000 && RESULT:0 <= 2099
-	; RESULT スタイル
 	LOCAL:0 = RESULT:0 * 10000 + RESULT:1 * 100 + RESULT:2
 ELSEIF A >= 2000 && A <= 2099
-	; A/B/C スタイル（旧eramaker）
 	LOCAL:0 = A * 10000 + B * 100 + C
 ELSE
-	; どちらも無効: セッション単位フォールバック
-	SIF GLOBAL:230 == -1
+	; GETTIME が使えない → FLAG:119 でセッション単位管理
+	SIF FLAG:119 == 1
 		RETURN 0
-	GLOBAL:230 = -1
+	FLAG:119 = 1
 	GOTO GIVE_BONUS
 ENDIF
 
@@ -37,13 +30,8 @@ SIF GLOBAL:230 == LOCAL:0
 ; ── 連続ログイン日数計算 ──────────────────────────
 $GIVE_BONUS
 IF GLOBAL:230 <= 0
-	; 初回または GETTIMEフォールバック後
 	GLOBAL:231 = 1
-ELSEIF GLOBAL:230 == -1
-	; セッション方式の場合は単純加算
-	GLOBAL:231 += 1
 ELSE
-	; 昨日と連続かチェック
 	LOCAL:1 = LOCAL:0 / 100		; 今日のYYYYMM
 	LOCAL:2 = LOCAL:0 % 100		; 今日のDD
 	LOCAL:3 = GLOBAL:230 / 100	; 前回のYYYYMM
@@ -52,15 +40,14 @@ ELSE
 	IF LOCAL:1 == LOCAL:3 && LOCAL:2 == LOCAL:4 + 1
 		GLOBAL:231 += 1
 	ELSEIF LOCAL:2 == 1 && LOCAL:1 > LOCAL:3
-		; 月またぎ（今日が1日）
 		GLOBAL:231 += 1
 	ELSE
 		GLOBAL:231 = 1
 	ENDIF
 ENDIF
 
-; 日付を更新
-SIF LOCAL:0 != -1
+; 日付を更新（GETTIME が有効な場合のみ。LOCAL:0=0ならスキップ）
+SIF LOCAL:0 > 0
 	GLOBAL:230 = LOCAL:0
 
 ; ── 報酬テーブル（7日サイクル） ───────────────────
