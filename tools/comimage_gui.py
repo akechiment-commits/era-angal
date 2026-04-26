@@ -85,7 +85,7 @@ CATEGORIES: list[tuple[str, list]] = [
      [c for c in COMMANDS if (280 <= c[0] <= 284) or (c[0] >= 410)]),
 ]
 
-THUMB_W, THUMB_H = 80, 80
+THUMB_W, THUMB_H = 96, 96
 COLS = 5
 
 # カラーパレット（ダーク）
@@ -141,7 +141,7 @@ class SlotWidget(tk.Frame):
         # コマンド名ラベル
         short = jname[:8] + "…" if len(jname) > 9 else jname
         self.lbl = tk.Label(self, text=f"COM{cid}\n{short}",
-                            font=("", 7), bg=C_SLOT, fg=C_DIM,
+                            font=("", 10), bg=C_SLOT, fg=C_DIM,
                             wraplength=THUMB_W + 2, justify=tk.CENTER)
         self.lbl.pack(fill=tk.X)
 
@@ -235,13 +235,13 @@ class SlotWidget(tk.Frame):
         if self._has_img:
             self.cnv.config(bg="#1a3a1a")
             self.cnv.create_text(cx, cy, text="画像あり",
-                                 fill=C_OK, font=("", 8))
+                                 fill=C_OK, font=("", 11))
         else:
             self.cnv.config(bg="#111111")
             hint = ("D&D\nまたは\nダブルクリック" if _HAS_DND
                     else "ダブルクリックで\nファイル選択")
             self.cnv.create_text(cx, cy, text=hint,
-                                 fill="#555555", font=("", 7), justify=tk.CENTER)
+                                 fill="#555555", font=("", 10), justify=tk.CENTER)
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -249,9 +249,9 @@ class App:
     def __init__(self, root: tk.Tk):
         self.root = root
         root.title("コマンド画像 D&Dツール — eraあんガル")
-        root.geometry("980x740")
+        root.geometry("1200x860")
         root.configure(bg=C_BG)
-        root.option_add("*TCombobox*Listbox.font", ("", 9))
+        root.option_add("*TCombobox*Listbox.font", ("", 12))
 
         self.cno: int = 1
         self.variant_suffix: str = "_1"
@@ -268,18 +268,18 @@ class App:
         bar.pack(fill=tk.X)
 
         tk.Label(bar, text="キャラ:", bg=C_BAR, fg=C_FG,
-                 font=("", 9)).pack(side=tk.LEFT, padx=(10, 2))
+                 font=("", 12)).pack(side=tk.LEFT, padx=(10, 2))
 
         chara_vals = [f"{n:02d}  {nm}" for n, nm in CHARAS]
         self._chara_var = tk.StringVar(value=chara_vals[0])
         cb = ttk.Combobox(bar, textvariable=self._chara_var,
                           values=chara_vals, state="readonly",
-                          width=20, font=("", 9))
+                          width=24, font=("", 12))
         cb.pack(side=tk.LEFT, padx=4)
         cb.bind("<<ComboboxSelected>>", self._on_chara)
 
         tk.Label(bar, text="バリアント:", bg=C_BAR, fg=C_FG,
-                 font=("", 9)).pack(side=tk.LEFT, padx=(18, 4))
+                 font=("", 12)).pack(side=tk.LEFT, padx=(18, 4))
         self._var_var = tk.StringVar(value="_1")
         sep = True
         for label, suffix in VARIANTS:
@@ -289,18 +289,18 @@ class App:
             rb = tk.Radiobutton(bar, text=label, variable=self._var_var,
                                 value=suffix, bg=C_BAR, fg=C_FG,
                                 selectcolor="#444", activebackground=C_BAR,
-                                activeforeground=C_FG, font=("", 8),
+                                activeforeground=C_FG, font=("", 11),
                                 command=self._on_variant)
             rb.pack(side=tk.LEFT, padx=2)
 
         tk.Button(bar, text="↺ 更新", bg="#404040", fg=C_FG,
-                  relief=tk.FLAT, padx=6, font=("", 8), cursor="hand2",
+                  relief=tk.FLAT, padx=6, font=("", 11), cursor="hand2",
                   command=self._refresh_all).pack(side=tk.LEFT, padx=(14, 0))
 
         dnd_text = "● DnD有効" if _HAS_DND else "○ DnD無効  (pip install tkinterdnd2)"
         dnd_fg   = C_OK if _HAS_DND else C_WARN
         tk.Label(bar, text=dnd_text, bg=C_BAR, fg=dnd_fg,
-                 font=("", 8)).pack(side=tk.RIGHT, padx=10)
+                 font=("", 11)).pack(side=tk.RIGHT, padx=10)
 
     def _build_main(self):
         outer = tk.Frame(self.root, bg=C_BG)
@@ -330,7 +330,7 @@ class App:
         self._status_var = tk.StringVar(value="準備完了")
         self._status_lbl = tk.Label(
             self.root, textvariable=self._status_var,
-            bg="#111111", fg=C_DIM, anchor=tk.W, padx=10, font=("", 8))
+            bg="#111111", fg=C_DIM, anchor=tk.W, padx=10, font=("", 11))
         self._status_lbl.pack(fill=tk.X, side=tk.BOTTOM)
 
     def _build_slots(self):
@@ -343,7 +343,7 @@ class App:
             if not cmds:
                 continue
             hdr = tk.Label(self._inner, text=cat_name,
-                           bg=C_CAT, fg=C_FG, font=("", 9, "bold"),
+                           bg=C_CAT, fg=C_FG, font=("", 12, "bold"),
                            anchor=tk.W, padx=10, pady=4)
             hdr.grid(row=row, column=0, columnspan=COLS,
                      sticky="ew", pady=(10, 2))
