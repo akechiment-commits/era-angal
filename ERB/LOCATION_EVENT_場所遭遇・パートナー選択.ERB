@@ -448,7 +448,11 @@ IF LOCAL:98 < 0
 ENDIF
 TFLAG:85 = LOCAL:98
 
-CALL ENCOUNTER_SCENE
+IF TFLAG:87 == 1
+	CALL OUTING_SCENE
+ELSE
+	CALL ENCOUNTER_SCENE
+ENDIF
 RETURN RESULT
 
 ;---------------------------------------------------------
@@ -553,3 +557,151 @@ ELSE
 ENDIF
 
 RETURN 1
+
+;---------------------------------------------------------
+; 校内お出かけ - 出会いシーン（一緒に過ごすモード）
+; TFLAG:85 = 出会いキャラインデックス
+;---------------------------------------------------------
+@OUTING_SCENE
+A = TFLAG:85
+DRAWLINE
+IF CSTR:A:25 != ""
+	PRINTFORML %NAME:A%（%CSTR:A:25%）と出会った。
+ELSE
+	PRINTFORML %NAME:A%と出会った。
+ENDIF
+PRINTL
+TRYCALLFORM CHAR_FIRST_DIALOG_{NO:A}
+PRINTL
+PRINTFORML [1] 一緒に過ごす
+PRINTFORML [0] 帰る
+$OD_SCENE_LOOP
+INPUT
+IF RESULT == 1
+	TARGET = A
+	TFLAG:87 = 0
+	TFLAG:88 = 0
+	TRYCALLFORM CHAR_PARTNER_DIALOG_{NO:TARGET}
+	CALL ACCESSORY_EQUIP
+	BEGIN TRAIN
+	RETURN 1
+ELSEIF RESULT == 0
+	PRINTFORMW 帰ることにした。
+	RETURN 0
+ELSE
+	GOTO OD_SCENE_LOOP
+ENDIF
+RETURN 0
+
+;---------------------------------------------------------
+; 校内お出かけ - 部室メニュー
+;---------------------------------------------------------
+@OUTING_CLUB_MENU
+DRAWLINE
+PRINTFORML 【部室 - どの部へ？】
+PRINTL
+PRINTFORML ─ 運動系 ─
+PRINTFORML [ 0] ラクロス部
+PRINTFORML [ 1] 剣道部
+PRINTFORML [ 2] テニス部
+PRINTFORML [ 3] バスケットボール部
+PRINTFORML [ 4] バレー部
+PRINTFORML [ 5] 柔道部
+PRINTFORML [ 6] 空手部
+PRINTFORML [ 7] 弓道部
+PRINTFORML [ 8] ソフトボール部
+PRINTFORML [ 9] チアリーディング部
+PRINTFORML [10] 水泳部
+PRINTFORML [11] 陸上部
+PRINTL
+PRINTFORML ─ 文化系 ─
+PRINTFORML [12] 軽音部
+PRINTFORML [13] 演劇部
+PRINTFORML [14] 合唱部
+PRINTFORML [15] 吹奏楽部
+PRINTFORML [16] 美術部
+PRINTFORML [17] 茶道部
+PRINTFORML [18] 天文部
+PRINTFORML [19] 文芸部
+PRINTFORML [20] 新聞部
+PRINTFORML [21] 料理研究部
+PRINTFORML [22] パソコン部
+PRINTFORML [23] オカルト研究部
+PRINTFORML [24] 生物部
+PRINTFORML [25] 放送部
+PRINTFORML [26] 園芸部
+PRINTFORML [99] 戻る
+PRINTL
+$OD_CLB_LOOP
+INPUT
+IF RESULT >= 0 && RESULT <= 26
+	TFLAG:86 = 1
+	TFLAG:84 = RESULT
+	CALL LOCATION_ENCOUNTER
+	RETURN RESULT
+ELSEIF RESULT == 99
+	RETURN 0
+ELSE
+	GOTO OD_CLB_LOOP
+ENDIF
+RETURN 0
+
+;---------------------------------------------------------
+; 校内お出かけ - 委員会室メニュー
+;---------------------------------------------------------
+@OUTING_COMMITTEE_MENU
+DRAWLINE
+PRINTFORML 【委員会室 - どの委員会へ？】
+PRINTL
+PRINTFORML [0] 体育委員会
+PRINTFORML [1] 保健委員会
+PRINTFORML [2] 図書委員会
+PRINTFORML [3] 緑化委員会
+PRINTFORML [4] 美化委員会
+PRINTFORML [5] 選挙管理委員会
+PRINTFORML [6] 風紀委員会
+PRINTFORML [9] 戻る
+PRINTL
+$OD_CMT_LOOP
+INPUT
+IF RESULT >= 0 && RESULT <= 6
+	TFLAG:86 = 2
+	TFLAG:84 = RESULT
+	CALL LOCATION_ENCOUNTER
+	RETURN RESULT
+ELSEIF RESULT == 9
+	RETURN 0
+ELSE
+	GOTO OD_CMT_LOOP
+ENDIF
+RETURN 0
+
+;---------------------------------------------------------
+; 校内お出かけ - トップメニュー
+; TFLAG:87=1 でお出かけモードON（OUTING_SCENEに分岐）
+;---------------------------------------------------------
+@LOCATION_OUTING
+TFLAG:87 = 1
+DRAWLINE
+PRINTL 【校内お出かけ】
+PRINTFORML どこへ行きますか？
+PRINTL
+PRINTFORML [1] 部室へ行く
+PRINTFORML [2] 委員会室へ行く
+PRINTFORML [0] 戻る
+$OD_TOP_LOOP
+INPUT
+IF RESULT == 1
+	CALL OUTING_CLUB_MENU
+	TFLAG:87 = 0
+	RETURN RESULT
+ELSEIF RESULT == 2
+	CALL OUTING_COMMITTEE_MENU
+	TFLAG:87 = 0
+	RETURN RESULT
+ELSEIF RESULT == 0
+	TFLAG:87 = 0
+	RETURN 0
+ELSE
+	GOTO OD_TOP_LOOP
+ENDIF
