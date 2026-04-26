@@ -1,0 +1,76 @@
+;-------------------------------------------------
+; ログインボーナスシステム
+;   GLOBAL:230 = 最終ログイン日 (YYYYMMDD)
+;   GLOBAL:231 = 連続ログイン日数
+;-------------------------------------------------
+
+@LOGIN_BONUS_CHECK
+; リアル日付を取得
+GETTIME
+LOCAL = RESULT:0 * 10000 + RESULT:1 * 100 + RESULT:2
+
+; 今日すでに受け取り済みなら終了
+SIF GLOBAL:230 == LOCAL
+	RETURN 0
+
+; 連続ログイン判定
+IF GLOBAL:230 == 0
+	GLOBAL:231 = 1
+ELSE
+	LOCAL:1 = LOCAL / 100
+	LOCAL:2 = LOCAL % 100
+	LOCAL:3 = GLOBAL:230 / 100
+	LOCAL:4 = GLOBAL:230 % 100
+	; 同月で1日差
+	IF LOCAL:1 == LOCAL:3 && LOCAL:2 == LOCAL:4 + 1
+		GLOBAL:231 += 1
+	ELSEIF LOCAL:2 == 1 && LOCAL:1 > LOCAL:3
+		; 月またぎ（今日が1日）
+		GLOBAL:231 += 1
+	ELSE
+		GLOBAL:231 = 1
+	ENDIF
+ENDIF
+
+GLOBAL:230 = LOCAL
+
+; 報酬テーブル（7日サイクル）
+LOCAL:5 = ((GLOBAL:231 - 1) % 7) + 1
+
+DRAWLINE
+PRINTFORML ★ ログインボーナス ★
+DRAWLINE
+PRINTFORML 連続ログイン：{GLOBAL:231} 日目
+PRINTL
+SELECTCASE LOCAL:5
+CASE 1
+	MONEY += 500
+	PRINTFORML 報酬：お金 +500円
+CASE 2
+	FLAG:112 += 5
+	PRINTFORML 報酬：キミサキダイヤ ×5
+CASE 3
+	MONEY += 1000
+	PRINTFORML 報酬：お金 +1,000円
+CASE 4
+	FLAG:113 += 1
+	PRINTFORML 報酬：ブロンズガチャチケット ×1
+CASE 5
+	MONEY += 1500
+	FLAG:112 += 10
+	PRINTFORML 報酬：お金 +1,500円 ＋ ダイヤ ×10
+CASE 6
+	FLAG:114 += 1
+	PRINTFORML 報酬：シルバーガチャチケット ×1
+CASE 7
+	FLAG:115 += 1
+	PRINTFORML 報酬：ゴールドガチャチケット ×1　 ← 週間ボーナス！
+ENDSELECT
+
+PRINTL
+SIF LOCAL:5 < 7
+	PRINTFORML （7日連続ボーナスまで あと {7 - LOCAL:5} 日）
+SAVEGLOBAL
+DRAWLINE
+WAIT
+RETURN 0
