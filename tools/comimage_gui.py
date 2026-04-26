@@ -324,7 +324,7 @@ class App:
             "<Configure>",
             lambda e: self._canvas.itemconfig(self._cwin, width=e.width))
         for seq in ("<MouseWheel>", "<Button-4>", "<Button-5>"):
-            self._canvas.bind(seq, self._on_scroll)
+            self._canvas.bind_all(seq, self._on_scroll)
 
     def _build_statusbar(self):
         self._status_var = tk.StringVar(value="準備完了")
