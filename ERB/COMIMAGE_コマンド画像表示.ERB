@@ -1,20 +1,21 @@
 ;---------------------------------------------------------
 ; コマンド実行時画像表示システム
-; resources/chara_XX/コマンド名_N.png を GCREATEFROMFILE で読み込んで表示
 ;
-; 【ファイル配置規則】
+; 【ファイル配置規則】（拡張子: .png .jpg .jpeg .bmp すべて可）
 ;   resources/chara_01/benkyou_1.png        ← 通常ランダム枠1
 ;   resources/chara_01/benkyou_2.png        ← 通常ランダム枠2
 ;   resources/chara_01/benkyou_3.png        ← 通常ランダム枠3
 ;   resources/chara_01/benkyou_renbo_1.png  ← 恋慕ランダム枠1
 ;   resources/chara_01/benkyou_renbo_2.png  ← 恋慕ランダム枠2
 ;   resources/chara_01/benkyou_renbo_3.png  ← 恋慕ランダム枠3
+;   ※旧形式（benkyou.png / benkyou_renbo.png）も自動フォールバック
 ;
 ; 【選択ルール】
 ;   恋慕時(TALENT:TARGET:85): renbo_N があればその中からランダム選択
 ;                              なければ通常 _N にフォールバック
 ;   通常時: _N から最大3枚でランダム選択
 ; 【命名規則】資料/COMIMAGE_命名規則.md 参照
+;   ツールで配置: tools/comimage_gui.py
 ;---------------------------------------------------------
 @SHOW_COM_IMAGE
 SIF TARGET < 0
@@ -335,43 +336,161 @@ ENDIF
 
 ; 候補ファイルを最大3つ収集してランダム選択
 ; 恋慕時は _renbo_N を優先、なければ通常 _N にフォールバック（N=1,2,3）
+; 拡張子は .png/.jpg/.jpeg/.bmp を自動検索（GUI ツールの仕様に合わせる）
+; 旧形式（番号なし: stem.png / stem_renbo.png）もフォールバック対応
 LOCAL:2 = 0
 
 ; 恋慕候補収集（TALENT:TARGET:85 のとき）
 IF TALENT:TARGET:85
-	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_renbo_1.png"
-	IF EXISTFILE(LOCALS:9)
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%_renbo_1"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
 		LOCAL:2 += 1
-		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_renbo_1.png"
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
 	ENDIF
-	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_renbo_2.png"
-	IF EXISTFILE(LOCALS:9)
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%_renbo_2"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
 		LOCAL:2 += 1
-		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_renbo_2.png"
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
 	ENDIF
-	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_renbo_3.png"
-	IF EXISTFILE(LOCALS:9)
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%_renbo_3"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
 		LOCAL:2 += 1
-		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_renbo_3.png"
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
+	ENDIF
+	; 旧形式フォールバック: _renbo.xxx（番号なし）
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%_renbo"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
 	ENDIF
 ENDIF
 
 ; 恋慕候補がなければ通常候補を収集
 IF LOCAL:2 == 0
-	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_1.png"
-	IF EXISTFILE(LOCALS:9)
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%_1"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
 		LOCAL:2 += 1
-		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_1.png"
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
 	ENDIF
-	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_2.png"
-	IF EXISTFILE(LOCALS:9)
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%_2"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
 		LOCAL:2 += 1
-		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_2.png"
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
 	ENDIF
-	LOCALS:9 '= @"resources/%LOCALS%%LOCALS:1%_3.png"
-	IF EXISTFILE(LOCALS:9)
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%_3"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
 		LOCAL:2 += 1
-		LOCALS:(4 + LOCAL:2) '= @"%LOCALS%%LOCALS:1%_3.png"
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
+	ENDIF
+	; 旧形式フォールバック: stem.xxx（番号なし）
+	LOCALS:8 '= @"%LOCALS%%LOCALS:1%"
+	LOCALS:4 = ""
+	LOCALS:9 '= @"resources/%LOCALS:8%.png"
+	SIF EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.png"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.jpeg"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.jpeg"
+	LOCALS:9 '= @"resources/%LOCALS:8%.bmp"
+	SIF LOCALS:4 == "" && EXISTFILE(LOCALS:9)
+		LOCALS:4 '= @"%LOCALS:8%.bmp"
+	IF LOCAL:2 < 3 && LOCALS:4 != ""
+		LOCAL:2 += 1
+		LOCALS:(4 + LOCAL:2) = LOCALS:4
 	ENDIF
 ENDIF
 
