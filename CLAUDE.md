@@ -56,6 +56,21 @@ LOCALS += TOSTR(A) + ".png"
 
 ### ルール F: `GCREATE` を `GCREATEFROMFILE` の前に呼ばない
 
+### ルール G: ERB / CSV ファイルの編集には **Edit ツールを絶対に使うな**
+
+Edit ツールは cp932 ファイルを UTF-8 で上書きする。日本語が全文字化けしてエンジンが解析不能になる（SOURCE ERB 事件の原因）。
+
+**ERB / CSV の読み書きは必ず Python スクリプト経由**:
+```python
+# 読み込み
+with open('ERB/foo.ERB', 'rb') as f:
+    text = f.read().decode('cp932')
+
+# 書き込み（CRLF で）
+with open('ERB/foo.ERB', 'wb') as f:
+    f.write(text.encode('cp932'))
+```
+
 `GCREATE 0, 512, 512` → `GCREATEFROMFILE 0, "xxx.png"` と書くと、ファイル読み込み失敗時も
 `GCREATED(0) == 1` を返してしまい、空白バッファから SPRITECREATE → 何も映らない。
 **そもそも顔グラ表示は CSV + HTML_PRINT で足りる。GCREATEFROMFILE は原則使うな**
