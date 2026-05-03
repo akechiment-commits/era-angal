@@ -1,7 +1,7 @@
 ;-------------------------------------------------
 ; ログインボーナスシステム
 ;   FLAG:119  = 最終受取日 (YYYYMMDD、セーブ別)
-;   FLAG:231  = 連続ログイン日数 (セーブ別)
+;   FLAG:231  = ログイン日数 (セーブ別)
 ;-------------------------------------------------
 
 @LOGIN_BONUS_CHECK
@@ -23,23 +23,12 @@ PRINTFORML [DEBUG] 今日={LOCAL:0} 前回受取={FLAG:119}
 SIF FLAG:119 == LOCAL:0
 	RETURN 0
 
-; ── 連続ログイン日数計算 ──────────────────
+; ── ログイン日数計算 ──────────────────
 
 IF FLAG:119 <= 0
 	FLAG:231 = 1
 ELSE
-	LOCAL:1 = LOCAL:0 / 100		; 今日のYYYYMM
-	LOCAL:2 = LOCAL:0 % 100		; 今日のDD
-	LOCAL:3 = FLAG:119 / 100	; 前回のYYYYMM
-	LOCAL:4 = FLAG:119 % 100	; 前回のDD
-	; 同月で1日差
-	IF LOCAL:1 == LOCAL:3 && LOCAL:2 == LOCAL:4 + 1
-		FLAG:231 += 1
-	ELSEIF LOCAL:2 == 1 && LOCAL:1 > LOCAL:3
-		FLAG:231 += 1
-	ELSE
-		FLAG:231 = 1
-	ENDIF
+	FLAG:231 += 1
 ENDIF
 
 ; 受取日を更新
@@ -51,7 +40,7 @@ LOCAL:5 = ((FLAG:231 - 1) % 7) + 1
 DRAWLINE
 PRINTFORML ★ ログインボーナス ★
 DRAWLINE
-PRINTFORML 連続ログイン：{FLAG:231} 日目
+PRINTFORML ログイン：{FLAG:231} 日目
 PRINTL
 ; 毎日確定: キミサキダイヤ ×5
 FLAG:112 += 5
