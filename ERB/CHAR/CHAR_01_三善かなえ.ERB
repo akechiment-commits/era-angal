@@ -303,12 +303,29 @@ RETURN 0
 ;--- 妊娠発覚 (TFLAG:13 == 20) ---
 ; ▼ 状況: このキャラが妊娠していることが発覚した直後。
 ;   中田氏後に確率で妊娠判定が成立したとき呼ばれる。
-;   CFLAG:TARGET:104 で誰の子かを分岐可能。
+;   CFLAG:TARGET:104 : 1=転校生の子  2=助手の子  3=パートナーの子
+;   CFLAG:TARGET:112 : 妊娠カウンター（1=初回  2以上=2回目以降）
+;   TALENT:TARGET:85 : 恋慕フラグ（グッドルート判定）
 IF TFLAG:13 == 20
-	; 主人公の子の場合
-	IF CFLAG:TARGET:104 == 1
-		PRINTFORMW  「」
-	; 助手・パートナーの子の場合
+	; 転校生の子 かつ 恋慕あり（グッドルート）
+	IF CFLAG:TARGET:104 == 1 && TALENT:TARGET:85
+		; 2回目以降の妊娠
+		IF CFLAG:TARGET:112 >= 2
+			PRINTFORMW  「」
+		; 初回の妊娠
+		ELSE
+			PRINTFORMW  「」
+		ENDIF
+	; 転校生の子（恋慕なし・ノーマルルート）
+	ELSEIF CFLAG:TARGET:104 == 1
+		; 2回目以降の妊娠
+		IF CFLAG:TARGET:112 >= 2
+			PRINTFORMW  「」
+		; 初回の妊娠
+		ELSE
+			PRINTFORMW  「」
+		ENDIF
+	; 助手・パートナーの子
 	ELSE
 		PRINTFORMW  「」
 	ENDIF
@@ -339,16 +356,29 @@ ENDIF
 ;     1 = グッド  : 恋慕あり かつ 主人公が父親
 ;     2 = ノーマル: それ以外の通常ケース
 ;     3 = バッド  : 素質「感情乏しい」「無関心」持ち かつ 恋慕なし
+;   EXP:TARGET:61 : 出産回数（0=初回  1以上=2回目以降）
 IF TFLAG:13 == 21
 	; グッド（恋慕あり・主人公が父親）
 	IF TFLAG:17 == 1
-		PRINTFORMW  「」
+		; 2回目以降の出産
+		IF EXP:TARGET:61 >= 1
+			PRINTFORMW  「」
+		; 初回の出産
+		ELSE
+			PRINTFORMW  「」
+		ENDIF
 	; バッド（感情乏しい・恋慕なし）
 	ELSEIF TFLAG:17 == 3
 		PRINTFORMW  「」
 	; ノーマル
 	ELSE
-		PRINTFORMW  「」
+		; 2回目以降の出産
+		IF EXP:TARGET:61 >= 1
+			PRINTFORMW  「」
+		; 初回の出産
+		ELSE
+			PRINTFORMW  「」
+		ENDIF
 	ENDIF
 	RETURN 0
 ENDIF
