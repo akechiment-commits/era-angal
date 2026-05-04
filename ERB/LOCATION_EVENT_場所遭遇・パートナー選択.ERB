@@ -558,6 +558,38 @@ ENDIF
 
 RETURN 1
 
+
+;---------------------------------------------------------
+; 校内巡り - 教室メニュー
+;---------------------------------------------------------
+@OUTING_CLASS_MENU
+DRAWLINE
+PRINTFORML 【教室 - どのクラスへ？】
+PRINTL
+PRINTFORML [0] 1年1組(A組)
+PRINTFORML [1] 1年2組(B組)
+PRINTFORML [2] 1年3組(C組)
+PRINTFORML [3] 2年1組(A組)
+PRINTFORML [4] 2年2組(B組)
+PRINTFORML [5] 2年3組(C組)
+PRINTFORML [6] 3年1組(A組)
+PRINTFORML [7] 3年2組(B組)
+PRINTFORML [8] 3年3組(C組)
+PRINTFORML [9] 戻る
+PRINTL
+$OD_CLS_LOOP
+INPUT
+IF RESULT >= 0 && RESULT <= 8
+	TFLAG:86 = 0
+	TFLAG:84 = RESULT
+	CALL LOCATION_ENCOUNTER
+	RETURN RESULT
+ELSEIF RESULT == 9
+	RETURN 0
+ELSE
+	GOTO OD_CLS_LOOP
+ENDIF
+RETURN 0
 ;---------------------------------------------------------
 ; 校内お出かけ - 出会いシーン（一緒に過ごすモード）
 ; TFLAG:85 = 出会いキャラインデックス
@@ -677,25 +709,30 @@ ENDIF
 RETURN 0
 
 ;---------------------------------------------------------
-; 校内お出かけ - トップメニュー
-; TFLAG:87=1 でお出かけモードON（OUTING_SCENEに分岐）
+; 校内巡り - トップメニュー
+; TFLAG:87=1 で校内巡りモードON（OUTING_SCENEに分岐）
 ;---------------------------------------------------------
 @LOCATION_OUTING
 TFLAG:87 = 1
 DRAWLINE
-PRINTL 【校内お出かけ】
+PRINTL 【校内巡り】
 PRINTFORML どこへ行きますか？
 PRINTL
-PRINTFORML [1] 部室へ行く
-PRINTFORML [2] 委員会室へ行く
+PRINTFORML [1] 教室へ行く
+PRINTFORML [2] 部室へ行く
+PRINTFORML [3] 委員会室へ行く
 PRINTFORML [0] 戻る
 $OD_TOP_LOOP
 INPUT
 IF RESULT == 1
-	CALL OUTING_CLUB_MENU
+	CALL OUTING_CLASS_MENU
 	TFLAG:87 = 0
 	RETURN RESULT
 ELSEIF RESULT == 2
+	CALL OUTING_CLUB_MENU
+	TFLAG:87 = 0
+	RETURN RESULT
+ELSEIF RESULT == 3
 	CALL OUTING_COMMITTEE_MENU
 	TFLAG:87 = 0
 	RETURN RESULT
