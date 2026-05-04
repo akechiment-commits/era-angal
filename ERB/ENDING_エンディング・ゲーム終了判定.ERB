@@ -360,47 +360,73 @@ RETURN 1
 ; エンディングメイン（任意コマンド[127]から呼ばれる）
 ;--------------------------------------------------
 @ENDING_PLAYER
-SIF TARGET <= 0
+;ロード済みキャラが主人公だけならスキップ
+IF CHARANUM <= 1
 	PRINTFORMW パートナーを選んでからエンディングを見てください
 	RETURN 0
-
-DRAWLINE
-A = NO:TARGET
-
-;エンディング種別判定
-IF CFLAG:TARGET:29
-	;リングを渡している → 結婚エンド
-	SETCOLOR 255, 220, 100
-	PRINTFORML ――― %CALLNAME:TARGET% との 結婚エンド ―――
-	RESETCOLOR
-	PRINTL
-	TRYCALLFORM ENDING_MARRIAGE_{A}
-	IF RESULT == 0
-		CALL ENDING_MARRIAGE_DEFAULT
-	ENDIF
-ELSE
-	;リングなし → 卒業エンド
-	SETCOLOR 150, 220, 255
-	PRINTFORML ――― %CALLNAME:TARGET% との 卒業エンド ―――
-	RESETCOLOR
-	PRINTL
-	TRYCALLFORM ENDING_GRADUATE_{A}
-	IF RESULT == 0
-		CALL ENDING_GRADUATE_DEFAULT
-	ENDIF
 ENDIF
 
-; あんず解禁判定（初回エンディングクリアで選択リストに出現）
-IF FLAG:1071 == 0
-	FLAG:1071 = 2
-	PRINTL
-	SETCOLOR 255, 200, 100
-	PRINTFORML 　※ 謎の転校生「あんず」がパートナー候補に現れた
+DRAWLINE
+PRINTL 【エンディング - 誰とのエンディングを迎えますか？】
+PRINTL
+
+;スロット0はMASTER(主人公)なのでスキップして表示
+FOR A, 1, CHARANUM
+	PRINTFORML [{A}] %NAME:A%（%CALLNAME:A%）
+NEXT
+PRINTL
+PRINTFORML [0] 戻る
+
+$ED_SELECT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT >= 1 && RESULT < CHARANUM
+	A = RESULT
+ELSE
+	GOTO ED_SELECT_LOOP
+ENDIF
+
+;選択キャラのNOを取得・TARGETを切り替え
+B = NO:A
+TARGET = A
+DRAWLINE
+
+;相愛判定: 恋人(TALENT:153)または妻(TALENT:89)
+IF TALENT:A:153 || TALENT:A:89
+	;相愛 → 結婚エンド
+	SETCOLOR 255, 220, 100
+	PRINTFORML ――― %CALLNAME:A% との 結婚エンド ―――
 	RESETCOLOR
+	PRINTL
+	TRYCALLFORM ENDING_MARRIAGE_{B}
+	CALL ENDING_MARRIAGE_DEFAULT
+ELSE
+	;相愛でない → 卒業エンド
+	SETCOLOR 150, 220, 255
+	PRINTFORML ――― %CALLNAME:A% との 卒業エンド ―――
+	RESETCOLOR
+	PRINTL
+	TRYCALLFORM ENDING_GRADUATE_{B}
+	CALL ENDING_GRADUATE_DEFAULT
 ENDIF
 
 PRINTL
 DRAWLINE
+
+;解禁処理
+IF FLAG:1071 == 0
+	FLAG:1071 = 2
+	SETCOLOR 255, 200, 100
+	PRINTFORML 　※ 謎の転校生「あんず」がパートナー候補に現れた
+	RESETCOLOR
+ENDIF
+IF (FLAG:28 & 1) == 0
+	FLAG:28 |= 1
+	PRINTFORML 　※ 強くてニューゲームが解禁されました
+ENDIF
+PRINTL
+
 PRINTFORML このエンディングを見た後、どうしますか？
 PRINTFORML [0] 周回プレイ（1年生4月へ・データ全引継ぎ）
 PRINTFORML [1] そのまま続ける
@@ -418,26 +444,31 @@ ENDIF
 RETURN 0
 
 ;--------------------------------------------------
-; 結婚エンド汎用テキスト（個別未実装キャラ用）
+; 結婚エンド 汎用エピローグ（口上の後に必ず流れる）
 ;--------------------------------------------------
 @ENDING_MARRIAGE_DEFAULT
-PRINTFORML 学院での三年間――様々な出来事を経て辿り着いた、この瞬間。
-PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%の手を取り、静かに言葉を紡いだ。
-PRINTFORML 「一緒にいてほしい。ずっと、これからも」
-PRINTFORML %CALLNAME:TARGET%は少し俯き、それからゆっくりと顔を上げた。
-PRINTFORMW その瞳は、まっすぐに%CALLNAME:MASTER%を見つめていた。
+PRINTL
+DRAWLINE
+PRINTFORML 三年間の学院生活はここに終わりを告げた。
+PRINTFORML 出会いが、別れが、笑いが、涙が――そのすべてが今の自分を作っていた。
+PRINTFORML %CALLNAME:TARGET%の手をそっと握ると、温かく握り返してくれた。
+PRINTFORML これからが本当の始まりだ、と%CALLNAME:MASTER%は思った。
 PRINTL
 PRINTFORMW 					―― 結婚エンド ――
 RETURN 1
 
 ;--------------------------------------------------
-; 卒業エンド汎用テキスト（個別未実装キャラ用）
+; 卒業エンド 汎用エピローグ（口上の後に必ず流れる）
 ;--------------------------------------------------
 @ENDING_GRADUATE_DEFAULT
-PRINTFORML 卒業式の日、紺碧の空の下で%CALLNAME:TARGET%と並んで立った。
-PRINTFORML 共に過ごした日々は、もう二度と戻らない。
-PRINTFORML けれど、この胸に刻まれたものは確かに存在した。
-PRINTFORMW 別れ際、%CALLNAME:TARGET%は一度だけ振り返り、微笑んだ。
+PRINTL
+DRAWLINE
+PRINTFORML 卒業式の日、桜の花びらが風に舞っていた。
+PRINTFORML 共に過ごした三年間――その輝きはいつまでも色褪せない。
+PRINTFORML 同じ制服を着てこの場所に立つことは、もうない。
+PRINTFORML けれど、%CALLNAME:TARGET%と過ごしたこの日々は確かに存在した。
+PRINTL
+PRINTFORMW 別れ際、%CALLNAME:TARGET%は一度だけ振り返り、静かに微笑んだ。
 PRINTL
 PRINTFORMW 					―― 卒業エンド ――
 RETURN 1
