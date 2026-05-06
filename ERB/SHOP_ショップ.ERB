@@ -2369,84 +2369,9 @@ ELSEIF RESULT != 0 && RESULT != 1
 	PRINTL 正しい値を入力してください
 	GOTO INPUT_LOOP_NEW
 ENDIF
-
-TRYCALL ADD_REIMUSAMA
-TRYCALL ADD_EXRUMIA
-PRINTL それでは1日目、1学期に戻ります。
-;日付初期化
-DAY = 0
-TIME = 0
-;1学期に戻る
-FLAG:24 = 1
-FLAG:31 = 0
-FLAG:32 = 0
-FLAG:33 = 0
-;ボスをランダムに
-FLAG:25 = 0
-;周回数加算
-FLAG:26 += 1
-;学期進度リセット
-FLAG:27 = 0
-
-VARSET LOCALS, ""
-LOCALS:0 = EASY
-LOCALS:1 = NORMAL
-LOCALS:2 = HARD
-LOCALS:3 = LUNATIC
-LOCALS:4 = S-LUNATIC
-LOCALS:11 = I-EASY
-LOCALS:12 = I-NORMAL
-LOCALS:13 = I-HARD
-LOCALS:14 = I-LUNATIC
-LOCALS:15 = I-S-LUNATIC
-
-;モードを変更する処理を追加
-PRINTFORMW 難易度選択は廃止されました;攻略ルート選択(デフォルトでは選択不可能。選択可能にしたい場合はSYSTEM_DEBUG.ERBの該当関数参照。)
-CALL EDIT_GAME_ROOT
-;エンゲージリングを渡している場合
-REPEAT CHARANUM
-	IF TALENT:COUNT:89
-		PRINTFORML 現在、%CALLNAME:COUNT%が婚約者となっていますが
-		PRINTFORML 婚約を破棄しますか？
-		PRINTL [0] はい
-		PRINTL [1] いいえ
-		$INPUT_LOOP_ENGAGEMENT
-		INPUT
-		SIF RESULT != 0 && RESULT != 1
-			GOTO INPUT_LOOP_ENGAGEMENT
-		IF RESULT == 0
-			PRINTFORMW %CALLNAME:COUNT%との婚約を破棄しました
-			;相愛の喪失
-			TALENT:COUNT:89 = 0
-			;別れる不可フラグを落とす
-			CFLAG:COUNT:7 = 0
-			;結婚記念日の初期化
-			TIME:9 = 0
-			TIME:10 = 0
-			;指輪は渡していない事にする
-			FLAG:29 = 0
-		ENDIF
-	ENDIF
-REND
-
-PRINTL 
-PRINTL オープニングストーリーを見ますか？
-PRINTL [0] はい
-PRINTL [1] いいえ
-$INPUT_LOOP_OP
-INPUT
-IF RESULT < 0 || RESULT > 1
-	PRINTFORML 正しい値を入力してください
-	GOTO INPUT_LOOP_OP
-ELSEIF RESULT == 0
-	TFLAG:600 = 28
-	CALL KOJO_JUN
-ENDIF
+CALL ENDING_NEW_CYCLE
 RETURN 1
 
-;-------------------------------------------------
-;ボス選択
-;-------------------------------------------------
 @BOSS_CHOICE
 $INPUT_LOOP_BOSS
 CSVCALLNAME 1, 0
