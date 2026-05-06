@@ -1063,12 +1063,12 @@ ELSE
 	ENDIF
 	;確定（ADDCHARAはCONFIRM内で完了済み）
 	D = C + 999
-	TARGET = 1
+	TARGET = GETCHARA(C)
 	FLAG:D = 0
 	;[パートナー]付加
 	TALENT:150 = 1
 	
-	A = CHARANUM - 1
+	A = TARGET
 	;キャラ加入時の共通設定
 	CALL NEWCHARA_INIT
 	
@@ -1183,9 +1183,15 @@ ENDIF
 ; パートナー確認画面  ARG:0=キャラNO
 ;-------------------------------------------------
 @PARTNER_CONFIRM(ARG)
-;キャラを仮追加して情報取得
-ADDCHARA ARG:0
-LOCAL:0 = CHARANUM - 1
+;既ロード済みか確認してから仮追加
+LOCAL:3 = GETCHARA(ARG:0)
+LOCAL:4 = 0	;新規追加フラグ
+IF LOCAL:3 < 0
+	ADDCHARA ARG:0
+	LOCAL:3 = CHARANUM - 1
+	LOCAL:4 = 1
+ENDIF
+LOCAL:0 = LOCAL:3
 A = LOCAL:0
 
 ;前の出力をクリア（Emueraはローカル変数をCALL時に自動リセットしないため）
@@ -1225,14 +1231,16 @@ ELSE
 	PRINTL 	性格：超強気
 ENDIF
 PRINTL 
-;顔グラ（プロフィールの下に表示して回り込みを防ぐ）
-LOCALS += "<img src='face_"
-IF ARG:0 < 10
-	LOCALS += "0"
+;顔グラ（あんず=NO72は非表示、その他はプロフィール下に表示）
+IF ARG:0 != 72
+	LOCALS += "<img src='face_"
+	IF ARG:0 < 10
+		LOCALS += "0"
+	ENDIF
+	LOCALS += TOSTR(ARG:0)
+	LOCALS += "' height='150px'><br><br><br><br><br><br><br><br><br><br><br><br>"
+	HTML_PRINT LOCALS
 ENDIF
-LOCALS += TOSTR(ARG:0)
-LOCALS += "' height='150px'><br><br><br><br><br><br><br><br><br><br><br><br>"
-HTML_PRINT LOCALS
 DRAWLINE
 PRINTL [0] このキャラでいく　　[1] 選び直す
 INPUT
@@ -1240,6 +1248,7 @@ INPUT
 IF RESULT == 0
 	RETURN 1  ;確定
 ENDIF
-;キャンセル：仮追加を取り消す
-DELCHARA LOCAL:0
+;キャンセル：新規追加した場合のみ取り消す
+SIF LOCAL:4 == 1
+	DELCHARA LOCAL:0
 RETURN 0
