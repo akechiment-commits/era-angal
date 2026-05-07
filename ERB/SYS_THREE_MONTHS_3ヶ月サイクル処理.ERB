@@ -7,52 +7,47 @@
 @EVENTTURNEND
 SIF (FLAG:62 & 8192) == 0
 	RETURN 0
-;エンゲージリングを渡していたら、関連フラグをリセット
-IF FLAG:29
-	REPEAT CHARANUM
+;貯金フラグの処理（既婚キャラはスキップ）
+REPEAT CHARANUM
+	;マスターならスキップ
+	SIF COUNT == MASTER
+		CONTINUE
+	;既婚ならスキップ（多重婚対応）
+	SIF TALENT:COUNT:89
+		CONTINUE
+	;既に首輪など贈ってるので無理
+	IF TALENT:COUNT:180
 		CFLAG:COUNT:27 = 0
 		CFLAG:COUNT:28 = 0
-	REND
-;そうでなければ、貯金フラグの処理
-ELSE
-	REPEAT CHARANUM
-		;マスターならスキップ
-		SIF COUNT == MASTER
+		CONTINUE
+	ENDIF
+	;霧に飲まれかけていたらリセット
+	IF CFLAG:COUNT:17
+		CFLAG:COUNT:27 = 0
+		CONTINUE
+	ENDIF
+	;所持金のカンスト
+	;今のところ100万までしか見ないけど、1000万まで確保
+	SIF CFLAG:COUNT:28 > 10000000
+		CFLAG:COUNT:28 = 9999999
+	;[親愛]＋[恋人]＋好感度30k＋反感0＋愛情経験300以上
+	IF TALENT:COUNT:88 && TALENT:COUNT:153 && CFLAG:COUNT:2 >= 30000 && MARK:COUNT:3 == 0 && EXP:COUNT:23 >= 300
+		;目標達成
+		IF CFLAG:COUNT:28 >= 1000000
+			;達成してからの日にちをカウント
+			;放置していると殴り込み
+			CFLAG:COUNT:27 += 1
 			CONTINUE
-		;既に首輪など贈ってるので無理
-		IF TALENT:COUNT:180
-			CFLAG:COUNT:27 = 0
-			CFLAG:COUNT:28 = 0
-			CONTINUE
-		ENDIF
-		;霧に飲まれかけていたらリセット
-		IF CFLAG:COUNT:17
-			CFLAG:COUNT:27 = 0
-			CONTINUE
-		ENDIF
-		;所持金のカンスト
-		;今のところ100万までしか見ないけど、1000万まで確保
-		SIF CFLAG:COUNT:28 > 10000000
-			CFLAG:COUNT:28 = 9999999
-		;[親愛]＋[恋人]＋好感度30k＋反感0＋愛情経験300以上
-		IF TALENT:COUNT:88 && TALENT:COUNT:153 && CFLAG:COUNT:2 >= 30000 && MARK:COUNT:3 == 0 && EXP:COUNT:23 >= 300
-			;目標達成
-			IF CFLAG:COUNT:28 >= 1000000
-				;達成してからの日にちをカウント
-				;放置していると殴り込み
-				CFLAG:COUNT:27 += 1
-				CONTINUE
-			;未達成なら貯金フラグ
-			ELSE
-				CFLAG:COUNT:27 = 1
-			ENDIF
-		;条件を満たさなければリセット
+		;未達成なら貯金フラグ
 		ELSE
-			CFLAG:COUNT:27 = 0
-			CONTINUE
+			CFLAG:COUNT:27 = 1
 		ENDIF
-	REND
-ENDIF
+	;条件を満たさなければリセット
+	ELSE
+		CFLAG:COUNT:27 = 0
+		CONTINUE
+	ENDIF
+REND
 
 ;時間(気力)が余ったら金稼ぎ
 @EARN_MONEY_TM
@@ -102,43 +97,10 @@ SIF (FLAG:62 & 8192) == 0
 ;貯金フラグが立ってないならリターン
 SIF CFLAG:COUNT:27 == 0
 	RETURN 0
-;妖怪退治のコピー
-IF BASE:COUNT:4 >= 500
-	EXP:COUNT:95 += RAND:5 + 5
-	CFLAG:COUNT:2 -= RAND:10 + 6
-	BASE:COUNT:4 -= RAND:11 * 30 + 200
-	T = COUNT
-	Z = COUNT
-	CALL GET_BATTLE_POWER
-	COUNT = Z
-	
-	G = P / 10 * (RAND:10 + 5)
-	
-	;稼ぎが高くなり過ぎないように補正をかける
-	;7500を超えた分は25%OFF
-	SIF G >= 7500
-		G = 7500 + (G - 7500) / 4 * 3
-	;補正後、15000を超えていたらその分を更に50%OFF
-	SIF G >= 15000
-		G = 15000 + (G - 15000) / 2
-	;補正後、30000を超えていたらその分を更に75%OFF
-	SIF G >= 30000
-		G = 30000 + (G - 30000) / 4
-	;補正後、50000を超えていたらその分を更に90%OFF
-	SIF G >= 50000
-		G = 50000 + (G - 50000) / 10
-	
-	;別れ中でないなら稼ぎは八分の一
-	SIF CFLAG:COUNT:21 == 0
-		G /= 8
-	
-	;補正後、100000を超えていたら100000
-	SIF G >= 100000
-		G = 100000
-	
-	;稼ぎを所持金へ
-	CFLAG:COUNT:28 += G
-ENDIF
+;固定額を貯金に加算（ペナルティなし）
+CFLAG:COUNT:28 += 5000
+SIF CFLAG:COUNT:28 > 10000000
+	CFLAG:COUNT:28 = 10000000
 
 ;リングプレゼント
 ;開始時の口上の“後”に呼ばれます
@@ -153,7 +115,7 @@ SIF (TALENT:88 && TALENT:153 && CFLAG:2 >= 30000 && MARK:3 == 0) == 0
 	RETURN 0
 SIF CFLAG:28 < 1000000
 	RETURN 0
-SIF FLAG:29
+SIF TALENT:TARGET:89
 	RETURN 0
 
 DRAWLINE
@@ -186,7 +148,7 @@ SIF (TALENT:88 && TALENT:153 && CFLAG:2 >= 30000 && MARK:3 == 0) == 0
 	RETURN 0
 SIF CFLAG:28 < 1000000
 	RETURN 0
-SIF FLAG:29
+SIF TALENT:TARGET:89
 	RETURN 0
 ;カットフラグを退避
 Z:302 = CFLAG:99
