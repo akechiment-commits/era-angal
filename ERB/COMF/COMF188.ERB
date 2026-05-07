@@ -1,0 +1,294 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+@COM_ABLE188
+;相互挿入実行判定
+CALL COM_ABLE_COMMON, SELECTCOM
+SIF RESULT == 0
+	RETURN 0
+;ウフフ中じゃないと無理
+SIF TFLAG:44 == 0
+	RETURN 0
+;バイブ挿入中はダメ
+SIF TEQUIP:11
+	RETURN 0
+;クスコ挿入中はダメ
+SIF TEQUIP:61
+	RETURN 0
+;焼芋入中は不可
+SIF TEQUIP:71
+	RETURN 0
+;PLAYERがふたなりでないとダメ
+SIF TALENT:PLAYER:121 == 0
+	RETURN 0
+;TARGETがふたなりでないとダメ
+SIF TALENT:121 == 0
+	RETURN 0
+RETURN 1
+
+@COM188
+;相互挿入（ふたなり同士限定）
+
+PRINTL 相互挿入
+STR:0 = 相互挿入
+
+CALL COM_ORDER_COMMON
+SIF RESULT == 0
+	RETURN 0
+
+CALL TRAIN_MESSAGE_B
+
+;V経験フラグ（TARGET）
+TFLAG:19 = 1
+
+;射精ゲージ加算（PLAYERとTARGETの両方）
+BASE:PLAYER:2 += CALC_EJAC(SELECTCOM, PLAYER)
+BASE:TARGET:2 += CALC_EJAC(SELECTCOM, TARGET)
+
+;体力・気力消費（正常位より多め）
+LOSEBASE:0 += 70
+LOSEBASE:1 += 150
+
+;-------------------------------------------------
+;ソースの計算
+;-------------------------------------------------
+SOURCE:12 = 400
+
+;ABL:V感覚（TARGET）をみる
+IF ABL:4 == 0
+	SOURCE:1 = 40
+	SOURCE:3 = 150
+ELSEIF ABL:4 == 1
+	SOURCE:1 = 150
+	SOURCE:3 = 250
+ELSEIF ABL:4 == 2
+	SOURCE:1 = 400
+	SOURCE:3 = 350
+ELSEIF ABL:4 == 3
+	SOURCE:1 = 1000
+	SOURCE:3 = 500
+ELSEIF ABL:4 == 4
+	SOURCE:1 = 1700
+	SOURCE:3 = 700
+ELSE
+	SOURCE:1 = 950 + (ABL:4 * 250)
+	SOURCE:3 = 250 + (ABL:4 * 150)
+ENDIF
+
+;V経験をみる
+IF EXP:0 < EXPLV:1
+	TIMES SOURCE:1 , 0.20
+	SOURCE:6 = 5500
+ELSEIF EXP:0 < EXPLV:2
+	TIMES SOURCE:1 , 0.60
+	SOURCE:6 = 300
+ELSEIF EXP:0 < EXPLV:3
+	SOURCE:6 = 50
+ELSEIF EXP:0 < EXPLV:4
+	TIMES SOURCE:1 , 1.20
+	SOURCE:6 = 10
+ELSEIF EXP:0 < EXPLV:5
+	TIMES SOURCE:1 , 1.30
+ELSE
+	TIMES SOURCE:1 , 1.80
+ENDIF
+
+;潤滑をみる
+IF PALAM:3 < PALAMLV:1
+	TIMES SOURCE:1 , 0.10
+	SOURCE:6 += 1000
+	TIMES SOURCE:6 , 3.00
+ELSEIF PALAM:3 < PALAMLV:2
+	TIMES SOURCE:1 , 0.40
+	SOURCE:6 += 300
+ELSEIF PALAM:3 < PALAMLV:3
+	TIMES SOURCE:1 , 1.00
+	TIMES SOURCE:6 , 0.50
+ELSEIF PALAM:3 < PALAMLV:4
+	TIMES SOURCE:1 , 1.40
+	TIMES SOURCE:6 , 0.20
+ELSEIF PALAM:3 >= PALAMLV:4
+	TIMES SOURCE:1 , 1.80
+	TIMES SOURCE:6 , 0.10
+ENDIF
+
+;欲情をみる
+IF PALAM:5 < PALAMLV:1
+	TIMES SOURCE:1 , 0.60
+	TIMES SOURCE:3 , 0.30
+ELSEIF PALAM:5 < PALAMLV:2
+	TIMES SOURCE:1 , 0.80
+	TIMES SOURCE:3 , 0.60
+ELSEIF PALAM:5 < PALAMLV:3
+	TIMES SOURCE:1 , 1.00
+	TIMES SOURCE:3 , 1.00
+ELSEIF PALAM:5 < PALAMLV:4
+	TIMES SOURCE:1 , 1.20
+	TIMES SOURCE:3 , 1.50
+ELSEIF PALAM:5 >= PALAMLV:4
+	TIMES SOURCE:1 , 1.50
+	TIMES SOURCE:3 , 1.80
+ENDIF
+
+;相互挿入ボーナス：TARGETもPLAYERのVに入れている快感
+SOURCE:1 += ABL:PLAYER:4 * 200 + 300
+SOURCE:3 += 500
+
+;貞操観念
+IF TALENT:30 && TALENT:85 == 0
+	IF EXP:0 == 0
+		TIMES SOURCE:3 , 0.60
+		SOURCE:15 = 10000
+	ELSE
+		TIMES SOURCE:3 , 0.60
+		SOURCE:15 = 1000
+		ENDIF
+ELSEIF TALENT:31 || (TALENT:88 && ASSIPLAY == 0)
+	IF EXP:0 == 0
+		TIMES SOURCE:3 , 0.60
+		SOURCE:15 = 300
+		ENDIF
+ELSE
+	IF EXP:0 == 0
+		SOURCE:15 = 3000
+		ENDIF
+ENDIF
+
+;好感度変化
+A = RAND:10 + 5
+SIF TALENT:85 || TALENT:153
+	A += 5
+SIF TALENT:88
+	A += 5
+IF TALENT:152 == 0 && TFLAG:48 == 0
+	A -= 9
+	SOURCE:15 += 400
+ENDIF
+TFLAG:30 += A
+TFLAG:37 += A / 2
+
+EXP:0 += 1
+PRINTL V経験＋１
+
+;既成事実
+TFLAG:200 = 3
+
+;-------------------------------------------------
+;射精チェック（PLAYER）
+;-------------------------------------------------
+CALL SAMEN_CHECK
+
+IF E >= 1
+	;膣内射精
+	TFLAG:703 = 1
+	TFLAG:704 = 0
+	CALL SAMEN_SHOOT
+ENDIF
+
+;-------------------------------------------------
+;TARGETの射精チェック（PLAYERのVへ）
+;-------------------------------------------------
+IF BASE:TARGET:2 >= MAXBASE:TARGET:2
+	PRINTFORML %CALLNAME:TARGET%も…達した
+	BASE:TARGET:2 -= MAXBASE:TARGET:2
+	SIF BASE:TARGET:2 >= MAXBASE:TARGET:2
+		BASE:TARGET:2 = MAXBASE:TARGET:2 - 1
+	EXP:TARGET:3 += 1
+	;PLAYERのVに精液汚れ
+	STAIN:MASTER:3 |= 4
+ENDIF
+
+;汚れ移動
+STAIN:3 |= STAIN:PLAYER:2
+STAIN:PLAYER:2 |= STAIN:3
+
+;ふたなり同士V経験（双方）
+PRINTS EXPNAME:40
+PRINTL ＋４
+EXP:40 += 4
+EXP:PLAYER:40 += 4
+
+RETURN 1
+
+;-------------------------------------------------
+;固有の実行判定
+;-------------------------------------------------
+@COM_ORDER_188
+A = 0
+S = 0
+V = 100
+
+CALL COM_ORDER
+
+;ABL:欲望
+IF ABL:1
+	A += ABL:1 * 3
+ENDIF
+;ABL:V感覚（TARGET）
+IF ABL:4
+	A += ABL:4 * 2
+ENDIF
+;ABL:奉仕精神
+IF ABL:6
+	A += ABL:6 * 4
+ENDIF
+
+;ムードボーナス
+B = 0
+IF TFLAG:37 < 10
+	B -= 10
+ELSEIF TFLAG:37 < 30
+	B -= 1
+ELSEIF TFLAG:37 < 50
+	B += 1
+ELSEIF TFLAG:37 < 100
+	B += TFLAG:37 / 10
+ELSE
+	B += TFLAG:37 / 5
+ENDIF
+A += B
+
+;好感度
+IF CFLAG:2 < 2000
+	IF CFLAG:2 < 1000
+		A -= 50
+	ELSEIF CFLAG:2 < 1300
+		A -= 20
+	ELSEIF CFLAG:2 < 1700
+		A -= 10
+	ELSE
+		A -= 5
+		ENDIF
+ENDIF
+SIF CFLAG:2 >= 2500
+	A += CFLAG:2 / 250
+
+;処女
+IF TALENT:0
+	A -= 20
+ELSEIF EXP:0 < EXPLV:2
+	A -= 5
+ENDIF
+
+;合意
+SIF TALENT:152 == 0
+	A -= 30
+
+;恋慕・親愛
+SIF TALENT:85 && ASSIPLAY == 0
+	A += 5
+SIF TALENT:88
+	A += 8
+
+;ふたなり同士の相性ボーナス
+A += 10
+
+RETURN A
+
+;-------------------------------------------------
+;地の文
+;-------------------------------------------------
+@TRAIN_MESSAGE_COM188
+PRINTFORML %CALLNAME:PLAYER%と%CALLNAME:TARGET%は向き合い、互いに腰を押し付け合う
+PRINTFORML 二人の体が深く繋がり、同時に快感が広がっていく…
