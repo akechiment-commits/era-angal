@@ -1747,9 +1747,9 @@ CASE 1
 		PRINTFORMW ]ができました
 		CALL TYOGO_MISS2
 	ENDSELECT
-;『冥王のくちづけ』
+;『毒々カクテル』
 CASE 85
-	PRINTFORMW [冥王のくちづけ]ができました！
+	PRINTFORMW [毒々カクテル]ができました！
 	PRINTFORML 何か危険な気がする……
 ;『奇跡の薬』
 CASE 666
@@ -2995,29 +2995,15 @@ SELECTCASE SIGN(TFLAG:17)
 CASE 1
 	CALL TRAIN_MESSAGE_B
 	PRINTFORML 
-	;気力/20だけ＋
-	A = MAXBASE:1 / 20
-	;二人の耐力1/4弱減少
-	B = MAXBASE:4 / 4
-	C = MAXBASE:MASTER:4 / 4
-	;パチュリー効果上昇（被害も少なくできる）
+	U += 8
+	A = U / 2
+	;実験ボーナス（素材依存）
 	CALL TYOGO_BONUS
 	
-	B -= RAND:200
-	C -= RAND:500
-	;最低ダメージを決定
-	SIF B < 0
-		B = 100
-	SIF C < 0
-		C = 300
-	BASE:4 -= B
-	BASE:MASTER:4 -= C
-	A += U
-	SIF A > 5
-		A = 5
-	EXP:95 += A
-	PRINTFORMW %CALLNAME:TARGET%の耐力-{B}、%CALLNAME:MASTER%の耐力-{C}
-	PRINTFORMW 学習経験+{A}
+	PRINTFORMW 学習経験+{U}
+	PRINTFORMW 好感度+{A}
+	EXP:95 += U
+	CFLAG:TARGET:2 += A
 ;売却
 CASE -1
 	M += 8000
@@ -3025,9 +3011,9 @@ CASE -1
 ENDSELECT
 
 @TRAIN_MESSAGE_COM310_39
-PRINTFORMW 突如[ボール・ライトニング]は家中を飛び回り暴れだした！これは黙らせるしかない…！
+PRINTFORMW %CALLNAME:PLAYER%と%CALLNAME:TARGET%は[謎の電球]を光らせる実験をしてみた…
 PRINTFORML 
-PRINTFORML ゲームの末、何とか倒すことができた…
+PRINTFORML 試行錯誤の末、ついに光らせることに成功した！
 
 ;---------------------------------------------------------
 ;[ウナギの塩焼き]
@@ -4726,61 +4712,36 @@ PRINTFORMW %CALLNAME:PLAYER%と%CALLNAME:TARGET%は[魚の塩焼き]を食べてみた…
 SELECTCASE SIGN(TFLAG:17)
 ;使用
 CASE 1
-	;両者薬毒耐性持ち
-	IF TALENT:TARGET:56 == 1 && TALENT:PLAYER:56 == 1
-		TFLAG:91 = 0
-	;PLAYERのみダメージ（TARGETのみ薬毒耐性がある）
-	ELSEIF TALENT:TARGET:56 == 1 && TALENT:PLAYER:56 == 0
-		TFLAG:91 = 1
-	;TARGETのみダメージ（PLAYERのみ薬毒耐性ある）
-	ELSEIF TALENT:TARGET:56 == 0 && TALENT:PLAYER:56 == 1
-		TFLAG:91 = 2
-	;両方ダメージ（両者薬毒耐性なし）
-	ELSE
-		TFLAG:91 = 3
-	ENDIF
 	CALL TRAIN_MESSAGE_B
 	PRINTFORML 
-	S -= 2000
-	U -= 200
-	;薬品ボーナス
+	S = 150
+	U = 3
+	;素材ボーナス
 	CALL TYOGO_BONUS
 	
-	A = S * -1
-	B = U * -1
-	SELECTCASE TFLAG:91
-	;両者薬毒耐性持ち
-	CASE 0
-		PRINTFORMW しかし特に何も起こらなかった…
-	;PLAYERのみダメージ（TARGETのみ薬毒耐性がある）
-	CASE 1
-		PRINTFORMW %CALLNAME:TARGET%には効いてないようだ
-		PRINTFORMW %CALLNAME:PLAYER%の体力と気力が{A}ずつ減少しました
-		PRINTFORMW 好感度{B}
-		BASE:PLAYER:0 += S
-		BASE:PLAYER:1 += S
-		BASE:PLAYER:4 += S
+	;薬毒耐性あり：気分が悪くなる程度で済む
+	IF TALENT:TARGET:56 == 1 && TALENT:PLAYER:56 == 1
+		PRINTFORMW 二人とも耐性があるようで、変な味がする程度で済んだ
+	ELSEIF TALENT:TARGET:56 == 1
+		PRINTFORMW %CALLNAME:TARGET%は平気そうだが…
+		PRINTFORMW %CALLNAME:PLAYER%の体力が{S}減少しました
+		BASE:PLAYER:0 -= S
+		PALAM:TARGET:13 += 100
 		CFLAG:TARGET:2 += U
-	;TARGETのみダメージ（PLAYERのみ薬毒耐性ある）
-	CASE 2
-		PRINTFORMW 体力と気力が{A}ずつ減少しました
-		PRINTFORMW 好感度{B}
-		BASE:TARGET:0 += S
-		BASE:TARGET:1 += S
-		BASE:TARGET:4 += S
+	ELSEIF TALENT:PLAYER:56 == 1
+		PRINTFORMW 我慢して飲み干したが気分が悪くなった…
+		PRINTFORMW %CALLNAME:TARGET%の体力が{S}減少しました
+		BASE:TARGET:0 -= S
+		PALAM:TARGET:13 += 100
 		CFLAG:TARGET:2 += U
-	;両方ダメージ（両者薬毒耐性なし）
-	CASE 3
-		PRINTFORMW 二人の体力と気力が{A}ずつ減少しました
-		PRINTFORMW 好感度{B}
-		BASE:TARGET:0 += S
-		BASE:TARGET:1 += S
-		BASE:TARGET:4 += S
-		BASE:PLAYER:0 += S
-		BASE:PLAYER:1 += S
-		BASE:PLAYER:4 += S
+	ELSE
+		PRINTFORMW 二人とも気分が悪くなった…
+		PRINTFORMW 体力が{S}ずつ減少しました
+		BASE:TARGET:0 -= S
+		BASE:PLAYER:0 -= S
+		PALAM:TARGET:13 += 200
 		CFLAG:TARGET:2 += U
-	ENDSELECT
+	ENDIF
 ;売却
 CASE -1
 	M += 20000
@@ -4788,7 +4749,7 @@ CASE -1
 ENDSELECT
 
 @TRAIN_MESSAGE_COM310_85
-PRINTFORMW %CALLNAME:PLAYER%と%CALLNAME:TARGET%は[冥王のくちづけ]を飲んでみた…
+PRINTFORMW %CALLNAME:PLAYER%と%CALLNAME:TARGET%は[毒々カクテル]を恐る恐る飲んでみた…
 
 ;---------------------------------------------------------
 ;[お雑煮]
@@ -6015,14 +5976,14 @@ SELECTCASE SIGN(TFLAG:17)
 CASE 1
 	CALL TRAIN_MESSAGE_B
 	PRINTFORML 
-	U = 0
-	U += 1
-	;蝶、刀剣ボーナス
+	U += 10
+	A = U * 2
+	;花ボーナス
 	CALL TYOGO_BONUS
 	
-	PRINTFORMW 戦闘技能＋{U}
-	PRINTFORMW [蝶の妖刀]は砕け散った…
-	ABL:TARGET:88 += U
+	PRINTFORMW 好感度+{A}
+	PRINTFORMW %CALLNAME:TARGET%は嬉しそうに身につけた
+	CFLAG:TARGET:2 += A
 ;売却
 CASE -1
 	M += 100000
@@ -6030,9 +5991,7 @@ CASE -1
 ENDSELECT
 
 @TRAIN_MESSAGE_COM310_115
-U = 0
-PRINTFORMW %CALLNAME:TARGET%は[蝶の妖刀]を身につけた…
-PRINTFORMW 妖刀の刃が輝きだし、%CALLNAME:TARGET%の力が引き出された
+PRINTFORMW %CALLNAME:PLAYER%は鉄くずと桜の花びらから[桜模様のかんざし]を作り上げた…
 
 ;---------------------------------------------------------
 ;[黒漆塗糸巻太刀拵「獅子王」]
@@ -9028,7 +8987,7 @@ CASE -1
 ENDSELECT
 
 @TRAIN_MESSAGE_COM310_184
-PRINTFORMW %CALLNAME:PLAYER%は[風の翼]を放り投げた！
+PRINTFORMW %CALLNAME:PLAYER%は羽のコサージュを胸につけ、%CALLNAME:TARGET%と出かけることにした
 
 ;---------------------------------------------------------
 ;[混沌の渦]
@@ -12832,7 +12791,7 @@ ELSE
 	STR:2037 = 冬のとりあえずいつもの
 ENDIF
 STR:2038 = ウィル・オ・ウィスプ
-STR:2039 = 歩く火力 ― ボール・ライトニング
+STR:2039 = 謎の電球
 STR:2040 = ウナギの塩焼き
 STR:2041 = 美人茶
 STR:2042 = 花のサラダ
@@ -12878,7 +12837,7 @@ STR:2081 = 鳥の丸焼
 STR:2082 = 流し雛
 STR:2083 = まな板の上の恋
 STR:2084 = 魚の塩焼き
-STR:2085 = 冥王のくちづけ
+STR:2085 = 毒々カクテル
 STR:2086 = お雑煮
 STR:2087 = 桜餅
 STR:2088 = 月餅
@@ -12908,7 +12867,7 @@ STR:2111 = 星屑のブローチ
 STR:2112 = 破魔の矢尻
 STR:2113 = 銀のナイフ
 STR:2114 = ルーンメタル
-STR:2115 = 蝶の妖刀
+STR:2115 = 桜模様のかんざし
 STR:2116 = 黒漆塗糸巻太刀拵「獅子王」
 STR:2117 = 『真っ二つ』― 魚切丸
 STR:2118 = セラミック刀
@@ -12983,7 +12942,7 @@ STR:2180 = 即席貧乳薬
 STR:2181 = 浄化の健忘薬
 STR:2182 = フルーツパフェ
 STR:2183 = キメラの翼
-STR:2184 = 風の翼
+STR:2184 = 羽のコサージュ
 STR:2185 = 混沌の渦
 STR:2186 = 塩
 STR:2187 = 干物
