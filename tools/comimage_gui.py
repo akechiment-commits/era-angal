@@ -433,6 +433,9 @@ class App:
         self._build_face_frame()
         self._build_statusbar()
         self._switch_tab("com")
+        # スクロールは1か所でまとめてバインド（bind_allの上書き問題を回避）
+        for seq in ("<MouseWheel>", "<Button-4>", "<Button-5>"):
+            self.root.bind_all(seq, self._on_scroll)
 
     # ── タブバー ──────────────────────────────────────────────
     def _build_tabbar(self):
@@ -521,10 +524,6 @@ class App:
         self._com_canvas.bind(
             "<Configure>",
             lambda e: self._com_canvas.itemconfig(cwin, width=e.width))
-        self._com_canvas.bind_all("<MouseWheel>",  self._on_scroll_com)
-        self._com_canvas.bind_all("<Button-4>",    self._on_scroll_com)
-        self._com_canvas.bind_all("<Button-5>",    self._on_scroll_com)
-
         self._build_com_slots()
 
     def _build_com_slots(self):
@@ -590,10 +589,6 @@ class App:
         self._face_canvas.bind(
             "<Configure>",
             lambda e: self._face_canvas.itemconfig(cwin, width=e.width))
-        self._face_canvas.bind_all("<MouseWheel>",  self._on_scroll_face)
-        self._face_canvas.bind_all("<Button-4>",    self._on_scroll_face)
-        self._face_canvas.bind_all("<Button-5>",    self._on_scroll_face)
-
         self._build_face_slots()
 
     def _build_face_slots(self):
@@ -652,17 +647,10 @@ class App:
         self._update_face_stat()
         self.status("顔グラ一覧を更新しました")
 
-    def _on_scroll_com(self, event):
-        if self._active_tab.get() != "com":
-            return
+    def _on_scroll(self, event):
         delta = -1 if event.num == 4 else (1 if event.num == 5 else int(-event.delta / 120))
-        self._com_canvas.yview_scroll(delta, "units")
-
-    def _on_scroll_face(self, event):
-        if self._active_tab.get() != "face":
-            return
-        delta = -1 if event.num == 4 else (1 if event.num == 5 else int(-event.delta / 120))
-        self._face_canvas.yview_scroll(delta, "units")
+        canvas = self._com_canvas if self._active_tab.get() == "com" else self._face_canvas
+        canvas.yview_scroll(delta, "units")
 
     def status(self, msg: str, warn: bool = False):
         self._status_var.set(msg)
