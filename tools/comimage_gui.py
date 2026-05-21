@@ -455,8 +455,13 @@ class App:
             btn.pack(side=tk.LEFT)
             self._tab_btns[key] = btn
 
-        dnd_text = "● DnD有効" if _HAS_DND else "○ DnD無効  (pip install tkinterdnd2)"
-        dnd_fg   = C_OK if _HAS_DND else C_WARN
+        if _HAS_DND:
+            dnd_text, dnd_fg = "● DnD有効", C_OK
+        elif _DND_ERR:
+            dnd_text = f"○ DnD無効  ({_DND_ERR[:60]})"
+            dnd_fg = C_WARN
+        else:
+            dnd_text, dnd_fg = "○ DnD無効  (pip install tkinterdnd2)", C_WARN
         tk.Label(self._tabbar, text=dnd_text, bg=C_BAR, fg=dnd_fg,
                  font=("", 11)).pack(side=tk.RIGHT, padx=12)
 
@@ -666,17 +671,11 @@ def main():
         try:
             root = TkinterDnD.Tk()
         except Exception as e:
-            import tkinter.messagebox as mb
-            mb.showwarning("DnD初期化失敗",
-                           f"tkinterdnd2 の初期化に失敗しました。\nD&D機能を無効化して起動します。\n\n{e}")
-            global _HAS_DND
-            _HAS_DND = False
+            print(f"[DnD] TkinterDnD.Tk() 失敗: {e}", file=sys.stderr)
             root = tk.Tk()
     else:
         if _DND_ERR:
-            import tkinter.messagebox as mb
-            mb.showwarning("DnD読み込み失敗",
-                           f"tkinterdnd2 のインポートに失敗しました。\n\n{_DND_ERR}")
+            print(f"[DnD] インポート失敗: {_DND_ERR}", file=sys.stderr)
         root = tk.Tk()
     App(root)
     root.mainloop()
