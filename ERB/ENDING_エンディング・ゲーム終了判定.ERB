@@ -121,33 +121,41 @@ ELSEIF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 3
 		ENDIF
 		FLAG:32 = 0
 	ENDIF
+	;月次定期戦（毎ターン通るここで確実に発火）
+	SIF DAY / 10 > FLAG:207
+		CALL MONTHLY_DECK_RESULT
 	;月indexと日数で試験自動発動（FLAG:27=ビットマスク）
 	; 6月末(idx==2,day>=9) → 中間試験1
 	IF LOCAL:9 == 2 && LOCAL:6 >= 9 && (FLAG:27 & 1) == 0
+		FLAG:27 |= 1
 		TFLAG:83 = 0
 		TFLAG:84 = 1
 		CALL SEMESTER_EXAM_AUTO
 		RETURN 1
 	; 7月末(idx==3,day>=9) → 期末試験1
 	ELSEIF LOCAL:9 == 3 && LOCAL:6 >= 9 && (FLAG:27 & 2) == 0
+		FLAG:27 |= 2
 		TFLAG:83 = 1
 		TFLAG:84 = 2
 		CALL SEMESTER_EXAM_AUTO
 		RETURN 1
 	; 11月末(idx==7,day>=9) → 中間試験2
 	ELSEIF LOCAL:9 == 7 && LOCAL:6 >= 9 && (FLAG:27 & 4) == 0
+		FLAG:27 |= 4
 		TFLAG:83 = 0
 		TFLAG:84 = 4
 		CALL SEMESTER_EXAM_AUTO
 		RETURN 1
 	; 12月中旬(idx==8,day>=5) → 期末試験2
 	ELSEIF LOCAL:9 == 8 && LOCAL:6 >= 5 && (FLAG:27 & 8) == 0
+		FLAG:27 |= 8
 		TFLAG:83 = 1
 		TFLAG:84 = 8
 		CALL SEMESTER_EXAM_AUTO
 		RETURN 1
 	; 2月末(idx==10,day>=9) → 3学期試験
 	ELSEIF LOCAL:9 == 10 && LOCAL:6 >= 9 && (FLAG:27 & 16) == 0
+		FLAG:27 |= 16
 		TFLAG:83 = 1
 		TFLAG:84 = 16
 		CALL SEMESTER_EXAM_AUTO
