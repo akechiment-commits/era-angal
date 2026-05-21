@@ -13,11 +13,13 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, filedialog
 
+_DND_ERR = ""
 try:
     from tkinterdnd2 import TkinterDnD, DND_FILES  # type: ignore
     _HAS_DND = True
-except ImportError:
+except Exception as _e:
     _HAS_DND = False
+    _DND_ERR = str(_e)
 
 try:
     from PIL import Image, ImageTk  # type: ignore
@@ -661,8 +663,20 @@ class App:
 # ──────────────────────────────────────────────────────────────────
 def main():
     if _HAS_DND:
-        root = TkinterDnD.Tk()
+        try:
+            root = TkinterDnD.Tk()
+        except Exception as e:
+            import tkinter.messagebox as mb
+            mb.showwarning("DnD初期化失敗",
+                           f"tkinterdnd2 の初期化に失敗しました。\nD&D機能を無効化して起動します。\n\n{e}")
+            global _HAS_DND
+            _HAS_DND = False
+            root = tk.Tk()
     else:
+        if _DND_ERR:
+            import tkinter.messagebox as mb
+            mb.showwarning("DnD読み込み失敗",
+                           f"tkinterdnd2 のインポートに失敗しました。\n\n{_DND_ERR}")
         root = tk.Tk()
     App(root)
     root.mainloop()
