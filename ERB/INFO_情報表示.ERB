@@ -29,16 +29,19 @@ CALL SHOW_DAY_INFO
 WAIT
 
 ;=== バスト/ペニスサイズ表示ヘルパー ===
-;バストサイズ(0.1cm)を胸素質から算出（今は表示用・薬/経験での変化は今後）
+;ステータス用バスト(0.1cm)を返す。未設定ならプロフィール(CSTR:23 "B##/W##/H##"のB値)から初期化
+;※プロフィール画面は不変。これは別管理の可変値で、今後ゲーム内イベントで変動させる想定
 @BUST_TENTHS(C)
 #FUNCTION
-SIF TALENT:C:141
-	RETURNF 950
-SIF TALENT:C:110
-	RETURNF 880
-SIF TALENT:C:109
-	RETURNF 720
-RETURNF 800
+SIF CFLAG:C:1101 != 0
+	RETURNF CFLAG:C:1101
+LOCAL = 800
+SIF STRLENS(CSTR:C:23) >= 3
+	LOCAL = TOINT(SUBSTRING(CSTR:C:23, 1, 2)) * 10
+SIF LOCAL <= 0
+	LOCAL = 800
+CFLAG:C:1101 = LOCAL
+RETURNF CFLAG:C:1101
 
 ;対象(TARGET)のバスト／ペニスサイズを1行表示。ふたなりは両方、それ以外はバストのみ
 @SHOW_BODY_SIZE
