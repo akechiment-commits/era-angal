@@ -418,7 +418,7 @@ def load_bust_talents():
             idx = bust * 1000 // height
             if idx < 490:
                 result[name] = 109
-            elif idx >= 510:
+            elif idx >= 534:
                 result[name] = 110
             else:
                 result[name] = None  # 並乳
