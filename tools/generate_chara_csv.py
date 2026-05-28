@@ -25,6 +25,7 @@ Chara1.csv〜Chara71.csvを生成する
 フラグ12 = 主導権基準値（正=主導権とりやすい, 負=とられやすい）
 """
 
+import csv
 import os
 
 # ────────────────────────────────────────────────────────
@@ -403,7 +404,28 @@ CHARA_DATA = [
 ]
 
 
-def generate_chara_csv(chara, output_dir):
+def load_bust_talents():
+    """character_data.csvからバスト指数を計算して name→素質番号(109/110/None) を返す"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(script_dir, "character_data.csv")
+    result = {}
+    with open(csv_path, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = row["name"]
+            height = int(row["height"])
+            bust = int(row["three_sizes"].split("/")[0])
+            idx = bust * 1000 // height
+            if idx < 490:
+                result[name] = 109
+            elif idx >= 510:
+                result[name] = 110
+            else:
+                result[name] = None  # 並乳
+    return result
+
+
+def generate_chara_csv(chara, output_dir, bust_talent_map=None):
     no       = chara["no"]
     name     = chara["name"]
     nick     = chara["nick"]
@@ -413,6 +435,13 @@ def generate_chara_csv(chara, output_dir):
     init_val = chara.get("initiative", -10)
     cooking  = chara.get("cooking", 0)
     singing  = chara.get("singing", 0)
+
+    # 109/110/141 を除いてバスト指数から自動付与
+    talents = [t for t in talents if t not in (109, 110, 141)]
+    if bust_talent_map is not None:
+        bt = bust_talent_map.get(name)
+        if bt is not None:
+            talents.append(bt)
 
     lines = [
         f"番号,{no}",
@@ -449,10 +478,14 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     csv_dir    = os.path.join(script_dir, "..", "CSV")
 
+    bust_talent_map = load_bust_talents()
+
     generated = []
     for chara in CHARA_DATA:
-        path = generate_chara_csv(chara, csv_dir)
+        path = generate_chara_csv(chara, csv_dir, bust_talent_map)
         generated.append(path)
-        print(f"  生成: {os.path.basename(path)}  ({chara['name']})")
+        bt = bust_talent_map.get(chara["name"])
+        bt_label = {109: "貧乳", 110: "巨乳"}.get(bt, "並乳")
+        print(f"  生成: {os.path.basename(path)}  ({chara['name']}) [{bt_label}]")
 
     print(f"\n✓ {len(generated)} ファイル生成完了 → {os.path.abspath(csv_dir)}")
