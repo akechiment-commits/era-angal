@@ -467,7 +467,7 @@ def generate_chara_csv(chara, output_dir, bust_talent_map=None):
     lines.append("CSTR,23,")
     lines.append("CSTR,24,")
 
-    filepath = os.path.join(output_dir, f"Chara{no}.csv")
+    filepath = os.path.join(output_dir, f"Chara{no}_{name}.csv")
     with open(filepath, "w", encoding="cp932") as f:
         f.write("\n".join(lines) + "\n")
 
