@@ -55,16 +55,32 @@ RETURN
 
 ;バストcm(0.1cm)から胸素質(貧乳109/巨乳110/爆乳141)を導出して付け直す（cmが唯一の正）
 ;しきい値: <75.0cm=貧乳 / 75.0-82.9=普通 / 83.0-89.9=巨乳 / 90.0cm-=爆乳
+;バスト指数(bust*100/height)で胸素質を付け直す
+;しきい値: <490=貧乳 / 490-509=普通 / 510-554=巨乳 / >=555=爆乳
+;身長はCSTR:22の先頭3文字（例"148cm/39kg"→148）
 @SYNC_BUST_TALENT(C)
 TALENT:C:109 = 0
 TALENT:C:110 = 0
 TALENT:C:141 = 0
-SIF CFLAG:C:1101 < 750
-	TALENT:C:109 = 1
-SIF CFLAG:C:1101 >= 830 && CFLAG:C:1101 < 900
-	TALENT:C:110 = 1
-SIF CFLAG:C:1101 >= 900
-	TALENT:C:141 = 1
+LOCAL = TOINT(SUBSTRING(CSTR:C:22, 0, 3))
+IF LOCAL > 0
+	;バスト指数 = バスト(0.1cm) * 100 / 身長(cm)
+	LOCAL:1 = CFLAG:C:1101 * 100 / LOCAL
+	SIF LOCAL:1 < 490
+		TALENT:C:109 = 1
+	SIF LOCAL:1 >= 510 && LOCAL:1 < 555
+		TALENT:C:110 = 1
+	SIF LOCAL:1 >= 555
+		TALENT:C:141 = 1
+ELSE
+	;身長不明時は絶対値判定（フォールバック）
+	SIF CFLAG:C:1101 < 750
+		TALENT:C:109 = 1
+	SIF CFLAG:C:1101 >= 830 && CFLAG:C:1101 < 900
+		TALENT:C:110 = 1
+	SIF CFLAG:C:1101 >= 900
+		TALENT:C:141 = 1
+ENDIF
 RETURN
 
 ;対象(TARGET)のバスト／ペニスサイズを1行表示。ふたなりは両方、それ以外はバストのみ
