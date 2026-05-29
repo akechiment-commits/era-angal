@@ -55,6 +55,11 @@ def fill_blocks(text, mapping):
     hidx = {}
     for k, (com, idx) in enumerate(headers):
         end = headers[k + 1][1] if k + 1 < len(headers) else len(lines)
+        # 次の @ラベル（@CHAR_VIRGIN等）が手前にあればそこで打ち切る
+        for j in range(idx + 1, end):
+            if re.match(r'@[A-Za-z_0-9]+', lines[j].strip()):
+                end = j
+                break
         # 同じCOM番号が複数ヘッダの場合は最初のものだけ使う（重複ヘッダ対策）
         if com not in hidx:
             hidx[com] = (idx, end)
