@@ -1,17 +1,36 @@
 ;============================================================
 ; 相手呼称システム  @AITE_YOBI, <話者番号>, <相手番号>
-;   話者キャラが相手をどう呼ぶかを RESULTS に返す共通関数。
-;   ・親しい/既知の相手 … 原作準拠の呼び方（下表 全71キャラ分）
-;   ・それ以外           … 呼び名(CALLNAME)で名前呼び
+;   RESULTS に「話者が相手をどう呼ぶか」を返す共通関数。
+;   (1)話者別の既定呼称ルール → (2)個別の特別呼称で上書き
 ;   裏取り: tools/output 分析/関係性分析/全セリフ集+scenarios+ロスター
 ;   ※文字列は書式代入 '= @"..." 形式（リファレンス準拠）
 ;============================================================
 @AITE_YOBI, ARG, ARG:1
 #DIM SP
 #DIM AI
+#DIMS SUR
 	SP = ARG
 	AI = ARG:1
-	RESULTS '= @"%CALLNAME:AI%"
+	;苗字（フルネームから呼び名を除去）
+	SUR '= REPLACE(NAME:AI, CALLNAME:AI, "")
+	;--- (1) 話者別の既定呼称 ---
+	SELECTCASE SP
+		CASE 26, 33, 46
+			;堀田さあや/柊るな/双葉みづき: 苗字で呼び捨て
+			RESULTS '= @"%SUR%"
+		CASE 58
+			;天宮るり: 全員ちゃん付け
+			RESULTS '= @"%CALLNAME:AI%ちゃん"
+		CASE 64
+			;峰山しおん: 全員くん付け
+			RESULTS '= @"%CALLNAME:AI%くん"
+		CASE 70
+			;神無月ほとり: 苗字+ちゃん付け
+			RESULTS '= @"%SUR%ちゃん"
+		CASEELSE
+			RESULTS '= @"%CALLNAME:AI%"
+	ENDSELECT
+	;--- (2) 個別の特別呼称（上書き）---
 	SELECTCASE SP
 		CASE 1
 			;かなえ
@@ -100,8 +119,6 @@
 					RESULTS '= @"クー先輩"
 				CASE 45
 					RESULTS '= @"円城寺先輩"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 49
 					RESULTS '= @"小松先輩"
 				CASE 51
@@ -342,8 +359,6 @@
 					RESULTS '= @"まりあ先輩"
 				CASE 43
 					RESULTS '= @"みどり"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 49
 					RESULTS '= @"小松先輩"
 				CASE 66
@@ -502,8 +517,6 @@
 					RESULTS '= @"まりあ先輩"
 				CASE 35
 					RESULTS '= @"梅園先輩"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 62
 					RESULTS '= @"クロちゃん先輩"
 				CASE 63
@@ -612,8 +625,6 @@
 					RESULTS '= @"冴木先輩"
 				CASE 45
 					RESULTS '= @"円城寺先輩"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 54
 					RESULTS '= @"久坂先輩"
 				CASE 64
@@ -736,28 +747,6 @@
 					RESULTS '= @"時国先輩"
 				CASE 66
 					RESULTS '= @"曽根先輩"
-			ENDSELECT
-		CASE 26
-			;さあや
-			SELECTCASE AI
-				CASE 5
-					RESULTS '= @"桃智さん"
-				CASE 6
-					RESULTS '= @"あいかちゃん"
-				CASE 8
-					RESULTS '= @"丸子さん"
-				CASE 10
-					RESULTS '= @"ゆゆちゃん"
-				CASE 31
-					RESULTS '= @"夢路さん"
-				CASE 36
-					RESULTS '= @"遠見さん"
-				CASE 45
-					RESULTS '= @"円城寺先輩"
-				CASE 49
-					RESULTS '= @"小松先輩"
-				CASE 69
-					RESULTS '= @"神樹先輩"
 			ENDSELECT
 		CASE 27
 			;ゆり
@@ -884,8 +873,6 @@
 					RESULTS '= @"みどりちゃん"
 				CASE 45
 					RESULTS '= @"円城寺先輩"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 52
 					RESULTS '= @"湖南先輩"
 				CASE 62
@@ -965,18 +952,6 @@
 				CASE 62
 					RESULTS '= @"黒森先輩"
 			ENDSELECT
-		CASE 33
-			;るな
-			SELECTCASE AI
-				CASE 6
-					RESULTS '= @"あいかちゃん"
-				CASE 26
-					RESULTS '= @"堀田ちゃん"
-				CASE 47
-					RESULTS '= @"みなさん"
-				CASE 62
-					RESULTS '= @"黒森先輩"
-			ENDSELECT
 		CASE 34
 			;かいり
 			SELECTCASE AI
@@ -1014,8 +989,6 @@
 					RESULTS '= @"クーちゃん"
 				CASE 43
 					RESULTS '= @"みどりちゃん"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 52
 					RESULTS '= @"湖南先輩"
 				CASE 60
@@ -1072,6 +1045,12 @@
 					RESULTS '= @"かなちゃん"
 				CASE 39
 					RESULTS '= @"ももちゃん"
+				CASE 40
+					RESULTS '= @"ギリー"
+				CASE 43
+					RESULTS '= @"ドリー"
+				CASE 48
+					RESULTS '= @"王子"
 				CASE 49
 					RESULTS '= @"小松先輩"
 				CASE 54
@@ -1308,8 +1287,6 @@
 					RESULTS '= @"桐島さん"
 				CASE 40
 					RESULTS '= @"夜霧さん"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 49
 					RESULTS '= @"小松さん"
 				CASE 52
@@ -1477,7 +1454,7 @@
 				CASE 34
 					RESULTS '= @"桐島さん"
 				CASE 36
-					RESULTS '= @"ちかちゃん"
+					RESULTS '= @"トミ子"
 				CASE 39
 					RESULTS '= @"冴木さん"
 				CASE 43
@@ -1592,8 +1569,6 @@
 					RESULTS '= @"梅園さん"
 				CASE 45
 					RESULTS '= @"れいかさん"
-				CASE 47
-					RESULTS '= @"みなさん"
 				CASE 49
 					RESULTS '= @"小松さん"
 				CASE 52
@@ -1632,20 +1607,6 @@
 					RESULTS '= @"あやちゃん"
 				CASE 60
 					RESULTS '= @"瀬川さん"
-			ENDSELECT
-		CASE 58
-			;るり
-			SELECTCASE AI
-				CASE 10
-					RESULTS '= @"ゆゆちゃん"
-				CASE 24
-					RESULTS '= @"なつみちゃん"
-				CASE 28
-					RESULTS '= @"こよいちゃん"
-				CASE 30
-					RESULTS '= @"ゆうちゃん"
-				CASE 70
-					RESULTS '= @"ほとりちゃん"
 			ENDSELECT
 		CASE 59
 			;うしお
@@ -1780,46 +1741,6 @@
 					RESULTS '= @"ひびきちゃん"
 				CASE 72
 					RESULTS '= @"あんずちゃん"
-			ENDSELECT
-		CASE 64
-			;しおん
-			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"北川くん"
-				CASE 6
-					RESULTS '= @"あいかくん"
-				CASE 10
-					RESULTS '= @"ゆゆくん"
-				CASE 28
-					RESULTS '= @"星海くん"
-				CASE 44
-					RESULTS '= @"笹芽くん"
-				CASE 45
-					RESULTS '= @"円城寺くん"
-				CASE 49
-					RESULTS '= @"小松くん"
-				CASE 50
-					RESULTS '= @"山條くん"
-				CASE 51
-					RESULTS '= @"御影くん"
-				CASE 53
-					RESULTS '= @"花丘くん"
-				CASE 60
-					RESULTS '= @"瀬川くん"
-				CASE 61
-					RESULTS '= @"鶴海くん"
-				CASE 62
-					RESULTS '= @"黒森くん"
-				CASE 63
-					RESULTS '= @"八雲くん"
-				CASE 65
-					RESULTS '= @"時国くん"
-				CASE 66
-					RESULTS '= @"曽根くん"
-				CASE 68
-					RESULTS '= @"深鳥くん"
-				CASE 70
-					RESULTS '= @"神無月くん"
 			ENDSELECT
 		CASE 65
 			;そら
@@ -1986,24 +1907,10 @@
 		CASE 70
 			;ほとり
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"北川ちゃん"
-				CASE 24
-					RESULTS '= @"三波ちゃん"
-				CASE 52
-					RESULTS '= @"湖南ちゃん"
-				CASE 53
-					RESULTS '= @"花丘ちゃん"
-				CASE 63
-					RESULTS '= @"八雲ちゃん"
-				CASE 64
-					RESULTS '= @"峰山ちゃん"
-				CASE 65
-					RESULTS '= @"時国ちゃん"
-				CASE 66
-					RESULTS '= @"曽根ちゃん"
-				CASE 69
-					RESULTS '= @"神樹ちゃん"
+				CASE 28
+					RESULTS '= @"星ちゃん"
+				CASE 58
+					RESULTS '= @"るりちゃん"
 			ENDSELECT
 		CASE 71
 			;ひびき
