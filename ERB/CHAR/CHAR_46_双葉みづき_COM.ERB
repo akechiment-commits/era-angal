@@ -25,6 +25,9 @@
 @KOJO_MESSAGE_COM_46
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 46, PLAYER
+LOCALS '= @"%RESULTS%"
 
 ;==============================================================
 ; 純愛コミュニケーション系（COM300-325）
@@ -37,6 +40,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「勉強を一緒に……？　う～ん、わたし勉強は苦手なんだよな～。古文の変格活用とか、わたしが学ぶべきことじゃないし。でもまぁ、おまえが一緒なら……ちょっとだけ、がんばってやってもいいぞ☆」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -64,6 +78,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「ん～、集中できん！　わたしが知りたいのは、もっと根源的で神秘的なことなんだよな～。」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -773,51 +788,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「で、デート……!?　お、おまえ、わたしとデートしたいのか～!?　……ふ、ふふん、しょうがないやつだな♪　まぁ、特別に付き合ってやるぞ☆　ど、どこ行く？　ちゃんとエスコートしろよ～？」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「うぐっ、きょ、今日はちょっと予定が……っ。ご、ごめん、また今度誘ってくれ～っ☆」
-			ELSE
-				;失敗
-				PRINTFORMW 「えっ、デート!?　む、無理無理～っ、心の準備が……っ！　ま、まだ早いぞ～っ!?」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「えへへ、おまえとデート～♪　今日は一日、わたしを独り占めしていいぞ☆　光栄だろ？」
-				ELSEIF A == 1
-					PRINTFORMW 「なぁ、手繋いでもいいか？　……えへへ、恋人だもんな♪　ぎゅっ☆」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「今日のデート、すっごく楽しかったぞ♪　……なぁ、また連れてってくれよな？　約束だぞ☆」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「デートか～♪　よ～し、わたしのおすすめスポット案内してやる☆　神秘的な場所だぞ～♪」
-				ELSEIF A == 1
-					PRINTFORMW 「えへへ、なんだかドキドキするな～♪　……べ、別におまえにときめいてるわけじゃないからな！」
-				ELSE
-					PRINTFORMW 「今日は楽しかったな～♪　ふふん、わたしと一緒だと退屈しないだろ？　また誘えよ☆」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「ふぅん、デートね～。まぁ、暇だったし付き合ってやるか☆　感謝するんだぞ？」
-				ELSEIF A == 1
-					PRINTFORMW 「お～、こんなとこ初めて来たぞ☆　おまえ、意外とデートスポット詳しいな～♪」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「なんだかんだで、楽しかったぞ転校生♪　……ま、たまにはこういうのもいいな☆」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「で、デート……!?　お、おまえ、わたしとデートしたいのか～!?　……ふ、ふふん、しょうがないやつだな♪　まぁ、特別に付き合ってやるぞ☆　ど、どこ行く？　ちゃんとエスコートしろよ～？」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「うぐっ、きょ、今日はちょっと予定が……っ。ご、ごめん、また今度誘ってくれ～っ☆」
+				ELSE
+					;失敗
+					PRINTFORMW 「えっ、デート!?　む、無理無理～っ、心の準備が……っ！　ま、まだ早いぞ～っ!?」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「えへへ、おまえとデート～♪　今日は一日、わたしを独り占めしていいぞ☆　光栄だろ？」
+					ELSEIF A == 1
+						PRINTFORMW 「なぁ、手繋いでもいいか？　……えへへ、恋人だもんな♪　ぎゅっ☆」
+					ELSE
+						PRINTFORMW 「今日のデート、すっごく楽しかったぞ♪　……なぁ、また連れてってくれよな？　約束だぞ☆」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「デートか～♪　よ～し、わたしのおすすめスポット案内してやる☆　神秘的な場所だぞ～♪」
+					ELSEIF A == 1
+						PRINTFORMW 「えへへ、なんだかドキドキするな～♪　……べ、別におまえにときめいてるわけじゃないからな！」
+					ELSE
+						PRINTFORMW 「今日は楽しかったな～♪　ふふん、わたしと一緒だと退屈しないだろ？　また誘えよ☆」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「ふぅん、デートね～。まぁ、暇だったし付き合ってやるか☆　感謝するんだぞ？」
+					ELSEIF A == 1
+						PRINTFORMW 「お～、こんなとこ初めて来たぞ☆　おまえ、意外とデートスポット詳しいな～♪」
+					ELSE
+						PRINTFORMW 「なんだかんだで、楽しかったぞ転校生♪　……ま、たまにはこういうのもいいな☆」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF

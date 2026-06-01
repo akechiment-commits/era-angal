@@ -26,7 +26,7 @@
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
 	;相手呼称を用意（親しい相手は特別な呼び方、他は呼び名）
-	CALL AITE_YOBI, 23, TARGET
+	CALL AITE_YOBI, 23, PLAYER
 	LOCALS '= @"%RESULTS%"
 
 ;==============================================================
@@ -40,6 +40,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「お勉強？　おいら、日本語まだむずかしいんだ。お兄ちゃん先輩、教えてくれるのか？　えへへ、たすかるぞっ♪」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -67,6 +78,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「勉強したら、お礼に何か狩ってきてやろうか？　お兄ちゃん先輩、好きな獲物あるか～？」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -776,51 +788,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「デート！？　がうっ、それって、ふたりっきりのやつだろ！？　わ～い、おいら、はりきっちゃうぞっ♪」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「がう……？　おいら、なんか間違えちゃったか……？　デートって、むずかしいな……ごめんな……」
-			ELSE
-				;失敗
-				PRINTFORMW 「あうっ、ど、ど～しよ。おいら、緊張しすぎて変なことしちゃった……。お兄ちゃん先輩、ごめんっ……」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「お兄ちゃん先輩とのデート、夢みたいだ……。おいら、今日のこと一生忘れないぞ、えへへ♪」
-				ELSEIF A == 1
-					PRINTFORMW 「なあ、手つないでいいか？　……えへへ、おまえの手、あったかいな。ずっと離したくないぞ♪」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「こんなにしあわせでいいのかな……。お兄ちゃん先輩、おいらをデートに誘ってくれてありがとう♪」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「がうがう、どこ行く？　おいら、お兄ちゃん先輩の行きたいとこ、どこでもついていくぞっ♪」
-				ELSEIF A == 1
-					PRINTFORMW 「えへへ、ふたりでお出かけって、なんだか特別だな。わくわくするぞっ♪」
-				ELSE
-					PRINTFORMW 「今日はおいらが案内するぞ！　いいにおいのするお店、いっぱい知ってるんだっ♪」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「デートか、面白そうだな！　おいら、こういうの初めてだから、楽しみだぞっ♪」
-				ELSEIF A == 1
-					PRINTFORMW 「お兄ちゃん先輩と出かけると、新しい発見がいっぱいだな。えへへ、楽しいぞっ♪」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「がう、いっぱい歩いたな！　でも、おまえと一緒だと疲れないから不思議だぞっ♪」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「デート！？　がうっ、それって、ふたりっきりのやつだろ！？　わ～い、おいら、はりきっちゃうぞっ♪」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「がう……？　おいら、なんか間違えちゃったか……？　デートって、むずかしいな……ごめんな……」
+				ELSE
+					;失敗
+					PRINTFORMW 「あうっ、ど、ど～しよ。おいら、緊張しすぎて変なことしちゃった……。お兄ちゃん先輩、ごめんっ……」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「お兄ちゃん先輩とのデート、夢みたいだ……。おいら、今日のこと一生忘れないぞ、えへへ♪」
+					ELSEIF A == 1
+						PRINTFORMW 「なあ、手つないでいいか？　……えへへ、おまえの手、あったかいな。ずっと離したくないぞ♪」
+					ELSE
+						PRINTFORMW 「こんなにしあわせでいいのかな……。お兄ちゃん先輩、おいらをデートに誘ってくれてありがとう♪」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「がうがう、どこ行く？　おいら、お兄ちゃん先輩の行きたいとこ、どこでもついていくぞっ♪」
+					ELSEIF A == 1
+						PRINTFORMW 「えへへ、ふたりでお出かけって、なんだか特別だな。わくわくするぞっ♪」
+					ELSE
+						PRINTFORMW 「今日はおいらが案内するぞ！　いいにおいのするお店、いっぱい知ってるんだっ♪」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「デートか、面白そうだな！　おいら、こういうの初めてだから、楽しみだぞっ♪」
+					ELSEIF A == 1
+						PRINTFORMW 「お兄ちゃん先輩と出かけると、新しい発見がいっぱいだな。えへへ、楽しいぞっ♪」
+					ELSE
+						PRINTFORMW 「がう、いっぱい歩いたな！　でも、おまえと一緒だと疲れないから不思議だぞっ♪」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF

@@ -25,6 +25,9 @@
 @KOJO_MESSAGE_COM_9
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 9, PLAYER
+LOCALS '= @"%RESULTS%"
 
 ;==============================================================
 ; 純愛コミュニケーション系（COM300-325）
@@ -37,6 +40,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「えっ、ぼくと一緒に勉強……？　な、何でぼくと？　ぼ、ぼくは頭よくないから、転校生のひとに教えてもらうほうかも……。えっと、よろしくお願いしますね？」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -64,6 +78,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「うう、ぼく頭ぼーっとしちゃう……。転校生のひとに迷惑かけちゃうかも、ごめんね？」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -771,51 +786,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「えっ、デート……！？　ぼ、ぼくと？　ふぁああ、ど、どうしようっ、何着ていけばいいの～？！」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「うう……今日はちょっと体調よくなくて。ご、ごめんね、また今度埋め合わせするから、先輩……」
-			ELSE
-				;失敗
-				PRINTFORMW 「えっ、デート!?　ぼ、ぼく、転校生のひととデートする義理はないですよっ！？　断りますからね？」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「先輩～♪　今日のデート楽しかったね。えへへ、ぼく、ずっとこの時間続いてほしいなぁ……」
-				ELSEIF A == 1
-					PRINTFORMW 「（先輩、ぼくのことエスコートしてくれて……ふぁ、ぼく、すっごく愛されてる感じがする）」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「ねぇ先輩、また誘って？　えへへ、ぼく、いつでも先輩とのデートの予定空けとくから♪」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「今日はぼくのこと連れてきてくれてありがとう、転校生の先輩。楽しかったです……」
-				ELSEIF A == 1
-					PRINTFORMW 「（先輩と過ごすこの時間、なんだか特別な感じ……これって、デートって呼んでいいのかなぁ？）」
-				ELSE
-					PRINTFORMW 「えへへ、ぼくに優しくしてくれて……。あの、また誘ってくれます、転校生の先輩？」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「ふぁ、ぼくが転校生のひととデート……。う、嘘みたい。すず先輩には内緒にしてくださいね？」
-				ELSEIF A == 1
-					PRINTFORMW 「（転校生のひと、けっこう普通にデートできるんだ……意外と紳士的？）えっと、ありがとうございました」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「あ、もうこんな時間……。早く帰らないとすず先輩心配しちゃうよ。バイバイ、転校生のひと」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「えっ、デート……！？　ぼ、ぼくと？　ふぁああ、ど、どうしようっ、何着ていけばいいの～？！」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「うう……今日はちょっと体調よくなくて。ご、ごめんね、また今度埋め合わせするから、先輩……」
+				ELSE
+					;失敗
+					PRINTFORMW 「えっ、デート!?　ぼ、ぼく、転校生のひととデートする義理はないですよっ！？　断りますからね？」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「先輩～♪　今日のデート楽しかったね。えへへ、ぼく、ずっとこの時間続いてほしいなぁ……」
+					ELSEIF A == 1
+						PRINTFORMW 「（先輩、ぼくのことエスコートしてくれて……ふぁ、ぼく、すっごく愛されてる感じがする）」
+					ELSE
+						PRINTFORMW 「ねぇ先輩、また誘って？　えへへ、ぼく、いつでも先輩とのデートの予定空けとくから♪」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「今日はぼくのこと連れてきてくれてありがとう、転校生の先輩。楽しかったです……」
+					ELSEIF A == 1
+						PRINTFORMW 「（先輩と過ごすこの時間、なんだか特別な感じ……これって、デートって呼んでいいのかなぁ？）」
+					ELSE
+						PRINTFORMW 「えへへ、ぼくに優しくしてくれて……。あの、また誘ってくれます、転校生の先輩？」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「ふぁ、ぼくが転校生のひととデート……。う、嘘みたい。すず先輩には内緒にしてくださいね？」
+					ELSEIF A == 1
+						PRINTFORMW 「（転校生のひと、けっこう普通にデートできるんだ……意外と紳士的？）えっと、ありがとうございました」
+					ELSE
+						PRINTFORMW 「あ、もうこんな時間……。早く帰らないとすず先輩心配しちゃうよ。バイバイ、転校生のひと」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF

@@ -25,6 +25,9 @@
 @KOJO_MESSAGE_COM_52
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 52, PLAYER
+LOCALS '= @"%RESULTS%"
 
 ;==============================================================
 ; 純愛コミュニケーション系（COM300-325）
@@ -37,6 +40,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「勉強？　ふぅん、いいわよ。あたし、演劇の合間に世界史も地理も叩き込んだから、たいてい教えられるわよ」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -64,6 +78,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「静かにやんなさい。あたしも台本読むから、邪魔したら追いだすわよ」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -773,51 +788,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「デート？　ふぅん、あたしを誘うなんていい度胸ね。いいわよ、退屈だったら承知しないけど」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「今日はちょっと予定が詰まっててね……ごめん、また今度ちゃんと埋め合わせするから」
-			ELSE
-				;失敗
-				PRINTFORMW 「あいにく今日は無理よ。あたしも暇じゃないの、悪いわね」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「今日のあんた、なかなかのエスコートじゃない。役者としても合格点よ……ふふ」
-				ELSEIF A == 1
-					PRINTFORMW 「こういう日が、ずっと続けばいいのにね……って、らしくないこと言っちゃった。忘れて」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「（あぁ楽しい。こいつといると、毎日が舞台みたいだわ）……ん、なに。次どこ行く？」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「デートねぇ。ま、あんたとなら付きあってあげる。どこ連れてってくれるの？」
-				ELSEIF A == 1
-					PRINTFORMW 「あんた、エスコート様になってきたじゃない。あたしが鍛えた成果かしらね」
-				ELSE
-					PRINTFORMW 「今日は楽しかったわ。あんたって、一緒にいて疲れないのよね……貴重よ」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「デートっていうか、ただの付き添いね。ま、それでいいなら出かけましょ」
-				ELSEIF A == 1
-					PRINTFORMW 「あんたのプラン、お手並み拝見といくわよ。あたしを楽しませてみな」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「両手に花のあんたが、あたしなんか誘っていいの？　ふふ、物好きね」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「デート？　ふぅん、あたしを誘うなんていい度胸ね。いいわよ、退屈だったら承知しないけど」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「今日はちょっと予定が詰まっててね……ごめん、また今度ちゃんと埋め合わせするから」
+				ELSE
+					;失敗
+					PRINTFORMW 「あいにく今日は無理よ。あたしも暇じゃないの、悪いわね」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「今日のあんた、なかなかのエスコートじゃない。役者としても合格点よ……ふふ」
+					ELSEIF A == 1
+						PRINTFORMW 「こういう日が、ずっと続けばいいのにね……って、らしくないこと言っちゃった。忘れて」
+					ELSE
+						PRINTFORMW 「（あぁ楽しい。こいつといると、毎日が舞台みたいだわ）……ん、なに。次どこ行く？」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「デートねぇ。ま、あんたとなら付きあってあげる。どこ連れてってくれるの？」
+					ELSEIF A == 1
+						PRINTFORMW 「あんた、エスコート様になってきたじゃない。あたしが鍛えた成果かしらね」
+					ELSE
+						PRINTFORMW 「今日は楽しかったわ。あんたって、一緒にいて疲れないのよね……貴重よ」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「デートっていうか、ただの付き添いね。ま、それでいいなら出かけましょ」
+					ELSEIF A == 1
+						PRINTFORMW 「あんたのプラン、お手並み拝見といくわよ。あたしを楽しませてみな」
+					ELSE
+						PRINTFORMW 「両手に花のあんたが、あたしなんか誘っていいの？　ふふ、物好きね」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF

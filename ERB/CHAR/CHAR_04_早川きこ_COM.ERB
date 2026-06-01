@@ -25,6 +25,9 @@
 @KOJO_MESSAGE_COM_4
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 4, PLAYER
+LOCALS '= @"%RESULTS%"
 
 ;==============================================================
 ; 純愛コミュニケーション系（COM300-325）
@@ -37,6 +40,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「えへへ、先輩と一緒にお勉強ですか～♪　あたし、宿題いつも苦戦するから助かりますっ！　えっと、ここの問題が……おろろ、さっぱりです～」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -64,6 +78,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「あたしも先輩みたいに賢くなりたいなぁ。えへへ、頑張りますっ！」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -773,51 +788,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「で、デートですか～!?　ひぁっ、あたしと……？　うわぁい、嬉しいっ♪　えへへ、どこ行きましょう、先輩～☆」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「うぇ～ん、あたしのドジで台無しにしちゃった……。せっかくのデートなのに、ごめんなさい先輩ぃ……」
-			ELSE
-				;失敗
-				PRINTFORMW 「ひぁっ、こ、転んじゃった……！　ご、ごめんなさい、せっかく誘ってくれたのに……生きててごめんなさいっ」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「先輩とのデート、えへへ……夢みたいですっ♪　ずっとこの日が来てほしかったなっ」
-				ELSEIF A == 1
-					PRINTFORMW 「手、つないでいいですか～？　えへへ、こうしてると、ほんとに恋人みたいで嬉しいっ♪」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「今日のこと、あたし一生忘れませんっ。先輩、誘ってくれてありがとうございます……♪」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「先輩とおでかけ、なんだかどきどきしますね♪　えへへ、デートみたい～☆」
-				ELSEIF A == 1
-					PRINTFORMW 「あっ、あそこ寄っていきませんか～？　先輩と一緒だと、何見ても楽しいですっ♪」
-				ELSE
-					PRINTFORMW 「えへへ、今日は楽しかったですっ。また一緒におでかけしたいなぁ、先輩♪」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「お、おでかけですか～？　えへへ、あたしでよければ喜んでっ♪」
-				ELSEIF A == 1
-					PRINTFORMW 「先輩とおでかけ、楽しいですね♪　あっ、転ばないように気をつけなきゃ～」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「今日はありがとうございました、先輩♪　えへへ、いい思い出になりましたっ」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「で、デートですか～!?　ひぁっ、あたしと……？　うわぁい、嬉しいっ♪　えへへ、どこ行きましょう、先輩～☆」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「うぇ～ん、あたしのドジで台無しにしちゃった……。せっかくのデートなのに、ごめんなさい先輩ぃ……」
+				ELSE
+					;失敗
+					PRINTFORMW 「ひぁっ、こ、転んじゃった……！　ご、ごめんなさい、せっかく誘ってくれたのに……生きててごめんなさいっ」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「先輩とのデート、えへへ……夢みたいですっ♪　ずっとこの日が来てほしかったなっ」
+					ELSEIF A == 1
+						PRINTFORMW 「手、つないでいいですか～？　えへへ、こうしてると、ほんとに恋人みたいで嬉しいっ♪」
+					ELSE
+						PRINTFORMW 「今日のこと、あたし一生忘れませんっ。先輩、誘ってくれてありがとうございます……♪」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「先輩とおでかけ、なんだかどきどきしますね♪　えへへ、デートみたい～☆」
+					ELSEIF A == 1
+						PRINTFORMW 「あっ、あそこ寄っていきませんか～？　先輩と一緒だと、何見ても楽しいですっ♪」
+					ELSE
+						PRINTFORMW 「えへへ、今日は楽しかったですっ。また一緒におでかけしたいなぁ、先輩♪」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「お、おでかけですか～？　えへへ、あたしでよければ喜んでっ♪」
+					ELSEIF A == 1
+						PRINTFORMW 「先輩とおでかけ、楽しいですね♪　あっ、転ばないように気をつけなきゃ～」
+					ELSE
+						PRINTFORMW 「今日はありがとうございました、先輩♪　えへへ、いい思い出になりましたっ」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF

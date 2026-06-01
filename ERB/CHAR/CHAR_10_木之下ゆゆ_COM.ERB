@@ -25,6 +25,9 @@
 @KOJO_MESSAGE_COM_10
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 10, PLAYER
+LOCALS '= @"%RESULTS%"
 
 ;==============================================================
 ; 純愛コミュニケーション系（COM300-325）
@@ -37,6 +40,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「えへへ、おに～さんと一緒にお勉強だぁ。ゆゆね、本読むの好きだから、わかんないとこ教えてあげるよぉ？　あ、でも生物の教科書はゆゆの方が詳しいかも♪　内臓のページ、わくわくしちゃう☆」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -64,6 +78,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「おに～さんと勉強すると、はかどるねぇ。えへへ、また一緒にやろ？」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -773,51 +788,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「でーと……！？　うわぁい、おに～さんとデートだぁ☆　えへへ、ゆゆ、おめかししてきたんだよ？　……変じゃないかなぁ？」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「むぅ……おに～さん、今日ちょっと上の空だよぉ。ゆゆとのデート、つまんない……？　ぷくぅ、しょぼん」
-			ELSE
-				;失敗
-				PRINTFORMW 「うにゅ……なんだか今日、うまくいかないねぇ。ゆゆ、なにか変なことしちゃったかなぁ……」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「えへへ、おに～さんとデート、しあわせだなぁ。ずっとこの時間が続けばいいのに♪」
-				ELSEIF A == 1
-					PRINTFORMW 「ねぇ、手つないでこ？　えへへ、おに～さんと歩いてると、みんなに自慢したくなっちゃう♪」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「今日のデート、満点だぁ☆　ごほうびに……ちゅっ、てしてあげる♪　えへへ」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「わぁ、おに～さんとデートだぁ。えへへ、なんだかどきどきするねぇ♪」
-				ELSEIF A == 1
-					PRINTFORMW 「ねぇ、あそこのカフェ入ろ？　あまいもの食べたいなぁ。おに～さんもいっしょに♪」
-				ELSE
-					PRINTFORMW 「楽しかったぁ。えへへ、ゆゆ、おに～さんともっとデートしたいなぁ♪」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「えへへ、デートだねぇ。ゆゆ、どこ連れてってくれるのかなぁ、わくわく♪」
-				ELSEIF A == 1
-					PRINTFORMW 「あっ、見て見て！　あのお店、かわいいぬいぐるみいっぱい♪　……ちょっと見てい？」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「今日はありがとぉ、おに～さん。ゆゆ、すっごく楽しかったよぉ♪」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「でーと……！？　うわぁい、おに～さんとデートだぁ☆　えへへ、ゆゆ、おめかししてきたんだよ？　……変じゃないかなぁ？」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「むぅ……おに～さん、今日ちょっと上の空だよぉ。ゆゆとのデート、つまんない……？　ぷくぅ、しょぼん」
+				ELSE
+					;失敗
+					PRINTFORMW 「うにゅ……なんだか今日、うまくいかないねぇ。ゆゆ、なにか変なことしちゃったかなぁ……」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「えへへ、おに～さんとデート、しあわせだなぁ。ずっとこの時間が続けばいいのに♪」
+					ELSEIF A == 1
+						PRINTFORMW 「ねぇ、手つないでこ？　えへへ、おに～さんと歩いてると、みんなに自慢したくなっちゃう♪」
+					ELSE
+						PRINTFORMW 「今日のデート、満点だぁ☆　ごほうびに……ちゅっ、てしてあげる♪　えへへ」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「わぁ、おに～さんとデートだぁ。えへへ、なんだかどきどきするねぇ♪」
+					ELSEIF A == 1
+						PRINTFORMW 「ねぇ、あそこのカフェ入ろ？　あまいもの食べたいなぁ。おに～さんもいっしょに♪」
+					ELSE
+						PRINTFORMW 「楽しかったぁ。えへへ、ゆゆ、おに～さんともっとデートしたいなぁ♪」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「えへへ、デートだねぇ。ゆゆ、どこ連れてってくれるのかなぁ、わくわく♪」
+					ELSEIF A == 1
+						PRINTFORMW 「あっ、見て見て！　あのお店、かわいいぬいぐるみいっぱい♪　……ちょっと見てい？」
+					ELSE
+						PRINTFORMW 「今日はありがとぉ、おに～さん。ゆゆ、すっごく楽しかったよぉ♪」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF

@@ -26,7 +26,7 @@
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
 	;相手呼称を用意（親しい相手は特別な呼び方、他は呼び名）
-	CALL AITE_YOBI, 28, TARGET
+	CALL AITE_YOBI, 28, PLAYER
 	LOCALS '= @"%RESULTS%"
 
 ;==============================================================
@@ -40,6 +40,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「え、うちと一緒に勉強……？　べ、別にええけど。うちひとりやと、つい星のことばっか考えてまうから……転校生くんおってくれたら、はかどるかも」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -67,6 +78,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「（転校生くん、ちゃんと勉強しに来てくれたんや）……あ、なんでもない。続き、やろか」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -776,51 +788,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「で、デート……っ！？　ほ、ほんまにうちと……？　ど、どないしょ、なに着てったらええんやろ……！　うう、前の日の緊張で眠られへんかも……！」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「あ、あれ……？　なんかうち、緊張しすぎてぜんぜん楽しめてへんかったかも……。ご、ごめんな、せっかくのデートやのに……」
-			ELSE
-				;失敗
-				PRINTFORMW 「えっと……あはは。なんか、ぎこちなくなってもたな……。う、うちデートとか不慣れすぎて、ほんま堪忍な……」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「えへへ、転校生くんとのデート、ずっと楽しみにしててん♪　今日いちにち、いっぱい思い出つくろな？」
-				ELSEIF A == 1
-					PRINTFORMW 「なぁ、手ぇつないで歩こ？　……こうやって並んで歩いてると、ほんまに恋人同士みたいやなぁ。……あ、恋人同士やったわ。えへへ」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「今日のデート、一生忘れへんわぁ。……転校生くんと過ごす時間は、ぜんぶ宝物やもん♪」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「あ、ええなぁデート。……えっと、どこ行こか。うち、転校生くんとなら、どこでも楽しいわぁ」
-				ELSEIF A == 1
-					PRINTFORMW 「ふふ、なんや今日は、ちょっとおめかししてきてん。……き、気づいてくれた？」
-				ELSE
-					PRINTFORMW 「デートって緊張するけど、転校生くんとやと、だんだん自然に話せるようになってきたなぁ」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「デ、デートやんね……。うちちゃんとできるかな……。が、頑張るから、リードしてくれると助かるわぁ」
-				ELSEIF A == 1
-					PRINTFORMW 「えっと、つ、次どこ行こか……。あかん、緊張してせっかくの景色も頭に入ってこーへん……」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「（て、手の距離が近い……。つ、つないだほうがええんかな……いや、まだ早い……！）」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「で、デート……っ！？　ほ、ほんまにうちと……？　ど、どないしょ、なに着てったらええんやろ……！　うう、前の日の緊張で眠られへんかも……！」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「あ、あれ……？　なんかうち、緊張しすぎてぜんぜん楽しめてへんかったかも……。ご、ごめんな、せっかくのデートやのに……」
+				ELSE
+					;失敗
+					PRINTFORMW 「えっと……あはは。なんか、ぎこちなくなってもたな……。う、うちデートとか不慣れすぎて、ほんま堪忍な……」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「えへへ、転校生くんとのデート、ずっと楽しみにしててん♪　今日いちにち、いっぱい思い出つくろな？」
+					ELSEIF A == 1
+						PRINTFORMW 「なぁ、手ぇつないで歩こ？　……こうやって並んで歩いてると、ほんまに恋人同士みたいやなぁ。……あ、恋人同士やったわ。えへへ」
+					ELSE
+						PRINTFORMW 「今日のデート、一生忘れへんわぁ。……転校生くんと過ごす時間は、ぜんぶ宝物やもん♪」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「あ、ええなぁデート。……えっと、どこ行こか。うち、転校生くんとなら、どこでも楽しいわぁ」
+					ELSEIF A == 1
+						PRINTFORMW 「ふふ、なんや今日は、ちょっとおめかししてきてん。……き、気づいてくれた？」
+					ELSE
+						PRINTFORMW 「デートって緊張するけど、転校生くんとやと、だんだん自然に話せるようになってきたなぁ」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「デ、デートやんね……。うちちゃんとできるかな……。が、頑張るから、リードしてくれると助かるわぁ」
+					ELSEIF A == 1
+						PRINTFORMW 「えっと、つ、次どこ行こか……。あかん、緊張してせっかくの景色も頭に入ってこーへん……」
+					ELSE
+						PRINTFORMW 「（て、手の距離が近い……。つ、つないだほうがええんかな……いや、まだ早い……！）」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF

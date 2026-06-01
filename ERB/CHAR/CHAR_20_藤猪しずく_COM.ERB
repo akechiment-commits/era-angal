@@ -21,6 +21,9 @@
 @KOJO_MESSAGE_COM_20
 SIF TEQUIP:45 && SELECTCOM != 45
 	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 20, PLAYER
+LOCALS '= @"%RESULTS%"
 
 ;==============================================================
 ; 純愛コミュニケーション系（COM300-325）
@@ -33,6 +36,17 @@ IF SELECTCOM == 300
 		PRINTFORMW 「ん～……勉強？　わたし苦手なんですけど、転校生の先輩教えてくれます？」
 	ELSE
 		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「」
+			ELSE
+				;失敗
+				PRINTFORMW 「」
+			ENDIF
+		;--- 成功 ---
+		ELSE
 		;--- 恋人 ---
 		IF TALENT:TARGET:153
 			IF A == 0
@@ -60,6 +74,7 @@ IF SELECTCOM == 300
 			ELSE
 				PRINTFORMW 「あの、ここわかります？　パパも微妙そうな顔してますけど」
 			ENDIF
+		ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -767,51 +782,103 @@ IF SELECTCOM == 322
 	ENDIF
 ENDIF
 
-;--- COM323 デート ---
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
 IF SELECTCOM == 323
-	IF CFLAG:TARGET:217 == 0
-		CFLAG:TARGET:217 = 1
-		;初回
-		PRINTFORMW 「デート……ですか。緊張するんですけど、行きましょう、転校生の先輩」
-	ELSE
-		A = RAND:3
-		;--- 失敗時 ---
-		IF TFLAG:18 == -1
-			IF TALENT:TARGET:153
-				;恋人・失敗
-				PRINTFORMW 「今日はちょっと、噛みあわなかったですね。ぶっちゃけ、わたしも疲れちゃった」
-			ELSE
-				;失敗
-				PRINTFORMW 「ん～……転校生の先輩、楽しめなかったかも。次はもうちょっと考えてください」
-			ENDIF
-		;--- 成功時 ---
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「」
 		ELSE
-			;--- 恋人 ---
-			IF TALENT:TARGET:153
-				IF A == 0
-					PRINTFORMW 「ん～……（人がいないとこに来たら、もう『パパ』呼んじゃおうかな）……楽しい？　わたしは楽しい♪」
-				ELSEIF A == 1
-					PRINTFORMW 「（デート、なんか妄想してた『君咲学院のパパとママ』みたいで嬉しい）……ねぇパパ、夕焼けきれいですね」
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「」
 				ELSE
-					PRINTFORMW 「ふぅ、いっぱい歩いた。ほめほめ♪　わたしの優柔不断に、ずっと付きあってくれてありがとう」
+					;失敗
+					PRINTFORMW 「」
 				ENDIF
-			;--- 親密 ---
-			ELSEIF ABL:TARGET:0 >= 6
-				IF A == 0
-					PRINTFORMW 「転校生の先輩、今日は楽しかったです。こういうのも悪くない」
-				ELSEIF A == 1
-					PRINTFORMW 「ふふ、先輩わたし緊張しっぱなしでした。次は、もうちょっと自然にできるかな？」
-				ELSE
-					PRINTFORMW 「ありがとうございます、先輩。えっと、また誘ってもらっても、いいですか？」
-				ENDIF
-			;--- 通常 ---
+			;--- 成功時 ---
 			ELSE
-				IF A == 0
-					PRINTFORMW 「ん～……転校生の先輩、まぁ、悪くなかったですけど。まだ慣れないですね、こういうの」
-				ELSEIF A == 1
-					PRINTFORMW 「ふぅ、お疲れさまでした。先輩、次は、もうちょっとプラン考えてくれます？」
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				;--- 通常 ---
 				ELSE
-					PRINTFORMW 「終わりですか？　足が痛いんで、もう帰りたいんですけど」
+					IF A == 0
+						PRINTFORMW 「」
+					ELSEIF A == 1
+						PRINTFORMW 「」
+					ELSE
+						PRINTFORMW 「」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「デート……ですか。緊張するんですけど、行きましょう、転校生の先輩」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「今日はちょっと、噛みあわなかったですね。ぶっちゃけ、わたしも疲れちゃった」
+				ELSE
+					;失敗
+					PRINTFORMW 「ん～……転校生の先輩、楽しめなかったかも。次はもうちょっと考えてください」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「ん～……（人がいないとこに来たら、もう『パパ』呼んじゃおうかな）……楽しい？　わたしは楽しい♪」
+					ELSEIF A == 1
+						PRINTFORMW 「（デート、なんか妄想してた『君咲学院のパパとママ』みたいで嬉しい）……ねぇパパ、夕焼けきれいですね」
+					ELSE
+						PRINTFORMW 「ふぅ、いっぱい歩いた。ほめほめ♪　わたしの優柔不断に、ずっと付きあってくれてありがとう」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「転校生の先輩、今日は楽しかったです。こういうのも悪くない」
+					ELSEIF A == 1
+						PRINTFORMW 「ふふ、先輩わたし緊張しっぱなしでした。次は、もうちょっと自然にできるかな？」
+					ELSE
+						PRINTFORMW 「ありがとうございます、先輩。えっと、また誘ってもらっても、いいですか？」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「ん～……転校生の先輩、まぁ、悪くなかったですけど。まだ慣れないですね、こういうの」
+					ELSEIF A == 1
+						PRINTFORMW 「ふぅ、お疲れさまでした。先輩、次は、もうちょっとプラン考えてくれます？」
+					ELSE
+						PRINTFORMW 「終わりですか？　足が痛いんで、もう帰りたいんですけど」
+					ENDIF
 				ENDIF
 			ENDIF
 		ENDIF
