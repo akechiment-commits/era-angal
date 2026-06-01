@@ -179,7 +179,9 @@ TFLAG:200 = 3
 ;-------------------------------------------------
 CALL SAMEN_CHECK
 
+LOCAL:50 = 0
 IF E >= 1
+	LOCAL:50 = 1
 	;膣内射精
 	TFLAG:703 = 1
 	TFLAG:704 = 0
@@ -190,13 +192,30 @@ ENDIF
 ;TARGETの射精チェック（PLAYERのVへ）
 ;-------------------------------------------------
 IF BASE:TARGET:2 >= MAXBASE:TARGET:2
-	PRINTFORML %CALLNAME:TARGET%も…達した
+	;射精量の段階を算出（MAXBASEに対する倍率）
+	LOCAL:51 = BASE:TARGET:2 / MAXBASE:TARGET:2
+	SIF LOCAL:51 < 1
+		LOCAL:51 = 1
+	EXP:TARGET:3 += 1
+	;ゲージ消費
 	BASE:TARGET:2 -= MAXBASE:TARGET:2
 	SIF BASE:TARGET:2 >= MAXBASE:TARGET:2
 		BASE:TARGET:2 = MAXBASE:TARGET:2 - 1
-	EXP:TARGET:3 += 1
 	;PLAYERのVに精液汚れ
 	STAIN:MASTER:3 |= 4
+	PRINTFORML 　
+	IF LOCAL:51 >= 4
+		PRINTFORML %CALLNAME:TARGET%もまた激しく腰を震わせ、%CALLNAME:PLAYER%の最奥めがけて大量の精を注ぎ込んだ……！
+		PRINTFORML 受け止めきれない白濁が結合部から逆流し、二人の股間をどろどろに濡らしていく……
+	ELSEIF LOCAL:51 >= 2
+		PRINTFORML %CALLNAME:TARGET%もびくびくとペニスを脈打たせ、%CALLNAME:PLAYER%の膣奥にたっぷりと精を放った……！
+		PRINTFORML 満ちた精液が結合部からとろりと溢れ出していく……
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%もまた限界を迎え、%CALLNAME:PLAYER%の中に熱い精を吐き出した……！
+	ENDIF
+	;ふたなり同士、同時に注ぎ合った実感
+	SIF LOCAL:50
+		PRINTFORML 出しながら出される――二人は互いの最奥に精を注ぎ合い、混じり合う熱に深く打ち震えた……
 ENDIF
 
 ;汚れ移動
@@ -283,6 +302,133 @@ SIF TALENT:88
 
 ;ふたなり同士の相性ボーナス
 A += 10
+
+IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
+	;ABL:欲望
+	IF ABL:1
+		SIF S
+			PRINT  + 
+		PRINTS ABLNAME:1
+		PRINTV 'LV,ABL:1,'(,ABL:1 * 3,')
+		S = 1
+	ENDIF
+	;ABL:V感覚
+	IF ABL:4
+		SIF S
+			PRINT  + 
+		PRINTS ABLNAME:4
+		PRINTV 'LV,ABL:4,'(,ABL:4 * 2,')
+		S = 1
+	ENDIF
+	;ABL:奉仕精神
+	IF ABL:6
+		SIF S
+			PRINT  + 
+		PRINTS ABLNAME:6
+		PRINTV 'LV,ABL:6,'(,ABL:6 * 4,')
+		S = 1
+	ENDIF
+	;ムードボーナス
+	B = 0
+	IF TFLAG:37 < 10
+		B -= 10
+	ELSEIF TFLAG:37 < 30
+		B -= 1
+	ELSEIF TFLAG:37 < 50
+		B += 1
+	ELSEIF TFLAG:37 < 100
+		B += TFLAG:37 / 10
+	ELSE
+		B += TFLAG:37 / 5
+	ENDIF
+	IF B < 0
+		B = B * -1
+		PRINT  - 
+		PRINT ムード悪い
+		PRINTV '(,B,')
+		S = 1
+	ELSEIF B > 0
+		SIF S
+			PRINT  + 
+		PRINT ムード良い
+		PRINTV '(,B,')
+		S = 1
+	ENDIF
+	;好感度
+	IF CFLAG:2 < 2000
+		PRINT  - 
+		IF CFLAG:2 < 1000
+			B = 50
+		ELSEIF CFLAG:2 < 1300
+			B = 20
+		ELSEIF CFLAG:2 < 1700
+			B = 10
+		ELSE
+			B = 5
+		ENDIF
+		PRINT 好感度不足
+		PRINTV '(,B,')
+		S = 1
+	ELSEIF CFLAG:2 >= 2500
+		SIF S
+			PRINT  + 
+		PRINT 好感度
+		PRINTV '(,CFLAG:2 / 250,')
+		S = 1
+	ENDIF
+	;処女・V経験
+	IF TALENT:0
+		PRINT  - 
+		PRINTS TALENTNAME:0
+		PRINTV '(,20,')
+		S = 1
+	ELSEIF EXP:0 < EXPLV:2
+		PRINT  - 
+		PRINT V経験不足
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+	;合意
+	IF TALENT:152 == 0
+		PRINT  - 
+		PRINTFORM %TALENTNAME:152%無し
+		PRINTV '(,30,')
+		S = 1
+	ENDIF
+	;恋慕・親愛
+	IF TALENT:85 && ASSIPLAY == 0
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:85
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+	IF TALENT:88
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:88
+		PRINTV '(,8,')
+		S = 1
+	ENDIF
+	;ふたなり同士の相性
+	SIF S
+		PRINT  + 
+	PRINT ふたなり相性
+	PRINTV '(,10,')
+	S = 1
+	;合計と必要値
+	PRINT  = 
+	PRINTV A
+	SIF A < V
+		PRINT  < 
+	SIF A == V
+		PRINT  = 
+	SIF A > V
+		PRINT  > 
+	PRINT 実行値
+	PRINTV V
+	WAIT
+ENDIF
 
 RETURN A
 
