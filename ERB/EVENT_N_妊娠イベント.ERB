@@ -193,44 +193,7 @@ IF TARGET != -1
 	IF TALENT:TARGET:134 == 0 && CFLAG:TARGET:104 == 1
 		PRINTFORMW %CALLNAME:TARGET%の様子がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は子供を身篭った様だ
-		;▼妊娠発覚時の反応を素質で出し分け（恋慕→貞操観念→淫乱→標準）
-		IF TALENT:TARGET:153 || TALENT:TARGET:89 || TALENT:TARGET:88 || TALENT:TARGET:85
-			SELECTCASE RAND:3
-			CASE 0
-				PRINTFORML 愛する%CALLNAME:PLAYER%の子を宿したと悟り、%CALLNAME:TARGET%は頬を染めて愛おしげに下腹を撫でた…
-			CASE 1
-				PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%の子を授かった幸せに瞳を潤ませ、そっと腹に手を添えた…
-			CASEELSE
-				PRINTFORML 想い人の子種が実を結んだ喜びに、%CALLNAME:TARGET%は満ち足りた笑みを浮かべた…
-			ENDSELECT
-		ELSEIF TALENT:TARGET:30
-			SELECTCASE RAND:3
-			CASE 0
-				PRINTFORML 望まぬ子を孕まされたと知り、%CALLNAME:TARGET%は青ざめて下腹を抱え込んだ…
-			CASE 1
-				PRINTFORML %CALLNAME:TARGET%は自分が孕まされた事実を受け止めきれず、屈辱に唇を噛んで震えた…
-			CASEELSE
-				PRINTFORML 汚されたうえ仔まで宿してしまったと、%CALLNAME:TARGET%は絶望に顔を覆った…
-			ENDSELECT
-		ELSEIF TALENT:TARGET:76 || TALENT:TARGET:33 || TALENT:TARGET:79
-			SELECTCASE RAND:3
-			CASE 0
-				PRINTFORML 孕まされた悦びに、%CALLNAME:TARGET%は牝の本能を満たされたとばかりに恍惚と微笑んだ…
-			CASE 1
-				PRINTFORML 種付けされ仔を孕んだ実感に、%CALLNAME:TARGET%は下腹を撫でながら淫らに身を震わせた…
-			CASEELSE
-				PRINTFORML %CALLNAME:TARGET%は孕み袋を満たされた満足感に、とろけた表情で腹をさすった…
-			ENDSELECT
-		ELSE
-			SELECTCASE RAND:3
-			CASE 0
-				PRINTFORML 自分の中に新しい命が芽吹いたのを感じ、%CALLNAME:TARGET%は戸惑いがちに下腹へ手を当てた…
-			CASE 1
-				PRINTFORML %CALLNAME:TARGET%は身籠った実感にそっと腹を撫で、複雑な面持ちで俯いた…
-			CASEELSE
-				PRINTFORML 自分が母になるのだという実感に、%CALLNAME:TARGET%は呆然と腹を見下ろした…
-			ENDSELECT
-		ENDIF
+		CALL PREGNANCY_FEEL, TARGET, MASTER, 1
 		PRINTFORMW %NAME:TARGET%は[%TALENTNAME:134%]した
 		TALENT:TARGET:134 = 1
 
@@ -253,6 +216,7 @@ IF ASSI >= 1
 	IF TALENT:ASSI:134 == 0 && CFLAG:ASSI:104 == 1
 		PRINTFORMW %CALLNAME:ASSI%の様子がおかしい…
 		PRINTFORML %CALLNAME:ASSI%は子供を身篭った様だ
+		CALL PREGNANCY_FEEL, ASSI, MASTER, 1
 		PRINTFORMW %NAME:ASSI%は[%TALENTNAME:134%]した
 		TALENT:ASSI:134 = 1
 
@@ -280,6 +244,7 @@ IF ASSI >= 1 && TARGET != -1
 	IF TALENT:TARGET:134 == 0 && CFLAG:TARGET:104 == 2
 		PRINTFORMW %CALLNAME:TARGET%の様子がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:ASSI%の子供を身篭った様だ
+		CALL PREGNANCY_FEEL, TARGET, ASSI, 0
 		PRINTFORMW %NAME:TARGET%は[%TALENTNAME:134%]した
 		TALENT:TARGET:134 = 1
 
@@ -310,6 +275,7 @@ IF ASSI >= 1 && TARGET != -1
 	IF TALENT:ASSI:134 == 0 && CFLAG:ASSI:104 == 3
 		PRINTFORMW %CALLNAME:ASSI%の様子がおかしい…
 		PRINTFORML %CALLNAME:ASSI%は%CALLNAME:TARGET%の子供を身篭った様だ
+		CALL PREGNANCY_FEEL, ASSI, TARGET, 0
 		PRINTFORMW %NAME:ASSI%は[%TALENTNAME:134%]した
 		TALENT:ASSI:134 = 1
 
@@ -340,6 +306,7 @@ IF TARGET != -1
 	IF TALENT:MASTER:134 == 0 && CFLAG:MASTER:104 == 3
 		PRINTFORMW なんだか体の調子がおかしい…
 		PRINTFORML どうやら%CALLNAME:TARGET%の子供を身篭った様だ
+		CALL PREGNANCY_FEEL, MASTER, TARGET, 0
 		PRINTFORMW %NAME:MASTER%は[%TALENTNAME:134%]した
 		TALENT:MASTER:134 = 1
 
@@ -352,6 +319,64 @@ IF TARGET != -1
 		CALL SELF_KOJO
 	ENDIF
 ENDIF
+
+;---------------------------------------------------------
+;妊娠発覚時の心情を母の素質・父との関係で出し分け
+;MOM=母 DAD=父 LOVED=父が母の想い人(主人)なら1
+;---------------------------------------------------------
+@PREGNANCY_FEEL(MOM, DAD, LOVED)
+;愛する人の子(想い人が父)
+IF LOVED && (TALENT:MOM:85 || TALENT:MOM:153 || TALENT:MOM:89 || TALENT:MOM:88)
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 愛する%CALLNAME:DAD%の子を宿したと悟り、%CALLNAME:MOM%は頬を染めて愛おしげに下腹を撫でた…
+	CASE 1
+		PRINTFORML %CALLNAME:MOM%は%CALLNAME:DAD%の子を授かった幸せに瞳を潤ませ、そっと腹に手を添えた…
+	CASEELSE
+		PRINTFORML 想い人の子種が実を結んだ喜びに、%CALLNAME:MOM%は満ち足りた笑みを浮かべた…
+	ENDSELECT
+;想い人がありながら他の子を孕んだ(背徳)
+ELSEIF (TALENT:MOM:85 || TALENT:MOM:153) && LOVED == 0
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 想い人がありながら他の子を孕まされたと知り、%CALLNAME:MOM%は罪悪感に下腹を抱えた…
+	CASE 1
+		PRINTFORML %CALLNAME:MOM%は%CALLNAME:DAD%の子を宿してしまった背徳に、唇を震わせて俯いた…
+	CASEELSE
+		PRINTFORML 主人以外の子種が実を結んでしまい、%CALLNAME:MOM%は複雑な面持ちで腹を撫でた…
+	ENDSELECT
+;貞操観念(望まぬ妊娠)
+ELSEIF TALENT:MOM:30
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 望まぬ子を孕まされたと知り、%CALLNAME:MOM%は青ざめて下腹を抱え込んだ…
+	CASE 1
+		PRINTFORML %CALLNAME:MOM%は自分が孕まされた事実を受け止めきれず、屈辱に唇を噛んで震えた…
+	CASEELSE
+		PRINTFORML 汚されたうえ仔まで宿してしまったと、%CALLNAME:MOM%は絶望に顔を覆った…
+	ENDSELECT
+;淫乱・解放・マゾ
+ELSEIF TALENT:MOM:76 || TALENT:MOM:33 || TALENT:MOM:79
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 孕まされた悦びに、%CALLNAME:MOM%は牝の本能を満たされたとばかりに恍惚と微笑んだ…
+	CASE 1
+		PRINTFORML 種付けされ仔を孕んだ実感に、%CALLNAME:MOM%は下腹を撫でながら淫らに身を震わせた…
+	CASEELSE
+		PRINTFORML %CALLNAME:MOM%は孕み袋を満たされた満足感に、とろけた表情で腹をさすった…
+	ENDSELECT
+;標準
+ELSE
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 自分の中に新しい命が芽吹いたのを感じ、%CALLNAME:MOM%は戸惑いがちに下腹へ手を当てた…
+	CASE 1
+		PRINTFORML %CALLNAME:MOM%は身籠った実感にそっと腹を撫で、複雑な面持ちで俯いた…
+	CASEELSE
+		PRINTFORML 自分が母になるのだという実感に、%CALLNAME:MOM%は呆然と腹を見下ろした…
+	ENDSELECT
+ENDIF
+RETURN
 
 ;---------------------------------------------------------
 ;妊娠時のステータスの変化
