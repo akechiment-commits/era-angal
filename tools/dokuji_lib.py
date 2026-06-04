@@ -33,6 +33,30 @@ def _write_cp932_crlf(path, text):
         l.encode('cp932')  # raises on bad char
     open(path, 'wb').write(norm.encode('cp932'))
 
+# CFLAG:69「独自コマンド使用判定」bit0-9 を全立て(=1023)＝独自コマンド280-284/410-414を有効化。
+# Chara CSV では「フラグ,<番号>,<値>」が CFLAG 初期値設定の書式。
+FLAG69_VALUE = 1023  # bit0..9 全ON (2^10-1)
+
+def _set_flag69(clines):
+    out = [l for l in clines if not re.match(r'\s*フラグ\s*,\s*69\s*,', l)]
+    line = f'フラグ,69,{FLAG69_VALUE}'
+    idxs = [i for i,l in enumerate(out) if re.match(r'\s*フラグ\s*,', l)]
+    if idxs:
+        out.insert(idxs[-1]+1, line)
+    else:
+        cs = [i for i,l in enumerate(out) if re.match(r'\s*CSTR\s*,', l)]
+        out.insert(cs[0] if cs else len(out), line)
+    return out
+
+def enable_flag69(nn):
+    """既に CSTR/口上 導入済みのキャラに フラグ,69,1023 だけ追加する遡及用。"""
+    csv = glob.glob(f'CSV/Chara{nn}_*.csv')[0]
+    ct = open(csv,'rb').read().decode('cp932')
+    clines = _set_flag69(ct.split('\n'))
+    _write_cp932_crlf(csv, '\n'.join(clines))
+    chk = [l.strip() for l in open(csv,'rb').read().decode('cp932').split('\n') if re.match(r'\s*フラグ\s*,\s*69\s*,', l)]
+    print(f'CHAR_{nn:02d}: {chk[0]} -> {csv.split("/")[-1]}')
+
 def apply_dokuji(nn, ufufu, junai, names):
     assert set(ufufu) == {280,281,282,283,284}
     assert set(junai) == {410,411,412,413,414}
@@ -69,6 +93,7 @@ def apply_dokuji(nn, ufufu, junai, names):
     last = max(i for i,l in enumerate(clines) if re.match(r'\s*CSTR\s*,\s*\d+', l))
     add = [f'CSTR,{n},{names[n]}' for n in range(80,90)]
     clines = clines[:last+1] + add + clines[last+1:]
+    clines = _set_flag69(clines)
     _write_cp932_crlf(csv, '\n'.join(clines))
     # 検算
     raw = open(com,'rb').read(); tt = raw.decode('cp932')
