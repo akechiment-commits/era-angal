@@ -17,6 +17,9 @@ SIF !GETBIT(CFLAG:TARGET:独自コマンド使用判定, 2)
 ;恋人または好感度500以上が必要
 SIF TALENT:153 == 0 && CFLAG:2 < 500
 	RETURN 0
+;独自コマンドは1回の調教につきいずれか1つだけ
+SIF TFLAG:独自コマンド使用済
+	RETURN 0
 RESULT = 1
 TRYCALLFORM COM_ABLE282_{NO:TARGET}
 SIF RESULT == 0
@@ -24,6 +27,8 @@ SIF RESULT == 0
 RETURN 1
 
 @COM282
+;この調教で独自コマンドを使用済みにする（1調教1回限り）
+TFLAG:独自コマンド使用済 = 1
 PRINTSL CSTR:82
 STR:0 = %CSTR:82%
 ;実行判定を使用する場合はこの関数で、真で戻ってくれば判定失敗
@@ -39,9 +44,11 @@ ENDCATCH
 ;地の文を呼ぶ
 CALL TRAIN_MESSAGE_B
 ;デフォルト効果（独自ウフフ共通・キャラ個別関数で上書き可能）
-LOSEBASE:1 += 30
-SOURCE:9 = 400
-SOURCE:18 = 200
+LOSEBASE:1 += 300
+SOURCE:9 = 2500
+SOURCE:18 = 2000
+SOURCE:0 = 1500
+SOURCE:1 = 1500
 ;キャラ固有処理（ソース上書き等）
 TRYCALLFORM COM282_{NO:TARGET}
 RETURN 1
