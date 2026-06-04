@@ -89,6 +89,10 @@ with open('ERB/foo.ERB', 'wb') as f:
    - **`master` へ渡すのは「作業が一段落したとき」または「ユーザーから要求があったとき」だけ**。それ以外は勝手に master へマージ・プッシュしない
    - 作業ブランチへのコミット・プッシュは随時行ってよい（確認不要）。`master` への反映は上記タイミングでのみ
    - `master` へ反映する際は、作業ブランチから `origin/master` へファストフォワード（または通常マージ）で渡す。force push は事前確認必須
+   - ⚠**ローカル `master` ブランチを信用するな（「旧ローカルmaster」事件）**⚠：ローカル `master` はセッション開始のクローン時点で固定され、その後 origin/master が並行 force-update されても**自動では追従しない**（`git fetch` が更新するのは `origin/master` だけ）。古いまま `git checkout master` すると陳腐化したテンプレを作業ツリーに掴み、grep/比較が狂う。
+     - **master を参照・反映するときは必ず最初に `git fetch origin master` し、`origin/master` を唯一の真実として扱う**（ローカル `master` の指す先は無視する）。
+     - master の中身を見たいだけなら `git show origin/master:<path>` を使い、**`git checkout master` で作業ツリーを切り替えてから grep/比較するのは厳禁**。
+     - master へ反映する直前は `git fetch origin master` → `git reset --hard origin/master`（または `git branch -f master origin/master`）で**ローカル master を origin/master に強制同期してから**着手する。
 5. ファイルの読み書きはすべて **Shift-JIS (cp932)** エンコーディングで行う
 
 ## 重要な前提知識
