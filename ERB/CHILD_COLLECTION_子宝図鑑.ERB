@@ -1,0 +1,50 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+;-------------------------------------------------
+; 子宝図鑑
+;   出産時に EVENT_N_妊娠イベント.ERB で記録される
+;   「母 × 父」の組み合わせを一覧表示する。
+;   記録先: CFLAG:母のキャラ:(2000 + 父のNO) = その組み合わせの出産人数
+;   父のNO … 0=主人公(あなた)、1～72=各キャラ
+;-------------------------------------------------
+@CHILD_COLLECTION_MAIN
+DRAWLINE
+PRINTL 【子宝図鑑】
+PRINTL 　これまでに生まれた「母 × 父」の組み合わせ一覧
+PRINTL
+LOCAL:5 = 0
+LOCAL:6 = 0
+;--- 母（出産経験のあるキャラ）でループ ---
+FOR LOCAL:0, 0, CHARANUM
+	SIF EXP:(LOCAL:0):61 == 0
+		CONTINUE
+	LOCAL:7 = 0
+	;--- 父（登録キャラ＝主人公含む）でループ ---
+	FOR LOCAL:1, 0, CHARANUM
+		LOCAL:2 = CFLAG:(LOCAL:0):(2000 + NO:(LOCAL:1))
+		IF LOCAL:2 > 0
+			;母の見出しは最初の1回だけ
+			IF LOCAL:7 == 0
+				PRINTFORML ●%CALLNAME:(LOCAL:0)%
+				LOCAL:7 = 1
+			ENDIF
+			PRINTFORML 　　× %CALLNAME:(LOCAL:1)%　：{LOCAL:2}人
+			LOCAL:5 += 1
+			LOCAL:6 += LOCAL:2
+		ENDIF
+	NEXT
+NEXT
+PRINTL
+DRAWLINE
+PRINTFORML 記録ペア数：{LOCAL:5}組　／　総出産数：{LOCAL:6}人
+SIF LOCAL:5 == 0
+	PRINTL 　まだ子宝の記録はありません。子供が生まれると記録されます。
+DRAWLINE
+PRINTL [0] 戻る
+$CC_INPUT_LOOP
+INPUT
+SIF RESULT != 0
+	GOTO CC_INPUT_LOOP
+RETURN 0
