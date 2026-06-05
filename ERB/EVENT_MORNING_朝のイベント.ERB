@@ -38,8 +38,41 @@ IF MARK:MASTER:90
 		CALL NINSSINXTU
 	NEXT
 ENDIF
+CALL CHILD_ALLOWANCE_CHECK
 RETURN 0
 
+
+;-------------------------------------------------
+; 子ども手当（毎月＝ゲーム内10日ごとに1回支給）
+;   FLAG:121 = 最終支給月(DAY:7/10)
+;   全キャラの累計出産数(EXP:61)に応じて資金＋キミサキダイヤ少量
+;   ※金額はLOCAL:2/LOCAL:3の係数で調整可
+;-------------------------------------------------
+@CHILD_ALLOWANCE_CHECK
+LOCAL:0 = DAY:7 / 10
+SIF FLAG:121 == LOCAL:0
+	RETURN 0
+FLAG:121 = LOCAL:0
+;累計出産数を集計
+LOCAL:1 = 0
+REPEAT CHARANUM
+	LOCAL:1 += EXP:COUNT:61
+REND
+SIF LOCAL:1 <= 0
+	RETURN 0
+;支給額（資金=人数×3000 / ダイヤ=人数×1）
+LOCAL:2 = LOCAL:1 * 3000
+LOCAL:3 = LOCAL:1
+MONEY += LOCAL:2
+FLAG:112 += LOCAL:3
+DRAWLINE
+PRINTFORML ★ 子ども手当 ★
+PRINTFORML 学院の子ども{LOCAL:1}人ぶんの手当が支給されました
+PRINTFORML 　資金 ＋{LOCAL:2}
+PRINTFORML 　キミサキダイヤ ＋{LOCAL:3}
+DRAWLINE
+WAIT
+RETURN 0
 @NINSSINXTU
 ;出産関連
 IF (FLAG:62 & 1)
