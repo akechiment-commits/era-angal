@@ -17,6 +17,9 @@ SIF !GETBIT(CFLAG:TARGET:独自コマンド使用判定, 2)
 ;恋人または好感度500以上が必要
 SIF TALENT:153 == 0 && CFLAG:2 < 500
 	RETURN 0
+;独自コマンドは1回の調教につきいずれか1つだけ
+SIF TFLAG:独自コマンド使用済
+	RETURN 0
 RESULT = 1
 TRYCALLFORM COM_ABLE282_{NO:TARGET}
 SIF RESULT == 0
@@ -24,6 +27,8 @@ SIF RESULT == 0
 RETURN 1
 
 @COM282
+;この調教で独自コマンドを使用済みにする（1調教1回限り）
+TFLAG:独自コマンド使用済 = 1
 PRINTSL CSTR:82
 STR:0 = %CSTR:82%
 ;実行判定を使用する場合はこの関数で、真で戻ってくれば判定失敗
@@ -39,11 +44,34 @@ ENDCATCH
 ;地の文を呼ぶ
 CALL TRAIN_MESSAGE_B
 ;デフォルト効果（独自ウフフ共通・キャラ個別関数で上書き可能）
-LOSEBASE:1 += 30
-SOURCE:9 = 400
-SOURCE:18 = 200
+LOSEBASE:0 += 200
+LOSEBASE:1 += 400
+SOURCE:9 = 5000
+SOURCE:18 = 4000
+SOURCE:0 = 3000
+SOURCE:1 = 3000
 ;キャラ固有処理（ソース上書き等）
 TRYCALLFORM COM282_{NO:TARGET}
+
+;----- 性交処理（他の性交Ｖコマンドと同等：処女喪失／Ｖ経験／射精）-----
+;V経験を伴うコマンドのフラグ(処女喪失・処女膜再生対応)
+TFLAG:19 = 1
+SIF TALENT:85 && ASSIPLAY == 0 && EXP:0 == 0
+	TFLAG:20 = 1
+;Ｖ経験
+EXP:0 += 1
+PRINTL Ｖ経験＋１
+;既成事実3相当
+TFLAG:200 = 3
+;射精ゲージ加算→射精チェック(正常位の射精量を流用)
+SIF TALENT:PLAYER:121 || TALENT:PLAYER:122
+	BASE:PLAYER:2 += CALC_EJAC(20, PLAYER)
+CALL SAMEN_CHECK
+IF E >= 1
+	TFLAG:703 = 1
+	TFLAG:704 = 0
+	CALL SAMEN_SHOOT
+ENDIF
 RETURN 1
 
 
