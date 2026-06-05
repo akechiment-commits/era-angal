@@ -40,3 +40,25 @@ def splice(path, ufufu, junai):
     # IF と ENDIF の対応（ELSEIFはIFに属すので別数える必要なし）
     pure_if=len(re.findall(r'(?m)^\t*IF ', b))
     return f'OK {path}  IF={pure_if} ENDIF={enc} ' + ('balanced' if pure_if==enc else '★不一致')
+
+
+def fill_jinomon(path, mapping):
+    """口上が既に各場面に書かれている型（49/72等）向け。
+    地の文枠の空プレースホルダのみを地の文で埋める。口上には触らない。
+    mapping = {場面名: 地の文} 。全場面が埋まらなければエラー。"""
+    b=open(path,'rb').read().decode('cp932')
+    filled=[]
+    def repl(m):
+        name=m.group(1)
+        if name not in mapping:
+            raise SystemExit(f'[{path}] 地の文未指定の場面: {name}')
+        filled.append(name)
+        return f"\t;◆地の文（場面: {name}）\r\n\tPRINTFORMW {mapping[name]}\r\n"
+    pat=re.compile(r'\t;◆地の文枠（場面:\s*(.+?)）※未執筆[^\r\n]*\r\n\t;PRINTFORMW \r\n')
+    b2=pat.sub(repl, b)
+    miss=set(mapping)-set(filled)
+    if miss:
+        raise SystemExit(f'[{path}] 未マッチの場面: {miss}')
+    open(path,'wb').write(b2.encode('cp932'))
+    pure_if=len(re.findall(r'(?m)^\t*IF ', b2)); enc=len(re.findall(r'(?m)^\t*ENDIF', b2))
+    return f'OK(fill) {path}  {len(filled)}場面  IF={pure_if} ENDIF={enc} ' + ('balanced' if pure_if==enc else '★不一致')
