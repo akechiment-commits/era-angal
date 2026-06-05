@@ -25,10 +25,14 @@ def _expand(items):
 def splice(path, ufufu, junai):
     b=open(path,'rb').read().decode('cp932')
     for lead, items in ((280, ufufu), (410, junai)):
-        pat=re.compile(rf'IF SELECTCOM == {lead}\r\n\t;◆地の文枠（場面:.*?\r\n\t;PRINTFORMW \r\nENDIF\r\n', re.S)
+        # 単発型(280スロットのみ)・5場面型(280..284のELSEIFチェーン)の両対応。
+        # 地の文枠スロット内にIF/ENDIFは無いので、最初の閉じENDIFまでを非貪欲に掴む。
+        pat=re.compile(rf'IF SELECTCOM == {lead}\r\n.*?\r\nENDIF\r\n', re.S)
         m=pat.search(b)
         if not m:
             raise SystemExit(f'[{path}] テンプレ{lead}が見つからない')
+        if '未執筆' not in m.group(0):
+            raise SystemExit(f'[{path}] テンプレ{lead}が未執筆枠でない(誤マッチ防止)')
         b=b[:m.start()]+_expand(items)+b[m.end():]
     open(path,'wb').write(b.encode('cp932'))
     ifc=len(re.findall(r'(?m)^\t*ELSEIF |^\t*IF ', b))
