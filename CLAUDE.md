@@ -106,8 +106,9 @@ with open('ERB/foo.ERB', 'wb') as f:
 
 - **コードを読まずに書かない。必ず既存コードを確認してから変更する**
 - **コンテキストが残り少ない場合、その旨を伝えて区切りを提案する**
-- **調査の前に必ずリポジトリ内のデータを確認する**
-  - キャラ情報: `tools/character_data.csv`, `tools/debug_list.html`（cno→キャラ名マッピング全71件収録）
+- **調査の前に必ずリポジトリ内のデータを確認する**（原作精査の手順詳細は `tools/口上加筆_整合作業ガイド.md` §E-2「原作精査の鉄則」を参照）
+  - キャラ情報: `tools/character_data.csv`, `tools/debug_list.html`（cno→キャラ名マッピング全71件）
   - カードデータ: `tools/card_data.csv`, `tools/all_bundles.txt`
-  - プロンプト・シナリオ: `tools/prompt_*.txt`, `tools/scenarios/`
+  - 原作セリフ全件: `tools/output/<名>.txt`／原典: `tools/scenarios/<番号>.txt`（全件ファイル行頭の `[番号]` ＝シナリオ番号。文脈不明時に開く）／関係性: `tools/output/<名>_関係性分析.txt`
+  - ⚠`prompt_*.txt` と単独 `*_分析.txt` は誤誘導のため2026-06-06削除済み（自動プロフィールの一人称等が不正確）。復活させない
   - ウェブ検索・外部サイト参照は**リポジトリ内に該当データが存在しないと確認してから**行うこと
