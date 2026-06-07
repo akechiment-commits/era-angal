@@ -116,7 +116,7 @@ ENDIF
 ;疑似乱数だから収束しない可能性もあるが、まあ多分大丈夫
 I = 0
 $LOOP_M
-R = RAND:8
+R = RAND:9
 IF R == 0
 	SIF I & 1
 		GOTO LOOP_M
@@ -157,8 +157,13 @@ ELSEIF R == 7
 		GOTO LOOP_M
 	CALL EVENT_NEWDAY_FEMALE
 	I |= 128
+ELSEIF R == 8
+	SIF I & 256
+		GOTO LOOP_M
+	CALL EVENT_NEWDAY_TE
+	I |= 256
 ENDIF
-SIF RESULT == 0 && I < 255
+SIF RESULT == 0 && I < 511
 	GOTO LOOP_M
 RETURN 0
 
@@ -803,7 +808,13 @@ IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0
 		CALL SELF_MAEKOJO
 		;地の文章カット
 		IF (CFLAG:99 & 1) == 0
-			PRINTFORML 朝、%CALLNAME:MASTER%は%CALLNAME:TARGET%の口付けで目を覚ました
+			IF TALENT:155
+				PRINTFORML 朝、まだ意識が戻り切らないうちから、%CALLNAME:TARGET%の唇が何度も押し当てられていた
+			ELSEIF TALENT:83
+				PRINTFORML 朝、%CALLNAME:MASTER%は%CALLNAME:TARGET%の強引な口付けで目を覚ました。断る間も与えられなかった
+			ELSE
+				PRINTFORML 朝、%CALLNAME:MASTER%は%CALLNAME:TARGET%の口付けで目を覚ました
+			ENDIF
 		ENDIF
 		;イベント時の口上呼び出し。CALL前にAをLOCALに退避、CALL後戻す
 		LOCAL = A
@@ -823,10 +834,16 @@ IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0
 			EXP:MASTER:40 += A*2
 		ENDIF
 		IF (CFLAG:99 & 1) == 0
-			IF TALENT:155
-				PRINTFORML %CALLNAME:TARGET%は起き上がろうとする%CALLNAME:MASTER%を押さえつけて、さらに唇を押しつけた
+			IF TALENT:16 >= 1
+				PRINTFORML 「ちゃんと起きた？　それとも、もっと続ける？」%CALLNAME:TARGET%は悪戯っぽく微笑みながら、もう一度唇を近づけてきた
+			ELSEIF TALENT:83
+				PRINTFORML 「起きないから、こうしてやった」%CALLNAME:TARGET%は仁王立ちで腰に手を当て、不満そうに見下ろしてきた。だが口元は楽しそうだ
+			ELSEIF TALENT:155
+				PRINTFORML %CALLNAME:TARGET%は起き上がろうとする%CALLNAME:MASTER%を押さえつけて、今度は舌を絡めた深いキスをねだってきた
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML 「……おはよう」首筋まで赤くした%CALLNAME:TARGET%が、耳元で囁いた。その声の甘さに体が熱くなる
 			ELSE
-				PRINTFORML %CALLNAME:TARGET%は顔を朱に染めながら朝の挨拶をしてきた
+				PRINTFORML %CALLNAME:TARGET%は頬を染めながら、照れくさそうに目を逸らした
 			ENDIF
 		ENDIF
 		PRINTFORML %PALAMNAME:4%の珠＋{A*50}
@@ -1310,7 +1327,8 @@ IF ABL:0 >= 6 && TALENT:85
 		CALL SELF_MAEKOJO
 		;地の文章カット
 		IF (CFLAG:99 & 1) == 0
-			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ますと隣で%CALLNAME:TARGET%が寝ていた
+			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ますと、すぐ隣で%CALLNAME:TARGET%が寝息を立てていた
+			PRINTFORML 服が乱れ、白い首筋があらわになっている。柔らかな寝顔に、思わず見惚れてしまう
 		ENDIF
 		;イベント時の口上呼び出し。CALL前にAをLOCALに退避、CALL後戻す
 		LOCAL = A
@@ -1318,7 +1336,15 @@ IF ABL:0 >= 6 && TALENT:85
 		A = LOCAL
 		
 		IF (CFLAG:99 & 1) == 0
-			PRINTFORML そっと揺り起こすと、寝ぼけた%CALLNAME:TARGET%が抱きついてきた
+			IF TALENT:16 >= 1
+				PRINTFORML そっと揺り起こすと、むにゃむにゃと呟いてから目を開けた%CALLNAME:TARGET%は、そのまま照れ隠しのように胸に顔を押しつけてきた。「……しょうがないから、一回だけ」
+			ELSEIF TALENT:63
+				PRINTFORML 揺り起こすと、寝ぼけた%CALLNAME:TARGET%がぎゅっとしがみついてきた。「……もう少し、このままでいさせてください」柔らかな体の温もりがじわりと伝わる
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML 起こそうとした瞬間、%CALLNAME:TARGET%がうっすら目を開けた。「……ずっと起きてたの。あなたの顔、見てたくて」真っ赤な顔で囁かれ、言葉を失う
+			ELSE
+				PRINTFORML そっと揺り起こすと、寝ぼけた%CALLNAME:TARGET%が目を細めて抱きついてきた
+			ENDIF
 		ENDIF
 		PRINTFORMW %PALAMNAME:15%の珠＋{A*200}
 		JUEL:15 += A*200
@@ -1382,7 +1408,7 @@ IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0
 		CALL SELF_MAEKOJO
 		;地の文章カット
 		IF (CFLAG:99 & 1) == 0
-			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ますと、上から覗き込む%CALLNAME:TARGET%と目があった
+			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ますと、顔をすぐそこまで近づけた%CALLNAME:TARGET%と目があった
 		ENDIF
 		T = TARGET
 		PLAYER = MASTER
@@ -1393,12 +1419,26 @@ IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0
 		B = LOCAL
 		
 		IF (CFLAG:99 & 1) == 0
-			;強気なキャラ
-			IF R > 0
-				PRINTFORML %CALLNAME:TARGET%はニヤニヤと笑いながら朝の挨拶をしてきた
-			;弱気なキャラ
+			IF TALENT:16 >= 1
+				PRINTFORML 「起きるの遅い」文句を言いながらも、%CALLNAME:TARGET%の目が柔らかい。「……可愛い寝顔してたから、つい見てた」
+			ELSEIF TALENT:83
+				PRINTFORML %CALLNAME:TARGET%はニヤリと口角を上げ、枕の横に手をついてのしかかってきた。「気持ちよさそうに寝てたね。私が起こしてあげようか？」
+			ELSEIF TALENT:89 || TALENT:153
+				;強気
+				IF R > 0
+					PRINTFORML 「……あなたが寝てるとこ、見てるの好きなんだよね」%CALLNAME:TARGET%は恥ずかしそうに、でも真っ直ぐ言い切った
+				;弱気
+				ELSE
+					PRINTFORML %CALLNAME:TARGET%は耳まで赤くして「べ、別に……起きるの待ってただけだから」と早口で言い訳した。でも視線は離さない
+				ENDIF
 			ELSE
-				PRINTFORML %CALLNAME:TARGET%は顔を朱に染めながら朝の挨拶をしてきた
+				;強気なキャラ
+				IF R > 0
+					PRINTFORML %CALLNAME:TARGET%はニヤニヤと笑いながら朝の挨拶をしてきた
+				;弱気なキャラ
+				ELSE
+					PRINTFORML %CALLNAME:TARGET%は顔を朱に染めながら、なぜか謝ってきた
+				ENDIF
 			ENDIF
 		ENDIF
 		PRINTFORML %PALAMNAME:15%の珠＋{B*150}
@@ -1530,3 +1570,91 @@ ELSE
 	RETURN 0
 ENDIF
 
+@EVENT_NEWDAY_TE
+;カットフラグが立っていたらリターン
+SIF CFLAG:97 & 16384
+	RETURN 0
+;起きたら手で弄られている
+;親密LV8以上欲望LV8以上かつ[恋慕]か[淫乱]か[相愛]で発生
+IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)
+	IF ABL:0+ABL:1 < 16
+		A = 1
+	ELSEIF ABL:0+ABL:1 < 22
+		A = 2
+	ELSEIF ABL:0+ABL:1 >= 22
+		A = 1 + (ABL:0 / 5) + (ABL:1 / 5)
+	ENDIF
+
+	;献身的
+	SIF TALENT:63
+		A += 1
+	;恋慕
+	SIF TALENT:85
+		A += 1
+	;相愛
+	SIF TALENT:89
+		A += 2
+	;反発感情があるとダメ
+	SIF MARK:3 > 0
+		RETURN 0
+	IF A > 0
+		DRAWLINE
+		DRAWLINE
+		;カットフラグを退避
+		LOCAL:100 = CFLAG:99
+		;口上開始前の地の文をカットするか
+		TFLAG:13 = 85
+		CALL SELF_MAEKOJO
+		;地の文章カット
+		IF (CFLAG:99 & 1) == 0
+			PRINTFORML 朝、意識が浮かび上がってきたとき、%CALLNAME:TARGET%の柔らかな手が動いているのに気づいた
+			IF TALENT:16 >= 1
+				PRINTFORML 「やっと気づいた？」いたずらっぽく笑う%CALLNAME:TARGET%の指が、容赦なく動き続ける
+			ELSEIF TALENT:83
+				PRINTFORML 目が合った瞬間、%CALLNAME:TARGET%はニヤリと笑い、さらに力を込めた。「抵抗しないんだね」
+			ELSEIF TALENT:63
+				PRINTFORML 「……気持ちいい、ですか？」上目遣いで尋ねる%CALLNAME:TARGET%の表情は、緊張と期待が混ざっていた
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML 「ねえ……もっと聞かせて」%CALLNAME:TARGET%は耳元で囁きながら、逃げ場のない手つきを続けた
+			ELSE
+				PRINTFORML 目が合うと%CALLNAME:TARGET%は一瞬手を止めたが、すぐにまた動き始めた
+			ENDIF
+		ENDIF
+		;イベント時の口上呼び出し
+		LOCAL = A
+		CALL SELF_KOJO
+		A = LOCAL
+
+		IF (CFLAG:99 & 1) == 0
+			IF TALENT:16 >= 1
+				PRINTFORML 「朝からだらしない声、出させた」%CALLNAME:TARGET%は満足そうに呟いた
+			ELSEIF TALENT:63
+				PRINTFORML 「また……してあげますね」%CALLNAME:TARGET%はそっと手を引いて、照れくさそうに顔を背けた
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML 「好き、だから」%CALLNAME:TARGET%はそれだけ言って、静かに身を寄せてきた
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%は少し息を乱しながら、静かに体を離した
+			ENDIF
+		ENDIF
+		EXP:23 += A
+		EXP:96 += A
+		EXP:MASTER:96 += A
+		PRINTFORML %EXPNAME:23%＋{A}
+		PRINTFORML %EXPNAME:96%＋{A}
+		PRINTFORML %PALAMNAME:15%の珠＋{A*150}
+		PRINTFORMW %PALAMNAME:4%の珠＋{A*100}
+		JUEL:15 += A*150
+		JUEL:4 += A*100
+		CFLAG:2 += A
+		PRINTFORML 好感度上昇:{A}
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORMW 好感度合計:{CFLAG:2}
+		;カットフラグを戻す
+		CFLAG:99 = LOCAL:100
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+ELSE
+	RETURN 0
+ENDIF
