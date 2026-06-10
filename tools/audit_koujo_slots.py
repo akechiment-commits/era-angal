@@ -20,6 +20,11 @@ for f in glob.glob('ERB/CHAR/CHAR_*.ERB'):
     b=os.path.basename(f)
     if '_COM' in b or 'TEMPLATE' in b: continue
     basef[int(re.match(r'CHAR_(\d+)_',b).group(1))]=f
+def base_empty(c):
+    if c not in basef: return None
+    bt=open(basef[c],'rb').read().decode('cp932')
+    import re as _re
+    return len(_re.findall(r'PRINTFORM[LW]?\s*「」', bt))
 REF=49
 ref_com,_=load(comf[REF])
 ref_bfun=load(basef[REF])[1] if REF in basef else set()
@@ -37,6 +42,8 @@ if len(sys.argv)>1:
     print(f'  base関数不足: {miss_b if miss_b else "なし"}')
     have=[d for d in DOKUJI if d in cc]
     print(f'  独自コマンド枠: {len(have)}/10 あり {have}')
+    be=base_empty(c)
+    print(f'  基本口上ファイルの空「」(道具反応等): {be}'+(' ★要記入' if be else ' (なし=良)'))
 else:
     print(f'基準ぼたん(49)=SELECTCOM {len(ref_com)}枠（独自10含む）')
     print('cno | 枠数 | 不足(独自以外があれば異常) | 独自枠')
@@ -47,4 +54,6 @@ else:
         nondokuji_miss=sorted(miss-set(DOKUJI))
         have=len([d for d in DOKUJI if d in cc])
         warn=' ★独自以外の欠落!' if (nondokuji_miss or miss_b) else ''
-        print(f'{c:>2} | {len(cc):>3} | 独自{have}/10{(" 他欠落"+str(nondokuji_miss)) if nondokuji_miss else ""}{(" base"+str(sorted(miss_b))) if miss_b else ""}{warn}')
+        be=base_empty(c)
+        bewarn=(f' 基本口上空{be}' if be else '')
+        print(f'{c:>2} | {len(cc):>3} | 独自{have}/10{(" 他欠落"+str(nondokuji_miss)) if nondokuji_miss else ""}{(" base関数"+str(sorted(miss_b))) if miss_b else ""}{bewarn}{warn}')
