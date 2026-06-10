@@ -32,19 +32,33 @@ def num(f):
     m = re.search(r'CHAR_(\d+)_', f)
     return int(m.group(1)) if m else -1
 
+def _empty(text):
+    """空セリフ「」の数。コメント行(;)の「」抜きで等を除外し、PRINTFORM行のみ数える。"""
+    n = 0
+    for ln in text.split('\n'):
+        s = ln.strip()
+        if s.startswith(';'):
+            continue
+        if re.match(r'PRINTFORM', s) and '「」' in s:
+            n += 1
+    return n
+
 def empty_by_com(text):
     prof = {}; cur = None
     for ln in text.split('\n'):
         m = re.search(r'IF\s+SELECTCOM\s*==\s*(\d+)', ln)
         if m:
             cur = int(m.group(1))
-        if '「」' in ln and cur is not None:
+        s = ln.strip()
+        if s.startswith(';'):
+            continue
+        if re.match(r'PRINTFORM', s) and '「」' in s and cur is not None:
             prof[cur] = prof.get(cur, 0) + 1
     return prof
 
 def audit(text):
     return {
-        'empty':        text.count('「」'),
+        'empty':        _empty(text),
         'konoko':       len(re.findall(r'この子|あの子|その子', text)),
         'locals':       len(re.findall(r'%LOCALS%', text)),
         'aite_yobi':    len(re.findall(r'CALL\s+AITE_YOBI', text)),
