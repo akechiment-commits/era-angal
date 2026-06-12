@@ -116,7 +116,7 @@ ENDIF
 ;疑似乱数だから収束しない可能性もあるが、まあ多分大丈夫
 I = 0
 $LOOP_M
-R = RAND:9
+R = RAND:14
 IF R == 0
 	SIF I & 1
 		GOTO LOOP_M
@@ -162,8 +162,33 @@ ELSEIF R == 8
 		GOTO LOOP_M
 	CALL EVENT_NEWDAY_TE
 	I |= 256
+ELSEIF R == 9
+	SIF I & 512
+		GOTO LOOP_M
+	CALL EVENT_NEWDAY_MIMI
+	I |= 512
+ELSEIF R == 10
+	SIF I & 1024
+		GOTO LOOP_M
+	CALL EVENT_NEWDAY_NORI
+	I |= 1024
+ELSEIF R == 11
+	SIF I & 2048
+		GOTO LOOP_M
+	CALL EVENT_NEWDAY_KUBISUJI
+	I |= 2048
+ELSEIF R == 12
+	SIF I & 4096
+		GOTO LOOP_M
+	CALL EVENT_NEWDAY_SURI
+	I |= 4096
+ELSEIF R == 13
+	SIF I & 8192
+		GOTO LOOP_M
+	CALL EVENT_NEWDAY_ASHIKOSHI
+	I |= 8192
 ENDIF
-SIF RESULT == 0 && I < 511
+SIF RESULT == 0 && I < 16383
 	GOTO LOOP_M
 RETURN 0
 
@@ -1603,7 +1628,7 @@ IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)
 		;カットフラグを退避
 		LOCAL:100 = CFLAG:99
 		;口上開始前の地の文をカットするか
-		TFLAG:13 = 85
+		TFLAG:13 = 90
 		CALL SELF_MAEKOJO
 		;地の文章カット
 		IF (CFLAG:99 & 1) == 0
@@ -1645,6 +1670,460 @@ IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)
 		PRINTFORMW %PALAMNAME:4%の珠＋{A*100}
 		JUEL:15 += A*150
 		JUEL:4 += A*100
+		CFLAG:2 += A
+		PRINTFORML 好感度上昇:{A}
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORMW 好感度合計:{CFLAG:2}
+		;カットフラグを戻す
+		CFLAG:99 = LOCAL:100
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+ELSE
+	RETURN 0
+ENDIF
+
+@EVENT_NEWDAY_MIMI
+;カットフラグが立っていたらリターン
+SIF CFLAG:97 & 32768
+	RETURN 0
+;耳元に吐息・舌先で起こされる
+;親密6奉仕精神5以上で発生
+IF ABL:0 >= 6 && ABL:6 >= 5
+	IF ABL:0+ABL:6 < 11
+		A = 1
+	ELSEIF ABL:0+ABL:6 < 17
+		A = 2
+	ELSEIF ABL:0+ABL:6 >= 17
+		A = (ABL:0 / 5) + (ABL:6 / 5)
+	ENDIF
+
+	;献身的
+	SIF TALENT:63
+		A += 1
+	;恋慕
+	SIF TALENT:85
+		A += 1
+	;親愛
+	SIF TALENT:88
+		A += 1
+	;恋人
+	SIF TALENT:153
+		A += 1
+	;相愛
+	SIF TALENT:89
+		A += 2
+	;キス魔
+	SIF TALENT:155
+		A += 1
+	;反発感情があるとダメ
+	SIF MARK:3 > 0
+		RETURN 0
+	IF A > 0
+		DRAWLINE
+		DRAWLINE
+		;カットフラグを退避
+		LOCAL:100 = CFLAG:99
+		;口上開始前の地の文をカットするか
+		TFLAG:13 = 91
+		CALL SELF_MAEKOJO
+		;地の文章カット
+		IF (CFLAG:99 & 1) == 0
+			PRINTFORML 朝、耳元を温かい息がくすぐり、%CALLNAME:MASTER%はゆっくりと目を開けた
+			IF TALENT:83
+				PRINTFORML %CALLNAME:TARGET%の舌先が耳朶を這い、逃げようとした体を片手でしっかりと押さえた
+			ELSEIF TALENT:155
+				PRINTFORML 耳に唇を押しつけ、そのまま何度も小さなキスを繰り返している
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML ゆっくりと吐息を注ぎながら、%CALLNAME:TARGET%の額が耳のそばに押しつけられている
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%が耳元に顔を寄せ、静かに息を吹きかけていた
+			ENDIF
+		ENDIF
+		;イベント時の口上呼び出し
+		LOCAL = A
+		CALL SELF_KOJO
+		A = LOCAL
+
+		IF (CFLAG:99 & 1) == 0
+			IF TALENT:83
+				PRINTFORML 起き上がろうとすると、%CALLNAME:TARGET%は体を退かさずに次の攻め場所を探すように顔を動かした
+			ELSEIF TALENT:63
+				PRINTFORML 目が合うと%CALLNAME:TARGET%は恥ずかしそうに顔を赤くして、そっと頭を%CALLNAME:MASTER%の肩口に預けた
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%は体を引きながら、照れくさそうに顔を背けた
+			ENDIF
+		ENDIF
+		EXP:23 += A
+		EXP:96 += A/2
+		EXP:MASTER:96 += A/2
+		PRINTFORML %EXPNAME:23%＋{A}
+		PRINTFORML %EXPNAME:96%＋{A/2}
+		PRINTFORML %PALAMNAME:4%の珠＋{A*100}
+		PRINTFORMW %PALAMNAME:7%の珠＋{A*100}
+		JUEL:4 += A*100
+		JUEL:7 += A*100
+		CFLAG:2 += A
+		PRINTFORML 好感度上昇:{A}
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORMW 好感度合計:{CFLAG:2}
+		;カットフラグを戻す
+		CFLAG:99 = LOCAL:100
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+ELSE
+	RETURN 0
+ENDIF
+
+
+@EVENT_NEWDAY_NORI
+;カットフラグが立っていたらリターン
+SIF CFLAG:97 & 65536
+	RETURN 0
+;馬乗りで押さえ込まれて起こされる
+;[サド]か[生意気]かつ親密8欲望7以上で発生
+IF ABL:0 >= 8 && ABL:1 >= 7 && (TALENT:83 || TALENT:16 >= 1)
+	IF ABL:0+ABL:1 < 15
+		A = 1
+	ELSEIF ABL:0+ABL:1 < 21
+		A = 2
+	ELSEIF ABL:0+ABL:1 >= 21
+		A = (ABL:0 / 5) + (ABL:1 / 5)
+	ENDIF
+
+	;サド
+	SIF TALENT:83
+		A += 2
+	;淫乱
+	SIF TALENT:76
+		A += 1
+	;男嫌い
+	SIF TALENT:82 && TALENT:MASTER:122
+		A -= 2
+	;反発感情があるとダメ
+	SIF MARK:3 > 0
+		RETURN 0
+	IF A > 0
+		DRAWLINE
+		DRAWLINE
+		;カットフラグを退避
+		LOCAL:100 = CFLAG:99
+		;口上開始前の地の文をカットするか
+		TFLAG:13 = 92
+		CALL SELF_MAEKOJO
+		;地の文章カット
+		IF (CFLAG:99 & 1) == 0
+			PRINTFORML 朝、目を覚ましたとき、%CALLNAME:TARGET%はすでに%CALLNAME:MASTER%の腰の上に跨って座っていた
+			IF TALENT:83
+				PRINTFORML 両手首を頭の上で押さえつけ、抵抗を許さない体勢で見下ろしてくる
+			ELSEIF TALENT:16 >= 1
+				PRINTFORML 逃げようとするより早く体重をかけてきて、ニヤリとしたまま動こうとしない
+			ELSE
+				PRINTFORML 腰に手を乗せたまま、じっとこちらを見下ろしている
+			ENDIF
+		ENDIF
+		;イベント時の口上呼び出し
+		LOCAL = A
+		CALL SELF_KOJO
+		A = LOCAL
+
+		IF (CFLAG:99 & 1) == 0
+			IF TALENT:83
+				PRINTFORML %CALLNAME:TARGET%はゆっくりと重心をかけ直し、支配を確かめるように腰を落ち着けた
+			ELSEIF TALENT:16 >= 1
+				PRINTFORML 十分に堪能したらしく、%CALLNAME:TARGET%はふいと視線を外して立ち上がった
+			ELSE
+				PRINTFORML しばらく動かずにいた%CALLNAME:TARGET%が、ゆっくりと体を離した
+			ENDIF
+		ENDIF
+		EXP:23 += A
+		EXP:96 += A
+		EXP:MASTER:96 += A
+		PRINTFORML %EXPNAME:23%＋{A}
+		PRINTFORML %EXPNAME:96%＋{A}
+		PRINTFORML %PALAMNAME:15%の珠＋{A*100}
+		PRINTFORMW %PALAMNAME:4%の珠＋{A*50}
+		JUEL:15 += A*100
+		JUEL:4 += A*50
+		CFLAG:2 += A
+		PRINTFORML 好感度上昇:{A}
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORMW 好感度合計:{CFLAG:2}
+		;カットフラグを戻す
+		CFLAG:99 = LOCAL:100
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+ELSE
+	RETURN 0
+ENDIF
+
+
+@EVENT_NEWDAY_KUBISUJI
+;カットフラグが立っていたらリターン
+SIF CFLAG:97 & 131072
+	RETURN 0
+;首筋・うなじに唇を這わされて起こされる
+;親密7欲望6以上で発生
+IF ABL:0 >= 7 && ABL:1 >= 6
+	IF ABL:0+ABL:1 < 13
+		A = 1
+	ELSEIF ABL:0+ABL:1 < 19
+		A = 2
+	ELSEIF ABL:0+ABL:1 >= 19
+		A = (ABL:0 / 5) + (ABL:1 / 5)
+	ENDIF
+
+	;サド
+	SIF TALENT:83
+		A += 2
+	;淫乱
+	SIF TALENT:76
+		A += 2
+	;恋慕
+	SIF TALENT:85
+		A += 1
+	;相愛
+	SIF TALENT:89
+		A += 1
+	;男嫌い
+	SIF TALENT:82 && TALENT:MASTER:122
+		A -= 2
+	;反発感情があるとダメ
+	SIF MARK:3 > 0
+		RETURN 0
+	IF A > 0
+		DRAWLINE
+		DRAWLINE
+		;カットフラグを退避
+		LOCAL:100 = CFLAG:99
+		;口上開始前の地の文をカットするか
+		TFLAG:13 = 93
+		CALL SELF_MAEKOJO
+		;地の文章カット
+		IF (CFLAG:99 & 1) == 0
+			PRINTFORML 朝、%CALLNAME:MASTER%は首筋に湿った感触を覚えて目が覚めた
+			IF TALENT:83
+				PRINTFORML %CALLNAME:TARGET%の唇がうなじから耳の裏まで丁寧に舐め上げ、止まる気配がない
+			ELSEIF TALENT:76
+				PRINTFORML 首筋から鎖骨へと唇を這わせ、%CALLNAME:TARGET%の息が次第に乱れてきている
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML %CALLNAME:TARGET%が首元に顔を埋め、ゆっくりと唇を押しつけている
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%が首筋に顔を近づけ、そっと唇を寄せていた
+			ENDIF
+		ENDIF
+		;イベント時の口上呼び出し
+		LOCAL = A
+		CALL SELF_KOJO
+		A = LOCAL
+
+		IF (CFLAG:99 & 1) == 0
+			IF TALENT:83
+				PRINTFORML 肌に赤い痕を残してから、%CALLNAME:TARGET%はようやく唇を離した
+			ELSEIF TALENT:76
+				PRINTFORML %CALLNAME:TARGET%は名残惜しそうにしながらも、ゆっくりと顔を引いた
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%はそっと唇を離し、%CALLNAME:MASTER%の顔を覗き込んだ
+			ENDIF
+		ENDIF
+		EXP:23 += A
+		EXP:96 += A
+		EXP:40 += A
+		EXP:MASTER:96 += A
+		PRINTFORML %EXPNAME:23%＋{A}
+		PRINTFORML %EXPNAME:96%＋{A}
+		PRINTFORML %EXPNAME:40%＋{A}
+		PRINTFORML %PALAMNAME:15%の珠＋{A*100}
+		PRINTFORMW %PALAMNAME:4%の珠＋{A*50}
+		JUEL:15 += A*100
+		JUEL:4 += A*50
+		CFLAG:2 += A
+		PRINTFORML 好感度上昇:{A}
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORMW 好感度合計:{CFLAG:2}
+		;カットフラグを戻す
+		CFLAG:99 = LOCAL:100
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+ELSE
+	RETURN 0
+ENDIF
+
+
+@EVENT_NEWDAY_SURI
+;カットフラグが立っていたらリターン
+SIF CFLAG:97 & 262144
+	RETURN 0
+;体を押しつけて擦り付けてくる
+;[淫乱]か高い相愛状態かつ親密9欲望9以上で発生
+IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >= 11))
+	IF ABL:0+ABL:1 < 18
+		A = 1
+	ELSEIF ABL:0+ABL:1 < 24
+		A = 2
+	ELSEIF ABL:0+ABL:1 >= 24
+		A = (ABL:0 / 5) + (ABL:1 / 4)
+	ENDIF
+
+	;淫乱
+	SIF TALENT:76
+		A += 2
+	;相愛
+	SIF TALENT:89
+		A += 1
+	;恋慕
+	SIF TALENT:85
+		A += 1
+	;男嫌い
+	SIF TALENT:82 && TALENT:MASTER:122
+		A -= 2
+	;反発感情があるとダメ
+	SIF MARK:3 > 0
+		RETURN 0
+	IF A > 0
+		DRAWLINE
+		DRAWLINE
+		;カットフラグを退避
+		LOCAL:100 = CFLAG:99
+		;口上開始前の地の文をカットするか
+		TFLAG:13 = 94
+		CALL SELF_MAEKOJO
+		;地の文章カット
+		IF (CFLAG:99 & 1) == 0
+			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ました時には、%CALLNAME:TARGET%の体が密着して重なっていた
+			IF TALENT:76
+				PRINTFORML %CALLNAME:TARGET%は薄く目を開けたまま、腰をゆっくりと動かして肌を擦りつけてきた
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML 目が覚めているのに気づくと、%CALLNAME:TARGET%は構わずに動き続け、熱い息が肌にかかった
+			ELSEIF TALENT:85
+				PRINTFORML うっすらと目を細めながら、%CALLNAME:TARGET%が柔らかな体を押しつけて擦り付けてきた
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%の体が密着したまま、ゆっくりとした動きが続いていた
+			ENDIF
+		ENDIF
+		;イベント時の口上呼び出し
+		LOCAL = A
+		CALL SELF_KOJO
+		A = LOCAL
+
+		IF (CFLAG:99 & 1) == 0
+			IF TALENT:76
+				PRINTFORML %CALLNAME:TARGET%は熱で潤んだ目を向けてから、ようやく体の動きを収めた
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML しばらくして%CALLNAME:TARGET%は静かに体を密着させたまま動きを止め、荒い息だけが残った
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%はゆっくりと体を引いて、乱れた息を整えた
+			ENDIF
+		ENDIF
+		EXP:23 += A
+		EXP:96 += A*2
+		EXP:40 += A
+		EXP:MASTER:96 += A*2
+		PRINTFORML %EXPNAME:23%＋{A}
+		PRINTFORML %EXPNAME:96%＋{A*2}
+		PRINTFORML %EXPNAME:40%＋{A}
+		PRINTFORML %PALAMNAME:15%の珠＋{A*150}
+		PRINTFORMW %PALAMNAME:4%の珠＋{A*50}
+		JUEL:15 += A*150
+		JUEL:4 += A*50
+		CFLAG:2 += A
+		PRINTFORML 好感度上昇:{A}
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORMW 好感度合計:{CFLAG:2}
+		;カットフラグを戻す
+		CFLAG:99 = LOCAL:100
+		RETURN 1
+	ELSE
+		RETURN 0
+	ENDIF
+ELSE
+	RETURN 0
+ENDIF
+
+
+@EVENT_NEWDAY_ASHIKOSHI
+;カットフラグが立っていたらリターン
+SIF CFLAG:97 & 524288
+	RETURN 0
+;目覚めたら腰が合わされている
+;[サド]か[淫乱]か高い相愛状態かつ親密10欲望10以上で発生
+IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 >= 12))
+	IF ABL:0+ABL:1 < 20
+		A = 1
+	ELSEIF ABL:0+ABL:1 < 26
+		A = 2
+	ELSEIF ABL:0+ABL:1 >= 26
+		A = (ABL:0 / 5) + (ABL:1 / 4)
+	ENDIF
+
+	;サド
+	SIF TALENT:83
+		A += 2
+	;淫乱
+	SIF TALENT:76
+		A += 2
+	;相愛
+	SIF TALENT:89
+		A += 1
+	;男嫌い
+	SIF TALENT:82 && TALENT:MASTER:122
+		A -= 3
+	;反発感情があるとダメ
+	SIF MARK:3 > 0
+		RETURN 0
+	IF A > 0
+		DRAWLINE
+		DRAWLINE
+		;カットフラグを退避
+		LOCAL:100 = CFLAG:99
+		;口上開始前の地の文をカットするか
+		TFLAG:13 = 95
+		CALL SELF_MAEKOJO
+		;地の文章カット
+		IF (CFLAG:99 & 1) == 0
+			PRINTFORML 朝、目が覚める前から、%CALLNAME:TARGET%が下半身を押しつけ腰を重ねていた
+			IF TALENT:83
+				PRINTFORML 目が合った瞬間、%CALLNAME:TARGET%は止まるどころかゆっくりと腰を動かし始めた
+			ELSEIF TALENT:76
+				PRINTFORML %CALLNAME:TARGET%は体の向きを変え、より深く腰を合わせようと体を押し込んできた
+			ELSEIF TALENT:89 || TALENT:153
+				PRINTFORML %CALLNAME:TARGET%はそのまま目を閉じ、ただ密着した体温を確かめるように動いていた
+			ELSE
+				PRINTFORML %CALLNAME:TARGET%の腰が%CALLNAME:MASTER%に合わされたまま、ゆっくりとした動きが続いていた
+			ENDIF
+		ENDIF
+		;イベント時の口上呼び出し
+		LOCAL = A
+		CALL SELF_KOJO
+		A = LOCAL
+
+		IF (CFLAG:99 & 1) == 0
+			IF TALENT:83
+				PRINTFORML %CALLNAME:TARGET%はゆっくり体を引いてから、乱れた息で%CALLNAME:MASTER%を見下ろした
+			ELSEIF TALENT:76
+				PRINTFORML %CALLNAME:TARGET%は体を離しがたそうに身を引き、熱で滲んだ目を細めた
+			ELSE
+				PRINTFORML しばらく動きを止めていた%CALLNAME:TARGET%が、名残惜しそうに体を離した
+			ENDIF
+		ENDIF
+		EXP:23 += A
+		EXP:96 += A*2
+		EXP:40 += A*2
+		EXP:MASTER:96 += A*2
+		PRINTFORML %EXPNAME:23%＋{A}
+		PRINTFORML %EXPNAME:96%＋{A*2}
+		PRINTFORML %EXPNAME:40%＋{A*2}
+		PRINTFORML %PALAMNAME:15%の珠＋{A*200}
+		PRINTFORMW %PALAMNAME:4%の珠＋{A*50}
+		JUEL:15 += A*200
+		JUEL:4 += A*50
 		CFLAG:2 += A
 		PRINTFORML 好感度上昇:{A}
 		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
