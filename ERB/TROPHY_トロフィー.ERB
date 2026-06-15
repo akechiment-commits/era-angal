@@ -20,6 +20,7 @@
 @TROPHY
 CALL TROPHY_CHECK_200
 CALL TROPHY_CHECK_202
+CALL TROPHY_CHECK_205
 CALL TROPHY_CHECK_CARDS
 
 VARSET B, 0
@@ -43,6 +44,8 @@ ELSEIF FLAG:57 == 3
 	PRINTFORML キャラ編
 ELSEIF FLAG:57 == 4
 	PRINTFORML カード編
+ELSEIF FLAG:57 == 5
+	PRINTFORML 射精記録
 ENDIF
 DRAWLINE
 IF FLAG:57 == 3
@@ -101,6 +104,9 @@ SIF FLAG:57 == 0
 ;技能実績（イベント編のみ）
 SIF FLAG:57 == 0
 	CALL TROPHY_SKILL_LIST
+;射精統計（射精記録のみ）
+SIF FLAG:57 == 5
+	CALL TROPHY_EJAC_STATS
 
 DRAWLINE
 ;実績数カウント
@@ -132,6 +138,7 @@ SIF GLOBAL:202
 PRINTFORML [  3] キャラ編
 ;PRINTFORML [  3] ウフフ編-Lunatic-
 PRINTFORML [  4] カード編
+PRINTFORML [  5] 射精記録
 PRINTFORML [ 99] 実績リセット
 PRINTFORML [100] 戻る
 $INPUT_LOOP
@@ -142,6 +149,7 @@ ELSEIF RESULT == 99
 	CALL TROPHY_RESET
 	CALL TROPHY_CHECK_200
 	CALL TROPHY_CHECK_202
+	CALL TROPHY_CHECK_205
 	CALL TROPHY_CHECK_CARDS
 	GOTO PRINT_LIST
 ELSEIF RESULT >= 0 && RESULT <= 1
@@ -157,6 +165,10 @@ ELSEIF RESULT == 3
 	GOTO PRINT_LIST
 ELSEIF RESULT == 4
 	FLAG:57 = RESULT
+	GOTO PRINT_LIST
+ELSEIF RESULT == 5
+	FLAG:57 = RESULT
+	LOCAL:2 = 205
 	GOTO PRINT_LIST
 ELSE
 	PRINTFORML 正しい値を入力してください
@@ -174,6 +186,7 @@ PRINTFORML [  0] イベント編のみ
 PRINTFORML [  1] ウフフ編のみ
 PRINTFORML [  2] イベント編-上級編-のみ
 PRINTFORML [  4] カード編のみ
+PRINTFORML [  5] 射精記録のみ
 PRINTFORML [ 99] 全実績
 PRINTFORML [100] 戻る
 
@@ -189,6 +202,7 @@ ELSEIF RESULT == 99
 		GLOBAL:200 = 0
 		GLOBAL:201 = 0
 		GLOBAL:202 = 0
+		GLOBAL:205 = 0
 		GLOBAL:206 = 0
 		GLOBAL:207 = 0
 		GLOBAL:208 = 0
@@ -240,6 +254,15 @@ ELSEIF RESULT == 4
 		GLOBAL:212 = 0
 	ELSE
 		PRINTFORMW カード編の実績リセットを中止しました
+	ENDIF
+ELSEIF RESULT == 5
+	PRINTFORML 射精記録の実績をリセットしますか？
+	CALL TROPHY_RESET_CHECK
+	IF RESULT == 0
+		PRINTFORMW 射精記録の実績をリセットしました
+		GLOBAL:205 = 0
+	ELSE
+		PRINTFORMW 射精記録のリセットを中止しました
 	ENDIF
 ELSE
 	PRINTFORML 正しい値を入力してください
@@ -325,6 +348,16 @@ S:1 = LOCAL:11
 G:1 = LOCAL:12
 P:1 = LOCAL:13
 
+;射精記録を合計に加算
+CALL TROPHY_COUNT(205)
+LOCAL:0 += B:0
+LOCAL:1 += S:0
+LOCAL:2 += G:0
+LOCAL:3 += P:0
+LOCAL:10 += B:1
+LOCAL:11 += S:1
+LOCAL:12 += G:1
+LOCAL:13 += P:1
 ;キャラ編を合計に加算
 CALL TROPHY_COUNT_CHAR
 B:0 += LOCAL:0
@@ -2127,4 +2160,140 @@ RETURN 0
 
 @TROPHY_FEAT_GET_最大気力強化
 RESULTS:3 = 購入するたびに最大気力が100増加します（何度でも購入可）
+RETURN 0
+
+;--------------------------------------------------
+;射精記録実績チェック
+;--------------------------------------------------
+@TROPHY_CHECK_205
+LOADGLOBAL
+VARSET LOCAL, 0
+FOR LOCAL, 0, 50
+	TRYCALLFORM TROPHY_205_{LOCAL}
+	SIF RESULT
+		SETBIT GLOBAL:205, LOCAL
+NEXT
+SAVEGLOBAL
+RETURN 0
+
+;--------------------------------------------------
+;射精記録実績定義（GLOBAL:205 ビット管理）
+;--------------------------------------------------
+@TROPHY_205_0
+RESULTS:0 = ブロンズ
+RESULTS:1 = 初射精
+RESULTS:2 = 主人公の累計射精量100mL達成
+;達成判定
+SIF GLOBAL:240 >= 100
+	RETURN 1
+
+@TROPHY_205_1
+RESULTS:0 = ブロンズ
+RESULTS:1 = こぼれる想い
+RESULTS:2 = 主人公の累計射精量1000mL達成
+;達成判定
+SIF GLOBAL:240 >= 1000
+	RETURN 1
+
+@TROPHY_205_2
+RESULTS:0 = シルバー
+RESULTS:1 = あふれる欲望
+RESULTS:2 = 主人公の累計射精量10000mL達成
+;達成判定
+SIF GLOBAL:240 >= 10000
+	RETURN 1
+
+@TROPHY_205_3
+RESULTS:0 = ゴールド
+RESULTS:1 = 奔流
+RESULTS:2 = 主人公の累計射精量100000mL達成
+;達成判定
+SIF GLOBAL:240 >= 100000
+	RETURN 1
+
+@TROPHY_205_4
+RESULTS:0 = プラチナ
+RESULTS:1 = 大洪水
+RESULTS:2 = 主人公の累計射精量1000000mL達成
+;達成判定
+SIF GLOBAL:240 >= 1000000
+	RETURN 1
+
+@TROPHY_205_5
+RESULTS:0 = ブロンズ
+RESULTS:1 = 溺愛
+RESULTS:2 = 一人の相手への累計射精量1000mL達成
+;達成判定
+#DIM LCHK, 1
+FOR LCHK, 1, 72
+	SIF GLOBAL:(1000 + LCHK) >= 1000
+		RETURN 1
+NEXT
+
+@TROPHY_205_6
+RESULTS:0 = シルバー
+RESULTS:1 = 多情漢
+RESULTS:2 = 一人の相手への累計射精量10000mL達成
+;達成判定
+#DIM LCHK, 1
+FOR LCHK, 1, 72
+	SIF GLOBAL:(1000 + LCHK) >= 10000
+		RETURN 1
+NEXT
+
+@TROPHY_205_7
+RESULTS:0 = ブロンズ
+RESULTS:1 = 雨露
+RESULTS:2 = 10人以上の相手に射精
+;達成判定
+#DIM LCHK, 1
+#DIM LCNT, 1
+LCNT = 0
+FOR LCHK, 1, 72
+	SIF GLOBAL:(1000 + LCHK) > 0
+		LCNT += 1
+NEXT
+SIF LCNT >= 10
+	RETURN 1
+
+@TROPHY_205_8
+RESULTS:0 = プラチナ
+RESULTS:1 = 全員制覇
+RESULTS:2 = 71人全員への射精達成
+;達成判定
+#DIM LCHK, 1
+FOR LCHK, 1, 72
+	SIF GLOBAL:(1000 + LCHK) == 0
+		RETURN 0
+NEXT
+RETURN 1
+
+;--------------------------------------------------
+;射精統計表示
+;--------------------------------------------------
+@TROPHY_EJAC_STATS
+LOADGLOBAL
+DRAWLINE
+PRINTFORML ■ 射精統計
+DRAWLINE
+PRINTFORML 累計射精量: {GLOBAL:240}mL
+#DIM LCNT2, 1
+#DIM LCHK2, 1
+#DIM LMAX, 1
+#DIM LMAXNO, 1
+LCNT2 = 0
+LMAX = 0
+LMAXNO = 0
+FOR LCHK2, 1, 72
+	IF GLOBAL:(1000 + LCHK2) > 0
+		LCNT2 += 1
+	ENDIF
+	IF GLOBAL:(1000 + LCHK2) > LMAX
+		LMAX = GLOBAL:(1000 + LCHK2)
+		LMAXNO = LCHK2
+	ENDIF
+NEXT
+PRINTFORML 射精した相手: {LCNT2}人 / 71人
+SIF LMAXNO > 0
+	PRINTFORML 最多射精相手: No.{LMAXNO}（{LMAX}mL）
 RETURN 0
