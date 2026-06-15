@@ -5,6 +5,13 @@
 @COM302
 ;プレゼント
 VARSET LOCAL, 0
+;誕生月チェック
+LOCAL:9 = 0
+IF CSTR:TARGET:21 != ""
+	A = STRFIND(CSTR:TARGET:21, "月")
+	SIF A > 0
+		LOCAL:9 = TOINT(SUBSTRING(CSTR:TARGET:21, 0, A))
+ENDIF
 PRINTL プレゼント
 
 PRINTFORML 何を贈りますか？
@@ -27,18 +34,17 @@ IF MONEY >= 25000
 	LOCAL:4 = 1
 ENDIF
 IF MONEY >= 150000
-	PRINTFORML [5] 外国のスイーツ($150000)
+	PRINTFORML [5] ブランドコスメ($150000)
 	LOCAL:5 = 1
 ENDIF
 IF MONEY >= 1000000 && TALENT:153 && TALENT:85 && TALENT:89 == 0 && TALENT:180 == 0 && CFLAG:2 >= 8000 && MARK:3 == 0 && ABL:0+ABL:1+ABL:2+ABL:6 >= 40 && CFLAG:TARGET:29 == 0 && ASSIPLAY == 0
 	PRINTFORML [6] エンゲージリング($1000000)
 	LOCAL:6 = 1
 ENDIF
-IF MONEY >= 300000 && (TALENT:TARGET:217 || TALENT:MASTER:217)
-	PRINTFORML [7] スイーツセット($300000)
+IF MONEY >= 300000
+	PRINTFORML [7] ブランドバッグ($300000)
 	LOCAL:7 = 1
 ENDIF
-
 PRINTFORML [100] やっぱりやめる
 
 INPUT
@@ -86,6 +92,11 @@ ELSEIF RESULT == 7
 ENDIF
 
 
+;誕生日チェック：スマイル以外かつ誕生月かつ年一回未実施なら誕生日プレゼント扱い
+LOCAL:10 = 0
+IF TFLAG:17 != 0 && LOCAL:9 > 0 && LOCAL:9 == DAY:8 && CFLAG:TARGET:211 != DAY:3
+	LOCAL:10 = 1
+ENDIF
 
 STR:0 = プレゼント
 CALL GET_SUCCESS_RATE
@@ -107,8 +118,20 @@ ENDIF
 ;エンゲージリングプレゼントは強制的に大成功
 SIF TFLAG:17 == 6
 	TFLAG:18 = 1
+;誕生日プレゼント扱いの場合、好感度100以上なら強制的に大成功
+SIF LOCAL:10 && CFLAG:2 >= 300
+	TFLAG:18 = 1
 
 CALL TRAIN_MESSAGE_B
+;誕生日メッセージ
+IF LOCAL:10
+	IF CFLAG:2 < 300
+		PRINTFORML ……なぜ誕生日を知っているのかと、%CALLNAME:TARGET%が怪訝な顔を向けた
+	ELSE
+		PRINTFORML 今日は%CALLNAME:TARGET%の誕生日だ
+		PRINTFORML 誕生日のプレゼントに%CALLNAME:TARGET%の表情が輝いた
+	ENDIF
+ENDIF
 
 LOSEBASE:1 += 100
 
@@ -342,9 +365,17 @@ ELSEIF TFLAG:17 == 4
 		TFLAG:37 += 10
 	ENDIF
 ELSEIF TFLAG:17 == 5
-	;凄い酒　絶対に喜ばれる。デート中に贈ると微妙なのは普通の酒と同じ
-	;好感度が一定値以上なら効果増加
-	IF CFLAG:2 > 5000
+	;ブランドコスメ　恋人以上の仲でないと怪しまれる。デート中と相性が良い
+	;好感度が低いと怪しまれる
+	IF CFLAG:2 < 1200 && TFLAG:18 != 1
+		TIMES SOURCE:18 , 0.60
+		TIMES SOURCE:20 , 5.00
+		TIMES SOURCE:21 , 0.60
+		SOURCE:22 = 2000
+		A -= RAND:8 + 4
+		TFLAG:49 = 1
+	;好感度が高いなら効果増加
+	ELSEIF CFLAG:2 > 5000
 		TIMES SOURCE:18 , 25.00
 		TIMES SOURCE:20 , 25.00
 		TIMES SOURCE:21 , 25.00
@@ -356,15 +387,14 @@ ELSEIF TFLAG:17 == 5
 		TIMES SOURCE:21 , 15.00
 		A = RAND:10 + 8
 	ENDIF
-	
 
-	;デート中は効果激減
+	;デート中は効果増
 	IF TEQUIP:2
-		TIMES SOURCE:18 , 0.10
-		TIMES SOURCE:20 , 0.10
-		TIMES SOURCE:21 , 0.10
-		A -= 10
-		TFLAG:37 -= 30
+		TIMES SOURCE:18 , 1.50
+		TIMES SOURCE:20 , 1.50
+		TIMES SOURCE:21 , 1.50
+		A += 5
+		TFLAG:37 += 15
 	ENDIF
 ELSEIF TFLAG:17 == 6
 	;エンゲージリング　最強のプレゼント。デート中プレゼントと相性が良い
@@ -456,9 +486,9 @@ ELSEIF TFLAG:17 == 6
 		PRINTFORMW 【エンディングコマンドが解放されました】
 		RESETCOLOR
 		IF FLAG:5 == 9 || FLAG:5 == 10 || FLAG:24 > 6
-			;結婚記念日フラグ
+			;結婚記念日フラグ（当日の月・日を記録）
 			TIME:9 = DAY:1
-			TIME:10 = DAY:2
+			TIME:10 = DAY:8
 		ENDIF
 		WAIT
 	ENDIF
@@ -471,9 +501,17 @@ ELSEIF TFLAG:17 == 6
 ;	CALL SINGLE_ENDING
 
 ELSEIF TFLAG:17 == 7
-	;酒樽を一樽丸ごとプレゼントする、酒豪もちじゃないと送る事すら思いつかない、デート中に贈ると微妙なのは普通の酒と同じ
-	;好感度が一定値以上なら効果増加
-	IF CFLAG:2 > 5000
+	;ブランドバッグ　しっかり付き合っていないと怪しまれる。デート中と相性が良い
+	;好感度が低いと怪しまれる
+	IF CFLAG:2 < 1500 && TFLAG:18 != 1
+		TIMES SOURCE:18 , 0.70
+		TIMES SOURCE:20 , 10.00
+		TIMES SOURCE:21 , 0.70
+		SOURCE:22 = 4000
+		A -= RAND:12 + 8
+		TFLAG:49 = 1
+	;好感度が高いなら効果増加
+	ELSEIF CFLAG:2 > 8000
 		TIMES SOURCE:18 , 50.00
 		TIMES SOURCE:20 , 50.00
 		TIMES SOURCE:21 , 50.00
@@ -485,16 +523,42 @@ ELSEIF TFLAG:17 == 7
 		TIMES SOURCE:21 , 30.00
 		A = RAND:20 + 16
 	ENDIF
-	
 
-	;デート中は効果激減
+	;デート中は効果増
 	IF TEQUIP:2
-		TIMES SOURCE:18 , 0.10
-		TIMES SOURCE:20 , 0.10
-		TIMES SOURCE:21 , 0.10
-		A -= 20
-		TFLAG:37 -= 30
+		TIMES SOURCE:18 , 2.00
+		TIMES SOURCE:20 , 2.00
+		TIMES SOURCE:21 , 2.00
+		A += 8
+		TFLAG:37 += 20
 	ENDIF
+ENDIF
+
+;誕生日ボーナス（誕生月初回のみ）
+IF LOCAL:10
+	IF CFLAG:2 < 300
+		;怪しまれた：効果減退＋懐疑ソース追加
+		TIMES SOURCE:18 , 0.50
+		TIMES SOURCE:21 , 0.50
+		SOURCE:22 += 600
+		A -= 5
+	ELSEIF CFLAG:2 < 1000
+		;喜んでいる：ボーナス
+		TIMES SOURCE:18 , 2.50
+		TIMES SOURCE:20 , 2.50
+		TIMES SOURCE:21 , 2.50
+		A += 8
+		TFLAG:49 = 2
+	ELSE
+		;とても喜んでいる：大ボーナス
+		TIMES SOURCE:18 , 5.00
+		TIMES SOURCE:20 , 5.00
+		TIMES SOURCE:21 , 5.00
+		A += 15
+		TFLAG:49 = 2
+	ENDIF
+	;年一回フラグをセット
+	CFLAG:TARGET:211 = DAY:3
 ENDIF
 
 ;好感度変化
@@ -546,11 +610,11 @@ ELSEIF TFLAG:17 == 4
 		PRINTFORM 着心地の良い服
 	ENDIF
 ELSEIF TFLAG:17 == 5
-	PRINTFORM 外国の珍しいスイーツ
+	PRINTFORM ブランドコスメセット
 ELSEIF TFLAG:17 == 6
 	PRINTFORM エンゲージリング
 ELSEIF TFLAG:17 == 7
-	PRINTFORM スイーツセット
+	PRINTFORM ブランドバッグ
 ENDIF
 PRINTFORMW をプレゼントした
 
