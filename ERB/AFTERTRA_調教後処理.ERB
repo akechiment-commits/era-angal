@@ -56,6 +56,7 @@ SIF FLAG:62 & 512
 ;何の珠を得られたか
 CALL JUEL_CHECK
 CALL ORGASM_COMBO_BONUS
+CALL CMD_VARIETY_BONUS
 
 ;否定の珠の打ち消しチェック
 CALL DENIAL_CHECK
@@ -506,4 +507,29 @@ SIF FLAG:401 & 16 : PRINTFORML 　快Ｍの珠＋{LOCAL:1}
 ;リセット
 FLAG:400 = 0
 FLAG:401 = 0
+RETURN 0
+;-------------------------------------------------
+;コマンド多様性トラッキング（毎ターン呼び出し）
+;-------------------------------------------------
+@CMD_VARIETY_TRACK
+;何もしないコマンドを除いてコマンドが変わった回数を記録
+SIF SELECTCOM != PREVCOM && SELECTCOM != 7
+	FLAG:402 += 1
+RETURN 0
+
+;-------------------------------------------------
+;コマンド多様性ボーナス（セッション終了時）
+;-------------------------------------------------
+@CMD_VARIETY_BONUS
+SIF FLAG:402 < 3
+	RETURN 0
+;ボーナス計算（チェンジ回数×200）
+LOCAL:0 = FLAG:402 * 200
+GOTJUEL:4 += LOCAL:0
+;表示
+DRAWLINE
+PRINTFORML ■ コマンド多様性ボーナス（{FLAG:402}回チェンジ）
+PRINTFORML 　恭順の珠＋{LOCAL:0}
+;リセット
+FLAG:402 = 0
 RETURN 0
