@@ -512,23 +512,29 @@ RETURN 0
 ;コマンド多様性トラッキング（毎ターン呼び出し）
 ;-------------------------------------------------
 @CMD_VARIETY_TRACK
-;何もしないコマンドを除いてコマンドが変わった回数を記録
-SIF SELECTCOM != PREVCOM && SELECTCOM != 7
+;未使用コマンドなら種類数カウント、FLAG:(500+SELECTCOM)を使用済みマーク
+SIF SELECTCOM != 7 && FLAG:(500 + SELECTCOM) == 0
 	FLAG:402 += 1
+	FLAG:(500 + SELECTCOM) = 1
 RETURN 0
 
 ;-------------------------------------------------
 ;コマンド多様性ボーナス（セッション終了時）
 ;-------------------------------------------------
 @CMD_VARIETY_BONUS
+;使用済みフラグをリセット
+FOR LOCAL:0, 0, 500
+	FLAG:(500 + LOCAL:0) = 0
+NEXT
 SIF FLAG:402 < 3
+	FLAG:402 = 0
 	RETURN 0
-;ボーナス計算（チェンジ回数×200）
-LOCAL:0 = FLAG:402 * 200
+;ボーナス計算（種類数×150）
+LOCAL:0 = FLAG:402 * 150
 GOTJUEL:4 += LOCAL:0
 ;表示
 DRAWLINE
-PRINTFORML ■ コマンド多様性ボーナス（{FLAG:402}回チェンジ）
+PRINTFORML ■ コマンド多様性ボーナス（{FLAG:402}種類）
 PRINTFORML 　恭順の珠＋{LOCAL:0}
 ;リセット
 FLAG:402 = 0
