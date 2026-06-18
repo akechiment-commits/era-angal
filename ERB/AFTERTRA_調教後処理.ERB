@@ -55,6 +55,7 @@ SIF FLAG:62 & 512
 
 ;何の珠を得られたか
 CALL JUEL_CHECK
+CALL ORGASM_COMBO_BONUS
 
 ;否定の珠の打ち消しチェック
 CALL DENIAL_CHECK
@@ -451,4 +452,58 @@ SIF TEQUIP:40 & 1p15
 ;しっぽ喪失
 SIF TEQUIP:40 & 1p16
 	TALENT:215 = 0
+;-------------------------------------------------
+;連続絶頂コンボトラッキング
+;-------------------------------------------------
+@ORGASM_COMBO_TRACK
+IF C > 0 || V > 0 || A > 0 || B > 0 || M > 0
+	FLAG:400 += 1
+	SIF C > 0 : FLAG:401 |= 1
+	SIF V > 0 : FLAG:401 |= 2
+	SIF A > 0 : FLAG:401 |= 4
+	SIF B > 0 : FLAG:401 |= 8
+	SIF M > 0 : FLAG:401 |= 16
+ELSE
+	FLAG:400 = 0
+	FLAG:401 = 0
+ENDIF
+RETURN 0
 
+;-------------------------------------------------
+;連続絶頂コンボボーナス（セッション終了時）
+;-------------------------------------------------
+@ORGASM_COMBO_BONUS
+SIF FLAG:400 < 2
+	RETURN 0
+;部位種類数カウント
+LOCAL:0 = 0
+SIF FLAG:401 & 1  : LOCAL:0 += 1
+SIF FLAG:401 & 2  : LOCAL:0 += 1
+SIF FLAG:401 & 4  : LOCAL:0 += 1
+SIF FLAG:401 & 8  : LOCAL:0 += 1
+SIF FLAG:401 & 16 : LOCAL:0 += 1
+SIF LOCAL:0 < 1
+	RETURN 0
+;ボーナス計算（連続数×連続数×部位種類数×200）
+LOCAL:1 = FLAG:400 * FLAG:400 * LOCAL:0 * 200
+;部位ごとにGOTJUEL加算
+SIF FLAG:401 & 1  : GOTJUEL:0  += LOCAL:1
+SIF FLAG:401 & 2  : GOTJUEL:1  += LOCAL:1
+SIF FLAG:401 & 4  : GOTJUEL:2  += LOCAL:1
+SIF FLAG:401 & 8  : GOTJUEL:14 += LOCAL:1
+SIF FLAG:401 & 16 : GOTJUEL:18 += LOCAL:1
+;欲情・恭順にSOURCEボーナス
+SOURCE:11 += FLAG:400 * LOCAL:0 * 100
+SOURCE:16 += FLAG:400 * LOCAL:0 * 100
+;表示
+DRAWLINE
+PRINTFORML ■ 連続絶頂ボーナス（{FLAG:400}連続×{LOCAL:0}部位）
+SIF FLAG:401 & 1  : PRINTFORML 　快Ｃの珠＋{LOCAL:1}
+SIF FLAG:401 & 2  : PRINTFORML 　快Ｖの珠＋{LOCAL:1}
+SIF FLAG:401 & 4  : PRINTFORML 　快Ａの珠＋{LOCAL:1}
+SIF FLAG:401 & 8  : PRINTFORML 　快Ｂの珠＋{LOCAL:1}
+SIF FLAG:401 & 16 : PRINTFORML 　快Ｍの珠＋{LOCAL:1}
+;リセット
+FLAG:400 = 0
+FLAG:401 = 0
+RETURN 0
