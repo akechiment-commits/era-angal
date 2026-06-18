@@ -24,9 +24,14 @@ import re, glob, os, sys
 
 TEMPLATE = 'ERB/CHAR/CHAR_TEMPLATE_COM.ERB'
 
+try:
+    from kojo_util import join_kojo
+except ImportError:
+    from tools.kojo_util import join_kojo
+
 def load(p):
     with open(p, 'rb') as f:
-        return f.read().decode('cp932', 'replace')
+        return join_kojo(f.read().decode('cp932', 'replace'))
 
 def num(f):
     m = re.search(r'CHAR_(\d+)_', f)

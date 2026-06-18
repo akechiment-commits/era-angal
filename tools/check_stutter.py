@@ -13,6 +13,11 @@
        python3 tools/check_stutter.py --all   全候補(okも)を表示
 """
 import re, sys, glob
+try:
+    from kojo_util import join_kojo
+except ImportError:
+    from tools.kojo_util import join_kojo
+
 import pykakasi
 kks = pykakasi.kakasi()
 
@@ -90,7 +95,7 @@ def main():
     high, low = [], []
     for p in paths:
         try:
-            t = open(p, 'rb').read().decode('cp932')
+            t = join_kojo(open(p, 'rb').read().decode('cp932'))
         except Exception:
             continue
         for ln, line in enumerate(t.split('\n'), 1):
