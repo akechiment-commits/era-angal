@@ -1,0 +1,127 @@
+;============================================================
+;  【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;          自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+@COM_ABLE76
+;双頭バイブ実行判定
+;COM_ABLE共通判定
+CALL COM_ABLE_COMMON, SELECTCOM
+SIF RESULT == 0
+	RETURN 0
+;ウフフ中じゃないと無理
+SIF TFLAG:44 == 0
+	RETURN 0
+;オトコかふたなりだとダメ
+SIF TALENT:121 || TALENT:122
+	RETURN 0
+;調教者がオトコかふたなりだとダメ
+SIF TALENT:PLAYER:121 || TALENT:PLAYER:122
+	RETURN 0
+;バイブを持っているか、アイテムなし設定でないとダメ
+SIF ITEM:1 == 0 && NOITEM == 0
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:90
+	RETURN 0
+;クスコ挿入中はダメ
+SIF TEQUIP:61
+	RETURN 0
+;レズっ気2以上
+SIF ABL:9 <= 1
+	RETURN 0
+RETURN 1
+
+@COM76
+;双頭バイブ
+PRINTL 双頭バイブ
+STR:0 = 双頭バイブ
+CALL TRAIN_MESSAGE_B
+
+LOSEBASE:0 += 20
+LOSEBASE:1 += 90
+
+SOURCE:9 = 300
+SOURCE:12 = 150
+
+;ABL:C感覚をみる
+IF ABL:3 == 0
+	SOURCE:0 = 300
+ELSEIF ABL:3 == 1
+	SOURCE:0 = 700
+ELSEIF ABL:3 == 2
+	SOURCE:0 = 1400
+ELSEIF ABL:3 == 3
+	SOURCE:0 = 2400
+ELSEIF ABL:3 == 4
+	SOURCE:0 = 3600
+ELSE
+	SOURCE:0 = 1800 + (ABL:3 * 400)
+ENDIF
+
+;膣内挿入による快V（快Cの60%）
+SOURCE:1 = SOURCE:0 * 60 / 100
+
+;[淫具知識]で効果増
+IF TALENT:PLAYER:58
+	TIMES SOURCE:0 , 1.25
+	TIMES SOURCE:1 , 1.25
+ENDIF
+
+;C敏感/C鈍感
+SIF TALENT:102
+	TIMES SOURCE:0 , 1.50
+SIF TALENT:101
+	TIMES SOURCE:0 , 0.60
+
+;レズ経験
+IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
+	PRINTFORML %EXPNAME:40%＋6
+	EXP:40 += 6
+	EXP:PLAYER:40 += 6
+ENDIF
+
+;主導権をチェック
+IF TFLAG:45 == 0
+	IF ABL:0 <= 1
+		SOURCE:21 += 300 + (ABL:0 * 50)
+	ELSEIF ABL:0 <= 3
+		SOURCE:21 += 600 + (ABL:0 * 100)
+	ELSEIF ABL:0 <= 5
+		SOURCE:21 += 800 + (ABL:0 * 120)
+	ELSEIF ABL:0 <= 8
+		SOURCE:21 += 1000 + (ABL:0 * 140)
+	ELSEIF ABL:0 <= 11
+		SOURCE:21 += 1200 + (ABL:0 * 160)
+	ELSE
+		SOURCE:21 += 1500 + (ABL:0 * 180)
+	ENDIF
+ELSE
+	IF ABL:15 == 0
+		SOURCE:20 = 600
+	ELSEIF ABL:15 == 1
+		SOURCE:20 = 900
+	ELSEIF ABL:15 == 2
+		SOURCE:20 = 1200
+	ELSEIF ABL:15 == 3
+		SOURCE:20 = 1600
+	ELSEIF ABL:15 == 4
+		SOURCE:20 = 2000
+	ELSE
+		SOURCE:20 = 1000 + (ABL:15 * 300)
+	ENDIF
+ENDIF
+
+;好感度ランダム変化
+A = RAND:10 + 5
+IF TALENT:152 == 0 && TFLAG:48 == 0
+	A -= 7
+	SOURCE:15 += 200
+ENDIF
+TFLAG:30 += A
+TFLAG:37 += A / 2
+
+RETURN 1
+
+;双頭バイブ
+@TRAIN_MESSAGE_COM76
+PRINTFORMW %CALLNAME:PLAYER%と%CALLNAME:TARGET%は双頭バイブを互いの秘所に挿入し合い、絡み合いながら快楽に浸った…
