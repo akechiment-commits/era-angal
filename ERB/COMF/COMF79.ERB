@@ -1,0 +1,111 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+@COM_ABLE79
+;乳搾り実行判定
+CALL COM_ABLE_COMMON, SELECTCOM
+SIF RESULT == 0
+	RETURN 0
+;ウフフ中でないとダメ
+SIF TFLAG:44 == 0
+	RETURN 0
+;母乳体質必須
+SIF TALENT:130 == 0
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:90
+	RETURN 0
+RETURN 1
+
+@COM79
+;乳搾り
+
+PRINTL 乳搾り
+STR:0 = 乳搾り
+CALL TRAIN_MESSAGE_COM79
+
+LOSEBASE:0 += 10
+LOSEBASE:1 += 70
+
+;胸快感（ABL:14による）
+IF ABL:14 == 0
+	SOURCE:17 = 30
+ELSEIF ABL:14 == 1
+	SOURCE:17 = 200
+ELSEIF ABL:14 == 2
+	SOURCE:17 = 700
+ELSEIF ABL:14 == 3
+	SOURCE:17 = 1600
+ELSEIF ABL:14 == 4
+	SOURCE:17 = 2800
+ELSE
+	SOURCE:17 = 1200 + ABL:14 * 500
+ENDIF
+
+;接触感
+SOURCE:9 = 300
+
+;胸の大きさで母乳量補正
+IF TALENT:143
+	TIMES SOURCE:17 , 2.00
+ELSEIF TALENT:141
+	TIMES SOURCE:17 , 1.70
+ELSEIF TALENT:110
+	TIMES SOURCE:17 , 1.30
+ELSEIF TALENT:109
+	TIMES SOURCE:17 , 0.60
+ENDIF
+
+;胸汚れ（母乳）
+STAIN:5 |= 16
+
+;噴乳経験加算
+EXP:54 += 1
+
+;噴乳フラグ
+TFLAG:11 += 1
+
+RETURN 1
+
+@TRAIN_MESSAGE_COM79
+;乳搾り地の文
+
+IF EXP:54 == 0
+	;初噴乳
+	IF RAND:3 == 0
+		PRINTFORML %CALLNAME:PLAYER%が%CALLNAME:TARGET%の乳首をそっと摘まみ搾ると、先端から白濁液が初めて滲み出てきた。
+		PRINTFORML %CALLNAME:TARGET%は驚きと羞恥で頬を赤く染め、肩を小刻みに震わせた。
+	ELSEIF RAND:2 == 0
+		PRINTFORML 乳首を指で挟んでゆっくりと搾り上げると、白濁した液体がぷっくりと盛り上がり滴り落ちた。
+		PRINTFORML それが自分の体から出た母乳だと気づき、%CALLNAME:TARGET%はぶるりと震えた。
+	ELSE
+		PRINTFORML 丁寧に乳首を揉みしだくと、先端からとろりとした白い液体が溢れ始めた。
+		PRINTFORML 初めての感触に%CALLNAME:TARGET%は声を詰まらせ、全身の力が抜けていった。
+	ENDIF
+ELSEIF EXP:54 < EXPLV:2
+	;少ない経験
+	IF RAND:3 == 0
+		PRINTFORML 乳首を摘まむと、すぐに白濁した液体が滲み出てきた。
+		PRINTFORML %CALLNAME:TARGET%の体がびくびくと揺れ、搾られるたびに母乳が指を伝って滴った。
+	ELSEIF RAND:2 == 0
+		PRINTFORML 乳首を柔らかく刺激するたびに、白濁した液体がとろりと溢れ出してきた。
+		PRINTFORML 搾られる感覚にまだ慣れず、%CALLNAME:TARGET%の腰が小刻みに揺れ続けた。
+	ELSE
+		PRINTFORML 乳首を搾り上げると白い液体がじわりと滲み出してきた。
+		PRINTFORML %CALLNAME:TARGET%は顔をそむけながらも、腰だけが快感を求めてうごめいた。
+	ENDIF
+ELSE
+	;豊富な経験
+	IF RAND:3 == 0
+		PRINTFORML 乳首を挟んで搾り始めると、すぐさまとろりとした白濁液が溢れ出してきた。
+		PRINTFORML %CALLNAME:TARGET%の体は%CALLNAME:PLAYER%の手の動きに合わせてうっとりと弛緩した。
+	ELSEIF RAND:2 == 0
+		PRINTFORML 乳首を刺激するたびに胸からとろとろと白い液体が溢れ出し、甘い香りが漂った。
+		PRINTFORML %CALLNAME:TARGET%はその感覚に抗えず、腰をくねらせた。
+	ELSE
+		PRINTFORML 乳首に触れるだけでとろとろと母乳が滲み出す。
+		PRINTFORML %CALLNAME:TARGET%は恍惚とした表情で、胸元を濡らしていく液体をただ受け入れていた。
+	ENDIF
+ENDIF
+RETURN
