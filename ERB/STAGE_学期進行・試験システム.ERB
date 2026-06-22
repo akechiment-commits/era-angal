@@ -41,6 +41,38 @@ IF DAY != FLAG:208
 			CONTINUE
 		CALL CALC_ACADEMIC_LEVEL, COUNT
 	REND
+	;追試期間のカウントダウン（1日経過ごと）
+	IF FLAG:211 > 0
+		FLAG:211 -= 1
+		IF FLAG:211 <= 0
+			FLAG:211 = 0
+			PRINTFORMW 追試期間が明けた。これでまた、いつも通りに過ごせる。
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- 追試期間中は補習のみ（女の子と過ごす/部活は不可）---
+IF FLAG:211 > 0
+	DRAWLINE
+	PRINTFORML 【追試期間中】　残り {FLAG:211} 日
+	PRINTFORML 試験に落ちたため補習中。女の子と過ごしたり、部活に出ることはできない。
+	PRINTL 
+	PRINTFORML [0] 自習する（今学期の勉強を進める）
+	PRINTFORML [9] 戻る
+	PRINTL 
+	$INPUT_LOOP_MAKEUP
+	INPUT
+	IF RESULT == 0
+		LOCAL:9 = TARGET
+		TARGET = -1
+		CALL STUDY_SESSION
+		TARGET = LOCAL:9
+		RETURN 1
+	ELSEIF RESULT == 9
+		RETURN 0
+	ELSE
+		GOTO INPUT_LOOP_MAKEUP
+	ENDIF
 ENDIF
 
 ;今月残り日数
@@ -493,8 +525,10 @@ ELSEIF TFLAG:18 == 1
 ENDIF
 
 IF B > 0
+	;今学期の勉強量（試験の主成分）と長期の学習経験を両方加算
+	FLAG:210 += B
 	EXP:MASTER:95 += B
-	PRINTFORML %EXPNAME:95%+{B}（%CALLNAME:MASTER%）
+	PRINTFORML %EXPNAME:95%+{B}（%CALLNAME:MASTER%）／今学期の勉強+{B}
 	IF TARGET >= 0
 		EXP:TARGET:95 += B
 		PRINTFORML %EXPNAME:95%+{B}（%CALLNAME:TARGET%）
@@ -521,11 +555,7 @@ ELSEIF TFLAG:18 == -1
 	TIMES SOURCE:18 , 0.50
 ENDIF
 
-;学習進度を進める
-SIF FLAG:27 < 10
-	FLAG:27 += 1
-SIF FLAG:27 > 10 && FLAG:27 < 20
-	FLAG:27 += 1
+;（旧「学習進度」によるFLAG:27加算は廃止。FLAG:27は試験ビットマスク専用に戻した）
 
 RETURN 1
 
@@ -586,6 +616,13 @@ PRINTL
 
 ;気力消費（試験は疲れる）
 BASE:MASTER:1 -= 100
+
+;--- 学期の区切り：長期学習経験の忘却(減衰)＋今学期勉強量のリセット ---
+;過去の貯金だけで合格できないよう、試験のたびに学習経験を約1割忘れ、今学期分は0に戻す
+EXP:MASTER:95 -= EXP:MASTER:95 / 10
+SIF EXP:MASTER:95 < 0
+	EXP:MASTER:95 = 0
+FLAG:210 = 0
 
 ;合否判定
 IF P >= LOCAL:5
@@ -673,6 +710,11 @@ ELSE
 	;好感度少し下がる
 	SIF TARGET >= 0
 		TFLAG:30 -= 2
+
+	;--- 不合格ペナルティ：ゲームオーバーではなく追試期間に入る ---
+	;追試期間中は女の子と過ごしたり部活ができず、自習で挽回する
+	FLAG:211 = 5
+	PRINTFORMW 追試になってしまった……。しばらくは補習漬けで、女の子と過ごしたり部活に出ることはできない。みっちり勉強し直そう。
 ENDIF
 
 PRINTW 
@@ -687,24 +729,27 @@ RETURN 1
 @GET_EXAM_SCORE
 P = 0
 
-;gakuryoku = shitsushitsu/3 + keiken/5 (shitsushitsu=50,keiken=0 -> P=36, keiken=75 -> P=51)
-P = 20 + ABL:MASTER:98 / 3 + EXP:MASTER:95 / 5
+;--- 学力＝「長期の基礎学力」＋「今学期の勉強量」のハイブリッド ---
+;基礎成分（学習素質ABL:98＋長期の学習経験EXP:95）。上限45 ≒ 全体の約4割
+LOCAL:0 = 20 + ABL:MASTER:98 / 4 + EXP:MASTER:95 / 12
+SIF LOCAL:0 > 45
+	LOCAL:0 = 45
+;今学期の勉強成分（FLAG:210）。上限60 ≒ 全体の約6割。試験のたびに0へリセットされる
+LOCAL:1 = FLAG:210 * 2
+SIF LOCAL:1 > 60
+	LOCAL:1 = 60
+P = LOCAL:0 + LOCAL:1
 
-;知識技能(ABL:95)の補正
-LOCAL:0 = ABL:MASTER:95
-IF LOCAL:0 > 0
-	IF LOCAL:0 <= 10
-		P += LOCAL:0 * 2
-	ELSEIF LOCAL:0 <= 30
-		P += 20 + (LOCAL:0 - 10)
-	ELSE
-		P += 40 + (LOCAL:0 - 30) / 2
-	ENDIF
-ENDIF
+;知識技能(ABL:95)の小補正（上限10）
+LOCAL:2 = ABL:MASTER:95
+SIF LOCAL:2 > 10
+	LOCAL:2 = 10
+SIF LOCAL:2 > 0
+	P += LOCAL:2
 
 ;上限
-SIF P > 95
-	P = 95
+SIF P > 100
+	P = 100
 
 RETURN 1
 
