@@ -173,9 +173,9 @@ IF F || P
 		;小柄体系でないとダメ
 		SIF TALENT:COUNT:100
 			ITEMSALES:80 = 1
-		;82,銀の飴玉,30000,;小柄体型にする
-		;小柄体型でないキャラがいる場合に表示
-		SIF TALENT:COUNT:100 == 0
+		;82,銀の飴玉,30000,;通常→小柄体型→子供体型へ段階的に幼くする
+		;まだ子供体型でないキャラがいれば販売(小柄→子供への進化余地)
+		SIF TALENT:COUNT:149 == 0
 			ITEMSALES:82 = 1
 		;81,黒の飴玉,50000,;EX化させる
 		;まだEX化していなくて、EX化が可能なキャラでないと使用できない
@@ -567,7 +567,7 @@ SIF BOUGHT == 79
 SIF BOUGHT == 80
 	PRINTL 成長させます
 SIF BOUGHT == 82
-	PRINTL 小柄体型にします
+	PRINTL 体を幼くします（通常→小柄体型、小柄なら→子供体型）
 SIF BOUGHT == 81
 	PRINTL EX化させます
 SIF BOUGHT == 85
@@ -616,7 +616,7 @@ REPEAT CHARANUM
 		CONTINUE
 	SIF BOUGHT == 80 && TALENT:COUNT:100 == 0
 		CONTINUE
-	SIF BOUGHT == 82 && TALENT:COUNT:100
+	SIF BOUGHT == 82 && TALENT:COUNT:149
 		CONTINUE
 	SIF BOUGHT == 81 && (CFLAG:COUNT:0 || ABLE_EX_CHANGES(COUNT) == 0)
 		CONTINUE
@@ -834,16 +834,29 @@ ENDIF
 
 ;縮小薬
 IF BOUGHT == 82
-	PRINTFORMW ＜%NAME:RESULT%の体が小柄になった＞
 	R = RESULT
-	CALL BUST_ADJUST, RESULT, -(RAND:41 + 60)
-	RESULT = R
-	TALENT:RESULT:100 = 1
-	;陰毛上限を小柄体型に合わせて縮小
-	IF MAXBASE:RESULT:8 >= 1000
-		MAXBASE:RESULT:8 = 300
-	ELSEIF MAXBASE:RESULT:8 > 0
+	IF TALENT:RESULT:100
+		;既に小柄体型 → さらに幼い子供体型へ
+		PRINTFORMW ＜%NAME:RESULT%の体がさらに幼くなり、子供のような体型になった＞
+		CALL BUST_ADJUST, RESULT, -(RAND:21 + 20)
+		RESULT = R
+		TALENT:RESULT:149 = 1
+		;子供体型は陰毛上限0(パイパン)
+		BASE:RESULT:8 = 0
 		MAXBASE:RESULT:8 = 0
+		TALENT:RESULT:65 = 1
+	ELSE
+		;通常 → 小柄体型
+		PRINTFORMW ＜%NAME:RESULT%の体が小柄になった＞
+		CALL BUST_ADJUST, RESULT, -(RAND:41 + 60)
+		RESULT = R
+		TALENT:RESULT:100 = 1
+		;陰毛上限を小柄体型に合わせて縮小
+		IF MAXBASE:RESULT:8 >= 1000
+			MAXBASE:RESULT:8 = 300
+		ELSEIF MAXBASE:RESULT:8 > 0
+			MAXBASE:RESULT:8 = 0
+		ENDIF
 	ENDIF
 	;胸素質はBUST_ADJUST→SYNCでcmから自動導出
 ENDIF
