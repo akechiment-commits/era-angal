@@ -41,38 +41,6 @@ IF DAY != FLAG:208
 			CONTINUE
 		CALL CALC_ACADEMIC_LEVEL, COUNT
 	REND
-	;追試期間のカウントダウン（1日経過ごと）
-	IF FLAG:211 > 0
-		FLAG:211 -= 1
-		IF FLAG:211 <= 0
-			FLAG:211 = 0
-			PRINTFORMW 追試期間が明けた。これでまた、いつも通りに過ごせる。
-		ENDIF
-	ENDIF
-ENDIF
-
-;--- 追試期間中は補習のみ（女の子と過ごす/部活は不可）---
-IF FLAG:211 > 0
-	DRAWLINE
-	PRINTFORML 【追試期間中】　残り {FLAG:211} 日
-	PRINTFORML 試験に落ちたため補習中。女の子と過ごしたり、部活に出ることはできない。
-	PRINTL 
-	PRINTFORML [0] 自習する（今学期の勉強を進める）
-	PRINTFORML [9] 戻る
-	PRINTL 
-	$INPUT_LOOP_MAKEUP
-	INPUT
-	IF RESULT == 0
-		LOCAL:9 = TARGET
-		TARGET = -1
-		CALL STUDY_SESSION
-		TARGET = LOCAL:9
-		RETURN 1
-	ELSEIF RESULT == 9
-		RETURN 0
-	ELSE
-		GOTO INPUT_LOOP_MAKEUP
-	ENDIF
 ENDIF
 
 ;今月残り日数
@@ -844,3 +812,27 @@ ELSE
 ENDIF
 RETURN 1
 
+;---------------------------------------------------------
+;追試期間中の自習（ショップの[103]から呼ばれる）
+;一人で黙々と勉強し、今学期の勉強量を稼ぎつつ追試回数を消化する
+;---------------------------------------------------------
+@MAKEUP_STUDY
+PRINTL
+PRINTFORMW %CALLNAME:MASTER%は追試に向けて、ひとり黙々と自習した。
+;今学期の勉強量(FLAG:210)を加算（やや多め）
+A = RAND:3 + 2
+FLAG:210 += A
+EXP:MASTER:95 += 1
+PRINTFORML 今学期の勉強+{A}（%EXPNAME:95%も少し増えた）
+;体力・気力を消費
+BASE:MASTER:0 -= 30
+BASE:MASTER:1 -= 50
+;追試回数を1消化
+FLAG:211 -= 1
+IF FLAG:211 <= 0
+	FLAG:211 = 0
+	PRINTFORMW 追試をやり切った。これでまた、いつも通りに過ごせる。
+ELSE
+	PRINTFORML （追試は、あと {FLAG:211} 回の自習で明ける）
+ENDIF
+RETURN 1
