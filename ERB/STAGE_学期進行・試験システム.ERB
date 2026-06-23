@@ -681,8 +681,8 @@ ELSE
 
 	;--- 不合格ペナルティ：ゲームオーバーではなく追試期間に入る ---
 	;追試期間中は女の子と過ごしたり部活ができず、自習で挽回する
-	FLAG:211 = 5
-	PRINTFORMW 追試になってしまった……。しばらくは補習漬けで、女の子と過ごしたり部活に出ることはできない。みっちり勉強し直そう。
+	FLAG:211 = 1
+	PRINTFORMW 追試になってしまった……。自習で学力を上げてから「追試を受ける」で受け直そう。それまでは女の子と過ごしたり、部活に出ることはできない。
 ENDIF
 
 PRINTW 
@@ -827,12 +827,36 @@ PRINTFORML 今学期の勉強+{A}（%EXPNAME:95%も少し増えた）
 ;体力・気力を消費
 BASE:MASTER:0 -= 30
 BASE:MASTER:1 -= 50
-;追試回数を1消化
-FLAG:211 -= 1
-IF FLAG:211 <= 0
+;現在の学力での追試見込み点を表示
+CALL CALC_ACADEMIC_LEVEL, MASTER
+CALL GET_EXAM_SCORE
+LOCAL:5 = 35 + FLAG:24 * 10
+PRINTFORML 今の学力なら、追試はおよそ {P} 点の見込み（合格ライン {LOCAL:5} 点）
+SIF P >= LOCAL:5
+	PRINTFORML → そろそろ「追試を受ける」で合格できそうだ！
+RETURN 1
+
+;---------------------------------------------------------
+;追試を受ける（ショップの[109]から呼ばれる）
+;現在の学力が合格ラインに届いていれば合格し、追試モードを抜ける
+;---------------------------------------------------------
+@TAKE_MAKEUP_EXAM
+PRINTL
+CALL GET_SEMESTER_NAME
+PRINTFORML ＝＝＝ %STR:10% 追試 ＝＝＝
+PRINTL
+CALL CALC_ACADEMIC_LEVEL, MASTER
+CALL GET_EXAM_SCORE
+LOCAL:5 = 35 + FLAG:24 * 10
+;気力消費
+BASE:MASTER:1 -= 80
+PRINTFORML あなたの得点：{P}点（合格ライン：{LOCAL:5}点）
+PRINTL
+IF P >= LOCAL:5
+	PRINTFORMW ＊＊＊ 追試に合格！ ＊＊＊　これでまた、いつも通りに過ごせる。
 	FLAG:211 = 0
-	PRINTFORMW 追試をやり切った。これでまた、いつも通りに過ごせる。
+	FLAG:210 = 0
 ELSE
-	PRINTFORML （追試は、あと {FLAG:211} 回の自習で明ける）
+	PRINTFORMW ……まだ合格点に届かない。もっと自習して、学力を上げよう。
 ENDIF
 RETURN 1
