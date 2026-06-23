@@ -89,7 +89,49 @@ ENDIF
 RETURN
 
 ;対象(TARGET)のバスト／ペニスサイズを1行表示。ふたなりは両方、それ以外はバストのみ
+;=== 身長ヘルパー（CFLAG:1103=cm。未設定ならプロフィールCSTR:22の先頭3文字で初期化）===
+@HEIGHT_CM(C)
+#FUNCTION
+SIF CFLAG:C:1103 != 0
+	RETURNF CFLAG:C:1103
+LOCAL = TOINT(SUBSTRING(CSTR:C:22, 0, 3))
+SIF LOCAL <= 0
+	LOCAL = 150
+CFLAG:C:1103 = LOCAL
+RETURNF CFLAG:C:1103
+
+;身長(cm)を D 変動。下限110・上限190。変動後に体型素質を同期
+@HEIGHT_ADJUST(C, D)
+LOCAL:1 = RESULT
+LOCAL = HEIGHT_CM(C)
+CFLAG:C:1103 = LIMIT(CFLAG:C:1103 + D, 110, 190)
+CALL SYNC_BODY_TALENT, C
+RESULT = LOCAL:1
+RETURN
+
+;身長から体型素質(小柄体型100/子供体型149)を導出（身長が唯一の正）
+;しきい値: 140cm以上=通常 / 131-139cm=小柄体型 / 130cm以下=子供体型(小柄も併発)
+@SYNC_BODY_TALENT(C)
+LOCAL = HEIGHT_CM(C)
+IF LOCAL <= 130
+	TALENT:C:100 = 1
+	TALENT:C:149 = 1
+ELSEIF LOCAL < 140
+	TALENT:C:100 = 1
+	TALENT:C:149 = 0
+ELSE
+	TALENT:C:149 = 0
+	;一時的な小柄装備(TEQUIP:40の8/16ビット)が無ければ小柄も解除
+	SIF (TEQUIP:C:40 & 8) == 0 && (TEQUIP:C:40 & 16) == 0
+		TALENT:C:100 = 0
+ENDIF
+RETURN
+
 @SHOW_BODY_SIZE
+;身長表示（全員）＋身長から体型素質を同期
+LOCAL:2 = HEIGHT_CM(TARGET)
+CALL SYNC_BODY_TALENT, TARGET
+PRINTFORML 　身長：{LOCAL:2}cm
 ;オトコ(男性・素質122)はバスト/ペニスを表記しない（主人公が男の能力表示など）
 SIF TALENT:122
 	RETURN
