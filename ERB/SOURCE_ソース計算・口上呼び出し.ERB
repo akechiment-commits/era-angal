@@ -1102,6 +1102,34 @@ IF LOCAL:7
 ELSE
 	LOCAL:7 = 1
 ENDIF
+
+;―― 強すぎる絶頂は恐怖・苦痛を生む（バランス調整。C/V/A/B/Mは珠倍率前の生強度）――
+;最強単発絶頂強度＋多重絶頂の上乗せで「強さ」を測る
+LOCAL:90 = MAX(C, V, A, B, M)
+LOCAL:90 += (LOCAL:5 - 1) * 4
+;最強絶頂(9)以上で発生し、強さに比例（上限6000）
+IF LOCAL:90 >= 9
+	LOCAL:91 = (LOCAL:90 - 8) * 120
+	SIF LOCAL:91 > 6000
+		LOCAL:91 = 6000
+	;快楽に馴染んだ子(マゾ/淫乱/快楽刻印/絶頂慣れ)は恐怖・苦痛が小さい
+	IF TALENT:79 || TALENT:76 || MARK:1 >= 3
+		TIMES LOCAL:91 , 0.30
+	ELSEIF EXP:2 >= EXPLV:3
+		TIMES LOCAL:91 , 0.60
+	ENDIF
+	;臆病な子は恐怖が増す
+	SIF TALENT:10
+		TIMES LOCAL:91 , 1.50
+	IF LOCAL:91 > 0
+		PALAM:9 += LOCAL:91
+		PALAM:10 += LOCAL:91
+		SETCOLOR 200, 140, 190
+		PRINTFORML 　あまりに激しすぎる絶頂が、%CALLNAME:TARGET%を恐怖と苦痛で塗り潰していく…
+		RESETCOLOR
+	ENDIF
+ENDIF
+
 C *= LOCAL:7
 V *= LOCAL:7
 A *= LOCAL:7
