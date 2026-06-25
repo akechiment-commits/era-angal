@@ -28,8 +28,9 @@ def fill_char(path, data, char_label):
     for com, texts in data.items():
         assert len(texts) == 4, f'COM{com}: need 4 texts'
         s, e = section_bounds(com)
-        idx = [i for i in range(s, e) if lines[i].strip() == 'PRINTFORMW 「」']
-        assert len(idx) == 4, f'{path} COM{com}: empty slots {len(idx)} != 4'
+        # 空枠・記入済みを問わず、各セクション内の PRINTFORMW 「...」行4本を対象に再記入する
+        idx = [i for i in range(s, e) if lines[i].strip().startswith('PRINTFORMW 「')]
+        assert len(idx) == 4, f'{path} COM{com}: PRINTFORMW slots {len(idx)} != 4'
         for i, x in zip(idx, texts):
             ind = lines[i][:len(lines[i]) - len(lines[i].lstrip())]
             lines[i] = f'{ind}PRINTFORMW 「{x}」'
