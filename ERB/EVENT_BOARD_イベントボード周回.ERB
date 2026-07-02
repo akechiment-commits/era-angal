@@ -18,7 +18,7 @@
 ;   FLAG:35  = ミッション目標値
 ;   FLAG:36  = ミッション種別(0=なし/1=通常/2=特大/3=緊急)
 ;   FLAG:38  = エリア進捗（0～99、100で踏破報酬・リセット）
-;   エリア番号は月内上限20（到達後は開拓ブロック。月替わりで1にリセット）
+;   エリア番号は月内上限20（到達後は「周回エリア」へ移行：探索のおまけ報酬は出ないがミッション判定は継続。月替わりで1にリセット）
 ;   FLAG:64  = 通常ミッションLv（月初リセット）
 ;   FLAG:65  = 特大ミッションLv（月初リセット）
 ;   FLAG:66  = 緊急ミッションLv（月初リセット）
@@ -222,7 +222,7 @@ B = 71 + FLAG:68	;イベントPT index
 IF TFLAG:91 == 3
 	PRINTFORML エリア{FLAG:A}　周回数:{FLAG:37}周
 ELSEIF FLAG:A >= 20
-	PRINTFORML エリア{FLAG:A}（開拓上限・来月まで待機）
+	PRINTFORML エリア{FLAG:A}（周回エリア・探索のおまけ報酬なし、ミッションのみ発生）
 ELSE
 	PRINTFORML エリア{FLAG:A}　進捗:{FLAG:38}/100
 ENDIF
@@ -299,11 +299,6 @@ RETURN 1
 ;---------------------------------------------------------
 @EVENT_BOARD_ADVANCE
 A = FLAG:68 + 98	;エリア番号index
-IF FLAG:A >= 20
-	PRINTFORMW このエリアは月内の開拓上限（エリア20）に達している。来月また挑戦しよう。
-	RETURN 0
-ENDIF
-
 LOCAL:0 = 250	;体力消費固定値
 
 IF BASE:MASTER:0 < LOCAL:0
@@ -313,16 +308,21 @@ ENDIF
 
 BASE:MASTER:0 -= LOCAL:0
 
-;エリア進捗 +10
-FLAG:38 += 10
-PRINTFORML 体力 -{LOCAL:0}　エリアを進んだ。（進捗: {FLAG:38}/100）
+IF FLAG:A < 20
+	;エリア進捗 +10
+	FLAG:38 += 10
+	PRINTFORML 体力 -{LOCAL:0}　エリアを進んだ。（進捗: {FLAG:38}/100）
 
-;ランダムドロップ（PT + 稀にアイテム）
-CALL EVENT_BOARD_RANDOM_DROP
+	;ランダムドロップ（PT + 稀にアイテム）
+	CALL EVENT_BOARD_RANDOM_DROP
 
-;エリア踏破チェック
-SIF FLAG:38 >= 100
-	CALL EVENT_BOARD_AREA_COMPLETE
+	;エリア踏破チェック
+	SIF FLAG:38 >= 100
+		CALL EVENT_BOARD_AREA_COMPLETE
+ELSE
+	;周回エリア：探索のおまけ報酬は出ないがミッション判定は継続
+	PRINTFORML 体力 -{LOCAL:0}　周回エリアを巡回した。
+ENDIF
 
 ;ミッション発生判定（ミッション中は発生しない）
 IF FLAG:36 == 0
@@ -625,11 +625,6 @@ RETURN A
 
 @EVENT_BOARD_SUGOROKU_ADVANCE
 A = FLAG:68 + 98	;エリア番号index
-IF FLAG:A >= 20
-	PRINTFORMW このエリアは月内の開拓上限（エリア20）に達している。来月また挑戦しよう。
-	RETURN 0
-ENDIF
-
 LOCAL:0 = 250	;体力消費固定値
 
 IF BASE:MASTER:0 < LOCAL:0
@@ -642,15 +637,17 @@ LOCAL:2 = RAND:6 + 1
 LOCAL:3 = FLAG:33	;移動前の位置
 FLAG:33 = (FLAG:33 + LOCAL:2) % 20
 
-;エリア進捗 +10
-FLAG:38 += 10
+IF FLAG:A < 20
+	;エリア進捗 +10
+	FLAG:38 += 10
 
-;ランダムドロップ（PT + 稀にアイテム）
-CALL EVENT_BOARD_RANDOM_DROP
+	;ランダムドロップ（PT + 稀にアイテム）
+	CALL EVENT_BOARD_RANDOM_DROP
 
-;エリア踏破チェック
-SIF FLAG:38 >= 100
-	CALL EVENT_BOARD_AREA_COMPLETE
+	;エリア踏破チェック
+	SIF FLAG:38 >= 100
+		CALL EVENT_BOARD_AREA_COMPLETE
+ENDIF
 
 PRINTFORML 体力 -{LOCAL:0}　サイコロ: {LOCAL:2}　マス{LOCAL:3}→マス{FLAG:33}（進捗: {FLAG:38}/100）
 
