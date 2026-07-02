@@ -18,6 +18,7 @@
 ;   FLAG:35  = ミッション目標値
 ;   FLAG:36  = ミッション種別(0=なし/1=通常/2=特大/3=緊急)
 ;   FLAG:38  = エリア進捗（0～99、100で踏破報酬・リセット）
+;   エリア番号は月内上限20（到達後は開拓ブロック。月替わりで1にリセット）
 ;   FLAG:64  = 通常ミッションLv（月初リセット）
 ;   FLAG:65  = 特大ミッションLv（月初リセット）
 ;   FLAG:66  = 緊急ミッションLv（月初リセット）
@@ -220,6 +221,8 @@ A = FLAG:68 + 98	;エリア番号index
 B = 71 + FLAG:68	;イベントPT index
 IF TFLAG:91 == 3
 	PRINTFORML エリア{FLAG:A}　周回数:{FLAG:37}周
+ELSEIF FLAG:A >= 20
+	PRINTFORML エリア{FLAG:A}（開拓上限・来月まで待機）
 ELSE
 	PRINTFORML エリア{FLAG:A}　進捗:{FLAG:38}/100
 ENDIF
@@ -295,6 +298,12 @@ RETURN 1
 ; エリア進行（体力消費 → エリア進捗 → ミッション発生）
 ;---------------------------------------------------------
 @EVENT_BOARD_ADVANCE
+A = FLAG:68 + 98	;エリア番号index
+IF FLAG:A >= 20
+	PRINTFORMW このエリアは月内の開拓上限（エリア20）に達している。来月また挑戦しよう。
+	RETURN 0
+ENDIF
+
 LOCAL:0 = 250	;体力消費固定値
 
 IF BASE:MASTER:0 < LOCAL:0
@@ -451,6 +460,10 @@ DRAWLINE
 A = FLAG:68 + 98	;エリア番号index
 PRINTFORML ★★★ エリア{FLAG:A} 踏破！ ★★★
 LOCAL:0 = 5 + RAND:6
+IF FLAG:A + 1 >= 20
+	LOCAL:0 += 20	;月間開拓上限到達ボーナス
+	PRINTFORML 【月間開拓上限到達ボーナス】イベントPT +20
+ENDIF
 B = 71 + FLAG:68
 FLAG:B += LOCAL:0
 B = 127 + FLAG:68
@@ -611,6 +624,12 @@ SIF ITEM:852 > 0
 RETURN A
 
 @EVENT_BOARD_SUGOROKU_ADVANCE
+A = FLAG:68 + 98	;エリア番号index
+IF FLAG:A >= 20
+	PRINTFORMW このエリアは月内の開拓上限（エリア20）に達している。来月また挑戦しよう。
+	RETURN 0
+ENDIF
+
 LOCAL:0 = 250	;体力消費固定値
 
 IF BASE:MASTER:0 < LOCAL:0
