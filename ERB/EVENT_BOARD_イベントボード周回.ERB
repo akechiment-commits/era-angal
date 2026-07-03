@@ -18,6 +18,8 @@
 ;   FLAG:35  = ミッション目標値
 ;   FLAG:36  = ミッション種別(0=なし/1=通常/2=特大/3=緊急)
 ;   FLAG:38  = エリア進捗（0～99、100で踏破報酬・リセット）
+;   ミッション目標値 = 係数*(Lv+2)*(Lv+3)+RAND（通常170/RAND340, 特大680/RAND680, 緊急1360/RAND1360）
+;   攻撃1回の気力消費は500（旧300）
 ;   エリア番号は月内上限20（到達後は「周回エリア」へ移行：探索のおまけ報酬は出ないがミッション判定は継続。月替わりで1にリセット）
 ;   FLAG:64  = 通常ミッションLv（月初リセット）
 ;   FLAG:65  = 特大ミッションLv（月初リセット）
@@ -109,7 +111,7 @@ IF FLAG:36 > 0
 	;ミッションアクティブ中
 	CALL EVENT_BOARD_MISSION_STATUS
 	PRINTL
-	LOCAL:0 = 300	;気力消費固定値
+	LOCAL:0 = 500	;気力消費固定値
 	LOCAL:1 = 250	;体力消費固定値
 	PRINTFORML [1] 気力を使う（-{LOCAL:0}）
 	IF TFLAG:91 == 3
@@ -333,21 +335,21 @@ IF FLAG:36 == 0
 	IF LOCAL:2 < 50
 		FLAG:36 = 1
 		A = FLAG:68 * 3 + 78	;通常Lv index
-		FLAG:35 = 100 * FLAG:A * (FLAG:A + 1) + RAND:200
+		FLAG:35 = 170 * (FLAG:A + 2) * (FLAG:A + 3) + RAND:340
 		FLAG:34 = 0
 		PRINTL
 		PRINTFORML ▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 	ELSEIF LOCAL:2 < 80
 		FLAG:36 = 2
 		A = FLAG:68 * 3 + 79	;特大Lv index
-		FLAG:35 = 400 * FLAG:A * (FLAG:A + 1) + RAND:400
+		FLAG:35 = 680 * (FLAG:A + 2) * (FLAG:A + 3) + RAND:680
 		FLAG:34 = 0
 		PRINTL
 		PRINTFORML ▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 	ELSEIF LOCAL:2 < 95
 		FLAG:36 = 3
 		A = FLAG:68 * 3 + 80	;緊急Lv index
-		FLAG:35 = 800 * FLAG:A * (FLAG:A + 1) + RAND:800
+		FLAG:35 = 1360 * (FLAG:A + 2) * (FLAG:A + 3) + RAND:1360
 		FLAG:34 = 0
 		PRINTL
 		PRINTFORML ▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
@@ -366,7 +368,7 @@ RETURN 1
 ; 攻撃（気力消費 → 発揮値を進捗に加算）
 ;---------------------------------------------------------
 @EVENT_BOARD_ATTACK
-LOCAL:0 = 300	;気力消費固定値
+LOCAL:0 = 500	;気力消費固定値
 
 IF BASE:MASTER:1 < LOCAL:0
 	PRINTFORMW 気力が足りない！攻撃できない。
@@ -664,7 +666,7 @@ IF FLAG:33 == 1 || FLAG:33 == 2 || FLAG:33 == 4 || FLAG:33 == 7
 	IF FLAG:36 == 0
 		FLAG:36 = 1
 		A = FLAG:68 * 3 + 78
-		FLAG:35 = 100 * FLAG:A * (FLAG:A + 1) + RAND:200
+		FLAG:35 = 170 * (FLAG:A + 2) * (FLAG:A + 3) + RAND:340
 		FLAG:34 = 0
 		PRINTFORML 通 通常ミッションマス　▼ 通常ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 	ELSE
@@ -676,7 +678,7 @@ ELSEIF FLAG:33 == 8 || FLAG:33 == 10 || FLAG:33 == 11
 	IF FLAG:36 == 0
 		FLAG:36 = 2
 		A = FLAG:68 * 3 + 79
-		FLAG:35 = 400 * FLAG:A * (FLAG:A + 1) + RAND:400
+		FLAG:35 = 680 * (FLAG:A + 2) * (FLAG:A + 3) + RAND:680
 		FLAG:34 = 0
 		PRINTFORML 特 特大ミッションマス　▼▼ 特大ミッション Lv{FLAG:A} 発生！　目標値: {FLAG:35}
 	ELSE
@@ -688,7 +690,7 @@ ELSEIF FLAG:33 == 14 || FLAG:33 == 17
 	IF FLAG:36 == 0
 		FLAG:36 = 3
 		A = FLAG:68 * 3 + 80
-		FLAG:35 = 800 * FLAG:A * (FLAG:A + 1) + RAND:800
+		FLAG:35 = 1360 * (FLAG:A + 2) * (FLAG:A + 3) + RAND:1360
 		FLAG:34 = 0
 		PRINTFORML 緊 緊急ミッションマス　▼▼▼ 緊急ミッション Lv{FLAG:A} 発生！！　目標値: {FLAG:35}
 	ELSE
