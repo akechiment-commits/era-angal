@@ -47,6 +47,37 @@ ELSEIF CFLAG:C:1100 >= 250
 ENDIF
 ;標準(8～16cm)・未設定は形容なし
 RETURNF ""
+;=== 体型(小柄/子供体型)の地の文形容ヘルパー（名前にも体にも係る連体形を返す）===
+@BODY_DESC(C)
+#FUNCTIONS
+;子供体型(身長130cm以下)
+IF TALENT:C:149
+	SELECTCASE RAND:4
+	CASE 0
+		RETURNF "幼い"
+	CASE 1
+		RETURNF "あどけない"
+	CASE 2
+		RETURNF "子供のように小さな"
+	CASEELSE
+		RETURNF "ちいさな"
+	ENDSELECT
+;小柄体型
+ELSEIF TALENT:C:100
+	SELECTCASE RAND:4
+	CASE 0
+		RETURNF "小柄な"
+	CASE 1
+		RETURNF "華奢な"
+	CASE 2
+		RETURNF "きゃしゃな"
+	CASEELSE
+		RETURNF "小さな"
+	ENDSELECT
+ENDIF
+;標準体型は形容なし
+RETURNF ""
+
 ;射精量の形容（ペニスサイズ連動）
 @SEMEN_DESC(C)
 #FUNCTIONS
@@ -120,8 +151,11 @@ SIF (STAIN:0 < 2 || STAIN:0 == 16 || STAIN:0 == 17 || TALENT:MASTER:64 || ASSIPL
 	PRINT キスをしながら
 
 PRINTFORM %CALLNAME:TARGET%の
-SIF TALENT:100
+IF TALENT:149
+	PRINT ひどく未発達な
+ELSEIF TALENT:100
 	PRINT 未発達な
+ENDIF
 IF TEQUIP:90
 	PRINTW 体を触手が弄んでいる…
 ELSEIF TEQUIP:65 && TFLAG:264
@@ -176,6 +210,26 @@ ENDIF
 ;クンニ
 @TRAIN_MESSAGE_COM1
 ;猫舌クンニ
+;体型が小柄以下なら、幼く小さなそこを強調
+IF TALENT:149
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML %CALLNAME:TARGET%の、幼子のように小さく無毛の恥裂は、舌を這わせるとほとんど全体を口に含めてしまえるほど慎ましい
+	CASE 1
+		PRINTFORML 舌先で軽くなぞっただけで、未熟なそこはぴったりと閉じたまま物慣れない様子でひくついた
+	CASEELSE
+		PRINTFORML あどけないほど小さなそこを少し舌で押し開くと、狭い内側から淡い桜色の媚肉がのぞいて震えた
+	ENDSELECT
+ELSEIF TALENT:100
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML %CALLNAME:TARGET%の小ぶりな秘裂は、舌で覆うとすっぽりと包み込めてしまうほど慎ましい
+	CASE 1
+		PRINTFORML 舌を這わせると、小柄な身体に見合った狭いそこがきゅっと締まって震えた
+	CASEELSE
+		PRINTFORML こぢんまりとしたそこを舌で押し開くと、狭い内壁が物欲しげにひくついた
+	ENDSELECT
+ENDIF
 IF TALENT:PLAYER:54
 	PRINTFORM %CALLNAME:TARGET%の秘唇を唇で挟み
 	IF TALENT:121 && PALAM:5 >= PALAMLV:3
@@ -477,7 +531,7 @@ IF TEQUIP:65
 	ELSEIF TEQUIP:65 == 13 || TEQUIP:65 == 14
 		PRINTL 大きく開かれた袖口から手を入れ、
 	ENDIF
-	IF TALENT:100 && TALENT:109
+	IF (TALENT:100 || TALENT:149) && TALENT:109
 		PRINT 僅かに膨らみが感じられる程度の
 	ELSEIF TALENT:109
 		PRINT 標準よりやや小さめの
@@ -499,7 +553,7 @@ IF TEQUIP:65
 	ENDIF
 ELSE
 	PRINTFORM %CALLNAME:TARGET%の
-	IF TALENT:100 && TALENT:109
+	IF (TALENT:100 || TALENT:149) && TALENT:109
 		PRINT 僅かに膨らみが感じられる程度の
 	ELSEIF TALENT:109
 		PRINT 標準よりやや小さめの
@@ -717,7 +771,9 @@ IF EXP:0 == 0
 ELSEIF PALAM:3 >= PALAMLV:4
 	PRINT 濡れそぼった
 ENDIF
-IF TALENT:100
+IF TALENT:149
+	PRINT いたいけな割れ目
+ELSEIF TALENT:100
 	PRINT 幼いワレメ
 ELSE
 	PRINT 秘裂
@@ -818,6 +874,8 @@ ELSE
 		ENDIF
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 ;アナル舐め
 @TRAIN_MESSAGE_COM9
 ;猫舌アナル舐め
@@ -990,7 +1048,9 @@ ELSE
 	ELSEIF PALAM:3 >= PALAMLV:4
 		PRINT 濡れそぼった
 	ENDIF
-	IF TALENT:100
+	IF TALENT:149
+		PRINT いたいけな割れ目を
+	ELSEIF TALENT:100
 		PRINT 幼いワレメを
 	ELSE
 		PRINT 秘裂を
@@ -1039,6 +1099,8 @@ ELSE
 		ENDIF
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 ;後背位
 @TRAIN_MESSAGE_COM21
 ;前回と今回の調教者が同じで、前回の調教が後背位であり、抜かないフラグがある場合
@@ -1111,7 +1173,9 @@ ELSE
 	ELSEIF PALAM:3 >= PALAMLV:4
 		PRINT 濡れそぼった
 	ENDIF
-	IF TALENT:100
+	IF TALENT:149
+		PRINT いたいけな割れ目
+	ELSEIF TALENT:100
 		PRINT 幼いワレメ
 	ELSE
 		PRINT 秘裂
@@ -1160,6 +1224,8 @@ ELSE
 		ENDIF
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 
 ;アナルセックス
 @TRAIN_MESSAGE_COM22
@@ -1321,6 +1387,8 @@ ELSE
 		ENDIF
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, PLAYER
 ;対面座位
 @TRAIN_MESSAGE_COM24
 ;前回と今回の調教者が同じで、前回の調教が対面座位であり、抜かないフラグがある場合
@@ -1390,7 +1458,9 @@ ELSE
 	PRINTFORM %CALLNAME:TARGET%の身体を抱き上げ、ゆっくりと降ろしながら
 	SIF PALAM:3 >= PALAMLV:4
 		PRINT 濡れそぼった
-	IF TALENT:100
+	IF TALENT:149
+		PRINT いたいけな割れ目
+	ELSEIF TALENT:100
 		PRINT 幼いワレメ
 	ELSE
 		PRINT 秘裂
@@ -1439,6 +1509,8 @@ ELSE
 		ENDIF
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 ;背面座位
 @TRAIN_MESSAGE_COM25
 ;羞恥プレイ中で前回と今回の調教者が同じで、前回の調教が背面座位であり、抜かないフラグがある場合
@@ -1519,7 +1591,9 @@ ELSEIF TEQUIP:57
 	PRINTFORM %CALLNAME:TARGET%の身体を抱き上げ、ゆっくりと
 	SIF PALAM:3 >= PALAMLV:4
 		PRINT 濡れそぼった
-	IF TALENT:100
+	IF TALENT:149
+		PRINT いたいけな割れ目
+	ELSEIF TALENT:100
 		PRINT 幼いワレメ
 	ELSE
 		PRINT 秘裂
@@ -1529,7 +1603,9 @@ ELSE
 	PRINTFORM %CALLNAME:TARGET%の身体を抱き上げ、
 	SIF PALAM:3 >= PALAMLV:4
 		PRINT 濡れそぼった
-	IF TALENT:100
+	IF TALENT:149
+		PRINT いたいけな割れ目
+	ELSEIF TALENT:100
 		PRINT 幼いワレメ
 	ELSE
 		PRINT 秘裂
@@ -1589,6 +1665,8 @@ IF TEQUIP:57
 		PRINTFORMW %CALLNAME:TARGET%は手で顔を覆い隠しながら羞恥に身体を震わせている…
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 ;正常位アナル
 @TRAIN_MESSAGE_COM26
 ;前回と今回の調教者が同じで、前回の調教が正常位アナルであり、抜かないフラグがある場合
@@ -2003,6 +2081,19 @@ ELSE
 		ENDIF
 	ENDIF
 ENDIF
+;子供体型/小柄の小さな口と相手のペニスサイズ差を強調
+IF TALENT:149 && (TALENT:MASTER:145 || TALENT:MASTER:146)
+	SELECTCASE RAND:2
+	CASE 0
+		PRINTFORMW 幼く小さな口は太い亀頭を含むだけで限界まで押し広げられ、唇の端が今にも裂けそうに引き伸ばされている…
+	CASEELSE
+		PRINTFORMW あどけない口には到底収まりきらず、喉の入口で切っ先がつかえては、涙を滲ませて苦しげに喉を鳴らしている…
+	ENDSELECT
+ELSEIF TALENT:100 && (TALENT:MASTER:145 || TALENT:MASTER:146)
+	PRINTFORMW 小ぶりな口いっぱいに頬張らされ、頬が内側から大きく膨らんでいる…
+ELSEIF TALENT:149 && TALENT:MASTER:144
+	PRINTFORMW 幼く小さな口でも、ささやかなそれは根元まですっぽりと余裕で収まってしまう…
+ENDIF
 ;パイズリ
 @TRAIN_MESSAGE_COM32
 PRINTFORM %CALLNAME:TARGET%は
@@ -2086,7 +2177,9 @@ ELSEIF TALENT:22
 ELSE
 	PRINT 恥ずかしそうに
 ENDIF
-IF TALENT:100
+IF TALENT:149
+	PRINT いたいけな割れ目を
+ELSEIF TALENT:100
 	PRINT 幼いワレメを
 ELSE
 	PRINT 陰唇を
@@ -2193,7 +2286,9 @@ ELSEIF INSERT_CONTINUEABLE() && (PREVCOM == 24 || PREVCOM == 25)
 	PRINTFORMW %CALLNAME:MASTER%は挿入したまま横になり、下から腰を突き上げた…
 ELSE
 	PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%の上にまたがり、ゆっくりと腰を下ろし
-	IF TALENT:100 && EXP:0 == 0
+	IF TALENT:149 && EXP:0 == 0
+		PRINT 、男を知らないいたいけな割れ目でペニスを飲み込んでいった…
+	ELSEIF TALENT:100 && EXP:0 == 0
 		PRINT 、男を知らない幼いワレメでペニスを飲み込んでいった…
 	ELSEIF EXP:0 == 0
 		PRINT 、男を知らない秘裂でペニスを飲み込んでいった…
@@ -2203,8 +2298,11 @@ ELSE
 	IF EXP:0 >= EXPLV:3
 		PRINTL  
 		PRINTFORM %CALLNAME:TARGET%は
-		SIF TALENT:100
+		IF TALENT:149
+			PRINT 幼子のような身体で懸命に
+		ELSEIF TALENT:100
 			PRINT 小さな身体で懸命に
+		ENDIF
 		IF TALENT:143
 			PRINT 制御しきれないほど揺れ続ける超乳を振り乱しながら
 		ELSEIF TALENT:141
@@ -2216,12 +2314,16 @@ ELSE
 	ENDIF
 	PRINTW  
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 ;泡踊り
 @TRAIN_MESSAGE_COM35
 PRINTFORM %CALLNAME:TARGET%はソープを泡立たせて自分に塗りたくり、
 SIF TALENT:85
 PRINT うっとりとした表情をしつつ
-IF TALENT:100
+IF TALENT:149
+	PRINTFORM %CALLNAME:PLAYER%に幼子のような身体を目一杯擦りつけて
+ELSEIF TALENT:100
 	PRINTFORM %CALLNAME:PLAYER%に小さな身体を目一杯擦りつけて
 ELSEIF TALENT:143
 	PRINTFORM %CALLNAME:PLAYER%に常識外れの大きさの胸で全身を覆いかぶせるように押しつけて
@@ -2301,8 +2403,11 @@ ENDIF
 	IF EXP:0 >= EXPLV:3
 		PRINTL  
 		PRINTFORM %CALLNAME:TARGET%は
-		SIF TALENT:100
+		IF TALENT:149
+			PRINT 幼子のような身体で懸命に
+		ELSEIF TALENT:100
 			PRINT 小さな身体で懸命に
+		ENDIF
 		IF TALENT:143
 			PRINT 制御しきれないほど揺れ続ける超乳を振り乱しながら
 		ELSEIF TALENT:141
@@ -2542,6 +2647,12 @@ ELSE
 	ELSE
 		PRINTFORMW %CALLNAME:TARGET%の顔を股に押しつけ、%CALLNAME:PLAYER%の陰唇を舐めさせた…
 	ENDIF
+ENDIF
+;舐めさせる相手(PLAYER)が小柄以下なら、幼く小さなそこを強調
+IF TALENT:PLAYER:149
+	PRINTFORMW %CALLNAME:PLAYER%の幼子のように小さく無毛のそこは、%CALLNAME:TARGET%の舌だけでほとんど覆い尽くされ、狭い恥裂が物慣れない様子でひくついている…
+ELSEIF TALENT:PLAYER:100
+	PRINTFORMW %CALLNAME:PLAYER%の小ぶりで慎ましいそこは、%CALLNAME:TARGET%の舌に覆われるたびに狭くきゅっとひくついている…
 ENDIF
 ;ダブル素股
 @TRAIN_MESSAGE_COM62
@@ -2783,6 +2894,19 @@ ELSE
 		PRINTFORMW 喉を犯される苦しさに、%CALLNAME:TARGET%はえづきながら涙目で身をよじった…
 	ENDSELECT
 ENDIF
+;子供体型/小柄の小さな口と相手のペニスサイズ差を強調
+IF TALENT:149 && (TALENT:MASTER:145 || TALENT:MASTER:146)
+	SELECTCASE RAND:2
+	CASE 0
+		PRINTFORMW 幼く小さな口は太い亀頭を含むだけで限界まで押し広げられ、唇の端が今にも裂けそうに引き伸ばされている…
+	CASEELSE
+		PRINTFORMW あどけない口には到底収まりきらず、喉の入口で切っ先がつかえては、涙を滲ませて苦しげに喉を鳴らしている…
+	ENDSELECT
+ELSEIF TALENT:100 && (TALENT:MASTER:145 || TALENT:MASTER:146)
+	PRINTFORMW 小ぶりな口いっぱいに頬張らされ、頬が内側から大きく膨らんでいる…
+ELSEIF TALENT:149 && TALENT:MASTER:144
+	PRINTFORMW 幼く小さな口でも、ささやかなそれは根元まですっぽりと余裕で収まってしまう…
+ENDIF
 
 ;放尿
 @TRAIN_MESSAGE_COM85
@@ -2790,7 +2914,7 @@ IF TEQUIP:54
 	PRINTFORMW %CALLNAME:TARGET%は羞恥と屈辱感に涙を浮かべながら、草むらの中で放尿した…
 ELSEIF TEQUIP:57
 	PRINTFORMW %CALLNAME:TARGET%は鏡に映る自分を見ないようにしながらしゃがみこんで放尿し始めた…
-ELSEIF TALENT:100 && TALENT:109
+ELSEIF (TALENT:100 || TALENT:149) && TALENT:109
 	PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:PLAYER%に幼い子供のように両足を抱え上げられて放尿した…
 ELSE
 	IF RAND:3 == 0
@@ -2814,7 +2938,7 @@ ELSE
 		ENDIF
 		PRINTFORML 尿道口を刺激した
 		PRINTFORM %CALLNAME:TARGET%は我慢できずに、犬のような格好で
-	ELSEIF TALENT:100 && TALENT:109
+	ELSEIF (TALENT:100 || TALENT:149) && TALENT:109
 		PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%の両足を抱え上げ、
 		IF UNDERWARED()
 			PRINTFORM %GET_CLOTH_SHORT_NAME(TEQUIP:65)%の上から
@@ -3307,7 +3431,7 @@ IF TFLAG:45
 	;相手側にある
 
 	PRINTFORM %CALLNAME:TARGET%は自分の胸に%CALLNAME:PLAYER%の手を当てさせ、その
-	IF TALENT:100 && TALENT:109
+	IF (TALENT:100 || TALENT:149) && TALENT:109
 		PRINT 僅かに膨らみが感じられる程度の
 	ELSEIF TALENT:109
 		PRINT 標準よりやや小さめの
@@ -3332,7 +3456,7 @@ IF TFLAG:45
 ELSE
 	;主人公側にある
 	PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%の
-	IF TALENT:100 && TALENT:109
+	IF (TALENT:100 || TALENT:149) && TALENT:109
 		PRINT 僅かに膨らみが感じられる程度の
 	ELSEIF TALENT:109
 		PRINT 標準よりやや小さめの
@@ -4876,3 +5000,55 @@ ENDIF
 ;表示があるときのみ
 SIF TFLAG:29 > 0 || TFLAG:0 > 0 || TFLAG:1 > 0 || TFLAG:2 > 0 || TFLAG:3 || TFLAG:7 > 0 || TFLAG:8 > 0 || TFLAG:9 > 0 || TFLAG:15 > 0 || ((SELECTCOM == 7 || SELECTCOM == 393) && PALAM:5 >= PALAMLV:3) || (SELECTCOM == 23 && TFLAG:10)
 	PRINTW  
+
+;============================================================
+;挿入系コマンド共通：挿入される側(C)が小柄以下なら膣の幼さ・狭さを描写
+;============================================================
+@INSERT_YOUNG_DESC(C)
+IF TALENT:C:149
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORMW 幼子のように小さなその膣は、限界まで押し広げられながらも健気に締めつけ、襞の一枚一枚がきつく絡みついてくる…
+	CASE 1
+		PRINTFORMW 未熟で狭いそこは奥までみっちりと満たされ、受け入れるだけで精一杯といった様子に内壁がぴたりと吸いついてくる…
+	CASEELSE
+		PRINTFORMW あどけないほど小さな蜜壺は、押し入られるたびはち切れんばかりに口を広げ、狭い隘路がきゅうきゅうとうねっている…
+	ENDSELECT
+ELSEIF TALENT:C:100
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORMW 小柄な身体に見合った狭い膣が、押し込まれるたびきゅうきゅうと締めつけてくる…
+	CASE 1
+		PRINTFORMW 小ぶりな蜜壺は奥までみっしりと満たされ、内壁が余すところなく絡みついてくる…
+	CASEELSE
+		PRINTFORMW こぢんまりとしたそこは、押し広げられるたびきつく締まって震えた…
+	ENDSELECT
+ENDIF
+;―― 追加描写：破瓜／下腹が浮く／浅く奥に届く（ペニス膣挿入時のみ）――
+IF TFLAG:19 && TALENT:C:149
+	;処女の破瓜
+	IF EXP:C:0 == 0
+		SELECTCASE RAND:2
+		CASE 0
+			PRINTFORMW あまりに狭いそこは切っ先を受け入れるだけで限界に達し、薄い粘膜が今にも裂けんばかりに引き伸ばされている…
+		CASEELSE
+			PRINTFORMW 男を知らない幼い蜜壺は、ひと突きごとにみしみしと軋み、健気に侵入者を呑み込もうと懸命に震えている…
+		ENDSELECT
+	ENDIF
+	;主人公が巨根/爆根なら小さな下腹が浮く
+	IF C == TARGET && (TALENT:MASTER:145 || TALENT:MASTER:146)
+		SELECTCASE RAND:2
+		CASE 0
+			PRINTFORMW 大人の半分ほどしかない小さな下腹が、突き入れられるたびにペニスの形をなぞってぼこりと浮き上がっている…
+		CASEELSE
+			PRINTFORMW 不釣り合いなほど巨大な肉棒に貫かれ、薄い下腹の皮膚越しに切っ先の凹凸がはっきりと透けて見えた…
+		ENDSELECT
+	ELSE
+		SIF RAND:2 == 0
+			PRINTFORMW 大人より浅い膣道は根元まで届かぬうちに切っ先が最奥を小突き、未熟な子宮口がこりこりと擦り上げられている…
+	ENDIF
+ELSEIF TFLAG:19 && TALENT:C:100 && C == TARGET && (TALENT:MASTER:145 || TALENT:MASTER:146)
+	SIF RAND:2 == 0
+		PRINTFORMW 小柄な下腹が、奥を突かれるたびにわずかにふくらんで見える…
+ENDIF
+RETURN

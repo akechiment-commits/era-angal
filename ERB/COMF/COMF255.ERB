@@ -24,9 +24,9 @@ SIF TEQUIP:71
 ;オトコだとダメ
 SIF TALENT:122
 	RETURN 0
-;小人体型持ちは、双方が調教者と調教対象ならOK
+;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
 SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
@@ -50,7 +50,7 @@ IF TEQUIP:58
 		RETURN 0
 ENDIF
 ;前回コマンドが正常位・後背位・対面座位・背面座位・騎乗位・乱れ牡丹・挿入Ｇスポ責め・挿入子宮口責めでないとダメ
-SIF PREVCOM != 20 && PREVCOM != 21 && PREVCOM != 24 && PREVCOM != 25 && PREVCOM != 34 && PREVCOM != 88 && PREVCOM != 255 && PREVCOM != 256
+SIF PREVCOM != 20 && PREVCOM != 21 && PREVCOM != 24 && PREVCOM != 25 && PREVCOM != 34 && PREVCOM != 88 && PREVCOM != 255 && PREVCOM != 256 && PREVCOM != 258
 	RETURN 0
 ;調教者の技巧3以上かつ前回コマンド実行者が今回も実行していないとダメ
 IF ABL:PLAYER:2 > 2 && ((ASSIPLAY && TFLAG:50) || (ASSIPLAY == 0 && TFLAG:50 == 0))
@@ -94,7 +94,7 @@ SIF TALENT:PLAYER:121 || TALENT:PLAYER:122
 ;-------------------------------------------------
 ;ソースの計算
 ;-------------------------------------------------
-IF PREVCOM == 34
+IF PREVCOM == 34 || PREVCOM == 258
 	LOSEBASE:0 += 60
 	LOSEBASE:1 += 150
 	SOURCE:12 = 1300
@@ -186,8 +186,17 @@ IF ASSIPLAY
 ENDIF
 
 ;小柄体形
-SIF TALENT:100
+SIF TALENT:100 || TALENT:149
 	TIMES SOURCE:6 , 2.00
+;子供体型は痛みが上位（さらに上乗せ）
+SIF TALENT:149
+	TIMES SOURCE:6 , 1.50
+;小柄/子供体型の締まりで膣快感（快Ｖ）増加（子供は上位）
+IF TALENT:149
+	TIMES SOURCE:1 , 1.60
+ELSEIF TALENT:100
+	TIMES SOURCE:1 , 1.30
+ENDIF
 
 ;貞操観念
 IF TALENT:30
@@ -256,7 +265,7 @@ ELSE
 	TIMES SOURCE:15 , 0.30
 ENDIF
 
-IF PREVCOM == 34
+IF PREVCOM == 34 || PREVCOM == 258
 	;ABL:奉仕精神をみる
 	IF ABL:6 == 0
 		SOURCE:4 = 200
@@ -366,7 +375,7 @@ RETURN 1
 
 @TRAIN_MESSAGE_COM255
 ;騎乗位
-IF PREVCOM == 34
+IF PREVCOM == 34 || PREVCOM == 258
 	SELECTCASE RAND:5
 	CASE 0
 		PRINTFORMW %CALLNAME:TARGET%は上体を大きく逸らし、膣内の天井にペニスを擦り付けた…
@@ -477,11 +486,11 @@ ELSE
 	IF PREVCOM == 25 || PREVCOM == 88
 		SELECTCASE RAND:2
 		CASE 0
-			PRINTFORMW %CALLNAME:TARGET%を持ち上げ、揺するように膣内の天井を執拗に刺激した…
+			PRINTFORMW %BODY_DESC(TARGET)%%CALLNAME:TARGET%を持ち上げ、揺するように膣内の天井を執拗に刺激した…
 		CASE 1
 			PRINTFORMW %CALLNAME:TARGET%の腰を抱え上げ、揺さぶりながら天井の一点を執拗に磨いた…
 		CASEELSE
-			PRINTFORMW %CALLNAME:TARGET%を持ち上げ、揺するように膣内の天井を執拗に刺激した…
+			PRINTFORMW %BODY_DESC(TARGET)%%CALLNAME:TARGET%を持ち上げ、揺するように膣内の天井を執拗に刺激した…
 		ENDSELECT
 	ENDIF
 	IF EXP:0 <= 30
@@ -543,4 +552,6 @@ ELSE
 		ENDSELECT
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 

@@ -14,9 +14,9 @@ CALL SAVEDATA_CONVERT
 ;グローバル変数読み込み
 CALL LOAD_GLOBAL_CONFIGURE
 CALL LOGIN_BONUS_CHECK
-;グローバルスキル: 最大体力/気力強化を適用（GLOBAL:220/221）
-MAXBASE:MASTER:0 = 5000 + GLOBAL:220 * 100
-MAXBASE:MASTER:1 = 3000 + GLOBAL:221 * 100
+;実績SPで購入した最大体力/気力強化を適用（セーブ固有、FLAG:5020/5021。旧GLOBAL:220/221）
+MAXBASE:MASTER:0 = 5000 + FLAG:5020 * 100
+MAXBASE:MASTER:1 = 3000 + FLAG:5021 * 100
 ;上限設定
 CALL ALL_LIMIT
 ;部活タイプ初期化（既存セーブ対応）
@@ -275,7 +275,17 @@ REPEAT CHARANUM
 REND
 ;改行用変数
 LOCAL:0 = 0
+;追試期間中は補習(自習)のみ。専用ボタンを表示
+IF FLAG:211 > 0
+	PRINTFORML [103] - 追試に向けて自習する
+	PRINTFORML [109] - 追試を受ける
+ENDIF
 REPEAT 32
+	;追試期間中はターン進行・女の子・部活コマンドを非表示
+	IF FLAG:211 > 0
+		SIF COUNT == 0 || COUNT == 1 || COUNT == 2 || COUNT == 5 || COUNT == 15 || COUNT == 16 || COUNT == 19 || COUNT == 21
+			CONTINUE
+	ENDIF
 	IF COUNT == 0 && TARGET >= 0 && MONEY > 0
 		IF FLAG:23 & 1048576
 			IF TALENT:89
@@ -416,6 +426,14 @@ IF TALENT:MASTER:998
 ENDIF
 
 @USERSHOP
+
+;追試期間中はターン進行・女の子・部活コマンドを封鎖（自習103のみ可）
+IF FLAG:211 > 0
+	IF RESULT == 100 || RESULT == 101 || RESULT == 102 || RESULT == 106 || RESULT == 120 || RESULT == 123 || RESULT == 126 || RESULT == 130
+		PRINTFORMW 追試期間中だ。今は女の子と過ごしたり部活に出ている場合じゃない。自習で挽回しよう。
+		RETURN 0
+	ENDIF
+ENDIF
 
 ;イチャイチャ開始
 IF RESULT == 100 && TARGET >= 0 && MONEY > 0
@@ -578,6 +596,16 @@ ELSEIF RESULT == 101
 	CALL LOCATION_OUTING
 	SIF RESULT
 		BEGIN TURNEND
+	RETURN 1
+;追試の自習（補習中のみ）
+ELSEIF RESULT == 103 && FLAG:211 > 0
+	CALL MAKEUP_STUDY
+	BEGIN TURNEND
+	RETURN 1
+;追試を受ける（補習中のみ）
+ELSEIF RESULT == 109 && FLAG:211 > 0
+	CALL TAKE_MAKEUP_EXAM
+	BEGIN TURNEND
 	RETURN 1
 ELSEIF RESULT == 127
 	CALL ENDING_PLAYER
@@ -1918,6 +1946,8 @@ ELSEIF LOCAL == 13 && TALENT:122 == 0
 	RESTART
 ELSEIF (LOCAL == 4 || LOCAL == 9 || LOCAL == 12 || LOCAL == 13) && TALENT:122
 	RESTART
+ELSEIF LOCAL == 0 || LOCAL == 4 || LOCAL == 5 || LOCAL == 7 || LOCAL == 8 || LOCAL == 9 || LOCAL == 10 || LOCAL == 11 || LOCAL == 12 || LOCAL == 13 || LOCAL == 14 || LOCAL == 17
+	RESTART
 ELSEIF LOCAL == 88
 	CALL ABLUP_MASTER_88
 ELSE
@@ -2100,6 +2130,10 @@ REPEAT (A:0 - 2)
 	SIF LOCAL == 13 && TALENT:MASTER:122 == 0
 		CONTINUE
 	SIF (LOCAL == 4 || LOCAL == 9 || LOCAL == 12 || LOCAL == 13) && TALENT:MASTER:122
+		CONTINUE
+	;主人公側では効果が無い調教ステータスは購入対象から除外
+	;（親密/Ｖ感覚/Ａ感覚/露出癖/マゾっ気/レズっ気/自慰中毒/精液中毒/レズ中毒/Ｂ感覚/Ｍ感覚）
+	SIF LOCAL == 0 || LOCAL == 4 || LOCAL == 5 || LOCAL == 7 || LOCAL == 8 || LOCAL == 9 || LOCAL == 10 || LOCAL == 11 || LOCAL == 12 || LOCAL == 13 || LOCAL == 14 || LOCAL == 17
 		CONTINUE
 	
 	;以下行数合わせ処理を含んだもの

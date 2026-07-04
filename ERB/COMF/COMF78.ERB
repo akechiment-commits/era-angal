@@ -1,0 +1,114 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+@COM_ABLE78
+;母乳飲み実行判定
+CALL COM_ABLE_COMMON, SELECTCOM
+SIF RESULT == 0
+	RETURN 0
+;ウフフ中でないとダメ
+SIF TFLAG:44 == 0
+	RETURN 0
+;母乳体質必須
+SIF TALENT:130 == 0
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:90
+	RETURN 0
+;貞操帯があると胸に直接アクセスできない
+SIF TEQUIP:44
+	RETURN 0
+RETURN 1
+
+@COM78
+;母乳飲み
+
+PRINTL 母乳飲み
+STR:0 = 母乳飲み
+CALL TRAIN_MESSAGE_COM78
+
+LOSEBASE:0 += 8
+LOSEBASE:1 += 50
+
+;胸快感（ABL:14による）
+IF ABL:14 == 0
+	SOURCE:17 = 50
+ELSEIF ABL:14 == 1
+	SOURCE:17 = 350
+ELSEIF ABL:14 == 2
+	SOURCE:17 = 1000
+ELSEIF ABL:14 == 3
+	SOURCE:17 = 2000
+ELSEIF ABL:14 == 4
+	SOURCE:17 = 3200
+ELSE
+	SOURCE:17 = 1600 + ABL:14 * 500
+ENDIF
+
+;接触感
+SOURCE:9 = 250
+
+;胸の大きさで補正
+IF TALENT:143
+	TIMES SOURCE:17 , 2.00
+ELSEIF TALENT:141
+	TIMES SOURCE:17 , 1.70
+ELSEIF TALENT:110
+	TIMES SOURCE:17 , 1.30
+ELSEIF TALENT:109
+	TIMES SOURCE:17 , 0.60
+ENDIF
+
+;胸汚れ（母乳）
+STAIN:5 |= 16
+
+;噴乳経験加算
+EXP:54 += 1
+
+;噴乳フラグ
+TFLAG:11 += 1
+
+RETURN 1
+
+@TRAIN_MESSAGE_COM78
+;母乳飲み地の文
+
+IF EXP:54 == 0
+	;初めて飲まれる
+	IF RAND:3 == 0
+		PRINTFORML %CALLNAME:PLAYER%が乳首に唇を当てて吸い上げると、温かな白濁液が口内に溢れ出してきた。
+		PRINTFORML 自分の母乳が直接飲まれている事実に、%CALLNAME:TARGET%は羞恥と昂りで体を震わせた。
+	ELSEIF RAND:2 == 0
+		PRINTFORML %CALLNAME:PLAYER%の唇が乳首を包み込み吸い始めると、先端からとろりとした液体が滲み出した。
+		PRINTFORML %CALLNAME:TARGET%は顔を背けながらも、体はぴくぴくと正直に反応していた。
+	ELSE
+		PRINTFORML 乳首にそっと唇を当てじっくりと吸うと、とろりとした白い液体が口内に広がった。
+		PRINTFORML %CALLNAME:TARGET%は戸惑いながらも、胸の奥から広がる充足感に抗えなかった。
+	ENDIF
+ELSEIF EXP:54 < EXPLV:2
+	;少ない経験
+	IF RAND:3 == 0
+		PRINTFORML 乳首に唇を当てて吸い始めると、すぐに白濁した液体が溢れ出してきた。
+		PRINTFORML %CALLNAME:TARGET%の体が吸われるたびにびくりと震え、胸の奥から甘い疼きが広がった。
+	ELSEIF RAND:2 == 0
+		PRINTFORML 唇が乳首を優しく包みゆっくりと吸うと、とろりとした母乳がすぐに溢れ出した。
+		PRINTFORML %CALLNAME:TARGET%はその心地よい感覚に抗えず、唇を噛んで声を殺した。
+	ELSE
+		PRINTFORML 吸われるたびに白濁液が溢れ出し、%CALLNAME:PLAYER%の口の中に流れ込んでいく。
+		PRINTFORML %CALLNAME:TARGET%の頬は羞恥に染まり、目はうっすらと潤んでいた。
+	ENDIF
+ELSE
+	;豊富な経験
+	IF RAND:3 == 0
+		PRINTFORML %CALLNAME:TARGET%が自ら胸を押しつけると、唇が乳首を包んですぐに母乳が溢れ出した。
+		PRINTFORML 吸われるたびに甘い疼きが広がり、%CALLNAME:TARGET%は恍惚とした表情でその感覚に溺れた。
+	ELSEIF RAND:2 == 0
+		PRINTFORML %CALLNAME:PLAYER%が乳首に唇を当てると、待ちわびていたようにとろとろと白濁液が溢れ出した。
+		PRINTFORML %CALLNAME:TARGET%の体は羞恥よりも快感が上回り、うっとりとその感触に溺れていた。
+	ELSE
+		PRINTFORML 乳首に唇が触れた瞬間、もうとろとろと母乳が溢れ出す。
+		PRINTFORML %CALLNAME:TARGET%は熱っぽい吐息をつきながら、全身で快感を受け入れていた。
+	ENDIF
+ENDIF
+RETURN

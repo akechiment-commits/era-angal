@@ -4,13 +4,18 @@
 使い方: python3 tools/check_shiten_meta.py [NN ...]  (既定=全CHAR)
 """
 import re, sys, glob
+try:
+    from kojo_util import join_kojo
+except ImportError:
+    from tools.kojo_util import join_kojo
+
 TG={23,61,63,65,68,192,200,203,193,194,195,196,381}
 META=re.compile(r'転校生.{0,8}(見|ご覧|興奮|楽し)|君に見られ|見ててね|見てて[？\?]|命令だ|見たいんでしょ|見て興奮|見て楽しん|見たいって言うから')
 KAI=re.compile(r'攻める番|挿れる側|ペニバン|攻守|組み敷かれ|女の子同士')
 def run(paths):
     tot=0
     for f in paths:
-        t=open(f,'rb').read().decode('cp932'); cur=None; out=[]
+        t=join_kojo(open(f,'rb').read().decode('cp932')); cur=None; out=[]
         for i,l in enumerate(t.split('\n'),1):
             m=re.search(r'SELECTCOM\s*==\s*(\d+)',l)
             if m: cur=int(m.group(1))

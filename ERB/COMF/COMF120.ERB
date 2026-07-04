@@ -26,9 +26,9 @@ SIF TALENT:122
 ;異常経験フィルタ
 SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))
 	RETURN 0
-;小人体型持ちは、双方が調教者と調教対象ならOK
+;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
 SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
@@ -173,8 +173,17 @@ SIF TALENT:PLAYER:121
 
 
 ;小柄体形
-SIF TALENT:100
+SIF TALENT:100 || TALENT:149
 	TIMES SOURCE:6 , 2.00
+;子供体型は痛みが上位（さらに上乗せ）
+SIF TALENT:149
+	TIMES SOURCE:6 , 1.50
+;小柄/子供体型の締まりで膣快感（快Ｖ）増加（子供は上位）
+IF TALENT:149
+	TIMES SOURCE:1 , 1.60
+ELSEIF TALENT:100
+	TIMES SOURCE:1 , 1.30
+ENDIF
 
 ;貞操観念
 IF TALENT:30 && TALENT:85 == 0
@@ -345,9 +354,9 @@ STAIN:PLAYER:2 |= STAIN:3
 
 IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
 	PRINTS EXPNAME:40
-	PRINTL +4
-	EXP:40 += 4
-	EXP:PLAYER:40 += 4
+	PRINTL +8
+	EXP:40 += 8
+	EXP:PLAYER:40 += 8
 ENDIF
 
 RETURN 1
@@ -392,7 +401,7 @@ IF TFLAG:60 && LOCAL && ((ASSIPLAY && TFLAG:50) || (ASSIPLAY == 0 && TFLAG:50 ==
 		CASE 0
 			PRINTFORMW 膣内から抜き去ることなく%CALLNAME:TARGET%を仰向けに寝かせ、キスしながら再び腰を動かし始めた…
 		CASE 1
-			PRINTFORMW 繋がりを解かないまま%CALLNAME:TARGET%の体を組み敷き、唇を塞いでまた腰を打ちつけ始めた…
+			PRINTFORMW 繋がりを解かないまま%CALLNAME:TARGET%の%BODY_DESC(TARGET)%体を組み敷き、唇を塞いでまた腰を打ちつけ始めた…
 		CASE 2
 			PRINTFORMW %CALLNAME:TARGET%を抱えたまま向き合わせに押し倒し、舌を絡めながら奥を抉るように動き始めた…
 		CASEELSE
@@ -405,7 +414,9 @@ ELSE
 	SELECTCASE RAND:3
 	CASE 0
 		PRINTFORM %CALLNAME:TARGET%を仰向けに寝かせ、キスしながら
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけなワレメを
+		ELSEIF TALENT:100
 			PRINT 幼いワレメを
 		ELSE
 			PRINT 秘裂を
@@ -413,7 +424,9 @@ ELSE
 		PRINTW 貫いた…
 	CASE 1
 		PRINTFORM %CALLNAME:TARGET%の唇を奪いながら正常位に組み敷き、濡れそぼった
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけな割れ目を
+		ELSEIF TALENT:100
 			PRINT 幼い割れ目を
 		ELSE
 			PRINT 秘裂を
@@ -421,7 +434,9 @@ ELSE
 		PRINTW ゆっくりと押し開いて奥まで貫いた…
 	CASE 2
 		PRINTFORM %CALLNAME:TARGET%に深く口づけたまま脚を割り開き、
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけな蜜壺へ
+		ELSEIF TALENT:100
 			PRINT あどけない蜜壺へ
 		ELSE
 			PRINT 蕩けた蜜壺へ
@@ -429,7 +444,9 @@ ELSE
 		PRINTW 一息に楔を打ち込んだ…
 	CASEELSE
 		PRINTFORM %CALLNAME:TARGET%を仰向けに寝かせ、キスしながら
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけなワレメを
+		ELSEIF TALENT:100
 			PRINT 幼いワレメを
 		ELSE
 			PRINT 秘裂を
@@ -437,6 +454,8 @@ ELSE
 		PRINTW 貫いた…
 	ENDSELECT
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 
 ;-------------------------------------------------
 ;Ｍ感覚を設定している場合快Ｍソース等取得

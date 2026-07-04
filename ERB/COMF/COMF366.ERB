@@ -23,9 +23,9 @@ SIF TALENT:122
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
 SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
 	RETURN 0
-;小人体型持ちは、双方が調教者と調教対象ならOK
+;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
 	RETURN 0
 ;潤滑10000以上かつ、欲情10000以上が必要
 SIF PALAM:3 < 10000 || PALAM:5 < 10000
@@ -85,7 +85,7 @@ ELSE
 		PRINTFORM 下着をずらして
 	ENDIF
 	PRINTFORM 、ゆっくりと腰を下ろし
-	IF TALENT:100 && EXP:0 == 0
+	IF (TALENT:100 || TALENT:149) && EXP:0 == 0
 		PRINT 、男を知らない幼いワレメでペニスを飲み込んでいった…
 	ELSEIF EXP:0 == 0
 		PRINT 、男を知らない秘裂でペニスを飲み込んでいった…
@@ -95,8 +95,11 @@ ELSE
 	IF EXP:0 >= EXPLV:3
 		PRINTL  
 		PRINTFORM %CALLNAME:TARGET%は
-		SIF TALENT:100
+		IF TALENT:149
+			PRINT 幼子のような身体で懸命に
+		ELSEIF TALENT:100
 			PRINT 小さな身体で懸命に
+		ENDIF
 		IF TALENT:143
 			PRINT 超乳をたぷんたぷんと波打たせながら
 		ELSEIF TALENT:141
@@ -108,6 +111,8 @@ ELSE
 	ENDIF
 	WAIT
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 
 
 @COM366
@@ -276,8 +281,17 @@ ELSE
 ENDIF
 
 ;小柄体形
-SIF TALENT:100
+SIF TALENT:100 || TALENT:149
 	TIMES SOURCE:6 , 2.00
+;子供体型は痛みが上位（さらに上乗せ）
+SIF TALENT:149
+	TIMES SOURCE:6 , 1.50
+;小柄/子供体型の締まりで膣快感（快Ｖ）増加（子供は上位）
+IF TALENT:149
+	TIMES SOURCE:1 , 1.60
+ELSEIF TALENT:100
+	TIMES SOURCE:1 , 1.30
+ENDIF
 
 ;貞操観念
 IF TALENT:30 && TALENT:85 == 0
@@ -526,9 +540,9 @@ STAIN:PLAYER:2 |= STAIN:3
 
 IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
 	PRINTS EXPNAME:40
-	PRINTL +7
-	EXP:40 += 7
-	EXP:PLAYER:40 += 7
+	PRINTL +10
+	EXP:40 += 10
+	EXP:PLAYER:40 += 10
 ENDIF
 
 ;IF ASSIPLAY == 0

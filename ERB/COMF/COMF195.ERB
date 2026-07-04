@@ -14,9 +14,9 @@ SIF TFLAG:44 == 0
 ;調教者がオトコだとダメ
 SIF TALENT:PLAYER:122
 	RETURN 0
-;小人体型持ちは、双方が調教者と調教対象ならOK
+;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
 	RETURN 0
 ;オトコ、半人半妖、ふたなりでない場合、ペニスバンドがないとダメ
 IF (TALENT:TARGET:119 || TALENT:TARGET:121 || TALENT:TARGET:122) == 0
@@ -302,9 +302,9 @@ ENDIF
 
 IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
 	PRINTS EXPNAME:40
-	PRINTL +4
-	EXP:40 += 4
-	EXP:PLAYER:40 += 4
+	PRINTL +8
+	EXP:40 += 8
+	EXP:PLAYER:40 += 8
 ENDIF
 
 TFLAG:100 = 0
@@ -323,13 +323,15 @@ IF TFLAG:60 && PREVCOM == 195 && ((ASSIPLAY && TFLAG:50) || (ASSIPLAY == 0 && TF
 	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%の%PENIS_DESC(TARGET)%ペニス\@ TALENT:119 || TALENT:121 || TALENT:122 ? # バンド \@をきつく締めつけたまま、%CALLNAME:TARGET%のために腰を振りたてた…
 ;同様に前回の調教が正常位させるか後背位させるの場合
 ELSEIF TFLAG:60 && (PREVCOM == 193 || PREVCOM == 194) && ((ASSIPLAY && TFLAG:50) || (ASSIPLAY == 0 && TFLAG:50 == 0))
-	PRINTFORMW %CALLNAME:TARGET%は、膣内から抜き去ることなく%CALLNAME:PLAYER%を抱き上げ、下から腰を突き上げた…
+	PRINTFORMW %CALLNAME:TARGET%は、膣内から抜き去ることなく%BODY_DESC(PLAYER)%%CALLNAME:PLAYER%を抱き上げ、下から腰を突き上げた…
 ELSE
 	PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%を仰向けに寝かせると、
 	SIF EXP:PLAYER:0 == 0
 		PRINT 男を受け入れた事のない
 	PRINTFORMW 自らのヴァギナで%CALLNAME:TARGET%の%PENIS_DESC(TARGET)%ペニス\@ TALENT:119 || TALENT:121 || TALENT:122 ? # バンド \@を咥えこんだ…
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 
 ;-------------------------------------------------
 ;固有の実行判定

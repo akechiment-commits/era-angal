@@ -23,9 +23,9 @@ SIF TALENT:122
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
 SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
 	RETURN 0
-;小人体型持ちは、双方が調教者と調教対象ならOK
+;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
 	RETURN 0
 ;潤滑10000以上かつ、欲情10000以上が必要
 SIF PALAM:3 < 10000 || PALAM:5 < 10000
@@ -176,8 +176,17 @@ SIF TALENT:PLAYER:121
 	TIMES SOURCE:1 , 2.50
 
 ;小柄体形
-SIF TALENT:100
+SIF TALENT:100 || TALENT:149
 	TIMES SOURCE:6 , 2.00
+;子供体型は痛みが上位（さらに上乗せ）
+SIF TALENT:149
+	TIMES SOURCE:6 , 1.50
+;小柄/子供体型の締まりで膣快感（快Ｖ）増加（子供は上位）
+IF TALENT:149
+	TIMES SOURCE:1 , 1.60
+ELSEIF TALENT:100
+	TIMES SOURCE:1 , 1.30
+ENDIF
 
 ;貞操観念
 IF TALENT:30 && TALENT:85 == 0
@@ -305,9 +314,9 @@ PRINTL Ｖ経験＋１
 
 IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
 	PRINTS EXPNAME:40
-	PRINTL +1
-	EXP:40 += 1
-	EXP:PLAYER:40 += 1
+	PRINTL +6
+	EXP:40 += 6
+	EXP:PLAYER:40 += 6
 ENDIF
 
 
@@ -405,9 +414,9 @@ STAIN:PLAYER:2 |= STAIN:3
 
 IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
 	PRINTS EXPNAME:40
-	PRINTL +4
-	EXP:40 += 4
-	EXP:PLAYER:40 += 4
+	PRINTL +8
+	EXP:40 += 8
+	EXP:PLAYER:40 += 8
 ENDIF
 
 ;IF ASSIPLAY == 0
@@ -451,7 +460,7 @@ ELSEIF TFLAG:60 && (PREVCOM == 365 || PREVCOM == 366) && ((ASSIPLAY && TFLAG:50)
 	CASE 0
 		PRINTFORMW 膣内から抜き去ることなく%CALLNAME:TARGET%を仰向けに寝かせ、再び腰を動かし始めた…
 	CASE 1
-		PRINTFORMW 繋がりを保ったまま%CALLNAME:TARGET%を組み敷き、正常位に体勢を変えて再び突き始めた…
+		PRINTFORMW 繋がりを保ったまま%BODY_DESC(TARGET)%%CALLNAME:TARGET%を組み敷き、正常位に体勢を変えて再び突き始めた…
 	CASEELSE
 		PRINTFORMW 膣内から抜き去ることなく%CALLNAME:TARGET%を仰向けに寝かせ、再び腰を動かし始めた…
 	ENDSELECT
@@ -479,7 +488,9 @@ ELSE
 	ENDIF
 	SIF EXP:0 > 0 && EXP:0 <= 10
 		PRINTFORM 、まだあまり開発されていない
-	IF TALENT:100
+	IF TALENT:149
+		PRINT いたいけなワレメ
+	ELSEIF TALENT:100
 		PRINT 幼いワレメ
 	ELSE
 		PRINT 秘裂
@@ -491,6 +502,8 @@ ELSE
 		PRINTFORMW 貫いた…
 	ENDIF
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 
 ;-------------------------------------------------
 ;固有の実行判定

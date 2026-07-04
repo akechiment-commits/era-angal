@@ -733,35 +733,35 @@ ENDSELECT
 GOTO LOOP
 
 ;--------------------------------------------------
-; 月次購入上限チェック・リセット
-; GLOBAL:232 = 購入制限月 (YYYYMM, 0=未初期化)
-; GLOBAL:233 = ブロンズ今月残り購入可能枚数 (上限150枚)
-; GLOBAL:234 = シルバー今月残り購入可能枚数 (上限30枚)
-; GLOBAL:235 = ゴールド今月残り購入可能枚数 (上限15枚)
-; GLOBAL:236 = プラチナ今月残り購入可能枚数 (上限5枚)
+; 月次購入上限チェック・上乗せ
+; GLOBAL:232 = 購入制限月 (ゲーム内通算月数+1、0=未初期化。DECK_BATTLEのFLAG:207=DAY/10と同じ基準)
+; GLOBAL:233 = ブロンズ購入可能枚数 (月+150、未使用分は翌月に繰り越し累積)
+; GLOBAL:234 = シルバー購入可能枚数 (月+30、未使用分は翌月に繰り越し累積)
+; GLOBAL:235 = ゴールド購入可能枚数 (月+15、未使用分は翌月に繰り越し累積)
+; GLOBAL:236 = プラチナ購入可能枚数 (月+5、未使用分は翌月に繰り越し累積)
 ;--------------------------------------------------
 @TICKET_BUDGET_CHECK
-GETTIME
-IF RESULT:0 >= 2000 && RESULT:0 <= 2099
-	LOCAL:0 = RESULT:0 * 100 + RESULT:1
-ELSEIF A >= 2000 && A <= 2099
-	LOCAL:0 = A * 100 + B
-ELSE
-	LOCAL:0 = 0
-ENDIF
+;GETTIME(実世界の時計)ではなくDAY(ゲーム内経過日数)で月を判定する。
+;GETTIMEだと現実の暦月が変わらない限り購入枠が増えず、ゲーム内で
+;何ヶ月進めても在庫が復活しないバグになっていたため修正。
+;LOCAL:0 = ゲーム内通算月数+1（0を「未初期化」専用の値として空けるため+1）
+LOCAL:0 = DAY / 10 + 1
 
 IF GLOBAL:232 == 0
 	GLOBAL:233 = 150
 	GLOBAL:234 = 30
 	GLOBAL:235 = 15
 	GLOBAL:236 = 5
-	SIF LOCAL:0 > 0
-		GLOBAL:232 = LOCAL:0
-ELSEIF LOCAL:0 > 0 && LOCAL:0 != GLOBAL:232
-	GLOBAL:233 = 150
-	GLOBAL:234 = 30
-	GLOBAL:235 = 15
-	GLOBAL:236 = 5
+	GLOBAL:232 = LOCAL:0
+ELSEIF LOCAL:0 != GLOBAL:232
+	;前回チェック月からの経過月数ぶんだけ上乗せ（前月以前の未使用分はリセットせず繰り越す）
+	LOCAL:1 = LOCAL:0 - GLOBAL:232
+	SIF LOCAL:1 < 1
+		LOCAL:1 = 1
+	GLOBAL:233 += 150 * LOCAL:1
+	GLOBAL:234 += 30 * LOCAL:1
+	GLOBAL:235 += 15 * LOCAL:1
+	GLOBAL:236 += 5 * LOCAL:1
 	GLOBAL:232 = LOCAL:0
 ENDIF
 SAVEGLOBAL

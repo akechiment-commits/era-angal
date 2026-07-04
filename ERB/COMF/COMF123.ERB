@@ -34,9 +34,9 @@ ENDIF
 ;触手調教中はダメ
 SIF TEQUIP:90
 	RETURN 0
-;小人体型持ちは、双方が調教者と調教対象ならOK
+;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
 SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
@@ -173,8 +173,17 @@ SIF TALENT:PLAYER:121
 
 
 ;小柄体形
-SIF TALENT:100
+SIF TALENT:100 || TALENT:149
 	TIMES SOURCE:6 , 2.00
+;子供体型は痛みが上位（さらに上乗せ）
+SIF TALENT:149
+	TIMES SOURCE:6 , 1.50
+;小柄/子供体型の締まりで膣快感（快Ｖ）増加（子供は上位）
+IF TALENT:149
+	TIMES SOURCE:1 , 1.60
+ELSEIF TALENT:100
+	TIMES SOURCE:1 , 1.30
+ENDIF
 
 ;貞操観念
 IF TALENT:30 && TALENT:85 == 0
@@ -364,9 +373,9 @@ STAIN:PLAYER:2 |= STAIN:3
 
 IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
 	PRINTS EXPNAME:40
-	PRINTL +4
-	EXP:40 += 4
-	EXP:PLAYER:40 += 4
+	PRINTL +8
+	EXP:40 += 8
+	EXP:PLAYER:40 += 8
 ENDIF
 
 RETURN 1
@@ -383,13 +392,13 @@ IF TFLAG:60 && LOCAL && ((ASSIPLAY && TFLAG:50) || (ASSIPLAY == 0 && TFLAG:50 ==
 	IF PREVCOM == 121 || PREVCOM == 123
 		SELECTCASE RAND:3
 		CASE 0
-			PRINTFORMW %CALLNAME:TARGET%を背後から抱きしめ、舌を絡めあいながら再び腰を動かし始めた…
+			PRINTFORMW %BODY_DESC(TARGET)%%CALLNAME:TARGET%を背後から抱きしめ、舌を絡めあいながら再び腰を動かし始めた…
 		CASE 1
 			PRINTFORMW %CALLNAME:TARGET%を後ろ抱きにしたまま振り向かせ、舌を吸い合いながら下から突き上げ始めた…
 		CASE 2
 			PRINTFORMW 背中に密着したまま%CALLNAME:TARGET%の顎を捉えてキスし、深く繋がった腰を揺すり始めた…
 		CASEELSE
-			PRINTFORMW %CALLNAME:TARGET%を背後から抱きしめ、舌を絡めあいながら再び腰を動かし始めた…
+			PRINTFORMW %BODY_DESC(TARGET)%%CALLNAME:TARGET%を背後から抱きしめ、舌を絡めあいながら再び腰を動かし始めた…
 		ENDSELECT
 	;前回のコマンドが背面座位
 	ELSEIF PREVCOM == 25
@@ -424,7 +433,9 @@ ELSE
 		PRINTFORM %CALLNAME:TARGET%の身体を後ろから抱き上げると、口づけしながら
 		SIF PALAM:3 >= PALAMLV:4
 			PRINT 濡れそぼった
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけなワレメ
+		ELSEIF TALENT:100
 			PRINT 幼いワレメ
 		ELSE
 			PRINT 秘裂
@@ -434,7 +445,9 @@ ELSE
 		PRINTFORM %CALLNAME:TARGET%を背後から膝に抱え上げ、振り向かせて唇を奪いながら
 		SIF PALAM:3 >= PALAMLV:4
 			PRINT したたるほど濡れた
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけな蜜口
+		ELSEIF TALENT:100
 			PRINT あどけない蜜口
 		ELSE
 			PRINT ひくつく蜜口
@@ -444,7 +457,9 @@ ELSE
 		PRINTFORM 後ろ抱きにした%CALLNAME:TARGET%の首筋を吸いながら、反り返ったモノを
 		SIF PALAM:3 >= PALAMLV:4
 			PRINT 愛液まみれの
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけな割れ目
+		ELSEIF TALENT:100
 			PRINT 幼い割れ目
 		ELSE
 			PRINT 蕩けた花弁
@@ -454,7 +469,9 @@ ELSE
 		PRINTFORM %CALLNAME:TARGET%の身体を後ろから抱き上げると、口づけしながら
 		SIF PALAM:3 >= PALAMLV:4
 			PRINT 濡れそぼった
-		IF TALENT:100
+		IF TALENT:149
+			PRINT いたいけなワレメ
+		ELSEIF TALENT:100
 			PRINT 幼いワレメ
 		ELSE
 			PRINT 秘裂
@@ -465,6 +482,8 @@ ENDIF
 IF TEQUIP:57
 	PRINTFORMW %CALLNAME:TARGET%は顔を羞恥に染めながら時折艶っぽい声を上げている…
 ENDIF
+;挿入される側が小柄以下なら膣の幼さを描写
+CALL INSERT_YOUNG_DESC, TARGET
 
 ;-------------------------------------------------
 ;Ｍ感覚を設定している場合快Ｍソース等取得

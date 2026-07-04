@@ -55,6 +55,8 @@ SIF FLAG:62 & 512
 
 ;何の珠を得られたか
 CALL JUEL_CHECK
+CALL ORGASM_COMBO_BONUS
+CALL CMD_VARIETY_BONUS
 
 ;否定の珠の打ち消しチェック
 CALL DENIAL_CHECK
@@ -451,4 +453,149 @@ SIF TEQUIP:40 & 1p15
 ;しっぽ喪失
 SIF TEQUIP:40 & 1p16
 	TALENT:215 = 0
+;-------------------------------------------------
+;連続絶頂コンボトラッキング
+;-------------------------------------------------
+@ORGASM_COMBO_TRACK
+IF C > 0 || V > 0 || A > 0 || B > 0 || M > 0
+	FLAG:400 += 1
+	IF C > 0
+		FLAG:401 = FLAG:401 | 1
+	ENDIF
+	IF V > 0
+		FLAG:401 = FLAG:401 | 2
+	ENDIF
+	IF A > 0
+		FLAG:401 = FLAG:401 | 4
+	ENDIF
+	IF B > 0
+		FLAG:401 = FLAG:401 | 8
+	ENDIF
+	IF M > 0
+		FLAG:401 = FLAG:401 | 16
+	ENDIF
+ELSE
+	FLAG:400 = 0
+	FLAG:401 = 0
+ENDIF
+RETURN 0
 
+;-------------------------------------------------
+;連続絶頂コンボボーナス（セッション終了時）
+;-------------------------------------------------
+@ORGASM_COMBO_BONUS
+IF FLAG:400 < 2
+	FLAG:400 = 0
+	FLAG:401 = 0
+	RETURN 0
+ENDIF
+;部位種類数カウント
+LOCAL:0 = 0
+IF FLAG:401 & 1
+	LOCAL:0 += 1
+ENDIF
+IF FLAG:401 & 2
+	LOCAL:0 += 1
+ENDIF
+IF FLAG:401 & 4
+	LOCAL:0 += 1
+ENDIF
+IF FLAG:401 & 8
+	LOCAL:0 += 1
+ENDIF
+IF FLAG:401 & 16
+	LOCAL:0 += 1
+ENDIF
+SIF LOCAL:0 < 1
+	RETURN 0
+;ボーナスプール（連続数×連続数×部位種類数×200）
+LOCAL:1 = FLAG:400 * FLAG:400 * LOCAL:0 * 200
+;絶頂回数合計（比率算出用）
+LOCAL:2 = 0
+IF FLAG:401 & 1
+	LOCAL:2 += EX:0
+ENDIF
+IF FLAG:401 & 2
+	LOCAL:2 += EX:1
+ENDIF
+IF FLAG:401 & 4
+	LOCAL:2 += EX:2
+ENDIF
+IF FLAG:401 & 8
+	LOCAL:2 += EX:3
+ENDIF
+IF FLAG:401 & 16
+	LOCAL:2 += EX:6
+ENDIF
+SIF LOCAL:2 == 0
+	RETURN 0
+;表示
+DRAWLINE
+PRINTFORML ■ 連続絶頂ボーナス（{FLAG:400}連続×{LOCAL:0}部位）
+;部位ごとに絶頂回数比率でJUEL加算
+IF FLAG:401 & 1
+	LOCAL:3 = LOCAL:1 * EX:0 / LOCAL:2
+	JUEL:0  += LOCAL:3
+	PRINTFORML 　快Ｃの珠＋{LOCAL:3}
+ENDIF
+IF FLAG:401 & 2
+	LOCAL:3 = LOCAL:1 * EX:1 / LOCAL:2
+	JUEL:1  += LOCAL:3
+	PRINTFORML 　快Ｖの珠＋{LOCAL:3}
+ENDIF
+IF FLAG:401 & 4
+	LOCAL:3 = LOCAL:1 * EX:2 / LOCAL:2
+	JUEL:2  += LOCAL:3
+	PRINTFORML 　快Ａの珠＋{LOCAL:3}
+ENDIF
+IF FLAG:401 & 8
+	LOCAL:3 = LOCAL:1 * EX:3 / LOCAL:2
+	JUEL:14 += LOCAL:3
+	PRINTFORML 　快Ｂの珠＋{LOCAL:3}
+ENDIF
+IF FLAG:401 & 16
+	LOCAL:3 = LOCAL:1 * EX:6 / LOCAL:2
+	JUEL:18 += LOCAL:3
+	PRINTFORML 　快Ｍの珠＋{LOCAL:3}
+ENDIF
+;欲情・恭順にSOURCEボーナス
+SOURCE:11 += FLAG:400 * LOCAL:0 * 100
+SOURCE:16 += FLAG:400 * LOCAL:0 * 100
+;リセット
+FLAG:400 = 0
+FLAG:401 = 0
+RETURN 0
+;-------------------------------------------------
+;コマンド多様性トラッキング（毎ターン呼び出し）
+;-------------------------------------------------
+@CMD_VARIETY_TRACK
+;未使用コマンドなら種類数カウント、FLAG:(500+SELECTCOM)を使用済みマーク
+SIF SELECTCOM != 7 && FLAG:(500 + SELECTCOM) == 0
+	FLAG:402 += 1
+	FLAG:(500 + SELECTCOM) = 1
+RETURN 0
+
+;-------------------------------------------------
+;コマンド多様性ボーナス（セッション終了時）
+;-------------------------------------------------
+@CMD_VARIETY_BONUS
+;使用済みフラグをリセット
+FOR LOCAL:0, 0, 500
+	FLAG:(500 + LOCAL:0) = 0
+NEXT
+IF FLAG:402 == 0
+	FLAG:402 = 0
+	RETURN 0
+ENDIF
+;種類数×2%を全珠に乗算してJUELへ追加（JUEL_CHECK後なのでJUELへ直接）
+LOCAL:1 = FLAG:402 * 2
+FOR LOCAL:0, 0, 21
+	;GOTJUEL:LOCAL:0だとLOCAL:0をキャラ番号と誤解釈し範囲外エラー。括弧でパラム番号として評価する
+	SIF GOTJUEL:(LOCAL:0) > 0
+		JUEL:(LOCAL:0) += GOTJUEL:(LOCAL:0) * LOCAL:1 / 100
+NEXT
+;表示
+PRINTFORML 　（コマンド{FLAG:402}種 +{LOCAL:1}％）
+;リセット
+FLAG:402 = 0
+RETURN 0

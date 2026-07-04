@@ -9,6 +9,7 @@ UP:1 = 0
 UP:2 = 0
 UP:14 = 0
 UP:18 = 0
+CALL CMD_VARIETY_TRACK
 ;-------------------------------------------------
 ;接触の継続状態を管理
 ;-------------------------------------------------
@@ -386,6 +387,12 @@ ENDIF
 
 LOSEBASE:0 += D
 LOSEBASE:1 += E
+;小柄/子供体型は常に体力消費が増える（小さい身体の負担。子供は上位のデメリット）
+IF TALENT:149
+	TIMES LOSEBASE:0 , 1.50
+ELSEIF TALENT:100
+	TIMES LOSEBASE:0 , 1.30
+ENDIF
 
 ;-------------------------------------------------
 ;体力・気力の減少
@@ -919,6 +926,7 @@ REPEAT 5
 	ENDIF
 REND
 
+CALL ORGASM_COMBO_TRACK
 CALL ECST_CHECK
 
 ;LOCAL:0-7を初期化
@@ -1094,6 +1102,32 @@ IF LOCAL:7
 ELSE
 	LOCAL:7 = 1
 ENDIF
+
+;―― 強すぎる絶頂は恐怖・苦痛を生む（バランス調整。C/V/A/B/Mは珠倍率前の生強度）――
+;最強単発絶頂強度＋多重絶頂の上乗せで「強さ」を測る
+LOCAL:90 = MAX(C, V, A, B, M)
+LOCAL:90 += (LOCAL:5 - 1) * 4
+;最強絶頂(9)以上で発生し、強さに比例（上限6000）
+IF LOCAL:90 >= 9
+	LOCAL:91 = (LOCAL:90 - 8) * 120
+	SIF LOCAL:91 > 6000
+		LOCAL:91 = 6000
+	;快楽に馴染んだ子(マゾ/淫乱/快楽刻印/絶頂慣れ)は恐怖・苦痛が小さい
+	IF TALENT:79 || TALENT:76 || MARK:1 >= 3
+		TIMES LOCAL:91 , 0.30
+	ELSEIF EXP:2 >= EXPLV:3
+		TIMES LOCAL:91 , 0.60
+	ENDIF
+	;臆病な子は恐怖が増す
+	SIF TALENT:10
+		TIMES LOCAL:91 , 1.50
+	;苦痛(UP:9)・恐怖(UP:10)として加算し、他パラメータ同様UPCHECKで上昇表示させる
+	IF LOCAL:91 > 0
+		UP:9 += LOCAL:91
+		UP:10 += LOCAL:91
+	ENDIF
+ENDIF
+
 C *= LOCAL:7
 V *= LOCAL:7
 A *= LOCAL:7
@@ -2389,16 +2423,17 @@ IF SELECTCOM == 75
 		TIMES B , 1.70
 	ENDIF
 ELSE
+	;恥情の逓減を緩和（高恥情でも羞恥が入り続けるように。旧:0.9/0.7/0.5/0.3）
 	IF PALAM:8 < PALAMLV:1
 		TIMES B , 1.00
 	ELSEIF PALAM:8 < PALAMLV:2
-		TIMES B , 0.90
+		TIMES B , 1.00
 	ELSEIF PALAM:8 < PALAMLV:3
-		TIMES B , 0.70
+		TIMES B , 0.90
 	ELSEIF PALAM:8 < PALAMLV:4
-		TIMES B , 0.50
+		TIMES B , 0.80
 	ELSEIF PALAM:8 >= PALAMLV:4
-		TIMES B , 0.30
+		TIMES B , 0.70
 	ENDIF
 ENDIF
 
