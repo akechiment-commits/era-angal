@@ -26,8 +26,10 @@ SIF TFLAG:302 == 0
 SIF P != MASTER
 	RETURN 0
 
-;耐力減少量の算出
-CALL COUNTER_EJAC_DAMAGE
+;通常調教の耐力減少は、絶頂強度確定後に処理する。
+;REVMODEでは従来どおりDOWNBASEへ積み、同じオプションがONの時だけ適用する。
+SIF TFLAG:34
+	CALL COUNTER_EJAC_DAMAGE
 
 ;ソース追加
 ;SOURCE:3  情愛(恭順、欲情) 
@@ -103,21 +105,91 @@ RETURN 0
 ;射精時の体力へのダメージを別に計算
 ;---------------------------------------------------------
 @COUNTER_EJAC_DAMAGE
-;基準値(TFLAG:302　1:射精　2:大量射精　4:超大量射精）
-IF TFLAG:302 == 1
-	LOCAL = 100
-ELSEIF TFLAG:302 == 2
-	LOCAL = 200
-ELSE
-	LOCAL = 300
-ENDIF
+;REVMODE用。パートナーのターン追加をONにした場合だけ耐力を消費する。
+;通常調教では、絶頂強度まで確定した後にPARTNER_TURN_ENDURANCE_DAMAGEが処理する。
+SIF (FLAG:62 & 1p17) == 0 && TFLAG:997 == 0
+	RETURN 0
+
+;連射倍率は平方根に圧縮し、育成値が伸びても耐力消費だけが暴走しないようにする。
+;射精量区分(1/2/4)と実測mlは従来どおり反映する。
+LOCAL = 600 * TFLAG:302 * SQRT(TFLAG:714)
+LOCAL += TFLAG:719 * TFLAG:302 * 2
+SIF LOCAL < 1
+	LOCAL = 1
 
 ;押し倒され中はダメージ倍
 SIF TFLAG:51
 	LOCAL *= 2
 
-;耐力低下の処理。
-DOWNBASE:MASTER:4 = LOCAL
+DOWNBASE:(TFLAG:996):4 = LOCAL
+
+;---------------------------------------------------------
+;通常調教用。ARG～ARG:4はC/V/A/B/Mそれぞれの絶頂強度。
+;射精量が極端、または強い多重絶頂ほど急激に耐力を失う。
+;耐力0は強制終了条件にしない。
+;---------------------------------------------------------
+@PARTNER_TURN_ENDURANCE_DAMAGE, ARG, ARG:1, ARG:2, ARG:3, ARG:4
+#DIM DYNAMIC DAMAGE, 1
+#DIM DYNAMIC STRENGTH, 1
+#DIM DYNAMIC ORGASM_COUNT, 1
+#DIM DYNAMIC BEFORE_ENDURANCE, 1
+
+IF (FLAG:62 & 1p17) == 0 || TFLAG:302 == 0 || TFLAG:994 == 0
+	TFLAG:994 = 0
+	RETURN 0
+ENDIF
+
+;連射倍率は平方根に圧縮し、射精量区分と実測mlを加算する。
+DAMAGE = 600 * TFLAG:302 * SQRT(TFLAG:714)
+DAMAGE += TFLAG:719 * TFLAG:302 * 2
+
+STRENGTH = MAX(ARG, ARG:1, ARG:2, ARG:3, ARG:4)
+SIF ARG
+	ORGASM_COUNT += 1
+SIF ARG:1
+	ORGASM_COUNT += 1
+SIF ARG:2
+	ORGASM_COUNT += 1
+SIF ARG:3
+	ORGASM_COUNT += 1
+SIF ARG:4
+	ORGASM_COUNT += 1
+
+;絶頂強度と多重絶頂も反映するが、育成速度を越えて急増しない倍率に抑える。
+SIF STRENGTH || ORGASM_COUNT
+	DAMAGE = DAMAGE * (100 + STRENGTH * 2 + MAX(ORGASM_COUNT - 1, 0) * 10) / 100
+SIF DAMAGE < 1
+	DAMAGE = 1
+;パートナーの追加ターン中は、耐力の実消費量と表示をともに半額にする。
+SIF TFLAG:543
+	DAMAGE = (DAMAGE + 1) / 2
+
+PRINTFORML %CALLNAME:(TFLAG:996)%の耐力-{DAMAGE}（絶頂強度{STRENGTH}）
+BEFORE_ENDURANCE = BASE:(TFLAG:996):4
+BASE:(TFLAG:996):4 -= DAMAGE
+SIF BASE:(TFLAG:996):4 < 0
+	BASE:(TFLAG:996):4 = 0
+IF BEFORE_ENDURANCE > 0 && BASE:(TFLAG:996):4 == 0
+	;限界まで絞り出された経験は、通常の射精経験より大きく耐力上限を鍛える。
+	IF TFLAG:996 == MASTER
+		CFLAG:MASTER:1152 += 80 + RAND(41)
+	ELSE
+		;絶頂経験とは分けて、耐力枯渇回数だけを別カウンタへ記録する。
+		CFLAG:(TFLAG:996):1153 += 80 + RAND(41)
+	ENDIF
+	SELECTCASE RAND(4)
+	CASE 0
+		PRINTFORML %CALLNAME:TARGET%に何度も搾り立てられ、%CALLNAME:(TFLAG:996)%は最後の一滴まで空にされた……
+	CASE 1
+		PRINTFORML 容赦なく快感を重ねられ、%CALLNAME:(TFLAG:996)%の身体はもう何も残せず震えている……
+	CASE 2
+		PRINTFORML %CALLNAME:TARGET%は限界を悟ってなお手を緩めず、%CALLNAME:(TFLAG:996)%を力尽きるまで弄び抜いた……
+	CASEELSE
+		PRINTFORML 絞り出されたあとの鈍い余韻に、%CALLNAME:(TFLAG:996)%はぐったりと身を委ねた……
+	ENDSELECT
+ENDIF
+TFLAG:994 = 0
+RETURN 0
 
 ;---------------------------------------------------------
 ;耐力低下でパートナーと過ごすが終了するかどうかの分岐。

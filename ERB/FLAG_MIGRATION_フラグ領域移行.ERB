@@ -1,0 +1,57 @@
+;============================================================
+; 追加システム用FLAG領域の一度きり移行
+; 旧FLAG:101～199はキャラ別口上存在判定の予約領域。
+; 追加機能が誤って使用していた値を15000番台へ退避してから予約領域を復元する。
+;============================================================
+
+@CUSTOM_FLAG_MIGRATION
+SIF FLAG:15099 >= 1
+	RETURN 0
+
+;ガチャ通貨・学校行事・ログインボーナス
+FLAG:15000 = FLAG:112
+FLAG:15001 = FLAG:113
+FLAG:15002 = FLAG:114
+FLAG:15003 = FLAG:115
+FLAG:15004 = FLAG:116
+FLAG:15005 = FLAG:117
+FLAG:15006 = FLAG:118
+FLAG:15007 = FLAG:119
+
+;イベント別のエリア番号と月内報酬受取数
+REPEAT 6
+	FLAG:(15010 + COUNT) = FLAG:(98 + COUNT)
+	FLAG:(15020 + COUNT) = FLAG:(120 + COUNT)
+REND
+
+;イベントボード共有進行状態
+FOR LOCAL, 0, 6
+	FLAG:(15050 + LOCAL) = FLAG:(33 + LOCAL)
+NEXT
+
+;学校行事の実施年・優勝回数
+FOR LOCAL, 0, 6
+	FLAG:(15060 + LOCAL) = FLAG:(50 + LOCAL)
+NEXT
+
+;調合素材の発見状態。旧3001～3100はカード所持数と重複していたため分離する。
+FOR LOCAL, 0, 101
+	FLAG:(15100 + LOCAL) = FLAG:(3000 + LOCAL)
+NEXT
+
+;子ども関連は旧121/122を信用できないため、実データから復元する。
+LOCAL:0 = 0
+REPEAT CHARANUM
+	LOCAL:0 += EXP:COUNT:61
+REND
+FLAG:15030 = DAY:7 / 10 + 1
+SIF LOCAL:0 > 0
+	FLAG:15031 = 1
+
+;現行コードにはKOJO_NEXT_PLAY_nがないため、予約領域は全て未使用状態へ戻す。
+FOR LOCAL, 101, 200
+	FLAG:LOCAL = 0
+NEXT
+
+FLAG:15099 = 1
+RETURN 1

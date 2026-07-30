@@ -6,6 +6,9 @@
 ;夜、厳しい条件をクリアすると…？
 
 @SELF_CHECK
+;体力0による強制終了時だけ、調教後行為をすべてスキップする。
+SIF TFLAG:301
+	RETURN 0
 ;合意持ち、かつ、ウフフに突入していたなら終了後にハッスルする可能性アリ(主人公が童貞だと発生しない)
 SIF TALENT:152 && TFLAG:44 && TALENT:MASTER:154 == 0
 	CALL AFTER_V_CHECK
@@ -31,8 +34,8 @@ WAIT
 @AFTER_V_CHECK
 ;恋慕、非処女による調教後性交渉チェック
 
-;体力余って、[恋慕]がないとダメ
-SIF BASE:0 < 500 || TALENT:TARGET:85 == 0 || TFLAG:301
+;[恋慕]がない場合、または体力0による強制終了時は実行しない。
+SIF TALENT:TARGET:85 == 0 || TFLAG:301
 	RETURN 0
 ;カットフラグが立っていたらリターン
 SIF CFLAG:98 & 1
@@ -103,10 +106,8 @@ IF ((TALENT:74 && A == 4) || (TALENT:75 && A == 3)) && S
 	S += 1
 ENDIF
 
-;回数と経験は上限12
+;回数と経験は能力に応じて上限なく伸びる
 S:1 = S
-SIF S >= 12
-	S = 12
 
 ;変数退避
 LOCAL = S
@@ -163,9 +164,9 @@ IF S > 0
 	ENDIF
 	;レズ経験
 	IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
-		EXP:40 += S * 20
-		EXP:MASTER:40 += S * 20
-		PRINTFORML %EXPNAME:40%＋{S*20}
+		EXP:40 += S * 4
+		EXP:MASTER:40 += S * 4
+		PRINTFORML %EXPNAME:40%＋{S*4}
 	ENDIF
 	
 	;ターゲットが挿入されるときはV
@@ -314,21 +315,8 @@ IF TALENT:75
 	C += 1
 ENDIF
 
-;体力が500未満だと半分になる
-IF BASE:0 <= 500
-	A /= 2
-	;Aが6回以上だったら5回以下にする
-	SIF A > 6
-		A %= 6
-	;Aが0だった場合1にする
-	SIF A < 1
-		A = 1
-ENDIF
-
-;回数と経験は上限12
+;回数と経験は能力に応じて上限なく伸びる
 A:1 = A
-SIF A >= 12
-	A = 12
 
 ;変数退避
 LOCAL = A
@@ -444,8 +432,8 @@ SIF ABL:9 < 2 || ABL:3 < 3 || ABL:0 < 2 || ABL:1 < 5
 SIF ABL:12 == 0 && ABL:ASSI:12 == 0
 	RETURN 0
 
-;体力必要
-SIF BASE:0 < 500 || TFLAG:301
+;体力0による強制終了時は実行しない。
+SIF TFLAG:301
 	RETURN 0
 
 VARSET N, 0
@@ -526,12 +514,12 @@ N = LOCAL
 N:1 = LOCAL:1
 
 ;基本報酬（全パターン共通）
-PRINTFORML %EXPNAME:40%＋{N*20}（パートナー・助手）
+PRINTFORML %EXPNAME:40%＋{N*4}（パートナー・助手）
 PRINTFORML %EXPNAME:2%＋{N}（パートナー）
 PRINTFORML %PALAMNAME:5%の珠＋{N:1*250}
 PRINTFORML %PALAMNAME:7%の珠＋{N:1*200}
-EXP:40 += N*20
-EXP:ASSI:40 += N*20
+EXP:40 += N*4
+EXP:ASSI:40 += N*4
 EXP:2 += N
 GOTJUEL:5 += N:1*250
 GOTJUEL:7 += N:1*200
@@ -620,9 +608,6 @@ SIF CFLAG:98 & 8
 ;キス魔または高親密度でないとダメ
 SIF TALENT:155 == 0 && ABL:0 < 8
 	RETURN 0
-;体力余っていないとダメ
-SIF BASE:0 < 300
-	RETURN 0
 
 VARSET S, 0
 
@@ -691,9 +676,6 @@ SIF CFLAG:98 & 128
 ;奉仕精神が十分でないとダメ
 SIF ABL:6 < 5
 	RETURN 0
-;体力余っていないとダメ
-SIF BASE:0 < 300
-	RETURN 0
 
 VARSET S, 0
 
@@ -755,8 +737,8 @@ RETURN 0
 
 @SELF_CHECK2
 
-;恋慕で体力が500以上有って夜じゃなきゃダメ
-SIF TALENT:TARGET:85 == 0 || BASE:0 < 500 || TIME == 0
+;恋慕持ちで夜でなければ実行しない。体力による制限は設けない。
+SIF TALENT:TARGET:85 == 0 || TIME == 0
 	RETURN 0
 
 ;夜這いをランダムにしてみる
@@ -841,10 +823,8 @@ IF (TALENT:74 && A == 4) || (TALENT:75 && A == 3)
 	S += 1
 ENDIF
 
-;回数と経験は上限9
+;回数と経験は能力に応じて上限なく伸びる
 S:1 = S
-SIF S >= 9
-	S = 9
 
 ;変数退避
 LOCAL = S
@@ -912,9 +892,9 @@ IF S > 0
 	ENDIF
 	;レズ経験
 	IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
-		EXP:40 += S * 20
-		EXP:MASTER:40 += S * 20
-		PRINTFORML %EXPNAME:40%＋{S*20}
+		EXP:40 += S * 10
+		EXP:MASTER:40 += S * 10
+		PRINTFORML %EXPNAME:40%＋{S*10}
 	ENDIF
 	
 	;ターゲットが挿入されるときはV
@@ -994,10 +974,8 @@ SIF TALENT:TARGET:154
 SIF TALENT:TARGET:155
 	S += 1
 
-;回数と経験は上限9
+;回数と経験は能力に応じて上限なく伸びる
 S:1 = S
-SIF S >= 9
-	S = 9
 
 ;変数退避
 LOCAL = S
@@ -1035,9 +1013,9 @@ IF S > 0
 	PRINTFORML %EXPNAME:23%＋{S}
 	PRINTFORML %EXPNAME:96%＋{S*2}
 	IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
-		EXP:40 += S * 10
-		EXP:MASTER:40 += S * 10
-		PRINTFORML %EXPNAME:40%＋{S*10}
+		EXP:40 += S * 5
+		EXP:MASTER:40 += S * 5
+		PRINTFORML %EXPNAME:40%＋{S*5}
 	ENDIF
 	PRINTFORML %PALAMNAME:4%の珠＋{S:1*400}
 	PRINTFORML %PALAMNAME:7%の珠＋{S:1*200}
@@ -1097,10 +1075,8 @@ SIF TALENT:TARGET:153
 SIF TALENT:TARGET:154
 	S += 1
 
-;回数と経験は上限9
+;回数と経験は能力に応じて上限なく伸びる
 S:1 = S
-SIF S >= 9
-	S = 9
 
 ;変数退避
 LOCAL = S

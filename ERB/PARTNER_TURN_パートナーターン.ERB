@@ -1,0 +1,206 @@
+;============================================================
+; パートナーのターン追加
+; 通常の調教でプレイヤーが一手行った後、パートナーが自分で一手を選んで行う。
+; 完全主導権モードの「誘い→リアクション選択」はそのまま残し、ここでは
+; 二重入力にならないようリアクションまで自動で決める。
+;============================================================
+@EVENTCOMEND
+#LATER
+
+;設定OFF、完全主導権中、お任せ連続実行中、どちらかが限界の時には重ねない。
+SIF (FLAG:62 & 16) == 0 || TFLAG:34 || TFLAG:999 || TARGET < 0 || BASE:TARGET:0 <= 0 || BASE:PLAYER:0 <= 0
+	RETURN 0
+;調教コマンドの終了時だけ発生させる。終了・設定などのユーザーコマンドは除外する。
+SIF SELECTCOM < 0 || SELECTCOM > 414
+	RETURN 0
+CALL PARTNER_TURN_EXECUTE
+RETURN 0
+
+;-------------------------------------------------
+; パートナーの追加行動を一手だけ実行する
+;-------------------------------------------------
+@PARTNER_TURN_EXECUTE
+
+CALL PARTNER_TURN_SELECT
+SIF TFLAG:53 <= 0
+	RETURN 0
+
+;通常ターンの消費値を引き継がない。PASSIVEMODE経由ではこの初期化が行われないため、
+;前の行動のLOSEBASEが残ると、会話のような軽い行動まで過大に消耗してしまう。
+LOSEBASE:0 = 0
+LOSEBASE:1 = 0
+DOWNBASE:MASTER:0 = 0
+DOWNBASE:MASTER:4 = 0
+
+DRAWLINE
+PRINTFORML 【%CALLNAME:TARGET%のターン】
+;相手が何をしたいかを示す既存のパッシブ用口上を使う。
+CALL PASSIVEMODE_PASSIVEPHASE(TARGET)
+
+;交流は自然に応じ、性的な誘いは積極的に受け入れる扱いにする。
+SELECTCASE TFLAG:53
+CASE 8, 9, 10, 12, 15, 21, 22, 23
+	RESULT = 0
+CASEELSE
+	RESULT = 5
+ENDSELECT
+;SOURCE_CHECK側で体力・気力の消費量を半分にするための一時印。
+TFLAG:543 = 1
+CALL PASSIVEMODE_ACTIVEPHASE
+TFLAG:543 = 0
+RETURN 0
+
+;-------------------------------------------------
+; 相手が選べる行動を抽出する
+; 関係が浅い間は談笑だけに限定し、親密度に応じて段階的に解放する。
+;-------------------------------------------------
+@PARTNER_TURN_SELECT
+#DIM DYNAMIC ACTION, 1
+#DIM DYNAMIC ACTION_COUNT, 1
+#DIM DYNAMIC SLOT, 1
+#DIM DYNAMIC TOTAL_WEIGHT, 1
+#DIM DYNAMIC PICK, 1
+#DIM DYNAMIC DOTRAIN_BACKUP, 1
+
+VARSET F, 0
+TFLAG:53 = 0
+DOTRAIN_BACKUP = TFLAG:DOTRAIN
+SKIPDISP 1
+FOR ACTION, 0, 50
+	TRYCCALLFORM PASSIVE_MESSAGE_{ACTION}
+		TFLAG:53 = ACTION
+		CALL PASSIVEMODE_PASSIVE_COMABLE
+		SIF RESULT == 0
+			CONTINUE
+		;デートは通常COMが行き先入力を開くため、追加ターンでは選ばない。
+		SIF ACTION == 29
+			CONTINUE
+		;押し倒し（脱衣を伴う演出）は相手ターンの候補にしない。
+		;脱衣への移行は、非ウフフ時に欲情が閾値へ達したAUTO_TRAIN_EVENTCOMENDだけが行う。
+		SIF ACTION == 30
+			CONTINUE
+		;追加ターンで連発すると単調になるため、頭を撫でるは候補にしない。
+		SIF ACTION == 12
+			CONTINUE
+		;「～させる」系とぱふぱふは、相手の自発行動ではなくプレイヤーへ強く誘導する特殊演出。
+		;追加ターンには載せない。
+		SIF ACTION >= 43 && ACTION <= 46
+			CONTINUE
+		;非ウフフ時や着衣中でも、会話・キス・抱擁などの交流行動は候補に残す。
+		;明確な性的行動だけをウフフ中かつ脱衣後に限定する。
+		IF TFLAG:44 == 0 || UNDERWARED()
+			SIF ACTION == 18 || ACTION >= 31
+				CONTINUE
+		ENDIF
+		;関係が浅い間は、談笑だけにする。
+		;既存の「見つめあう」は実行後の共通地の文が性的なので、恋慕まで封印する。
+		SIF TALENT:TARGET:85 == 0 && ACTION != 22
+			CONTINUE
+		;恋慕後も、合意がなければ距離を詰める行為は自発しない。
+		SIF TALENT:TARGET:152 == 0 && ACTION != 22
+			CONTINUE
+		;明確に性的な誘いは、恋慕・合意に加えて恋人または淫乱の段階から。
+		;恋人なのに淫乱がないだけでキス以外が全落ちしないよう、お任せ側と条件を揃える。
+		SIF (ACTION >= 18 && ACTION <= 42) && TALENT:TARGET:153 == 0 && TALENT:TARGET:76 == 0
+			CONTINUE
+		;相手主導の挿入は、恋人または淫乱に加え、潤滑が始まっており通常コマンドの実行条件を満たす時だけ。
+		;実際のコマンド可否も確認してから候補に入れるため、装備・性別などの既存制限もそのまま尊重する。
+		IF ACTION == 47
+			SIF (TALENT:TARGET:153 == 0 && TALENT:TARGET:76 == 0) || PALAM:3 < PALAMLV:1
+				CONTINUE
+		ENDIF
+		;パッシブ側の条件だけでなく、変換先の通常コマンドが現在のウフフ状態で
+		;本当に実行可能かも照合する。会話・キス等の「ウフフ中は不可」を混入させない。
+		;COM_ABLE_COMMONはTFLAG:53が立ったままだと通常COMを無条件で拒否するため、
+		;行動番号はACTIONに保持したまま、一時的に通常入力相当の状態で判定する。
+		SELECTCOM = PASSIVEMODE_CONVERT_PASSIVECOM(PREVCOM, TFLAG:53)
+		TFLAG:53 = 0
+		TFLAG:DOTRAIN = 1
+		;COM_ABLEを持たないパッシブ内部用COMは、個別制限なしとして候補に残す。
+		RESULT = 1
+		TRYCALLFORM COM_ABLE{SELECTCOM}
+		TFLAG:DOTRAIN = DOTRAIN_BACKUP
+		TFLAG:53 = ACTION
+		SIF RESULT == 0
+			CONTINUE
+		F:ACTION_COUNT = ACTION
+		ACTION_COUNT += 1
+	CATCH
+		CONTINUE
+	ENDCATCH
+NEXT
+SKIPDISP 0
+TFLAG:DOTRAIN = DOTRAIN_BACKUP
+
+IF ACTION_COUNT <= 0
+	;ウフフ中は実行不能な会話へフォールバックさせず、相手ターンそのものを見送る。
+	;非ウフフ時だけ、従来どおり談笑を安全な最低候補にする。
+	IF TFLAG:44
+		TFLAG:53 = 0
+	ELSE
+		TFLAG:53 = 22
+	ENDIF
+	RETURN 0
+ENDIF
+
+FOR SLOT, 0, ACTION_COUNT
+	TOTAL_WEIGHT += PARTNER_TURN_ACTION_WEIGHT(F:SLOT)
+NEXT
+PICK = RAND:TOTAL_WEIGHT
+FOR SLOT, 0, ACTION_COUNT
+	PICK -= PARTNER_TURN_ACTION_WEIGHT(F:SLOT)
+	IF PICK < 0
+		TFLAG:53 = F:SLOT
+		RETURN 0
+	ENDIF
+NEXT
+TFLAG:53 = F:0
+RETURN 0
+
+;-------------------------------------------------
+; 素質・能力・進行度に応じた重み
+; 親密なら交流、欲望・感覚・奉仕・サド気が伸びれば性的な誘いを選びやすくする。
+;-------------------------------------------------
+@PARTNER_TURN_ACTION_WEIGHT, ARG
+#FUNCTION
+#DIM DYNAMIC WEIGHT, 1
+
+WEIGHT = 1
+;恋慕前は談笑だけにする。
+IF TALENT:TARGET:85 == 0
+	SIF ARG == 22
+		WEIGHT = 12
+	RETURNF WEIGHT
+ENDIF
+;ウフフ中のキス3種はすべて通常キス(COM6)へ変換される。
+;同じ行動へ好感度の巨大な重みが3回乗らないよう、キス枠は低めかつ上限付きにする。
+IF GROUPMATCH(ARG, 8, 9, 10)
+	IF TFLAG:44
+		WEIGHT += 2 + ABL:TARGET:0 / 2 + MIN(CFLAG:TARGET:2 / 20000, 6)
+	ELSE
+		WEIGHT += 5 + ABL:TARGET:0 + MIN(CFLAG:TARGET:2 / 5000, 12)
+	ENDIF
+ELSEIF GROUPMATCH(ARG, 12, 15, 21, 22, 23)
+	;交流系も好感度を無制限に重みにしない。
+	WEIGHT += 8 + ABL:TARGET:0 + MIN(CFLAG:TARGET:2 / 5000, 12)
+ENDIF
+IF ARG == 30
+	WEIGHT += ABL:TARGET:1 + ABL:TARGET:15 + TALENT:TARGET:76 * 4
+ENDIF
+IF ARG >= 31 && ARG <= 46
+	WEIGHT += 2 + ABL:TARGET:1 + ABL:TARGET:6 + (ABL:TARGET:3 + ABL:TARGET:4 + ABL:TARGET:5) / 2
+	WEIGHT += TALENT:TARGET:76 * 5
+ENDIF
+IF ARG >= 35 && ARG <= 42
+	WEIGHT += ABL:TARGET:15 + ABL:TARGET:7
+ENDIF
+;相手主導の騎乗位は条件を満たした後半だけ、欲情・奉仕・感覚が高いほど自然に選ばれやすい。
+IF ARG == 47
+	;他の性的行動と同じ能力値勾配を使い、少しだけ選ばれやすい程度にする。
+	;旧基礎値500では候補総重量の大半を占め、実質的に騎乗位しか出なくなっていた。
+	WEIGHT += 8 + ABL:TARGET:1 + ABL:TARGET:6 + (ABL:TARGET:3 + ABL:TARGET:4 + ABL:TARGET:5) / 2
+	WEIGHT += TALENT:TARGET:76 * 5 + MIN(PALAM:5 / 5000, 12)
+ENDIF
+SIF WEIGHT < 1
+	WEIGHT = 1
+RETURNF WEIGHT

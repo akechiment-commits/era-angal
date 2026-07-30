@@ -22,10 +22,10 @@ OUT_ERB  = Path("../ERB/CARD_DATA_カードデータ定義.ERB")
 
 # レア度 → ボーナス値
 # 1=N, 2=R, 3=HR, 4=SR, 5=UR, 6=MR
-RARITY_BONUS = {1: 2, 2: 5, 3: 9, 4: 15, 5: 25, 6: 40}
+RARITY_BONUS = {1: 8, 2: 20, 3: 36, 4: 60, 5: 100, 6: 160}
 RARITY_LABEL = {1:"N", 2:"R", 3:"HR", 4:"SR", 5:"UR", 6:"MR"}
 
-SPORTS = {"ラクロス","バレー","バスケ","サッカー","テニス","陸上","体操","水泳","剣道",
+SPORTS = {"ラクロス","バレー","バスケ","サッカー","テニス","陸上","体操","水泳","剣道","空手",
           "柔道","ソフトボール","卓球","アーチェリー","弓道","バドミントン"}
 ARTS   = {"吹奏楽","演劇","合唱","軽音","美術","写真","放送","ダンス","文芸"}
 STUDY  = {"科学","数学","化学","天文","囲碁","将棋","料理研究","茶道","書道","生物"}
@@ -37,6 +37,17 @@ def load_cards():
         return []
     with open(CARD_CSV, encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
+
+
+def get_card_id(card):
+    return int(card.get("id") or card["card_id"])
+
+
+def get_card_character_name(card):
+    if card.get("char_name"):
+        return card["char_name"].strip()
+    # 現行card_data.csvは「[衣装名]キャラ名」のcard_nameとchar_noを持つ。
+    return card["card_name"].rsplit("]", 1)[-1].strip()
 
 
 def build_char_id_map(cards):
@@ -60,7 +71,7 @@ def build_char_id_map(cards):
                     if name:
                         name_to_id[name] = i
         else:
-            names = list(dict.fromkeys(c["char_name"] for c in cards))
+            names = list(dict.fromkeys(get_card_character_name(c) for c in cards))
             name_to_id = {n: i for i, n in enumerate(names, 1)}
     return name_to_id
 
@@ -84,11 +95,17 @@ def build_bonus_type_map():
                             if st in club: btype = 2; break
                 if name:
                     name_to_bonus[name] = btype
+    # 現行card_data.csvはキャラ名列を持たないため、CSV番号でも引けるようにする。
+    import re
+    for path in Path("../CSV").glob("Chara*.csv"):
+        match = re.match(r"Chara(\d+)_(.+)\.csv", path.name)
+        if match and match.group(2) in name_to_bonus:
+            name_to_bonus[int(match.group(1))] = name_to_bonus[match.group(2)]
     return name_to_bonus
 
 
 def write_era_csv(cards):
-    lines = [f"{int(c['id'])},{c['card_name']}" for c in cards]
+    lines = [f"{get_card_id(c)},{c['card_name']}" for c in cards]
     with open(OUT_CSV, "w", encoding="cp932", newline="\r\n") as f:
         f.write(";カードID,カード名\n")
         f.write("\n".join(lines) + "\n")
@@ -105,13 +122,14 @@ def write_era_erb(cards, char_map, bonus_map=None):
     cards_by_char_rarity = defaultdict(list)     # (char_id, rarity) → [card_seq_id, ...]
 
     for c in cards:
-        cid     = int(c["id"])
-        char_id = char_map.get(c["char_name"], 0)
+        cid     = get_card_id(c)
+        char_name = get_card_character_name(c)
+        char_id = int(c["char_no"]) if c.get("char_no") else char_map.get(char_name, 0)
         rarity  = int(c["rarity"])
         btype   = (int(c["bonus_type"]) if "bonus_type" in c and c.get("bonus_type","") != ""
-                   else bonus_map.get(c["char_name"], hash(c["char_name"]) % 4))
+                   else bonus_map.get(char_id, bonus_map.get(char_name, 3)))
         bval    = RARITY_BONUS.get(rarity, 2)
-        card_name = c.get("card_name", c["char_name"])
+        card_name = c.get("card_name", char_name)
         card_info[cid] = (char_id, rarity, btype, bval, card_name)
         if char_id > 0:
             cards_by_char_rarity[(char_id, rarity)].append(cid)
@@ -252,7 +270,7 @@ def main():
         return
     char_map  = build_char_id_map(cards)
     bonus_map = build_bonus_type_map()
-    print(f"カード数: {len(cards)}, キャラ数: {len(set(c['char_name'] for c in cards))}")
+    print(f"カード数: {len(cards)}, キャラ数: {len(set(int(c['char_no']) for c in cards))}")
     write_era_csv(cards)
     write_era_erb(cards, char_map, bonus_map)
     update_card_count_limits(len(cards))

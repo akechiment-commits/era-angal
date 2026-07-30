@@ -5,6 +5,11 @@
 @COM323
 ;デート
 
+IF TFLAG:999 && TEQUIP:2 && MONEY > 2000 && TFLAG:44 == 0 && TFLAG:62 == 0
+	;オート中の再デートは、パートナーが次の行き先を決める。
+	FLAG:8 = TEQUIP:2
+	GOTO DATE_LOOP4
+ENDIF
 IF TEQUIP:2 && MONEY > 2000 && TFLAG:44 == 0 && TFLAG:62 == 0
 	PRINTL [0] デート終了
 	PRINTL [1] 場所を変える($2000を消費)
@@ -42,7 +47,7 @@ ELSE
 	PRINTL デート($5000を消費)
 ENDIF
 
-CALL GET_SUCCESS_RATE
+CALL GET_DAILY_SUCCESS_RATE
 B = 90 + A / 10
 SIF B > 99
 	B = 99
@@ -120,10 +125,19 @@ ELSE
 			;パートナーに行きたいデート先がない場合LOCALクリア
 			LOCAL = 0
 		ENDIF
+		;オート中は入力を出さず、パートナーが選んだ標準行き先へ向かう。
+		IF TFLAG:999
+			SIF LOCAL < 1 || LOCAL > 9
+				LOCAL = 1
+			TEQUIP:2 = LOCAL
+			TFLAG:17 = 1
+			CALL PLACE_NAME
+			PRINTFORML %CALLNAME:TARGET%は%STR:4%へ行きたいようだ
+		ELSE
 		CALL GENSOUKYO_DATE
+		ENDIF
 	ENDIF
 ENDIF
-
 ;何処も選択しなかった場合
 IF TEQUIP:2 == 0 || FLAG:8 == 100
 	FLAG:8 = 0
@@ -150,7 +164,7 @@ IF LOCAL
 		TFLAG:17 = 2
 	ELSE
 		;成功もしくは失敗
-		CALL GET_SUCCESS_RATE
+		CALL GET_DAILY_SUCCESS_RATE
 		B = 50 + A / 10
 		SIF B > 99
 			B = 99
@@ -2488,7 +2502,7 @@ ENDIF
 
 ;すべての命令に共通の要素を考慮
 ;(従順が高いと命令に従いやすいなど)
-CALL COM_ORDER
+CALL COM_ORDER_DAILY
 
 ;男嫌い
 IF TALENT:82 && TALENT:PLAYER:122

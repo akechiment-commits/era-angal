@@ -10,6 +10,8 @@
 
 ;コンフィグを保存
 PRICONFIG = FLAG:62
+;パートナーのターン追加がONだったかを保持する。REVMODE中は同ビットを一時的に消すため。
+TFLAG:997 = FLAG:62 & 1p17
 ;パートナーのターンを削除
 CLEARBIT FLAG:62, 4
 ;カウンターモードON
@@ -25,9 +27,8 @@ CALL REVMODE_TRAIN_MAIN
 
 ;コンフィグを元に戻す
 FLAG:62 = PRICONFIG
-;PLAYERの体力が0以下
-SIF BASE:MASTER:4 <= 0
-	CALL COUNTER_DOWN
+;耐力0は強制終了にしない。
+TFLAG:997 = 0
 ;調教終了
 BEGIN AFTERTRAIN
 
@@ -1812,6 +1813,12 @@ CALL TARGET_MILK_CHECK
 CALL MASTER_FLAG_CHECK
 
 ;体力・気力の減少
+;パートナー主導の一手は、体力・気力・耐力の実消費量と表示をともに半額にする。
+IF TFLAG:543
+	LOSEBASE:0 = (LOSEBASE:0 + 1) / 2
+	LOSEBASE:1 = (LOSEBASE:1 + 1) / 2
+	DOWNBASE:MASTER:4 = (DOWNBASE:MASTER:4 + 1) / 2
+ENDIF
 BASE:0 -= LOSEBASE:0
 BASE:1 -= LOSEBASE:1
 
