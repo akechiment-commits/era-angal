@@ -44,29 +44,36 @@ RETURN 0
 
 ;-------------------------------------------------
 ; 子ども手当（毎月＝ゲーム内10日ごとに1回支給）
-;   FLAG:121 = 最終支給月(DAY:7/10)
+;   FLAG:15030 = 最終支給期間+1（0は移行前）
+;   FLAG:15031 = 子宝図鑑解放
 ;   全キャラの累計出産数(EXP:61)に応じて資金＋キミサキダイヤ少量
 ;   ※金額はLOCAL:2/LOCAL:3の係数で調整可
 ;-------------------------------------------------
 @CHILD_ALLOWANCE_CHECK
-LOCAL:0 = DAY:7 / 10
-SIF FLAG:121 == LOCAL:0
-	RETURN 0
-FLAG:121 = LOCAL:0
+LOCAL:0 = DAY:7 / 10 + 1
 ;累計出産数を集計
 LOCAL:1 = 0
 REPEAT CHARANUM
 	LOCAL:1 += EXP:COUNT:61
 REND
+;子供がいれば子宝図鑑を解放（既存セーブ救済）
+SIF LOCAL:1 > 0
+	FLAG:15031 = 1
+;移行前のセーブは現在期間を支給済みとして登録し、重複支給を防ぐ
+IF FLAG:15030 == 0
+	FLAG:15030 = LOCAL:0
+	RETURN 0
+ENDIF
+SIF FLAG:15030 == LOCAL:0
+	RETURN 0
+FLAG:15030 = LOCAL:0
 SIF LOCAL:1 <= 0
 	RETURN 0
-;子供がいれば子宝図鑑を解放（既存セーブ救済）
-FLAG:122 = 1
 ;支給額（資金=人数×10000 / ダイヤ=人数×1）
 LOCAL:2 = LOCAL:1 * 10000
 LOCAL:3 = LOCAL:1
 MONEY += LOCAL:2
-FLAG:112 += LOCAL:3
+FLAG:15000 += LOCAL:3
 DRAWLINE
 PRINTFORML ★ 子ども手当 ★
 PRINTFORML 学院の子ども{LOCAL:1}人ぶんの手当が支給されました

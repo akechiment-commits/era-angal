@@ -483,6 +483,14 @@ ELSEIF TEQUIP:5 == 3 && TEQUIP:2
 		LOSEBASE:1 -= 10
 ENDIF
 
+;パートナー主導の一手は、相手に無理をさせないペースで進む。
+;表示前に補正するため、体力・気力の実消費量と表示をともに半額にする。
+IF TFLAG:543
+	LOSEBASE:0 = (LOSEBASE:0 + 1) / 2
+	LOSEBASE:1 = (LOSEBASE:1 + 1) / 2
+	DOWNBASE:MASTER:0 = (DOWNBASE:MASTER:0 + 1) / 2
+ENDIF
+
 BASE:0 -= LOSEBASE:0
 BASE:1 -= LOSEBASE:1
 
@@ -617,10 +625,9 @@ SIF SELECTCOM != 7
 	PREVCOM = SELECTCOM
 
 ;-------------------------------------------------
-;MASTERの体力が限界の際の終了
+;主人公の体力・耐力による調教の強制終了は行わない。
+;耐力はパートナーのターン追加をONにした際の消耗リソースとして0で止める。
 ;-------------------------------------------------
-SIF BASE:MASTER:0 <= 500
-	CALL COUNTER_DOWN
 
 ;-------------------------------------------------
 ;ムード表示用フラグのセット
@@ -1387,6 +1394,8 @@ IF C || V || A || B || M
 	TFLAG:710 = LOCAL:5
 	TRYCALLFORM CHAR_ORGASM_{NO:TARGET}
 ENDIF
+;パートナーのターン追加をONにした場合だけ、射精量と今回の絶頂強度から耐力を消費する。
+CALL PARTNER_TURN_ENDURANCE_DAMAGE, C, V, A, B, M
 RETURN C, V, A, B, M
 
 ;-------------------------------------------------

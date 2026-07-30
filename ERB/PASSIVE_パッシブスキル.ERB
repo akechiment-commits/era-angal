@@ -60,6 +60,7 @@ TSTR:43 = 手で愛撫させる
 TSTR:44 = 胸を揉ませる
 TSTR:45 = 胸を舌で愛撫させる
 TSTR:46 = ぱふぱふ
+TSTR:47 = 騎乗位
 
 ;----------------------------------------------------------------
 ;PASSIVEPHASE(TARGET)
@@ -139,8 +140,8 @@ SIF GROUPMATCH(TFLAG:53, 1, 2, 3, 4, 5, 6, 7, 11, 19)
 ;デート中はデートはダメ
 SIF TEQUIP:2 && TFLAG:53 == 29
 	RETURN 0
-;淫乱がないとハード系コマンドはダメ
-SIF TALENT:76 == 0 && TFLAG:53 >= 31
+;恋人でも淫乱でもない場合はハード系コマンドを選ばない
+SIF TALENT:76 == 0 && TALENT:153 == 0 && TFLAG:53 >= 31
 	RETURN 0
 ;愛を囁くは恋慕がないとダメ
 SIF TALENT:85 == 0 && TFLAG:53 == 15
@@ -176,22 +177,25 @@ RETURN 1
 @PASSIVEMODE_CONVERT_PASSIVECOM(ARG:0, ARG:1)
 #FUNCTION
 SELECTCASE TFLAG:53
-;バードキス
-CASE 8
-	;バードキス
-	RETURNF 340
-;ソフトキス
-CASE 9
-	;ソフトキス
-	RETURNF 341
-;ディープキス
-CASE 10
-	;ディープキス
-	RETURNF 342
-;頭を撫でる
+;キス
+CASE 8, 9, 10
+	IF TFLAG:44
+		;ウフフ中用の通常キス
+		RETURNF 6
+	ELSE
+		SELECTCASE TFLAG:53
+		CASE 8
+			RETURNF 340
+		CASE 9
+			RETURNF 341
+		CASEELSE
+			RETURNF 342
+		ENDSELECT
+	ENDIF
+;頭を撫でてもらう
 CASE 12
-	;頭を撫でる
-	RETURNF 312
+	;パートナーがプレイヤーの頭を撫でる
+	RETURNF 318
 ;愛を囁く
 CASE 15
 	;会話
@@ -260,8 +264,13 @@ CASE 39
 	RETURNF 32
 ;性器擦り合い
 CASE 40
-	;貝あわせ
-	RETURNF 63
+	IF PENIS(PLAYER)
+		;男性器がある場合は素股
+		RETURNF 33
+	ELSE
+		;女性器同士なら貝あわせ
+		RETURNF 63
+	ENDIF
 ;顔面騎乗クンニ
 CASE 41
 	;クンニ
@@ -270,6 +279,10 @@ CASE 41
 CASE 42
 	;アナル舐め
 	RETURNF 9
+;騎乗位
+CASE 47
+	;騎乗位
+	RETURNF 34
 ;手で愛撫させる
 CASE 43
 	;愛撫
@@ -446,7 +459,7 @@ TFLAG:100 = 0
 TFLAG:540 = 0
 
 ;PLAYERに男性器がある
-IF PENIS(PLAYER)
+IF PENIS(PLAYER) && TFLAG:543 == 0
 	SELECTCASE ARG:1
 	;快感に耐える（1/4）
 	CASE 6
@@ -637,8 +650,8 @@ CASE 303
 	CASE 5
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%とずっとこうしていたいと思っているようだ…
 	ENDSELECT
-;頭を撫でる
-CASE 312
+;頭を撫でてもらう
+CASE 318
 	SELECTCASE ARG:1
 	;消極的にやる
 	CASE 4
@@ -1420,7 +1433,7 @@ IF TALENT:85
 		PRINTFORML 優しい微笑みを向けて話しかけた…
 	ENDIF
 ELSE
-	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%に他愛の無い話をかけてきた…
+	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%に他愛のない話をしてきた…
 ENDIF
 ;視姦
 @PASSIVE_MESSAGE_23
@@ -1558,6 +1571,10 @@ ELSE
 	PRINTFORM 整った形の乳房を
 ENDIF
 PRINTFORML 突き出し口で奉仕するよう誘惑している…
+;騎乗位
+@PASSIVE_MESSAGE_47
+PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%の上に跨り、ゆっくりと腰を下ろしてきた…
+
 ;ぱふぱふ
 @PASSIVE_MESSAGE_46
 PRINTFORM %CALLNAME:TARGET%は%CALLNAME:PLAYER%の顔を両側から

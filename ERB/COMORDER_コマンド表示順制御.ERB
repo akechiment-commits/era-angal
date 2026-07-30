@@ -26,6 +26,163 @@ ENDIF
 RETURN 1
 
 ;-------------------------------------------------
+;日常・交流コマンド用の成功率基準値
+;性的なPALAM・素質は使わず、親密・好感度・相性・性格だけを見る
+;-------------------------------------------------
+@GET_DAILY_SUCCESS_RATE
+;親密
+A = ABL:0 * 5
+
+;性格
+SIF TALENT:11
+	A -= 5
+SIF TALENT:12
+	A -= 3
+SIF TALENT:13
+	A += 5
+SIF TALENT:15
+	A -= 5
+SIF TALENT:17
+	A += 3
+SIF TALENT:23
+	A += 3
+
+;男嫌い
+SIF TALENT:82 && TALENT:PLAYER:122
+	A -= 7
+
+;プレイヤーの対人魅力
+SIF TALENT:PLAYER:91
+	A += 6
+SIF TALENT:PLAYER:92
+	A += 6
+
+;相性
+R = NO:PLAYER
+IF RELATION:R > 0 && RELATION:R < 30
+	A -= 10
+ELSEIF RELATION:R > 0 && RELATION:R < 70
+	A -= 6
+ELSEIF RELATION:R > 0 && RELATION:R < 100
+	A -= 3
+ELSEIF RELATION:R >= 100 && RELATION:R < 130
+	A += 3
+ELSEIF RELATION:R >= 130 && RELATION:R < 170
+	A += 6
+ELSEIF RELATION:R >= 170
+	A += 10
+ENDIF
+
+;好感度と関係
+A += CFLAG:2 / 50
+SIF TALENT:85
+	A += 20
+SIF TALENT:153
+	A += 20
+SIF TALENT:88
+	A += 40
+
+SIF A < 0
+	A = 0
+RETURN 1
+
+;-------------------------------------------------
+;日常・交流コマンド用の共通実行判定
+;性的な能力・刻印・快感状態は使わず、人間関係と性格だけを見る
+;-------------------------------------------------
+@COM_ORDER_DAILY
+;親密
+IF ABL:0
+	A += ABL:0 * 3
+ENDIF
+
+;相性
+R = NO:PLAYER
+IF RELATION:R > 0 && RELATION:R < 70
+	A -= 5
+ELSEIF RELATION:R > 0 && RELATION:R < 100
+	A -= 2
+ELSEIF RELATION:R >= 130 && RELATION:R < 170
+	A += 3
+ELSEIF RELATION:R >= 170
+	A += 6
+ENDIF
+
+;日常の誘いに関係する性格
+SIF TALENT:11
+	A -= 5
+SIF TALENT:13
+	A += 5
+SIF TALENT:15
+	A -= 5
+SIF TALENT:17
+	A += 3
+
+;実行判定を表示する設定
+IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
+	IF ABL:0
+		SIF S
+			PRINT  + 
+		PRINTS ABLNAME:0
+		PRINTV 'LV,ABL:0,'(,ABL:0 * 3,')
+		S = 1
+	ENDIF
+
+	R = NO:PLAYER
+	IF RELATION:R > 0 && RELATION:R < 70
+		PRINT  - 
+		PRINT 相性
+		PRINTV '(,5,')
+		S = 1
+	ELSEIF RELATION:R > 0 && RELATION:R < 100
+		PRINT  - 
+		PRINT 相性
+		PRINTV '(,2,')
+		S = 1
+	ELSEIF RELATION:R >= 130 && RELATION:R < 170
+		SIF S
+			PRINT  + 
+		PRINT 相性
+		PRINTV '(,3,')
+		S = 1
+	ELSEIF RELATION:R >= 170
+		SIF S
+			PRINT  + 
+		PRINT 相性
+		PRINTV '(,6,')
+		S = 1
+	ENDIF
+
+	IF TALENT:11
+		PRINT  - 
+		PRINTS TALENTNAME:11
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+	IF TALENT:13
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:13
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+	IF TALENT:15
+		PRINT  - 
+		PRINTS TALENTNAME:15
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+	IF TALENT:17
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:17
+		PRINTV '(,3,')
+		S = 1
+	ENDIF
+ENDIF
+RETURN 1
+
+;-------------------------------------------------
 ;すべての命令に共通の要素を考慮
 ;(従順が高いと命令に従いやすいなど)
 ;-------------------------------------------------

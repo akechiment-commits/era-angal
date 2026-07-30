@@ -20,16 +20,26 @@ SIF ABL:0 < 2 && CFLAG:2 < 30
 RETURN 1
 
 @COM312
-;頭を撫でる
+CALL COM_HEAD_PAT_CORE, 0
+RETURN RESULT
+
+;ARG=0: パートナーの頭を撫でる / ARG=1: パートナーに頭を撫でてもらう
+@COM_HEAD_PAT_CORE, ARG
+;頭を撫でる／頭を撫でてもらう
 ;使用変数をAとその配列、Lのみに絞る
 ;うにゅほさん用コマンド！では無いので好きに使って下さい
 ;お子様なキャラだと効果が高いです。
 ;幼児退行、幼稚持ちでも嫌がるようにする場合は口上側でTFLAG:18 = -1（失敗状態）にするか、
 ;台詞だけ嫌がらせたい場合は地の文カットを利用してください。
 
-PRINTL 頭を撫でる
-STR:0 = 頭を撫でる
-CALL GET_SUCCESS_RATE
+IF ARG == 0
+	PRINTL 頭を撫でる
+	STR:0 = 頭を撫でる
+ELSE
+	PRINTL 頭を撫でてもらう
+	STR:0 = 頭を撫でてもらう
+ENDIF
+CALL GET_DAILY_SUCCESS_RATE
 A:1 = A
 A:2 = 90 + A:1 / 5
 SIF A:2 > 99
@@ -66,7 +76,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 	A:1 = 0
 	A:3 = 0
 	;強化版判定値(相性で移行値が変動する)
-	IF TFLAG:45 == 0
+	IF ARG == 0
 		L = NO:PLAYER
 		IF RELATION:L >= 150
 			A:4 = 35
@@ -99,13 +109,6 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 			PRINT  + 
 		A:1 += ABL:1 * 3
 		PRINTFORM %ABLNAME:1%LV{ABL:1}({ABL:1 * 3})
-		A:3 = 1
-	ENDIF
-	;反発感情
-	IF MARK:3 != 0
-		PRINT  - 
-		A:1 -= MARK:3 * 6
-		PRINTFORM %MARKNAME:3%LV{MARK:3}({MARK:3 * 6})
 		A:3 = 1
 	ENDIF
 	
@@ -286,10 +289,16 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		PRINTFORM %TALENTNAME:89%(20)
 		A:3 = 1
 	ENDIF
-	;母性
+	;母性（撫でられる時はマイナス、撫でる時はプラス）
 	IF TALENT:136 != 0
-		PRINT  - 
-		A:1 -= 10
+		IF ARG == 0
+			PRINT  - 
+			A:1 -= 10
+		ELSE
+			SIF A:3 != 0
+				PRINT  + 
+			A:1 += 10
+		ENDIF
 		PRINTFORM %TALENTNAME:136%(10)
 		A:3 = 1
 	ENDIF
@@ -345,15 +354,6 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 	;----------------------------------
 	; 主人公素質による強化版移行値補正
 	;----------------------------------
-	;ABL:技巧
-	IF ABL:PLAYER:2 != 0
-		SIF A:3 != 0
-			PRINT  + 
-		A:1 += ABL:PLAYER:2
-		PRINTFORM %ABLNAME:2%LV{ABL:PLAYER:2}({ABL:PLAYER:2 * 3})
-		A:3 = 1
-	ENDIF
-	
 	;魅力
 	IF TALENT:PLAYER:91 != 0
 		SIF A:3 != 0
@@ -378,8 +378,8 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		PRINTFORM %TALENTNAME:118%(5)
 		A:3 = 1
 	ENDIF
-	;母性
-	IF TALENT:PLAYER:136 != 0
+	;プレイヤーの母性は、自分が撫でる時だけ有効
+	IF TALENT:PLAYER:136 != 0 && ARG == 0
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 10
@@ -496,7 +496,7 @@ SIF SOURCE:18 < 0
 	SOURCE:18 = 0
 
 ;主導権をチェック
-IF TFLAG:45 == 0
+IF ARG == 0
 	;主導権が主人公側
 	;ABL:親密をみる
 	IF ABL:0 == 0
@@ -561,7 +561,7 @@ IF TFLAG:17 != 0
 		A:1 += 2
 
 	;主導権があなた
-	IF TFLAG:45 == 0
+	IF ARG == 0
 		;幼児退行、幼稚所持の場合、愛情経験を＋
 		IF (TALENT:131 != 0 || TALENT:132 != 0)
 			PRINTFORML %EXPNAME:23%+1
@@ -589,14 +589,6 @@ IF CFLAG:2 <= 20
 ELSEIF CFLAG:2 <= 80
 	A:1 -= 2
 ELSEIF CFLAG:2 <= 150
-	A:1 -= 1
-ENDIF
-;反発があると好感度低下
-IF MARK:3 >= 3
-	A:1 -= 3
-ELSEIF MARK:3 >= 2
-	A:1 -= 2
-ELSEIF MARK:3 >= 1
 	A:1 -= 1
 ENDIF
 
@@ -645,50 +637,25 @@ RETURN 1
 ;頭を撫でる
 ;書き過ぎ？ 気にしたらそこで試合終了ですよ
 @TRAIN_MESSAGE_COM312
-;主導権が主人公
-IF TFLAG:45 == 0
-	PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%の頭を
-	SIF TFLAG:17 != 0
-		PRINTFORM 何度も
-	PRINTFORMW 撫でた
+PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%の頭を
+SIF TFLAG:17 != 0
+	PRINTFORM 何度も
+PRINTFORMW 撫でた
 
-	IF TFLAG:18 == 1
-		;幼児退行or幼稚所持
-		IF (TALENT:131 == 1 || TALENT:132)
-			PRINTFORML %CALLNAME:TARGET%は眼を細め、心地良さそうにしている…
-		ELSE
-			PRINTFORML %CALLNAME:TARGET%は照れ臭そうに、笑みを浮かべている…
-		ENDIF
-	ELSEIF TFLAG:18 == 0
-		;幼児退行or幼稚所持
-		IF (TALENT:131 == 1 || TALENT:132)
-			PRINTFORML %CALLNAME:TARGET%は嬉しそうにしている…
-		ELSE
-			PRINTFORML %CALLNAME:TARGET%は頬を紅潮させ、恥ずかしそうにしている…
-		ENDIF
-	ELSEIF TFLAG:18 == -1
-		PRINTFORML %CALLNAME:TARGET%は子供扱いした事に怒ったようだ…
+IF TFLAG:18 == 1
+	;幼児退行or幼稚所持
+	IF (TALENT:131 == 1 || TALENT:132)
+		PRINTFORML %CALLNAME:TARGET%は眼を細め、心地良さそうにしている…
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%は照れ臭そうに、笑みを浮かべている…
 	ENDIF
-;主導権が相手
-ELSEIF TFLAG:45 == 1
-	PRINTFORMW %CALLNAME:TARGET%は%CALLNAME:PLAYER%の頭を撫でた
-
-	IF TFLAG:18 == 1
-		;母性
-		IF TALENT:136 == 1
-			PRINTFORML %CALLNAME:TARGET%は我が子を愛おしむかの様に、撫でてくれた…
-		ELSE
-			PRINTFORML %CALLNAME:TARGET%は笑顔で優しく撫でてくれた…
-		ENDIF
-	ELSEIF TFLAG:18 == 0
-		;母性
-		IF TALENT:136 == 1
-			PRINTFORML %CALLNAME:TARGET%は笑顔で優しく、ただ撫でてくれた…
-		ELSE
-			PRINTFORML %CALLNAME:TARGET%は呆れた様な表情だったが、優しく撫でてくれた…
-		ENDIF
-	ELSEIF TFLAG:18 == -1
-		PRINTFORML …が、%CALLNAME:TARGET%は直ぐに止めてしまった…
+ELSEIF TFLAG:18 == 0
+	;幼児退行or幼稚所持
+	IF (TALENT:131 == 1 || TALENT:132)
+		PRINTFORML %CALLNAME:TARGET%は嬉しそうにしている…
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%は頬を紅潮させ、恥ずかしそうにしている…
 	ENDIF
+ELSEIF TFLAG:18 == -1
+	PRINTFORML %CALLNAME:TARGET%は子供扱いした事に怒ったようだ…
 ENDIF
-

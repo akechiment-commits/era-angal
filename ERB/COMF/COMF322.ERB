@@ -3,75 +3,8 @@
 ;         自らの判断で責任を持って行動できる大人の女性です。
 ;============================================================
 @COM_ABLE322
-;ストリートライブ実行判定
-;COM_ABLE共通判定
-CALL COM_ABLE_COMMON, SELECTCOM
-SIF RESULT == 0
-	RETURN 0
-;ウフフ中は無理
-SIF TFLAG:44 == 1
-	RETURN 0
-;既にストリートライブ中なら不要
-SIF TEQUIP:2 == 6
-	RETURN 0
-;自分の家・パートナーの家では無理
-SIF TEQUIP:2 == 38 || TEQUIP:2 == 39
-	RETURN 0
-;温泉でストリートライブはさすがに恥ずかしいんじゃない？
-SIF TEQUIP:2 == 7
-	RETURN 0
-;図書館や博物館でライブやったらTAIHOだろｗ
-SIF TEQUIP:2 == 8 || TEQUIP:2 == 17
-	RETURN 0
-;ゲーセンやカジノでライブやっても聞こえないんじゃ？
-SIF TEQUIP:2 == 15 || TEQUIP:2 == 16
-	RETURN 0
-;映画館の中で歌うとはいい度胸だｗ
-SIF TEQUIP:2 >= 18 && TEQUIP:2 <= 21
-	RETURN 0
-;スポーツ観戦に夢中な通行人たちはライブを聞いてはくれないはず
-SIF TEQUIP:2 == 35
-	RETURN 0
-;大雨だと無理
-SIF TIME:5 == 4
-	RETURN 0
-;吹雪だと無理
-SIF TIME:5 == 6
-	RETURN 0
-;露出癖が1以下だとダメ。ただし持っている素質によって値が変動
-A = 2
-;臆病
-SIF TALENT:10
-	A += 2
-;目立ちたがり
-SIF TALENT:28
-	A -= 1
-;抑圧
-SIF TALENT:32
-	A += 1
-;解放
-SIF TALENT:33
-	A -= 1
-;恥じらい
-SIF TALENT:35
-	A += 2
-;恥薄い
-SIF TALENT:36
-	A -= 1
-;求められる露出癖が0～5以上となるように
-SIF A < 0
-	A = 0
-SIF A > 5
-	A = 5
-SIF ABL:7 < A
-	RETURN 0
-;アイテム｢マイク｣を持っているか、アイテムなし設定でないとダメ
-SIF ITEM:45 == 0 && NOITEM == 0
-	RETURN 0
-;一度ストリートライブを実行しているとダメ
-SIF TFLAG:79
-	RETURN 0
-RETURN 1
+;廃止済み。旧セーブ・旧参照との互換性維持のため関数本体は残す。
+RETURN 0
 
 
 @COM322
@@ -80,27 +13,12 @@ RETURN 1
 PRINTL ストリートライブ
 ;-------------------------------------------------
 ;成功できるかの判定
+;歌唱技能・ライブ経験・舞台向きの性格で決まる
+;欲望・露出癖・欲情・性的な刻印はライブの成否には使わない
 ;-------------------------------------------------
 A = 0
 S = 0
 
-;ABL:欲望
-SIF ABL:1
-	A += ABL:1
-;ABL:露出癖
-IF ABL:7
-	IF ABL:7 <= 20
-		A += ABL:7
-	ELSEIF ABL:7 <= 40
-		A += 20 + ABL:7 / 4
-	ELSEIF ABL:7 <= 60
-		A += 35 + ABL:7 / 12
-	ELSEIF ABL:7 <= 80
-		A += 40 + ABL:7 / 16
-	ELSE
-		A += 45 + ABL:7 / 20
-	ENDIF
-ENDIF
 ;ABL:歌唱技能
 IF ABL:92
 	IF ABL:92 <= 5
@@ -113,42 +31,25 @@ IF ABL:92
 		A += 50 + ABL:92 / 9
 	ENDIF
 ENDIF
-;MARK:快楽依存
-SIF MARK:1
-	A += MARK:1 * 2
-;MARK:反発感情
-SIF MARK:3
-	A -= MARK:3 * 5
 
-;PALAM:欲情
-IF PALAM:5 < PALAMLV:1
-	L = 0
-ELSEIF PALAM:5 < PALAMLV:2
-	L = 1
-ELSEIF PALAM:5 < PALAMLV:3
-	L = 2
-ELSEIF PALAM:5 < PALAMLV:4
-	L = 3
-ELSEIF PALAM:5 < PALAMLV:5
-	L = 4
-ELSE
-	L = 5
-ENDIF
-SIF L
-	A += L * 2
+;歌唱経験
+A += MIN(EXP:93 / 5, 20)
 
-;自制心
-SIF TALENT:20 == 1
+;舞台での振る舞いに関係する性格・素質
+SIF TALENT:10
 	A -= 5
-;目立ちたがり
+SIF TALENT:23
+	A += 2
 SIF TALENT:28
 	A += 5
-;恥じらい
-SIF TALENT:35
-	A -= 5
-;恥薄い
-SIF TALENT:36
-	A += 2
+SIF TALENT:91
+	A += 3
+SIF TALENT:92
+	A += 5
+SIF TALENT:118
+	A += 5
+SIF TALENT:126
+	A += 5
 
 ;目標難易度を設定（成功：11～51　大成功：更に+40）
 V = 11 + RAND:41

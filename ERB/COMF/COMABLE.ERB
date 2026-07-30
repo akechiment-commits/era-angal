@@ -3966,11 +3966,11 @@ SIF TALENT:153
 	RETURN 0
 RETURN 1
 ;------------------------------------------------------------
-;【旧セーブ救済】独自コマンド(COM280-284/410-414)の有効化データ補完
+;【旧セーブ救済】独自コマンド(COM280-284/410-414)の有効化データ同期
 ; ロード時(@EVENTLOAD)から呼ぶ。CSVにコマンド名(CSTR:80-89)が定義されている枠
-; だけ CFLAG:69 の対応bitを立て、ランタイムのコマンド名が空なら補完する。
+; だけ CFLAG:69 の対応bitを立て、保存済みの旧コマンド名も現在のCSV定義へ同期する。
 ; ★素質(TALENT)・能力(ABL)・経験・珠など他のデータは一切変更しない。
-; SETBITと空欄補完のみのため、何度呼ばれても安全（冪等）。
+; SETBITとCSVからの再代入のみのため、何度呼ばれても安全（冪等）。
 ; COM280-284→bit0-4 / COM410-414→bit5-9（CSTR:80-89に対応）。
 ;------------------------------------------------------------
 @DOKUJI_COM_MIGRATE
@@ -3980,8 +3980,7 @@ REPEAT CHARANUM
 		CSVCSTR NO:COUNT, LOCAL:1, 0
 		IF RESULTS != ""
 			SETBIT CFLAG:COUNT:69, LOCAL
-			SIF CSTR:COUNT:(LOCAL:1) == ""
-				CSTR:COUNT:(LOCAL:1) = %RESULTS%
+			CSTR:COUNT:(LOCAL:1) = %RESULTS%
 		ENDIF
 	NEXT
 REND

@@ -1,0 +1,29 @@
+;============================================================
+; 主人公の耐力成長
+; パートナーを絶頂させた経験に、主人公自身の射精経験と耐力枯渇経験を加算する。
+;============================================================
+@MASTER_ENDURANCE_GROWTH
+#FUNCTION
+;CFLAG:2             パートナーを絶頂させた強度の累計（既存）
+;CFLAG:1150          主人公の射精回数
+;CFLAG:1151          主人公の累計射精量（ml）
+;CFLAG:1152          耐力を0まで削られた成長ポイント
+;CFLAG:1154          耐力0後のドライ絶頂成長ポイント
+;CFLAG:1155          旧カウンタから成長ポイントへの移行済みフラグ
+IF CFLAG:MASTER:1155 == 0
+	CFLAG:MASTER:1152 *= 100
+	CFLAG:MASTER:1154 *= 20
+	CFLAG:MASTER:1155 = 1
+ENDIF
+;主人公自身の射精は、1回につき10点＋実射精量1mlにつき1点として反映する。
+RETURNF CFLAG:MASTER:2 + CFLAG:MASTER:1150 * 10 + CFLAG:MASTER:1151 + CFLAG:MASTER:1152 + CFLAG:MASTER:1154
+
+@FEMALE_ENDURANCE_GROWTH, ARG
+#FUNCTION
+;女性の絶頂経験はEXP:2として純粋に保持し、耐力枯渇の成長は別カウンタで加算する。
+IF CFLAG:ARG:1155 == 0
+	CFLAG:ARG:1153 *= 100
+	CFLAG:ARG:1154 *= 20
+	CFLAG:ARG:1155 = 1
+ENDIF
+RETURNF EXP:ARG:2 + CFLAG:ARG:1153 + CFLAG:ARG:1154
