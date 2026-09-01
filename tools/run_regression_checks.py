@@ -404,6 +404,94 @@ def check_player_overcap_contract() -> str:
     return "Lvアップ加算回復・ショップ遷移・上限処理"
 
 
+def check_daily_command_condition_contract() -> str:
+    head_file = read_cp932("ERB/COMF/COMF312.ERB")
+    receive_file = read_cp932("ERB/COMF/COMF318.ERB")
+    walk_file = read_cp932("ERB/COMF/COMF315.ERB")
+    head_able = function_body(head_file, "COM_ABLE312")
+    head_core = function_body(head_file, "COM_HEAD_PAT_CORE")
+    head_order = function_body(head_file, "COM_ORDER_HEAD_PAT")
+    receive_able = function_body(receive_file, "COM_ABLE318")
+    receive_order = function_body(receive_file, "COM_ORDER_318")
+    walk_able = function_body(walk_file, "COM_ABLE315")
+    walk_body = function_body(walk_file, "COM315")
+    walk_order = function_body(walk_file, "COM_ORDER_315")
+
+    require(head_core, "CALL COM_ORDER_COMMON", "頭撫での実行値判定")
+    require(head_order, "CALL COM_ORDER_DAILY", "頭撫での実行値算出")
+    require(head_order, "V = 25", "頭撫での必要実行値")
+    require(receive_able, "CALL COM_ABLE312", "頭を撫でてもらうの共通条件")
+    require(receive_order, "CALL COM_ORDER_HEAD_PAT", "頭を撫でてもらうの実行値")
+    require(walk_body, "CALL COM_ORDER_COMMON", "お散歩するの実行値判定")
+    require(walk_order, "CALL COM_ORDER_DAILY", "お散歩するの実行値算出")
+    require(walk_order, "V = 25", "お散歩するの必要実行値")
+    for body, label in ((head_able, "頭を撫でる"), (walk_able, "お散歩する")):
+        forbid(body, "CFLAG:2 < 300", f"{label}の固定好感度条件")
+        forbid(body, "CFLAG:2 < 400", f"{label}の固定好感度条件")
+        forbid(body, "TALENT:85 == 0", f"{label}の固定素質条件")
+    return "頭撫で2種・散歩をCOM_ORDER_COMMONの実行値（A/V）で判定"
+
+
+def check_daily_command_if_blocks() -> str:
+    relative_paths = (
+        "ERB/COMF/COMF312.ERB",
+        "ERB/COMF/COMF315.ERB",
+        "ERB/COMF/COMF318.ERB",
+    )
+    for relative_path in relative_paths:
+        stack: list[int] = []
+        for line_number, raw_line in enumerate(read_cp932(relative_path).splitlines(), 1):
+            line = raw_line.lstrip()
+            if not line or line.startswith(";"):
+                continue
+            if line.startswith("ENDIF"):
+                if not stack:
+                    raise CheckFailure(f"{relative_path}:{line_number}: 対応するIFのないENDIF")
+                stack.pop()
+            elif line.startswith("IF ") or line.startswith("IF("):
+                stack.append(line_number)
+            elif line.startswith("ELSE") and not stack:
+                raise CheckFailure(f"{relative_path}:{line_number}: 対応するIFのないELSE")
+        if stack:
+            raise CheckFailure(f"{relative_path}: ENDIF不足（IF行: {stack}）")
+    return "COM312・COM315・COM318のIF/ENDIF構造"
+
+
+def check_daily_failure_ground_contract() -> str:
+    order = read_cp932("ERB/COMORDER_コマンド表示順制御.ERB")
+    common = function_body(order, "COM_ORDER_COMMON")
+    ground = function_body(order, "COM_ORDER_FAILURE_GROUND")
+    require(common, "CALL COM_ORDER_FAILURE_GROUND", "日常コマンド失敗地の文の接続")
+    failure_case_ids = {
+        int(path.stem.removeprefix("COMF"))
+        for path in (ROOT / "ERB/COMF").glob("COMF*.ERB")
+        if "CALL COM_ORDER_COMMON" in read_cp932(path.relative_to(ROOT).as_posix())
+    }
+    failure_case_ids.update({318, 320})
+    failure_case_ids.difference_update({306, 307})
+    for com in sorted(failure_case_ids):
+        require(ground, f"CASE {com}\n\tPRINTFORMW", f"COM{com}の個別失敗地の文")
+    require(common, "IF SELECTCOM != 306 && SELECTCOM != 307", "専用失敗分岐の重複防止")
+    require(ground, "CASEELSE", "その他の実行値コマンドの失敗地の文")
+    require(ground, "%CALLNAME:TARGET%はその行為を拒み、実行できなかった…", "性愛系コマンドの共通失敗地の文")
+    forbid(ground, "CASE 306", "COM306専用失敗地の文との重複")
+    forbid(ground, "CASE 307", "COM307専用失敗地の文との重複")
+    return f"実行値コマンド{len(failure_case_ids)}件の個別失敗地の文"
+
+
+def check_m_pleasure_contract() -> str:
+    source = read_cp932("ERB/SOURCE_ソース計算・口上呼び出し.ERB")
+    calc = function_body(source, "CALC_SOURCE24")
+    require(calc, "SELECTCASE SELECTCOM", "快Ｍのコマンド別調整")
+    fella_case = "CASE 4, 31, 66, 68, 69, 80, 189, 201, 373, 380"
+    require(calc, fella_case, "フェラ系快Ｍの対象コマンド")
+    require(calc, "TIMES SOURCE:24 , 0.05", "フェラ系快Ｍの極小化")
+    selector = calc[calc.index("SELECTCASE SELECTCOM") : calc.index("ENDSELECT", calc.index("SELECTCASE SELECTCOM"))]
+    for kiss_command in (6, 60, 120, 121, 122, 123, 124, 340, 341, 342):
+        forbid(selector, f"CASE {kiss_command}", f"キス系COM{kiss_command}の快Ｍ維持")
+    return "フェラ系10コマンドの快Ｍを5%に抑制、キス系は維持"
+
+
 def check_flag_allocations() -> str:
     sys.path.insert(0, str(ROOT / "tools"))
     import audit_flag_collisions  # noqa: PLC0415
@@ -412,6 +500,21 @@ def check_flag_allocations() -> str:
     if errors:
         raise CheckFailure("\n  ".join(errors))
     return f"{len(audit_flag_collisions.ALLOCATIONS)}領域に重複なし"
+
+
+def check_koujo_integrity_contract() -> str:
+    """口上監査ツール自体と、完成基準キャラの注釈マニフェストを回帰対象にする。"""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import audit_koujo_integrity  # noqa: PLC0415
+
+    report = audit_koujo_integrity.run_audit(
+        char=49,
+        manifest_path=audit_koujo_integrity.DEFAULT_MANIFEST,
+        compare_existing_manifest=True,
+    )
+    if report.errors:
+        raise CheckFailure("\n  ".join(report.errors))
+    return f"CHAR49構造・注釈・視点契約（警告{len(report.warnings)}件は要目視）"
 
 
 def log_freshness_note() -> str | None:
@@ -438,7 +541,12 @@ def main() -> int:
         ("イベント中間シナリオ", check_event_story_milestone_contract),
         ("すごろくボーナス", check_sugoroku_bonus_contract),
         ("主人公の超過回復", check_player_overcap_contract),
+        ("親密コマンド条件", check_daily_command_condition_contract),
+        ("親密コマンド構文", check_daily_command_if_blocks),
+        ("失敗地の文", check_daily_failure_ground_contract),
+        ("快Ｍバランス", check_m_pleasure_contract),
         ("FLAG領域", check_flag_allocations),
+        ("口上整合契約", check_koujo_integrity_contract),
     ]
     failures = 0
     for label, check in checks:

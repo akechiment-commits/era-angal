@@ -42,6 +42,11 @@ ELSE
 	TFLAG:18 = 0
 ENDIF
 
+;実行値による合意判定
+CALL COM_ORDER_COMMON
+SIF RESULT == 0
+	RETURN 0
+
 TFLAG:17 = 0
 ;親密6以上or好感度600以上なら実行判定を行い、強化版とする
 IF ABL:0 >= 6 || CFLAG:2 >= 600
@@ -696,3 +701,97 @@ ELSE
 	ENDIF
 ENDIF
 
+;-------------------------------------------------
+;お散歩の日常向け実行値
+;-------------------------------------------------
+@COM_ORDER_315
+A = 0
+S = 0
+V = 25
+CALL COM_ORDER_DAILY
+
+;男嫌い
+IF TALENT:82 && TALENT:PLAYER:122
+	A -= 7
+ENDIF
+;恋慕
+IF TALENT:85 && ASSIPLAY == 0
+	A += 5
+	S = 5
+ENDIF
+;好感度不足
+IF CFLAG:2 < 400
+	B = 0
+	IF CFLAG:2 < 50
+		B = 40
+	ELSEIF CFLAG:2 < 150
+		B = 20
+	ELSEIF CFLAG:2 < 300
+		B = 10
+	ELSE
+		B = 5
+	ENDIF
+	A -= B
+ENDIF
+;好感度
+IF CFLAG:2 >= 500
+	B = CFLAG:2 / 75
+	A += B
+ENDIF
+
+IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
+	IF TALENT:82 && TALENT:PLAYER:122
+		PRINT  - 
+		PRINTS TALENTNAME:82
+		PRINTV '(,7,')
+		S = 1
+	ENDIF
+	IF TALENT:85 && ASSIPLAY == 0
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:85
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+	IF CFLAG:2 < 400
+		B = 0
+		PRINT  - 
+		IF CFLAG:2 < 50
+			B = 40
+		ELSEIF CFLAG:2 < 150
+			B = 20
+		ELSEIF CFLAG:2 < 300
+			B = 10
+		ELSE
+			B = 5
+		ENDIF
+		PRINT 好感度不足
+		PRINTV '(,B,')
+		S = 1
+	ENDIF
+	IF CFLAG:2 >= 500
+		B = CFLAG:2 / 75
+		SIF S
+			PRINT  + 
+		PRINT 好感度
+		PRINTV '(,B,')
+		S = 1
+	ENDIF
+	PRINT  = 
+	PRINTV A
+	IF A < V
+		PRINT  < 
+		PRINT 実行値
+		PRINTV V
+	ELSEIF A == V
+		PRINT  = 
+		PRINT 実行値
+		PRINTV V
+	ELSE
+		PRINT  > 
+		PRINT 実行値
+		PRINTV V
+	ENDIF
+	WAIT
+ENDIF
+RETURN 1

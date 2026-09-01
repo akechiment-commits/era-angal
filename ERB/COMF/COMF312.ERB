@@ -11,12 +11,6 @@ SIF RESULT == 0
 ;ウフフ中は無理
 SIF TFLAG:44 == 1
 	RETURN 0
-;幼児退行or幼稚がある場合は、無条件実行可能
-SIF TALENT:131 == 1 || TALENT:132 == 1
-	RETURN 1
-;親密が2以上or好感度100以上必要(全く知らない人は流石に嫌！って言われる)
-SIF ABL:0 < 2 && CFLAG:2 < 30
-	RETURN 0
 RETURN 1
 
 @COM312
@@ -65,6 +59,11 @@ IF NAME_CSV(NO:TARGET, 0) == "空"
 	SIF TFLAG:18 == 2
 		TFLAG:18 = 1
 ENDIF
+
+;実行値による合意判定
+CALL COM_ORDER_COMMON
+SIF RESULT == 0
+	RETURN 0
 
 TFLAG:17 = 0
 ;幼稚or幼児退行はデフォで強化版とする
@@ -659,3 +658,98 @@ ELSEIF TFLAG:18 == 0
 ELSEIF TFLAG:18 == -1
 	PRINTFORML %CALLNAME:TARGET%は子供扱いした事に怒ったようだ…
 ENDIF
+
+;-------------------------------------------------
+;頭撫での日常向け実行値
+;-------------------------------------------------
+@COM_ORDER_312
+CALL COM_ORDER_HEAD_PAT
+RETURN 1
+
+@COM_ORDER_HEAD_PAT
+A = 0
+S = 0
+V = 25
+CALL COM_ORDER_DAILY
+
+;男嫌い
+IF TALENT:82 && TALENT:PLAYER:122
+	A -= 7
+ENDIF
+;恋慕
+IF TALENT:85 && ASSIPLAY == 0
+	A += 5
+	S = 5
+ENDIF
+;好感度不足
+IF CFLAG:2 < 300
+	B = 0
+	IF CFLAG:2 < 0
+		B = 20
+	ELSEIF CFLAG:2 < 100
+		B = 10
+	ELSE
+		B = 5
+	ENDIF
+	A -= B
+ENDIF
+;好感度
+IF CFLAG:2 >= 400
+	B = CFLAG:2 / 30
+	A += B
+ENDIF
+
+IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
+	IF TALENT:82 && TALENT:PLAYER:122
+		PRINT  - 
+		PRINTS TALENTNAME:82
+		PRINTV '(,7,')
+		S = 1
+	ENDIF
+	IF TALENT:85 && ASSIPLAY == 0
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:85
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+	IF CFLAG:2 < 300
+		B = 0
+		PRINT  - 
+		IF CFLAG:2 < 0
+			B = 20
+		ELSEIF CFLAG:2 < 100
+			B = 10
+		ELSE
+			B = 5
+		ENDIF
+		PRINT 好感度不足
+		PRINTV '(,B,')
+		S = 1
+	ENDIF
+	IF CFLAG:2 >= 400
+		B = CFLAG:2 / 30
+		SIF S
+			PRINT  + 
+		PRINT 好感度
+		PRINTV '(,B,')
+		S = 1
+	ENDIF
+	PRINT  = 
+	PRINTV A
+	IF A < V
+		PRINT  < 
+		PRINT 実行値
+		PRINTV V
+	ELSEIF A == V
+		PRINT  = 
+		PRINT 実行値
+		PRINTV V
+	ELSE
+		PRINT  > 
+		PRINT 実行値
+		PRINTV V
+	ENDIF
+	WAIT
+ENDIF
+RETURN 1
