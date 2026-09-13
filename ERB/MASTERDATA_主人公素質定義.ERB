@@ -7,6 +7,14 @@
 ;グローバル変数読み込み
 LOADGLOBAL
 
+;主人公の性別は男子固定
+TALENT:MASTER:121 = 0
+TALENT:MASTER:122 = 1
+TALENT:MASTER:154 = 1
+TALENT:MASTER:151 = 1
+EXP:MASTER:0 = 0
+EXP:MASTER:96 = 0
+
 PRINTFORML %CALLNAME:MASTER%の素質等を設定出来ます。
 PRINTL 変更したい項目を選んでください。
 
@@ -19,24 +27,12 @@ IF RESULT == 0
 	;プレイヤーの名前変更
 	A = MASTER
 	CALL NAME_CONVERT
-ELSEIF RESULT == 1
-	;女の子→ふたなり/オトコ/童貞をOFF
-	TALENT:MASTER:121 = 0
-	TALENT:MASTER:122 = 0
-	TALENT:MASTER:154 = 0
-ELSEIF RESULT == 2
-	;ふたなり→ふたなりをON。オトコをOFF
-	TALENT:MASTER:121 = 1
-	TALENT:MASTER:122 = 0
-ELSEIF RESULT == 3
-	;オトコ→オトコをON。Ｖ敏感/Ｖ鈍感/貧乳/巨乳/ふたなり/処女をOFF
+ELSEIF RESULT == 1 || RESULT == 2 || RESULT == 3
+	;主人公の性別は男子固定
 	TALENT:MASTER:121 = 0
 	TALENT:MASTER:122 = 1
-	TALENT:MASTER:103 = 0
-	TALENT:MASTER:104 = 0
-	TALENT:MASTER:109 = 0
-	TALENT:MASTER:110 = 0
-	TALENT:MASTER:0 = 0
+	PRINTL 主人公の性別は男子固定です。
+	GOTO INPUT_LOOP_01
 ELSEIF RESULT < 200
 	IF X:RESULT == 0
 		PRINTL 選択できません
@@ -65,31 +61,22 @@ ELSEIF RESULT == 200
 		PRINTL 選択できません
 		GOTO INPUT_LOOP_01
 	ENDIF
-ELSEIF RESULT == 201
-	;童貞
-	IF TALENT:MASTER:121 || TALENT:MASTER:122
-		IF TALENT:MASTER:154 == 0
-			TALENT:MASTER:154 = 1
-		ELSE
-			TALENT:MASTER:154 = 0
-		ENDIF
-	ELSE
-		PRINTL 選択できません
-		GOTO INPUT_LOOP_01
-	ENDIF
-ELSEIF RESULT == 202
-	;キス未経験
-	IF TALENT:MASTER:151 == 0
-		TALENT:MASTER:151 = 1
-	ELSE
-		TALENT:MASTER:151 = 0
-	ENDIF
+ELSEIF RESULT == 201 || RESULT == 202
+	;童貞とキス未経験は主人公の設定として固定
+	TALENT:MASTER:154 = 1
+	TALENT:MASTER:151 = 1
+	EXP:MASTER:0 = 0
+	EXP:MASTER:96 = 0
+	PRINTL 主人公は童貞・キス未経験で固定です。
+	GOTO INPUT_LOOP_01
 ELSEIF RESULT == 300
 	;誕生日　DAYS.ERBの@BIRTHDAY
 	CALL BIRTHDAY
 ELSEIF RESULT == 400
-	;開始時の季節
-	CALL MASTER_TALENT_SET_400
+	;開始日は4月1日固定
+	DAY:6 = 0
+	PRINTL 開始日は4月1日に固定されています。
+	GOTO INPUT_LOOP_01
 ELSEIF RESULT == 500
 	;共有している主人公の設定をロードする
 	CALL LOAD_GLOBAL_TALENT_SET
@@ -292,36 +279,13 @@ ELSEIF RESULT == 112
 ENDIF
 
 ;---------------------------------------------------------
-;開始時の季節
+;開始日（4月1日固定）
 ;---------------------------------------------------------
 @MASTER_TALENT_SET_400
-PRINTFORML 開始時の季節を選択してください
-PRINTL [0]春
-PRINTL [1]夏
-PRINTL [2]秋
-PRINTL [3]冬
-
-$INPUT_LOOP_6
-INPUT
-
-IF (RESULT < 0 || RESULT > 3)
-	PRINTFORML 正しい値を入力してください
-	GOTO INPUT_LOOP_6
-ELSE
-	PRINT 開始時の季節を
-	IF RESULT == 0
-		PRINT 春
-	ELSEIF RESULT == 1
-		PRINT 夏
-	ELSEIF RESULT == 2
-		PRINT 秋
-	ELSE
-		PRINT 冬
-	ENDIF
-	PRINTFORMW にしました
-	PRINTL 
-	DAY:6 = RESULT
-ENDIF
+;開始日は4月1日固定
+DAY:6 = 0
+PRINTL 開始日は4月1日に固定されています。
+RETURN 0
 
 ;---------------------------------------------------------
 ;デフォルト設定
@@ -334,6 +298,8 @@ REND
 TALENT:MASTER:122 = 1
 TALENT:MASTER:154 = 1
 TALENT:MASTER:151 = 1
+EXP:MASTER:0 = 0
+EXP:MASTER:96 = 0
 
 CSVNAME NO:MASTER, 0
 NAME:MASTER = %RESULTS%
@@ -343,6 +309,7 @@ CALLNAME:MASTER = %RESULTS%
 TIME:2 = 1
 TIME:3 = 0
 DAY:6 = 0
+DAY:9 = 0
 
 ;---------------------------------------------------------
 ;素質設定表示
@@ -352,36 +319,7 @@ DRAWLINE
 PRINTFORML 名前： [  0] %CALLNAME:MASTER%
 DRAWLINE
 
-PRINT 性別： 
-REPEAT 3
-	IF COUNT == 0
-		PRINTFORM [  1][♀]
-		STR:N = ♀
-		IF TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0
-			PRINT  ○
-		ELSE
-			PRINT  ×
-		ENDIF
-	ELSEIF COUNT == 1
-		PRINTFORM [  2][%TALENTNAME:121%]
-		STR:N = %TALENTNAME:121%
-		IF TALENT:MASTER:121
-			PRINT  ○
-		ELSE
-			PRINT  ×
-		ENDIF
-	ELSEIF COUNT == 2
-		PRINTFORM [  3][%TALENTNAME:122%]
-		STR:N = %TALENTNAME:122%
-		IF TALENT:MASTER:122
-			PRINT  ○
-		ELSE
-			PRINT  ×
-		ENDIF
-	ENDIF
-	CALL ARRANGE_TALENTNAME
-REND
-PRINTL 
+PRINTL 性別： 男子（固定）
 DRAWLINE
 
 PRINT 素質： 
@@ -421,60 +359,36 @@ LOCAL:0 = 0
 PRINTL 
 DRAWLINE
 
-PRINT 経験： 
-REPEAT 3
-	IF COUNT == 0
-		PRINTFORM [200][%TALENTNAME:0%]
-		STR:N = %TALENTNAME:0%
-		IF TALENT:MASTER:0
-			PRINT  ○
-		ELSE
-			PRINT  ×
-		ENDIF
-	ELSEIF COUNT == 1
-		PRINTFORM [201][%TALENTNAME:154%]
-		STR:N = %TALENTNAME:154%
-		IF TALENT:MASTER:154
-			PRINT  ○
-		ELSE
-			PRINT  ×
-		ENDIF
-	ELSEIF COUNT == 2
-		PRINTFORM [202][%TALENTNAME:151%]
-		STR:N = %TALENTNAME:151%
-		IF TALENT:MASTER:151
-			PRINT  ○
-		ELSE
-			PRINT  ×
-		ENDIF
-	ENDIF
-	CALL ARRANGE_TALENTNAME
-REND
-PRINTL 
+PRINT 経験：
+PRINTFORM [200][%TALENTNAME:0%]
+STR:N = %TALENTNAME:0%
+IF TALENT:MASTER:0
+    PRINT  ○
+ELSE
+    PRINT  ×
+ENDIF
+CALL ARRANGE_TALENTNAME
+PRINTL
+PRINTL 童貞・キス未経験：固定
 DRAWLINE
 
 PRINT 誕生： 
-PRINTFORM [300] 誕生月：
+PRINTFORM [300] 誕生日：
 IF TIME:3 > 0
-	PRINTFORML {TIME:3}月
+	IF DAY:9 > 0
+		PRINTFORML {TIME:3}月{DAY:9}日
+	ELSE
+		PRINTFORML {TIME:3}月
+	ENDIF
 ELSE
 	PRINTL 未設定
 ENDIF
 DRAWLINE
 
-PRINT 季節： 
-PRINTFORM [400] 
-IF DAY:6 == 0
-	PRINT 春
-ELSEIF DAY:6 == 1
-	PRINT 夏
-ELSEIF DAY:6 == 2
-	PRINT 秋
-ELSEIF DAY:6 == 3
-	PRINT 冬
-ENDIF
-PRINTL 
+PRINTL 開始日：4月1日（固定）
 DRAWLINE
+
+
 PRINTL [500] - 共有している主人公の設定をロードする
 PRINTL [501] - デフォルトに戻す
 PRINTL [502] - 現在の設定を共有設定として保存する
@@ -512,9 +426,20 @@ LOADGLOBAL
 REPEAT 155
 	TALENT:MASTER:COUNT = GLOBAL:COUNT
 REND
+
+;主人公の固定設定（共有設定で上書きしない）
+TALENT:MASTER:121 = 0
+TALENT:MASTER:122 = 1
+TALENT:MASTER:154 = 1
+TALENT:MASTER:151 = 1
+EXP:MASTER:0 = 0
+EXP:MASTER:96 = 0
+DAY:6 = 0
+
 TIME:2 = GLOBAL:900
 TIME:3 = GLOBAL:901
-DAY:6 = GLOBAL:902
+DAY:6 = 0
+DAY:9 = GLOBAL:903
 
 NAME:MASTER = %GLOBALS:0%
 CALLNAME:MASTER = %GLOBALS:1%
@@ -546,6 +471,15 @@ ENDIF
 ;グローバル変数読み込み
 LOADGLOBAL
 
+;主人公の固定設定を保存する
+TALENT:MASTER:121 = 0
+TALENT:MASTER:122 = 1
+TALENT:MASTER:154 = 1
+TALENT:MASTER:151 = 1
+EXP:MASTER:0 = 0
+EXP:MASTER:96 = 0
+DAY:6 = 0
+
 ;GLOBAL:0-154,900-902を使用（素質と900-902に誕生日、季節を記録）
 ;GLOBAL:0-154については、素質で使っている番号(例:0,処女、10,臆病etc）以外は使用可能
 REPEAT 155
@@ -558,7 +492,8 @@ REPEAT 155
 REND
 GLOBAL:900 = TIME:2
 GLOBAL:901 = TIME:3
-GLOBAL:902 = DAY:6
+GLOBAL:902 = 0
+GLOBAL:903 = DAY:9
 
 GLOBALS:0 = %NAME:MASTER%
 GLOBALS:1 = %CALLNAME:MASTER%
@@ -571,470 +506,388 @@ SAVEGLOBAL
 ;質問形式
 ;-------------------------------------------------
 @MASTER_TALENT_SET_Q
-;逆調教用の構文を流用する為
+;君咲学院の転校生としての傾向を、学院生活の質問で決める
 TARGET = MASTER
 
-PRINTL 
-PRINTFORML %NAME:TARGET%の性別を教えてください
-PRINTL [0]♂
-PRINTL [1]♀
-;PRINTL [2]ふたなり
-$INPUT_LOOP_01
-INPUT
-IF RESULT == 0
-	TALENT:0 = 0
-	TALENT:109 = 0
-	TALENT:110 = 0
-	TALENT:121 = 0
-	TALENT:122 = 1
-	TALENT:140 = 0
-	TALENT:141 = 0
-	ABL:9 = 0
-	EXP:0 = 0
-	EXP:40 = 0
-	MAXBASE:2 = 10000
-ELSEIF RESULT == 1
-	TALENT:122 = 0
-	TALENT:121 = 0
-	MAXBASE:2 = 0
-;ELSEIF RESULT == 2
-;	TALENT:121 = 1
-;	MAXBASE:2 = 10000
-ELSE
-	GOTO INPUT_LOOP_01
-ENDIF
+;主人公は君咲学院へやってきた男子転校生で固定
+TALENT:0 = 0
+TALENT:109 = 0
+TALENT:110 = 0
+TALENT:121 = 0
+TALENT:122 = 1
+TALENT:154 = 1
+TALENT:151 = 1
+EXP:MASTER:0 = 0
+EXP:MASTER:96 = 0
+TALENT:140 = 0
+TALENT:141 = 0
+ABL:9 = 0
+EXP:0 = 0
+EXP:40 = 0
+MAXBASE:2 = 10000
 
-;趣味的素質付加をスキップするかどうか
-PRINTL ちょっと質問が長くなりますが、付き合いますか？
-PRINTL [0]どんと来い
-PRINTL [1]やめとく
+PRINTL 
+PRINTFORML %NAME:TARGET%の「学院生活の傾向」を、君咲学院での質問から決めます。
+PRINTL 生徒会の聞き取りだと思って、直感で答えてください。
+PRINTL まずは転校初日の聞き取りです。少し長くなりますが、付き合えますか？
+PRINTL [0] 生徒会の質問なら任せろ
+PRINTL [1] 初日から質問攻めは勘弁
 $INPUT_LOOP_6
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_6
+    GOTO INPUT_LOOP_6
 SIF RESULT == 1
-	GOTO TALENT_SET_EX
+    GOTO TALENT_SET_EX
 
-IF TALENT:122 == 1
-	CALL TALENT_SET_M
-	GOTO TALENT_SET_COMMON
-ENDIF
+;主人公は男子固定
+CALL TALENT_SET_M
+GOTO TALENT_SET_COMMON
 
-;女性用の質問
-PRINTL 
-PRINTFORML %NAME:TARGET%は…
-PRINTL [0]両方いける
-PRINTL [1]そこまででもない
-PRINTL [2]むしろオトコはイヤ
-$INPUT_LOOP_02
-INPUT
-IF RESULT == 0
-	TALENT:81 = 1
-ELSEIF RESULT == 1
-	TALENT:81 = 0
-ELSEIF RESULT == 2
-	CALL TALENT_SET_F
-	TALENT:82 = 1
-ELSE
-	GOTO INPUT_LOOP_02
-ENDIF
-SIF ABL:9 < 3
-	ABL:9 = 3
-
-PRINTL 処女ですか？
-PRINTL [0]はい
-PRINTL [1]実は違います
-PRINTL [2]経験豊富です
-$INPUT_LOOP_1
-INPUT
-IF RESULT == 0
-	TALENT:MASTER:0 = 1
-	EXP:MASTER:0 = 0
-ELSEIF RESULT == 1
-	TALENT:MASTER:0 = 0
-	SIF EXP:MASTER:0 == 0
-		EXP:MASTER:0 += RAND:2 + 1
-ELSEIF RESULT == 2
-	TALENT:MASTER:0 = 0
-	SIF EXP:MASTER:0 == 0
-		EXP:MASTER:0 += RAND:91 + 30
-ELSE
-	GOTO INPUT_LOOP_1
-ENDIF
-
-TALENT:MASTER:109 = 0
-TALENT:MASTER:110 = 0
-TALENT:MASTER:140 = 0
-TALENT:MASTER:141 = 0
-PRINTL 胸の大きさは？
-PRINTL [0]自信あるよ
-PRINTL [1]普通かな
-PRINTL [2]……………
-$INPUT_LOOP_2
-INPUT
-IF RESULT == 0
-	TALENT:MASTER:110 = 1
-ELSEIF RESULT == 2
-	TALENT:MASTER:109 = 1
-ELSEIF RESULT != 1
-	GOTO INPUT_LOOP_2
-ENDIF
 $TALENT_SET_COMMON
-
 ;小柄体型
-PRINTL 体型は……
-PRINTL [0]普通だよ
-PRINTL [1]ちっちゃいってゆーな！
+PRINTL 校内で呼ばれるなら……
+PRINTL [0] 普通の転校生
+PRINTL [1] 「ちっちゃい転校生」って呼ばれそう
 $INPUT_LOOP_5
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_5
+    GOTO INPUT_LOOP_5
 TALENT:100 = RESULT
 
 ;臆病
-PRINTL 知らない人に話しかけられたら……
-PRINTL [0]受け答えする
-PRINTL [1]とりあえず逃げる
+PRINTL 昼休みの校内放送で突然呼び出されたら……
+PRINTL [0] とりあえず職員室へ向かう
+PRINTL [1] まずは物陰を探す
 $INPUT_LOOP_7
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_7
+    GOTO INPUT_LOOP_7
 TALENT:10 = RESULT
 
 ;反抗的とツンデレ
-PRINTL ツンデレですか？
-PRINTL [0]それはない
-PRINTL [1]デレはない
-IF TALENT:MASTER:122
-	PRINTL [2]そ、そんなバカな事！
-ELSE
-	PRINTL [2]そ、そんなことないわよ！
-ENDIF
+PRINTL 生徒会長に「今日から君咲の仲間ね」と言われたら……
+PRINTL [0] 素直に礼を言う
+PRINTL [1] 「別に嬉しくない」
+PRINTL [2] 「そ、そんなことない」
 $INPUT_LOOP_8
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_8
+    GOTO INPUT_LOOP_8
 TALENT:11 = RESULT != 0
 TALENT:18 = (RESULT & 2) == 2
 
 ;素直
 SIF TALENT:11
-	GOTO JUMP_1
-PRINTL じゃ、素直って事だね？
-PRINTL [0]短絡的すぎるよ
-PRINTL [1]はい
+    GOTO JUMP_1
+PRINTL 誰かに「助けて」と頼まれたら……
+PRINTL [0] まずは事情を聞く
+PRINTL [1] すぐに手を貸す
 $INPUT_LOOP_9
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_9
+    GOTO INPUT_LOOP_9
 TALENT:13 = RESULT
 $JUMP_1
 
 ;気丈
-;PRINTL 挫けぬ心は……
-;PRINTL [0]兵士に回収されました
-;PRINTL [1]この胸に
-PRINTL 何事にも屈しない？
-PRINTL [0]折れがち
-PRINTL [1]そうあるつもり
+PRINTL 体育祭や文化祭でトラブルが起きたら……
+PRINTL [0] 足が止まってしまう
+PRINTL [1] とりあえず前へ出る
 $INPUT_LOOP_10
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_10
+    GOTO INPUT_LOOP_10
 TALENT:12 = RESULT
 
 ;大人しい
-PRINTL 大人しいって言われる？
-PRINTL [0]そんなには
-PRINTL [1]よく言われる
+PRINTL 昼休みに輪へ誘われたら……
+PRINTL [0] 自分から話題を出す
+PRINTL [1] 聞き役に回る
 $INPUT_LOOP_11
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_11
+    GOTO INPUT_LOOP_11
 TALENT:14 = RESULT
 
 ;生意気
-PRINTL 生意気ってのは？
-PRINTL [0]そんなには
-PRINTL [1]よく言われる
+PRINTL 先輩を少しからかうなら……
+PRINTL [0] 礼儀は守る
+PRINTL [1] 反応が面白そうならやってみる
 $INPUT_LOOP_11_2
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_11_2
+    GOTO INPUT_LOOP_11_2
 TALENT:16 = RESULT
 
 ;自制心
-PRINTL 自分を自分で止められる？
-PRINTL [0]そんなのできない
-PRINTL [1]できる
+PRINTL 放課後、予定と寄り道が重なったら……
+PRINTL [0] その場の誘惑に負ける
+PRINTL [1] 予定を守る
 $INPUT_LOOP_11_3
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_11_3
+    GOTO INPUT_LOOP_11_3
 TALENT:20 = RESULT
 
 ;感情乏しい
-PRINTL 感情の表現は……
-PRINTL [0]難なく
-PRINTL [1]うまく伝わらない
+PRINTL 文化祭のステージで感動したら……
+PRINTL [0] 顔や声に出る
+PRINTL [1] 胸の内にしまう
 $INPUT_LOOP_11_4
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_11_4
+    GOTO INPUT_LOOP_11_4
 TALENT:22 = RESULT
 
 ;プライド高い/低い
-PRINTL 自分のプライドは……
-PRINTL [0]ほどほどに
-PRINTL [1]一番大事
-PRINTL [2]犬に食わせろ
+PRINTL 文化祭の発表で失敗したら……
+PRINTL [0] 笑ってやり直す
+PRINTL [1] 結果が一番大事
+PRINTL [2] 他人に任せる
 $INPUT_LOOP_12
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_12
+    GOTO INPUT_LOOP_12
 TALENT:15 = RESULT & 1
 TALENT:17 = (RESULT & 2) == 2
 
 ;保守的と好奇心と無関心
-PRINTL 真新しいものには……
-PRINTL [0]気が向いたら
-PRINTL [1]なんでも手を出す
-PRINTL [2]手を出さない
-PRINTL [3]そんなのどうでもいい
+PRINTL 新しい部活の体験入部を見つけたら……
+PRINTL [0] 様子を見てから
+PRINTL [1] 面白そうなら飛び込む
+PRINTL [2] 失敗しそうなら避ける
+PRINTL [3] 部活の話自体どうでもいい
 $INPUT_LOOP_13
 INPUT
 IF RESULT == 1
-	TALENT:23 = 1
+    TALENT:23 = 1
 ELSEIF RESULT == 2
-	TALENT:24 = 1
+    TALENT:24 = 1
 ELSEIF RESULT == 3
-	TALENT:21 = 1
+    TALENT:21 = 1
 ELSEIF RESULT != 0
-	GOTO INPUT_LOOP_13
+    GOTO INPUT_LOOP_13
 ENDIF
 
 ;楽観的と悲観的
-PRINTL 恋愛映画を見ていると……
-PRINTL [0]先が気になる
-PRINTL [1]ハッピーエンドになるよ
-PRINTL [2]どうせバッドエンドだよ
+PRINTL 学院新聞の連載の結末を予想すると……
+PRINTL [0] まず展開が気になる
+PRINTL [1] きっと丸く収まる
+PRINTL [2] 嫌な予感がする
 $INPUT_LOOP_13_2
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_13_2
+    GOTO INPUT_LOOP_13_2
 TALENT:25 = RESULT & 1
 TALENT:26 = (RESULT & 2) == 2
 
 ;一線越えない
-PRINTL 人との関係は……
-PRINTL [0]気にしない
-PRINTL [1]距離を置いてしまう
+PRINTL 友達と急に距離が近づいたら……
+PRINTL [0] あまり気にしない
+PRINTL [1] 一歩引いてしまう
 $INPUT_LOOP_14
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_14
+    GOTO INPUT_LOOP_14
 TALENT:27 = RESULT
 
 ;目立ちたがり
-PRINTL 目立つ事は……
-PRINTL [0]イヤではない
-PRINTL [1]○○ちゃーん見てるー？
+PRINTL 校内放送で自分の名前が呼ばれたら……
+PRINTL [0] 悪くない
+PRINTL [1] もう一度、大きな声で呼んでくれ
 $INPUT_LOOP_15
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_15
+    GOTO INPUT_LOOP_15
 TALENT:28 = RESULT
 
 ;貞操観念と貞操無頓着
-PRINTL エッチな事は……
-PRINTL [0]誰彼かまわずやるのは問題
-PRINTL [1]結婚初夜で
-PRINTL [2]ヤりたい時にヤる
+PRINTL 放課後、気になる相手と二人きりになったら……
+PRINTL [0] 相手と相談して決める
+PRINTL [1] 付き合ってから
+PRINTL [2] 今が楽しければいい
 $INPUT_LOOP_16
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_16
+    GOTO INPUT_LOOP_16
 TALENT:30 = RESULT & 1
 TALENT:31 = (RESULT & 2) == 2
 
 ;抑圧と解放
-PRINTL 自分の気持ちは……
-PRINTL [0]楽になれる程度に
-PRINTL [1]しまっておく
-PRINTL [2]筒抜け
+PRINTL 好きな相手への気持ちは……
+PRINTL [0] 言葉にして伝える
+PRINTL [1] 胸にしまう
+PRINTL [2] 顔に全部出る
 $INPUT_LOOP_17
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_17
+    GOTO INPUT_LOOP_17
 TALENT:32 = RESULT & 1
 TALENT:33 = (RESULT & 2) == 2
 
 ;抵抗
-PRINTL 諦めは……
-PRINTL [0]肝心
-PRINTL [1]悪いよ
+PRINTL 部活の特訓が厳しいとき……
+PRINTL [0] 無理はしない
+PRINTL [1] 最後まで食らいつく
 $INPUT_LOOP_18
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_18
+    GOTO INPUT_LOOP_18
 TALENT:34 = RESULT
 
 ;恥じらいと恥薄い
-PRINTL 人前で脱いだりとかは……
-PRINTL [0]出来なくもない
-PRINTL [1]恥ずかしくて無理
-PRINTL [2]平気
+PRINTL 文化祭の衣装で舞台に立つなら……
+PRINTL [0] 多少なら平気
+PRINTL [1] 恥ずかしくて無理
+PRINTL [2] むしろ見てほしい
 $INPUT_LOOP_19
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_19
+    GOTO INPUT_LOOP_19
 TALENT:35 = RESULT & 1
 TALENT:36 = (RESULT & 2) == 2
 
 ;痛みに弱い/強い
-PRINTL 痛いのは……
-PRINTL [0]好きではないよ
-PRINTL [1]勘弁して欲しいです
-PRINTL [2]慣れてます
+PRINTL 体育祭で転んでしまったら……
+PRINTL [0] 痛いのは苦手
+PRINTL [1] 勘弁してほしい
+PRINTL [2] これくらい平気
 $INPUT_LOOP_20
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_20
+    GOTO INPUT_LOOP_20
 TALENT:40 = RESULT & 1
 TALENT:41 = (RESULT & 2) == 2
 
 ;濡れやすい/にくい
-PRINTL 濡れやすい？
-PRINTL [0]普通だと思う
-PRINTL [1]そんな気がする
-PRINTL [2]むしろ逆かな
+PRINTL 突然の夕立で制服が濡れたら……
+PRINTL [0] 普通に着替える
+PRINTL [1] 濡れた感触が気になる
+PRINTL [2] これくらい平気
 $INPUT_LOOP_21
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_21
+    GOTO INPUT_LOOP_21
 TALENT:42 = RESULT & 1
 TALENT:43 = (RESULT & 2) == 2
 
 ;習得早い/遅い
-PRINTL 物覚えは……
-PRINTL [0]普通だと思う
-PRINTL [1]良い
-PRINTL [2]あれ？昨日何やったっけ？
+PRINTL 部活で新しい技を教わったら……
+PRINTL [0] 練習して覚える
+PRINTL [1] すぐ身につく
+PRINTL [2] 昨日のことも忘れてしまう
 $INPUT_LOOP_22
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_22
+    GOTO INPUT_LOOP_22
 TALENT:50 = RESULT & 1
 TALENT:51 = (RESULT & 2) == 2
 
 ;汚臭鈍感/敏感
-PRINTL 部屋の掃除は……
-PRINTL [0]適度に
-PRINTL [1]サボりがち
-PRINTL [2]こまめに
+PRINTL 部室の掃除当番になったら……
+PRINTL [0] 適度に片づける
+PRINTL [1] 後回しにしがち
+PRINTL [2] 細かいところまで気になる
 $INPUT_LOOP_23
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_23
+    GOTO INPUT_LOOP_23
 TALENT:61 = RESULT & 1
 TALENT:62 = (RESULT & 2) == 2
 
 ;快感に素直/の否定
-PRINTL 気持ち良い事は……
-PRINTL [0]良いも悪いも無い
-PRINTL [1]良い事
-PRINTL [2]えっちなのはいけないと思います！
+PRINTL 放課後のご褒美を選ぶなら……
+PRINTL [0] どちらとも言えない
+PRINTL [1] 楽しみたい
+PRINTL [2] 健全第一で
 $INPUT_LOOP_24
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_24
+    GOTO INPUT_LOOP_24
 TALENT:70 = RESULT & 1
 TALENT:71 = (RESULT & 2) == 2
 
 ;自慰しやすい
-PRINTL 自分ですることは……
-PRINTL [0]人並み程度には
-PRINTL [1]多い……かも
+PRINTL ひとりの時間の過ごし方は……
+PRINTL [0] 人並み程度
+PRINTL [1] つい長くなる
 $INPUT_LOOP_25
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_25
+    GOTO INPUT_LOOP_25
 TALENT:60 = RESULT
 IF RESULT == 1
-	EXP:MASTER:10 += RAND:11 + 30
+    EXP:MASTER:10 += RAND:11 + 30
 ELSE
-	EXP:MASTER:10 += RAND:10 + 1
+    EXP:MASTER:10 += RAND:10 + 1
 ENDIF
 
 ;中毒しやすい
-PRINTL 何かにはまってしまったら……
-PRINTL [0]それでも節度は守る
-PRINTL [1]やめられない、とまらない
+PRINTL 気になる部活や趣味に夢中になると……
+PRINTL [0] それでも節度は守る
+PRINTL [1] 時間を忘れてしまう
 $INPUT_LOOP_26
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_26
+    GOTO INPUT_LOOP_26
 TALENT:72 = RESULT
 
 ;倒錯的
-PRINTL 普通の事には興味ない？
-PRINTL [0]そんな事ない
-PRINTL [1]もちろん
+PRINTL 君咲学院の定番から外れた遊びには……
+PRINTL [0] まずは普通が一番
+PRINTL [1] 面白そうなら歓迎
 $INPUT_LOOP_27
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_27
+    GOTO INPUT_LOOP_27
 TALENT:80 = RESULT
 
 $TALENT_SET_EX
 ;ゲームバランスにかかわる素質をスキップするか
-PRINTL 残りの質問は難易度変わっちゃうけど……
-PRINTL [0]どんと来い
-PRINTL [1]やめとく
+PRINTL ここからは学院生活の裏側に関わる質問です。難易度も変わりますが……
+PRINTL [0] 生徒会の質問なら、どんと来い
+PRINTL [1] そこは入学してから考える
 $INPUT_LOOP_31
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_31
+    GOTO INPUT_LOOP_31
 SIF RESULT == 1
-	GOTO TALENT_SET_END
+    GOTO TALENT_SET_END
 
 ;サド/小悪魔/マゾ
-PRINTL いじめるのは……
-PRINTL [0]悪いことです
-PRINTL [1]大好きです
-PRINTL [2]むしろいじめてください
+PRINTL 部活の勝負で自分が任されるなら……
+PRINTL [0] 誰も傷つけない役がいい
+PRINTL [1] 相手を追い込む役がいい
+PRINTL [2] 追い込まれる役も悪くない
 $INPUT_LOOP_28
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_28
+    GOTO INPUT_LOOP_28
 SIF RESULT == 1
-	CALL TALENT_SET_S
+    CALL TALENT_SET_S
 TALENT:79 = (RESULT & 2) == 2
 
 ;幼稚
 PRINTL 子供っぽい性格？
-PRINTL [0]まさか
-PRINTL [1]うにゅ？
+PRINTL [0] まさか
+PRINTL [1] うにゅ？
 $INPUT_LOOP_29
 INPUT
 SIF RESULT != 0 && RESULT != 1
-	GOTO INPUT_LOOP_29
-;TALENT:87 = RESULT & 1
+    GOTO INPUT_LOOP_29
 TALENT:132 = RESULT & 1
 
 ;回復早い/遅い
 PRINTL 自分の体力について……
-PRINTL [0]平均的
-PRINTL [1]元気だと思う
-PRINTL [2]病弱かも
+PRINTL [0] 平均的
+PRINTL [1] 元気だと思う
+PRINTL [2] 病弱かも
 $INPUT_LOOP_30
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_30
+    GOTO INPUT_LOOP_30
 TALENT:111 = RESULT & 1
 TALENT:112 = (RESULT & 2) == 2
-
-;c/v/a/b鈍感/敏感はどうしようか
 
 $TALENT_SET_END
 PRINTL 
@@ -1043,19 +896,16 @@ TARGET = -1
 
 RETURN 1
 
-;-------------------------------------------------
-;質問形式の分岐関数
-;-------------------------------------------------
 @TALENT_SET_M
-;[オトコ]用両刀と男嫌い
-PRINTFORML 両方いける？
-PRINTL [0] マテ、何の話だ
-PRINTL [1] どんと来い
-PRINTL [2] 無理！　絶対に無理！
+;男子主人公用の両刀と男嫌い
+PRINTL 君咲学院では女子に囲まれる毎日ですが、男子の話題が出たら……
+PRINTL [0] まずは学院生活に慣れるのが先だ
+PRINTL [1] 男女問わず、仲間なら気にしない
+PRINTL [2] 男子の話題はちょっと苦手だ
 $INPUT_LOOP_1
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2
-	GOTO INPUT_LOOP_1
+    GOTO INPUT_LOOP_1
 TALENT:81 = RESULT & 1
 TALENT:82 = (RESULT & 2) == 2
 
@@ -1071,82 +921,24 @@ SIF RESULT != 0 && RESULT != 1
 TALENT:81 = RESULT & 1
 
 @TALENT_SET_S
-;サド/小悪魔
-PRINTFORML 怖がらせて、痛めつけるのと
-PRINTFORML トロトロに蕩けさせて、可愛く鳴かせるのと
-PRINTFORML どっちが好き？
-PRINTL [0] 出直します
-PRINTL [1] 痛めつけたい
-PRINTL [2] 鳴かせたい
-PRINTL [3] 両方！　両方！
+;サド/小悪魔/マゾ
+PRINTL 勝負で相手を追い詰めるなら、どんな勝ち方が好み？
+PRINTL [0] まずは正々堂々
+PRINTL [1] 勝負は徹底的に
+PRINTL [2] ぎりぎりまで焦らして逆転
+PRINTL [3] 両方！
 $INPUT_LOOP_1
 INPUT
 SIF RESULT != 0 && RESULT != 1 && RESULT != 2 && RESULT != 3
-	GOTO INPUT_LOOP_1
+    GOTO INPUT_LOOP_1
 TALENT:83 = RESULT & 1
 TALENT:87 = (RESULT & 2) == 2
 
-;-------------------------------------------------
-;質問形式の分岐関数（SYSTEM.ERBから移動した質問）
-;-------------------------------------------------
 @TALENT_SET_J
-PRINTFORML %CALLNAME:MASTER%のキス経験はどうしますか？
-PRINTL [0] キス位は経験済み
-PRINTL [1] ファーストキスも済んでません
-
-$INPUT_LOOP2
-INPUT
-
-IF RESULT != 0 && RESULT != 1
-	PRINTFORML 正しい値を入力してください
-	GOTO INPUT_LOOP2
-ENDIF
-IF RESULT == 0
-	PRINTFORMW %CALLNAME:MASTER%にキス経験を持たせました
-	EXP:MASTER:96 = 5
-ELSE
-	PRINTFORMW %CALLNAME:MASTER%をキス未経験にしました
-	EXP:MASTER:96 = 0
-	TALENT:MASTER:151 = 1
-ENDIF
-
-IF TALENT:MASTER:122 == 0 && TALENT:MASTER:121 == 0
-	PRINTFORML 最初から%CALLNAME:MASTER%をふたなり化させることが出来ます。どうしますか？
-	PRINTL [0] ふたなり化する
-	PRINTL [1] そんな事はしない
-
-	$INPUT_LOOP3
-	INPUT
-
-	IF RESULT != 0 && RESULT != 1
-		PRINTFORML 正しい値を入力してください
-		GOTO INPUT_LOOP3
-	ENDIF
-	IF RESULT == 0
-		PRINTFORMW %CALLNAME:MASTER%をふたなりにしました
-		TALENT:MASTER:121 = 1
-	ENDIF
-	GOTO DOUTEI
-ENDIF
-
-$DOUTEI
-IF TALENT:MASTER:122
-	PRINTFORML %CALLNAME:MASTER%を童貞にすることが出来ます。どうしますか？
-	PRINTL [0] 童貞にする
-	PRINTL [1] 童貞じゃないよ
-
-	$INPUT_LOOP4
-	INPUT
-
-	IF RESULT != 0 && RESULT != 1
-		PRINTFORML 正しい値を入力してください
-		GOTO INPUT_LOOP4
-	ENDIF
-	IF RESULT == 0
-		PRINTFORMW %CALLNAME:MASTER%を童貞にしました
-		TALENT:MASTER:154 = 1
-	ENDIF
-ENDIF
-
-
+;主人公の童貞・キス未経験は固定
+TALENT:MASTER:154 = 1
+TALENT:MASTER:151 = 1
+EXP:MASTER:0 = 0
+EXP:MASTER:96 = 0
+RETURN 0
 
