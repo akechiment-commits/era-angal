@@ -415,122 +415,10 @@ DRAWLINE
 RETURN 1
 
 ;---------------------------------------------------------
-;授業・自習セッション（旧BATTLE_NORMAL）
-;---------------------------------------------------------
-@STUDY_SESSION
-PRINTL 
-
-;授業の種類をランダム決定
-A = RAND:100
-IF A <= 20
-	STR:0 = 国語
-ELSEIF A <= 40
-	STR:0 = 数学
-ELSEIF A <= 55
-	STR:0 = 英語
-ELSEIF A <= 70
-	STR:0 = 理科
-ELSEIF A <= 85
-	STR:0 = 社会
-ELSEIF A <= 92
-	STR:0 = 体育
-ELSEIF A <= 96
-	STR:0 = 音楽
-ELSE
-	STR:0 = 家庭科
-ENDIF
-
-;成否判定
-CALL GET_EXAM_SCORE
-B = 70 + P / 50
-SIF B > 99
-	B = 99
-A = RAND:100
-IF A <= 10
-	;10%で大成功（よく理解できた）
-	TFLAG:18 = 1
-ELSEIF A >= B
-	;失敗（ついていけなかった）
-	TFLAG:18 = -1
-ELSE
-	;通常
-	TFLAG:18 = 0
-ENDIF
-
-;メッセージ表示
-IF TARGET >= 0
-	PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:TARGET%と一緒に%STR:0%の授業を受けた
-ELSE
-	PRINTFORMW %CALLNAME:MASTER%は%STR:0%の授業を受けた
-ENDIF
-
-IF TFLAG:18 == 1
-	PRINTFORML 今日の授業はとてもよく理解できた！
-ELSEIF TFLAG:18 == -1
-	PRINTFORML ……しかし、内容が難しくてあまり理解できなかった
-ENDIF
-
-;体力・気力消費
-BASE:MASTER:4 -= 30
-BASE:MASTER:1 -= 50
-
-;学習経験の獲得
-A = RAND:10
-IF A <= 5
-	B = 1
-ELSEIF A <= 8
-	B = 2
-ELSE
-	B = 3
-ENDIF
-
-IF TFLAG:18 == -1
-	B -= 1
-	SIF B < 0
-		B = 0
-ELSEIF TFLAG:18 == 1
-	B += 1
-ENDIF
-
-IF B > 0
-	;今学期の勉強量（試験の主成分）と長期の学習経験を両方加算
-	FLAG:210 += B
-	EXP:MASTER:95 += B
-	PRINTFORML %EXPNAME:95%+{B}（%CALLNAME:MASTER%）／今学期の勉強+{B}
-	IF TARGET >= 0
-		EXP:TARGET:95 += B
-		PRINTFORML %EXPNAME:95%+{B}（%CALLNAME:TARGET%）
-	ENDIF
-ENDIF
-
-;好感度変動（パートナーと一緒の場合）
-IF TARGET >= 0
-	A = RAND:5 - 1
-	IF TFLAG:18 == 1
-		A += 2
-	ELSEIF TFLAG:18 == -1
-		A -= 1
-	ENDIF
-	TFLAG:30 += A
-
-ENDIF
-
-;ソース（好感度ポイント）
-SOURCE:18 = 50
-IF TFLAG:18 == 1
-	TIMES SOURCE:18 , 2.00
-ELSEIF TFLAG:18 == -1
-	TIMES SOURCE:18 , 0.50
-ENDIF
-
-;（旧「学習進度」によるFLAG:27加算は廃止。FLAG:27は試験ビットマスク専用に戻した）
-
-RETURN 1
-
-;---------------------------------------------------------
-;試験を受ける（旧BATTLE_BOSS）
+;学期試験処理
 ;---------------------------------------------------------
 @TAKE_EXAM
+; RETURN 1=中間試験合格、2=期末試験合格、3=不合格（追試へ）
 PRINTL 
 
 ;試験名決定（TFLAG:83 0=中間 1=期末）
@@ -687,7 +575,7 @@ ENDIF
 
 PRINTW 
 
-RETURN 1
+RETURN 3
 
 ;---------------------------------------------------------
 ;試験スコア計算
@@ -728,7 +616,13 @@ RETURN 1
 @CALC_ACADEMIC_LEVEL(ARG)
 LOCAL:0 = TARGET
 TARGET = ARG:0
-ABL:TARGET:88 = ABL:TARGET:98 + EXP:TARGET:95 * ABL:TARGET:98 / 500
+; 学力は学習適性・学習経験から算出し、購入分(CFLAG:88)を加算する
+LOCAL:1 = ABL:TARGET:98 + EXP:TARGET:95 * ABL:TARGET:98 / 500
+IF CFLAG:TARGET:88 == 0 && ABL:TARGET:88 > LOCAL:1
+	; 既存セーブの購入済み分を初回計算時に取り込む
+	CFLAG:TARGET:88 = ABL:TARGET:88 - LOCAL:1
+ENDIF
+ABL:TARGET:88 = LOCAL:1 + CFLAG:TARGET:88
 TARGET = LOCAL:0
 RETURN 1
 
@@ -740,8 +634,8 @@ RETURN 1
 ;---------------------------------------------------------
 ;学期末試験 自動発動版
 ;ENDING_CHECK(日数切れ)から呼ばれる
-;合格 → 次の学期へ（RETURN 1）
-;不合格 → バッドエンド処理
+; TAKE_EXAMの結果に応じて処理
+;不合格 → 追試ルートへ
 ;---------------------------------------------------------
 @SEMESTER_EXAM_AUTO
 ;TFLAG:83: 0=中間試験 1=期末試験
@@ -769,8 +663,11 @@ IF RESULT == 2
 ELSEIF RESULT == 1
 	;中間合格 → 後半へ（FLAG:27=1はTAKE_EXAM内で設定済み）
 	RETURN 1
+ELSEIF RESULT == 3
+	; 不合格は追試ルートへ進める
+	RETURN 1
 ELSE
-	;不合格 → バッドエンド
+	; 想定外の戻り値 → バッドエンド
 	PRINTFORML
 	IF TFLAG:83 == 0
 		PRINTFORML 中間試験に合格できなかった。

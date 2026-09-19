@@ -24,8 +24,6 @@
 ;				勝手に使う変数	L、R
 ;ADD_REIMUSAMA			あなた様加入処理
 ;	REPEAT使用アリ		勝手に使う変数	A、E、P、T
-;ADD_NEW_CHARA			倒したキャラの加入処理
-;				勝手に使う変数	A、E、T
 ;PUSH_OVER			押し倒し判定。判定成功時はRESULT = 1
 ;				勝手に使う変数	A、B、L、R
 ;GET_FEAT			特殊能力の習得
@@ -1189,82 +1187,6 @@ SIF A < 0
 
 RETURN 1
 
-@ADD_NEW_CHARA
-;倒したキャラの加入処理
-CALL ADD_NEW_CHARA_COMMON
-;従者判定
-CALL ATTENDANT
-;従者加入　W:2～に数値が入っていれば追加。
-FOR LOCAL, 2, 10
-	IF W:LOCAL > 0
-		FLAG:25 = W:LOCAL
-		CALL ADD_NEW_CHARA_COMMON
-	ENDIF
-NEXT
-
-RETURN 1
-
-@ADD_NEW_CHARA_COMMON
-;FLAG:25のキャラを追加
-T = FLAG:25
-CALL GET_EXISTANCE
-IF E == 0
-	T = FLAG:25
-	FOR LOCAL, 0, CHARANUM
-		SIF CFLAG:LOCAL:21 == 1 && NO:LOCAL == T
-			E = LOCAL
-	NEXT
-	IF E != 0
-		T = E
-		CFLAG:T:21 = 0
-		E = TARGET
-		LOCAL:1 = TARGET
-		TARGET = T
-		T = FLAG:25
-		TFLAG:600 = 36
-		;口上の条件はTFLAG:600 == 36にしてください
-		CALL KOJO_JUN
-		TARGET = LOCAL:1
-		TFLAG:600 = 0
-	ELSE
-		ADDCHARA FLAG:25
-		A = CHARANUM - 1
-		;キャラ加入時の共通設定
-		CALL NEWCHARA_INIT
-		
-		;エクストラ構文呼び出し
-		TFLAG:600 = 0
-		Z = TARGET
-		LOCAL:1 = TARGET
-		TARGET = A
-		CALL KOJO_JUN
-		
-		A = CHARANUM - 1
-		
-		;仲間になった場合FLAG:1000～に2を代入し、一度仲間になった判定に使用する
-		FLAG:(999+ T) = 2
-		
-		;FLAG:23 & 4194304がONなら休憩所で休ませる
-		SIF FLAG:23 & 4194304
-			CFLAG:A:16 = 1
-		;仲間にしたキャラのコマンドフィルタを自動的に共通設定にする
-		SIF FLAG:61 & 1p10
-			CALL INVERT_COM_FILTERING(1001, A)
-		
-		TARGET = LOCAL:1
-	ENDIF
-	E = 0
-	;「あなた」はサポート対象外
-	SIF FLAG:25 == 0
-		TALENT:A:210 = 1
-ENDIF
-
-RETURN 1
-
-;-------------------------------------------------
-;キャラ加入時の共通設定
-;AはCHARANUM - 1
-;-------------------------------------------------
 @NEWCHARA_INIT
 ;汎用キャラのランダム素質付加処理
 SIF NO:A == 99
