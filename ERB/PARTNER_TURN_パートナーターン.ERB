@@ -8,7 +8,7 @@
 #LATER
 
 ;設定OFF、完全主導権中、お任せ連続実行中、どちらかが限界の時には重ねない。
-SIF (FLAG:62 & 16) == 0 || TFLAG:34 || TFLAG:999 || TARGET < 0 || BASE:TARGET:0 <= 0 || BASE:PLAYER:0 <= 0
+SIF (FLAG:62 & 16) == 0 || TFLAG:34 || TFLAG:999 || TARGET < 0 || BASE:TARGET:0 <= 0 || BASE:PLAYER:0 <= 0	; 【[主導権全委任] / TARGET:[体力]<=0 / PLAYER:[体力]<=0】
 	RETURN 0
 ;調教コマンドの終了時だけ発生させる。終了・設定などのユーザーコマンドは除外する。
 SIF SELECTCOM < 0 || SELECTCOM > 414
@@ -22,7 +22,7 @@ RETURN 0
 @PARTNER_TURN_EXECUTE
 
 CALL PARTNER_TURN_SELECT
-SIF TFLAG:53 <= 0
+SIF TFLAG:53 <= 0	; 【[パートナーのターンでのコマンド内容]<=0】
 	RETURN 0
 
 ;通常ターンの消費値を引き継がない。PASSIVEMODE経由ではこの初期化が行われないため、
@@ -88,25 +88,25 @@ FOR ACTION, 0, 50
 			CONTINUE
 		;非ウフフ時や着衣中でも、会話・キス・抱擁などの交流行動は候補に残す。
 		;明確な性的行動だけをウフフ中かつ脱衣後に限定する。
-		IF TFLAG:44 == 0 || UNDERWARED()
+		IF TFLAG:44 == 0 || UNDERWARED()	; 【無[ウフフ中]】
 			SIF ACTION == 18 || ACTION >= 31
 				CONTINUE
 		ENDIF
 		;関係が浅い間は、談笑だけにする。
 		;既存の「見つめあう」は実行後の共通地の文が性的なので、恋慕まで封印する。
-		SIF TALENT:TARGET:85 == 0 && ACTION != 22
+		SIF TALENT:TARGET:85 == 0 && ACTION != 22	; 【TARGET:[恋慕]なし】
 			CONTINUE
 		;恋慕後も、合意がなければ距離を詰める行為は自発しない。
-		SIF TALENT:TARGET:152 == 0 && ACTION != 22
+		SIF TALENT:TARGET:152 == 0 && ACTION != 22	; 【TARGET:[合意]なし】
 			CONTINUE
 		;明確に性的な誘いは、恋慕・合意に加えて恋人または淫乱の段階から。
 		;恋人なのに淫乱がないだけでキス以外が全落ちしないよう、お任せ側と条件を揃える。
-		SIF (ACTION >= 18 && ACTION <= 42) && TALENT:TARGET:153 == 0 && TALENT:TARGET:76 == 0
+		SIF (ACTION >= 18 && ACTION <= 42) && TALENT:TARGET:153 == 0 && TALENT:TARGET:76 == 0	; 【TARGET:[恋人]なし / TARGET:[淫乱]なし】
 			CONTINUE
 		;相手主導の挿入は、恋人または淫乱に加え、潤滑が始まっており通常コマンドの実行条件を満たす時だけ。
 		;実際のコマンド可否も確認してから候補に入れるため、装備・性別などの既存制限もそのまま尊重する。
 		IF ACTION == 47
-			SIF (TALENT:TARGET:153 == 0 && TALENT:TARGET:76 == 0) || PALAM:3 < PALAMLV:1
+			SIF (TALENT:TARGET:153 == 0 && TALENT:TARGET:76 == 0) || PALAM:3 < PALAMLV:1	; 【TARGET:[恋人]なし / TARGET:[淫乱]なし / [潤滑]<PALAMLV:1】
 				CONTINUE
 		ENDIF
 		;パッシブ側の条件だけでなく、変換先の通常コマンドが現在のウフフ状態で
@@ -135,7 +135,7 @@ TFLAG:DOTRAIN = DOTRAIN_BACKUP
 IF ACTION_COUNT <= 0
 	;ウフフ中は実行不能な会話へフォールバックさせず、相手ターンそのものを見送る。
 	;非ウフフ時だけ、従来どおり談笑を安全な最低候補にする。
-	IF TFLAG:44
+	IF TFLAG:44	; 【[ウフフ中]】
 		TFLAG:53 = 0
 	ELSE
 		TFLAG:53 = 22
@@ -167,7 +167,7 @@ RETURN 0
 
 WEIGHT = 1
 ;恋慕前は談笑だけにする。
-IF TALENT:TARGET:85 == 0
+IF TALENT:TARGET:85 == 0	; 【TARGET:[恋慕]なし】
 	SIF ARG == 22
 		WEIGHT = 12
 	RETURNF WEIGHT
@@ -175,7 +175,7 @@ ENDIF
 ;ウフフ中のキス3種はすべて通常キス(COM6)へ変換される。
 ;同じ行動へ好感度の巨大な重みが3回乗らないよう、キス枠は低めかつ上限付きにする。
 IF GROUPMATCH(ARG, 8, 9, 10)
-	IF TFLAG:44
+	IF TFLAG:44	; 【[ウフフ中]】
 		WEIGHT += 2 + ABL:TARGET:0 / 2 + MIN(CFLAG:TARGET:2 / 20000, 6)
 	ELSE
 		WEIGHT += 5 + ABL:TARGET:0 + MIN(CFLAG:TARGET:2 / 5000, 12)

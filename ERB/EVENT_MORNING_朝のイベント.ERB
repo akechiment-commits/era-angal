@@ -9,12 +9,17 @@
 ;スペルの名前変更
 TRYCALL SPELL_NAME_CHANGE
 IF TARGET > -1
-	IF TFLAG:121
+	IF TFLAG:121	; 【[朝イベントスキップフラグ]】
+		;イベントスキップ
+	ELSEIF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+		SETCOLOR 150, 150, 150
+		PRINTFORML （%CALLNAME:TARGET%は衰弱療養中（お休み）のため、朝のイベントは発生しません）
+		RESETCOLOR
 		;朝イベントスキップ
-	ELSEIF MARK:3 >= 3
+	ELSEIF MARK:3 >= 3	; 【[反発感情]Lv>=3】
 		;騒音で起こされる
 		CALL EVENT_NEWDAY_OTO
-	ELSEIF TALENT:85 == 0 && TALENT:76 == 0
+	ELSEIF TALENT:85 == 0 && TALENT:76 == 0	; 【[恋慕]なし / [淫乱]なし】
 		;朝イベントは起きない
 	ELSE
 		;朝に起こるイベントが発生するかチェック
@@ -87,14 +92,14 @@ RETURN 0
 IF (FLAG:62 & 1)
 	REPEAT CHARANUM
 		;妊娠時
-		IF TALENT:COUNT:134
+		IF TALENT:COUNT:134	; 【COUNT:[妊娠]】
 			;出産3日前からは臨月突入で調教不可に
-			IF (CFLAG:COUNT:110 - 3) <= DAY:7 && (MARK:COUNT:90 != 1)
+			IF (CFLAG:COUNT:110 - 3) <= DAY:7 && (MARK:COUNT:90 != 1)	; 【COUNT:[出産日]】
 				DRAWLINE
 				CALL REACH_FULL_TERM
 			;出産予定日なら出産
-			ELSEIF CFLAG:COUNT:110 <= DAY:7
-				IF CFLAG:COUNT:21 == 0
+			ELSEIF CFLAG:COUNT:110 <= DAY:7	; 【COUNT:[出産日]<=DAY:7】
+				IF CFLAG:COUNT:21 == 0	; 【COUNT:[別れ]==0】
 					DRAWLINE
 					CALL CHILD_BIRTH
 				ELSE
@@ -103,10 +108,10 @@ IF (FLAG:62 & 1)
 				ENDIF
 			ENDIF
 		;育児中
-		ELSEIF TALENT:COUNT:135
+		ELSEIF TALENT:COUNT:135	; 【COUNT:[育児中]】
 			;出産20日で親離れで調教可能に
-			IF (CFLAG:COUNT:110 + 20) <= DAY:7
-				IF CFLAG:COUNT:21 == 0
+			IF (CFLAG:COUNT:110 + 20) <= DAY:7	; 【COUNT:[出産日]】
+				IF CFLAG:COUNT:21 == 0	; 【COUNT:[別れ]==0】
 					DRAWLINE
 					CALL DEPEARENT
 				ELSE
@@ -201,61 +206,61 @@ RETURN 0
 
 @EVENT_NEWDAY_PI
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 1
+SIF CFLAG:97 & 1	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;パートナーがオトコならリターン
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;反発感情があるとダメ
-SIF MARK:3 > 0
+SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 	RETURN 0
 ;パイズリで起こされる
 ;欲望8以上奉仕精神8以上精液経験1以上で発生、奉仕精神と精液中毒で回数判定
-IF ABL:1 >= 8 && ABL:6 >= 8 && ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:TARGET:85
-	IF ABL:6+ABL:11 < 6
+IF ABL:1 >= 8 && ABL:6 >= 8 && ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:TARGET:85	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ] / TARGET:[恋慕] / [欲望]Lv>=8 / [奉仕精神]Lv>=8 / [精液中毒]Lv>=1】
+	IF ABL:6+ABL:11 < 6	; 【[奉仕精神] / [精液中毒]Lv<6】
 		A = 1
-	ELSEIF ABL:6+ABL:11 < 12
+	ELSEIF ABL:6+ABL:11 < 12	; 【[奉仕精神] / [精液中毒]Lv<12】
 		A = 2
-	ELSEIF ABL:6+ABL:11 < 18
+	ELSEIF ABL:6+ABL:11 < 18	; 【[奉仕精神] / [精液中毒]Lv<18】
 		A = 3
-	ELSEIF ABL:6+ABL:11 < 24
+	ELSEIF ABL:6+ABL:11 < 24	; 【[奉仕精神] / [精液中毒]Lv<24】
 		A = 4
-	ELSEIF ABL:6+ABL:11 >= 24
+	ELSEIF ABL:6+ABL:11 >= 24	; 【[奉仕精神] / [精液中毒]Lv>=24】
 		A = 2 + (ABL:6 / 6) + (ABL:11 / 4)
 	ENDIF
 	
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		A -= 1
 	;両刀
-	SIF TALENT:81 && TALENT:MASTER:122 == 0
+	SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 		A += 1
 	;汚臭鈍感
-	SIF TALENT:61
+	SIF TALENT:61	; 【[汚臭鈍感]】
 		A += 1
 	;汚臭敏感
-	SIF TALENT:62
+	SIF TALENT:62	; 【[汚臭敏感]】
 		A -= 1
 	;献身的
-	SIF TALENT:63
+	SIF TALENT:63	; 【[献身的]】
 		A += 1
 	;親愛
-	SIF TALENT:88
+	SIF TALENT:88	; 【[親愛]】
 		A += 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 1
 	;淫乱
-	SIF TALENT:85
+	SIF TALENT:85	; 【[恋慕]】
 		A += 1
 	;B鈍感
-	SIF TALENT:107
+	SIF TALENT:107	; 【[Ｂ鈍感]】
 		A -= 1
 	;B敏感
-	SIF TALENT:108
+	SIF TALENT:108	; 【[Ｂ敏感]】
 		A += 1
 	;淫乳
-	SIF TALENT:78
+	SIF TALENT:78	; 【[淫乳]】
 		A += 1
 	
 	A:1 = A
@@ -271,17 +276,17 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTE
 		TFLAG:13 = 8
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、%CALLNAME:MASTER%が目覚めると下腹部に違和感があるのに気づいた
 			;貧乳の場合
-			IF TALENT:109
+			IF TALENT:109	; 【[貧乳]】
 				PRINTFORML 気づかれないように目をやると、%CALLNAME:TARGET%が胸でペニスを弄っていた
 				PRINTFORML どうやらパイズリの練習をしているらしい……
 			;超乳の場合
-			ELSEIF TALENT:143
+			ELSEIF TALENT:143	; 【[超乳]】
 				PRINTFORML 目をやると%CALLNAME:TARGET%が常識外れの大きさの胸でペニスをすっかり埋め、激しく擦り上げている
 			;巨乳の場合	
-			ELSEIF TALENT:141 || TALENT:110
+			ELSEIF TALENT:141 || TALENT:110	; 【[爆乳] / [巨乳]】
 				PRINTFORML 目をやると%CALLNAME:TARGET%が大きな胸でペニスを挟み、擦り上げている
 			;それ以外
 			ELSE
@@ -299,26 +304,27 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTE
 		EXP:20 += A
 		PRINTFORML %EXPNAME:20%＋{A}
 		;主人公射精量記録（パイズリ）
-		SIF TALENT:MASTER:121 || TALENT:MASTER:122
+		IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
 			FLAG:5040 += A * (8 + RAND:5)
 			FLAG:(5800 + NO:TARGET) += A * (8 + RAND:5)
+		ENDIF
 		EXP:21 += A/2
 		PRINTFORML %EXPNAME:21%＋{A/2}
-		IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+		IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 			PRINTFORML %EXPNAME:40%＋{A*2}
 			EXP:40 += A*2
 			EXP:MASTER:40 += A*2
 		ENDIF
 		PRINTFORML %PALAMNAME:4%の珠＋{A:1*100}
 		;巨乳の場合のボーナス,欲情が2倍
-		IF TALENT:110
+		IF TALENT:110	; 【[巨乳]】
 			PRINTFORML %PALAMNAME:5%の珠＋{A:1*60}
 		ELSE
 			PRINTFORML %PALAMNAME:5%の珠＋{A:1*30}
 		ENDIF
 		PRINTFORMW %PALAMNAME:6%の珠＋{A:1*40}
 		;普乳の場合のボーナス追加、習得が少し増える
-		IF TALENT:109 == 0 && TALENT:110 == 0
+		IF TALENT:109 == 0 && TALENT:110 == 0	; 【[貧乳]なし / [巨乳]なし】
 			PRINTFORML %PALAMNAME:7%の珠＋{A:1*60}
 		ELSE
 			PRINTFORML %PALAMNAME:7%の珠＋{A:1*40}
@@ -326,18 +332,18 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTE
 		;貧乳の場合のボーナス,恥情が入る
 		PRINTFORML %PALAMNAME:8%の珠＋{A:1*30}
 		JUEL:4 += A:1*100
-		IF TALENT:110
+		IF TALENT:110	; 【[巨乳]】
 			JUEL:5 += A:1*60
 		ELSE
 			JUEL:5 += A:1*30
 		ENDIF
 		JUEL:6 += A*40
-		IF TALENT:109 == 0 && TALENT:110 == 0
+		IF TALENT:109 == 0 && TALENT:110 == 0	; 【[貧乳]なし / [巨乳]なし】
 			JUEL:7 += A:1*60
 		ELSE
 			JUEL:7 += A:1*40
 		ENDIF
-		SIF TALENT:109
+		SIF TALENT:109	; 【[貧乳]】
 			JUEL:8 += A:1*30
 		;カットフラグを戻す
 		CFLAG:99 = LOCAL:100
@@ -357,56 +363,56 @@ ENDIF
 ;精液経験1以上で発生、欲望と奉仕精神で回数判定
 ;条件に[合意]追加
 ;パートナーがオトコならリターン
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 VARSET A, 0
-IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:TARGET:152
-	IF (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:TARGET:0 == 0 && EXP:0 > 0 && TALENT:MASTER:154 == 0 && (CFLAG:97 & 2) == 0
+IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:TARGET:152	; 【TARGET:[恋慕] / TARGET:[淫乱] / TARGET:[合意] / [欲望]Lv>=8 / [奉仕精神]Lv>=8】
+	IF (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:TARGET:0 == 0 && EXP:0 > 0 && TALENT:MASTER:154 == 0 && (CFLAG:97 & 2) == 0	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ] / TARGET:[処女]なし / MASTER:[童貞]なし / [Ｖ経験]>0 / [朝イベントカットフラグ]】
 		;朝から凄いなぁ……
-		IF ABL:1+ABL:6 < 6
+		IF ABL:1+ABL:6 < 6	; 【[欲望] / [奉仕精神]Lv<6】
 			A = 1
-		ELSEIF ABL:1+ABL:6 < 12
+		ELSEIF ABL:1+ABL:6 < 12	; 【[欲望] / [奉仕精神]Lv<12】
 			A = 2
-		ELSEIF ABL:1+ABL:6 < 18
+		ELSEIF ABL:1+ABL:6 < 18	; 【[欲望] / [奉仕精神]Lv<18】
 			A = 3
-		ELSEIF ABL:1+ABL:6 < 24
+		ELSEIF ABL:1+ABL:6 < 24	; 【[欲望] / [奉仕精神]Lv<24】
 			A = 4
-		ELSEIF ABL:1+ABL:6 >= 24
+		ELSEIF ABL:1+ABL:6 >= 24	; 【[欲望] / [奉仕精神]Lv>=24】
 			A = 3 + (ABL:1 / 6) + (ABL:6 / 6)
 		ENDIF
 		
 		;男嫌い
-		SIF TALENT:82 && TALENT:MASTER:122
+		SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 			A -= 1
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			A += 1
 		;献身的
-		SIF TALENT:63
+		SIF TALENT:63	; 【[献身的]】
 			A += 1
 		;快感に素直
-		SIF TALENT:70
+		SIF TALENT:70	; 【[快感に素直]】
 			A += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			A += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			A += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			A += 1
 		;V鈍感
-		SIF TALENT:103
+		SIF TALENT:103	; 【[Ｖ鈍感]】
 			A -= 1
 		;V敏感
-		SIF TALENT:104
+		SIF TALENT:104	; 【[Ｖ敏感]】
 			A += 1
 		;淫壷
-		SIF TALENT:74
+		SIF TALENT:74	; 【[淫壷]】
 			A += 1
 		;反発感情があるとダメ
-		SIF MARK:3 > 0
+		SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 			RETURN 0
 		
 		A:1 = A
@@ -422,7 +428,7 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 			TFLAG:13 = 9
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML %CALLNAME:MASTER%が朝起きると腰の辺りに重みを感じた
 				PRINTFORML 目をやると%CALLNAME:TARGET%が上に跨って喘いでいる……
 			ENDIF
@@ -440,18 +446,19 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 			EXP:20 += A/2
 			PRINTFORML %EXPNAME:20%＋{A/2}
 			;主人公射精量記録（乗位）
-			SIF TALENT:MASTER:121 || TALENT:MASTER:122
+			IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
 				FLAG:5040 += A * (4 + RAND:3)
 				FLAG:(5800 + NO:TARGET) += A * (4 + RAND:3)
+			ENDIF
 			EXP:21 += A/2
 			PRINTFORML %EXPNAME:21%＋{A/2}
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{A*2}
 				EXP:40 += A*2
 				EXP:MASTER:40 += A*2
 			ENDIF
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML 達した%CALLNAME:TARGET%が倒れ込むように抱きついてきた。
 			ENDIF
 			PRINTFORML %PALAMNAME:1%の珠＋{A:1*50}
@@ -464,48 +471,48 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 			CFLAG:99 = LOCAL:100
 			RETURN 1
 		ENDIF
-	ELSEIF TALENT:MASTER:122 == 0 && TALENT:122 == 0 && ABL:12 > 0 && (CFLAG:97 & 4) == 0
-		IF ABL:1+ABL:6 < 6
+	ELSEIF TALENT:MASTER:122 == 0 && TALENT:122 == 0 && ABL:12 > 0 && (CFLAG:97 & 4) == 0	; 【MASTER:[オトコ]なし / [オトコ]なし / [レズ中毒]Lv>0 / [朝イベントカットフラグ]】
+		IF ABL:1+ABL:6 < 6	; 【[欲望] / [奉仕精神]Lv<6】
 			A = 1
-		ELSEIF ABL:1+ABL:6 < 12
+		ELSEIF ABL:1+ABL:6 < 12	; 【[欲望] / [奉仕精神]Lv<12】
 			A = 2
-		ELSEIF ABL:1+ABL:6 < 18
+		ELSEIF ABL:1+ABL:6 < 18	; 【[欲望] / [奉仕精神]Lv<18】
 			A = 3
-		ELSEIF ABL:1+ABL:6 < 24
+		ELSEIF ABL:1+ABL:6 < 24	; 【[欲望] / [奉仕精神]Lv<24】
 			A = 4
-		ELSEIF ABL:1+ABL:6 >= 24
+		ELSEIF ABL:1+ABL:6 >= 24	; 【[欲望] / [奉仕精神]Lv>=24】
 			A = 3 + (ABL:1 / 6) + (ABL:6 / 6)
 		ENDIF
 		
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			A += 1
 		;献身的
-		SIF TALENT:63
+		SIF TALENT:63	; 【[献身的]】
 			A += 1
 		;快感に素直
-		SIF TALENT:70
+		SIF TALENT:70	; 【[快感に素直]】
 			A += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			A += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			A += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			A += 1
 		;C鈍感
-		SIF TALENT:101
+		SIF TALENT:101	; 【[Ｃ鈍感]】
 			A -= 1
 		;C敏感
-		SIF TALENT:102
+		SIF TALENT:102	; 【[Ｃ敏感]】
 			A += 1
 		;淫核
-		SIF TALENT:75
+		SIF TALENT:75	; 【[淫核]】
 			A += 1
 		;反発感情があるとダメ
-		SIF MARK:3 > 0
+		SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 			RETURN 0
 		
 		A:1 = A
@@ -521,7 +528,7 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 			TFLAG:13 = 103
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML %CALLNAME:MASTER%が朝起きると変な姿勢になっているの感じた
 				PRINTFORML 目をやると%CALLNAME:TARGET%が%CALLNAME:MASTER%の片足を持ち上げ、その隙間に体を押し込み、秘所同士を擦り合わせて喘いでいる……
 			ENDIF
@@ -536,13 +543,13 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 			PRINTFORML %EXPNAME:2%＋{A/2}
 			EXP:21 += A/2
 			PRINTFORML %EXPNAME:21%＋{A/2}
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{A*2}
 				EXP:40 += A*2
 				EXP:MASTER:40 += A*2
 			ENDIF
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML 達した%CALLNAME:TARGET%が倒れ込むように抱きついてきた。
 			ENDIF
 			PRINTFORML %PALAMNAME:0%の珠＋{A:1*50}
@@ -571,53 +578,53 @@ ENDIF
 ;奉仕精神と露出癖で回数判定
 ;条件に[合意]追加
 ;パートナーがオトコならリターン
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 VARSET A, 0
-IF ITEM:19 == 1 && TALENT:89
-	IF (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:TARGET:0 == 0 && EXP:0 > 0 && TALENT:MASTER:154 == 0 && TALENT:TARGET:152 && (CFLAG:97 & 8) == 0
-		IF ABL:6+ABL:7 < 12
+IF ITEM:19 == 1 && TALENT:89	; 【[相愛] / アイテム:[エプロン]==1】
+	IF (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:TARGET:0 == 0 && EXP:0 > 0 && TALENT:MASTER:154 == 0 && TALENT:TARGET:152 && (CFLAG:97 & 8) == 0	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ] / TARGET:[処女]なし / MASTER:[童貞]なし / TARGET:[合意] / [Ｖ経験]>0 / [朝イベントカットフラグ]】
+		IF ABL:6+ABL:7 < 12	; 【[奉仕精神] / [露出癖]Lv<12】
 			A = 1
-		ELSEIF ABL:6+ABL:7 < 18
+		ELSEIF ABL:6+ABL:7 < 18	; 【[奉仕精神] / [露出癖]Lv<18】
 			A = 2
-		ELSEIF ABL:6+ABL:7 < 24
+		ELSEIF ABL:6+ABL:7 < 24	; 【[奉仕精神] / [露出癖]Lv<24】
 			A = 3
-		ELSEIF ABL:6+ABL:7 >= 24
+		ELSEIF ABL:6+ABL:7 >= 24	; 【[奉仕精神] / [露出癖]Lv>=24】
 			A = 2 + (ABL:6 / 6) + (ABL:7 / 6)
 		ENDIF
 	
 		;男嫌い
-		SIF TALENT:82 && TALENT:MASTER:122
+		SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 			A -= 1
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			A += 1
 		;献身的
-		SIF TALENT:63
+		SIF TALENT:63	; 【[献身的]】
 			A += 1
 		;快感に素直
-		SIF TALENT:70
+		SIF TALENT:70	; 【[快感に素直]】
 			A += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			A += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			A += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			A += 1
 		;V鈍感
-		SIF TALENT:103
+		SIF TALENT:103	; 【[Ｖ鈍感]】
 			A -= 1
 		;V敏感
-		SIF TALENT:104
+		SIF TALENT:104	; 【[Ｖ敏感]】
 			A += 1
 		;淫壷
-		SIF TALENT:74
+		SIF TALENT:74	; 【[淫壷]】
 			A += 1
 		;反発感情があるとダメ
-		SIF MARK:3 > 0
+		SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 			RETURN 0
 		
 		A:1 = A
@@ -633,7 +640,7 @@ IF ITEM:19 == 1 && TALENT:89
 			TFLAG:13 = 10
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML %CALLNAME:MASTER%が朝起きると、キッチンからいい匂いが漂ってきた
 				PRINTFORML そこに行くと%CALLNAME:TARGET%が裸エプロンで朝食を作っていた…
 				PRINTFORML ―――衝動的に%CALLNAME:MASTER%は後ろから襲い掛かった
@@ -652,17 +659,18 @@ IF ITEM:19 == 1 && TALENT:89
 			EXP:20 += A
 			PRINTFORML %EXPNAME:20%＋{A}
 			;主人公射精量記録（裸エプロン後ろから）
-			SIF TALENT:MASTER:121 || TALENT:MASTER:122
+			IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
 				FLAG:5040 += A * (8 + RAND:5)
 				FLAG:(5800 + NO:TARGET) += A * (8 + RAND:5)
+			ENDIF
 			EXP:23 += A / 2
 			PRINTFORML %EXPNAME:23%＋{A/2}
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{A*2}
 				EXP:40 += A*2
 				EXP:MASTER:40 += A*2
 			ENDIF
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORM %CALLNAME:MASTER%は思わず朝食前に%CALLNAME:TARGET%を
 				PRINTV A
 				PRINTL 回ほどいただいてしまった
@@ -677,37 +685,37 @@ IF ITEM:19 == 1 && TALENT:89
 			CFLAG:99 = LOCAL:100
 			RETURN 1
 		ENDIF
-	ELSEIF TALENT:122 == 0 && (CFLAG:97 & 16) == 0
-		IF ABL:6+ABL:7 < 12
+	ELSEIF TALENT:122 == 0 && (CFLAG:97 & 16) == 0	; 【[オトコ]なし / [朝イベントカットフラグ]】
+		IF ABL:6+ABL:7 < 12	; 【[奉仕精神] / [露出癖]Lv<12】
 			A = 1
-		ELSEIF ABL:6+ABL:7 < 18
+		ELSEIF ABL:6+ABL:7 < 18	; 【[奉仕精神] / [露出癖]Lv<18】
 			A = 2
-		ELSEIF ABL:6+ABL:7 < 24
+		ELSEIF ABL:6+ABL:7 < 24	; 【[奉仕精神] / [露出癖]Lv<24】
 			A = 3
-		ELSEIF ABL:6+ABL:7 >= 24
+		ELSEIF ABL:6+ABL:7 >= 24	; 【[奉仕精神] / [露出癖]Lv>=24】
 			A = 2 + (ABL:6 / 6) + (ABL:7 / 6)
 		ENDIF
 	
 		;男嫌い
-		SIF TALENT:82 && TALENT:MASTER:122
+		SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 			A -= 1
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			A += 1
 		;献身的
-		SIF TALENT:63
+		SIF TALENT:63	; 【[献身的]】
 			A += 1
 		;快感に素直
-		SIF TALENT:70
+		SIF TALENT:70	; 【[快感に素直]】
 			A += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			A += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			A += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			A += 1
 		IF A & 1
 			A /= 2
@@ -717,25 +725,25 @@ IF ITEM:19 == 1 && TALENT:89
 			A = B + 1
 		ENDIF
 		;C鈍感
-		SIF TALENT:101
+		SIF TALENT:101	; 【[Ｃ鈍感]】
 			A -= 1
 		;C敏感
-		SIF TALENT:102
+		SIF TALENT:102	; 【[Ｃ敏感]】
 			A += 1
 		;淫核
-		SIF TALENT:75
+		SIF TALENT:75	; 【[淫核]】
 			A += 1
 		;B鈍感
-		SIF TALENT:107
+		SIF TALENT:107	; 【[Ｂ鈍感]】
 			B -= 1
 		;B敏感
-		SIF TALENT:107
+		SIF TALENT:107	; 【[Ｂ鈍感]】
 			B += 1
 		;淫乳
-		SIF TALENT:78
+		SIF TALENT:78	; 【[淫乳]】
 			B += 1
 		;反発感情があるとダメ
-		SIF MARK:3 > 0
+		SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 			RETURN 0
 		
 		IF A > 0 || B > 0
@@ -747,7 +755,7 @@ IF ITEM:19 == 1 && TALENT:89
 			TFLAG:13 = 86
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML %CALLNAME:MASTER%が朝起きると、キッチンからいい匂いが漂ってきた
 				PRINTFORML そこに行くと%CALLNAME:TARGET%が裸エプロンで朝食を作っていた…
 				PRINTFORML ―――衝動的に%CALLNAME:MASTER%は後ろから襲い掛かった
@@ -765,12 +773,12 @@ IF ITEM:19 == 1 && TALENT:89
 			PRINTFORML %EXPNAME:2%＋{A+B}
 			EXP:23 += (A + B) / 2
 			PRINTFORML %EXPNAME:23%＋{(A+B)/2}
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{(A+B)*2}
 				EXP:40 += (A + B) * 2
 				EXP:MASTER:40 += (A + B) * 2
 			ENDIF
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORM %CALLNAME:MASTER%は思わず朝食前に%CALLNAME:TARGET%を
 				PRINTV A
 				PRINTL 回ほどいただいてしまった
@@ -801,45 +809,45 @@ ELSE
 ENDIF
 @EVENT_NEWDAY_KISS
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 32
+SIF CFLAG:97 & 32	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;キスで起こされる
 ;親密6奉仕精神6以上で発生、親密と奉仕精神で回数判定
-IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0
-	IF ABL:6+ABL:0 < 12
+IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0	; 【TARGET:[恋慕] / TARGET:[キス未経験]なし / [奉仕精神]Lv>=6 / [親密]Lv>=6】
+	IF ABL:6+ABL:0 < 12	; 【[奉仕精神] / [親密]Lv<12】
 		A = 1
-	ELSEIF ABL:6+ABL:0 < 18
+	ELSEIF ABL:6+ABL:0 < 18	; 【[奉仕精神] / [親密]Lv<18】
 		A = 2
-	ELSEIF ABL:6+ABL:0 >= 18
+	ELSEIF ABL:6+ABL:0 >= 18	; 【[奉仕精神] / [親密]Lv>=18】
 		A = (ABL:6 / 6) + (ABL:0 / 6)
 	ENDIF
 
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		A -= 1
 	;両刀
-	SIF TALENT:81 && TALENT:MASTER:122 == 0
+	SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 		A += 1
 	;献身的
-	SIF TALENT:63
+	SIF TALENT:63	; 【[献身的]】
 		A += 1
 	;恋慕
-	SIF TALENT:85
+	SIF TALENT:85	; 【[恋慕]】
 		A += 1
 	;親愛
-	SIF TALENT:88
+	SIF TALENT:88	; 【[親愛]】
 		A += 1
 	;恋人
-	SIF TALENT:153
+	SIF TALENT:153	; 【[恋人]】
 		A += 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 2
 	;キス魔
-	SIF TALENT:155
+	SIF TALENT:155	; 【[キス魔]】
 		A += 2
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	
 	IF A > 0
@@ -851,10 +859,10 @@ IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0
 		TFLAG:13 = 19
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:155
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:155	; 【[キス魔]】
 				PRINTFORML 朝、まだ意識が戻り切らないうちから、%CALLNAME:TARGET%の唇が何度も押し当てられていた
-			ELSEIF TALENT:83
+			ELSEIF TALENT:83	; 【[サド]】
 				PRINTFORML 朝、%CALLNAME:MASTER%は%CALLNAME:TARGET%の強引な口付けで目を覚ました。断る間も与えられなかった
 			ELSE
 				PRINTFORML 朝、%CALLNAME:MASTER%は%CALLNAME:TARGET%の口付けで目を覚ました
@@ -872,19 +880,19 @@ IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0
 		EXP:MASTER:96 += A
 		PRINTFORML %EXPNAME:23%＋{A/2}
 		PRINTFORML %EXPNAME:96%＋{A}
-		IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+		IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 			PRINTFORML %EXPNAME:40%＋{A*2}
 			EXP:40 += A*2
 			EXP:MASTER:40 += A*2
 		ENDIF
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:16 >= 1
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:16 >= 1	; 【[生意気]>=1】
 				PRINTFORML %CALLNAME:TARGET%は悪戯っぽく微笑みながら、もう一度唇を近づけてきた
-			ELSEIF TALENT:83
+			ELSEIF TALENT:83	; 【[サド]】
 				PRINTFORML %CALLNAME:TARGET%は仁王立ちで腰に手を当て、不満そうに見下ろしてきた。だが口元は楽しそうだ
-			ELSEIF TALENT:155
+			ELSEIF TALENT:155	; 【[キス魔]】
 				PRINTFORML %CALLNAME:TARGET%は起き上がろうとする%CALLNAME:MASTER%を押さえつけて、今度は舌を絡めた深いキスをねだってきた
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML %CALLNAME:TARGET%は首筋まで赤くしながらも、そっと耳元に顔を近づけてきた
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%は頬を染めながら、照れくさそうに目を逸らした
@@ -909,54 +917,54 @@ ENDIF
 ;マスターが非処女だと、セックスかパイズリ
 ;処女だとパイズリ
 @EVENT_NEWDAY_FEMALE
-SIF TALENT:MASTER:122
+SIF TALENT:MASTER:122	; 【MASTER:[オトコ]】
 	RETURN 0
-SIF (TALENT:119 || TALENT:121 || TALENT:122) == 0
+SIF (TALENT:119 || TALENT:121 || TALENT:122) == 0	; 【[半人半妖] / [ふたなり] / [オトコ]】
 	RETURN 0
 
-IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)
+IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)	; 【[恋慕] / TARGET:[淫乱] / [欲望]Lv>=8 / [サドっ気]Lv>=4】
 	A = RAND:2
 	;セックス
-	IF TALENT:MASTER:0 == 0 && A && TALENT:154 == 0 && MARK:2 >= 3 && (CFLAG:97 & 64) == 0
+	IF TALENT:MASTER:0 == 0 && A && TALENT:154 == 0 && MARK:2 >= 3 && (CFLAG:97 & 64) == 0	; 【MASTER:[処女]なし / [童貞]なし / [既成事実]Lv>=3 / [朝イベントカットフラグ]】
 		;朝から凄いなぁ……
-		IF ABL:1+ABL:15 < 5
+		IF ABL:1+ABL:15 < 5	; 【[欲望] / [サドっ気]Lv<5】
 			B = 1
-		ELSEIF ABL:1+ABL:15 < 10
+		ELSEIF ABL:1+ABL:15 < 10	; 【[欲望] / [サドっ気]Lv<10】
 			B = 2
-		ELSEIF ABL:1+ABL:15 < 15
+		ELSEIF ABL:1+ABL:15 < 15	; 【[欲望] / [サドっ気]Lv<15】
 			B = 3
-		ELSEIF ABL:1+ABL:15 < 20
+		ELSEIF ABL:1+ABL:15 < 20	; 【[欲望] / [サドっ気]Lv<20】
 			B = 4
-		ELSEIF ABL:1+ABL:15 >= 20
+		ELSEIF ABL:1+ABL:15 >= 20	; 【[欲望] / [サドっ気]Lv>=20】
 			B = 3 + (ABL:1 / 6) + (ABL:15 / 3)
 		ENDIF
 		
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			B += 1
 		;サド
-		SIF TALENT:83
+		SIF TALENT:83	; 【[サド]】
 			B += 1
 		;快感に素直
-		SIF TALENT:70
+		SIF TALENT:70	; 【[快感に素直]】
 			B += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			B += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			B += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			B += 1
 		;C鈍感
-		SIF TALENT:101
+		SIF TALENT:101	; 【[Ｃ鈍感]】
 			B -= 1
 		;C敏感
-		SIF TALENT:102
+		SIF TALENT:102	; 【[Ｃ敏感]】
 			B += 1
 		;淫核
-		SIF TALENT:75
+		SIF TALENT:75	; 【[淫核]】
 			B += 1
 		IF B > 0
 			DRAWLINE
@@ -967,7 +975,7 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)
 			TFLAG:13 = 88
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML 朝、%CALLNAME:MASTER%は鈍い衝撃で目を覚ました
 				PRINTFORML 目をやると%CALLNAME:TARGET%が%CALLNAME:MASTER%の蜜壷を貪り、腰を振っている
 			ENDIF
@@ -981,7 +989,7 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)
 			PRINTFORML %EXPNAME:2%＋{B}
 			EXP:3 += A
 			PRINTFORML %EXPNAME:3%＋{B}
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{B*2}
 				EXP:40 += B*2
 				EXP:MASTER:40 += B*2
@@ -1009,52 +1017,52 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)
 		ENDIF
 	ENDIF
 	;パイズリ
-	IF (A == 0 || TALENT:MASTER:0 || CFLAG:97 & 64) && (CFLAG:97 & 128) == 0
+	IF (A == 0 || TALENT:MASTER:0 || CFLAG:97 & 64) && (CFLAG:97 & 128) == 0	; 【MASTER:[処女] / [朝イベントカットフラグ]】
 		;朝から凄いなぁ……
-		IF ABL:1+ABL:15 < 5
+		IF ABL:1+ABL:15 < 5	; 【[欲望] / [サドっ気]Lv<5】
 			B = 1
-		ELSEIF ABL:1+ABL:15 < 10
+		ELSEIF ABL:1+ABL:15 < 10	; 【[欲望] / [サドっ気]Lv<10】
 			B = 2
-		ELSEIF ABL:1+ABL:15 < 15
+		ELSEIF ABL:1+ABL:15 < 15	; 【[欲望] / [サドっ気]Lv<15】
 			B = 3
-		ELSEIF ABL:1+ABL:15 < 20
+		ELSEIF ABL:1+ABL:15 < 20	; 【[欲望] / [サドっ気]Lv<20】
 			B = 4
-		ELSEIF ABL:1+ABL:15 >= 20
+		ELSEIF ABL:1+ABL:15 >= 20	; 【[欲望] / [サドっ気]Lv>=20】
 			B = 3 + (ABL:1 / 6) + (ABL:15 / 3)
 		ENDIF
 		
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			B += 1
 		;サド
-		SIF TALENT:83
+		SIF TALENT:83	; 【[サド]】
 			B += 1
 		;快感に素直
-		SIF TALENT:70
+		SIF TALENT:70	; 【[快感に素直]】
 			B += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			B += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			B += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			B += 1
 		;C鈍感
-		SIF TALENT:101
+		SIF TALENT:101	; 【[Ｃ鈍感]】
 			B -= 1
 		;C敏感
-		SIF TALENT:102
+		SIF TALENT:102	; 【[Ｃ敏感]】
 			B += 1
 		;淫核
-		SIF TALENT:75
+		SIF TALENT:75	; 【[淫核]】
 			B += 1
 		;マスターが貧乳
-		SIF TALENT:MASTER:109
+		SIF TALENT:MASTER:109	; 【MASTER:[貧乳]】
 			B -= 1
 		;マスターが巨乳
-		SIF TALENT:MASTER:110
+		SIF TALENT:MASTER:110	; 【MASTER:[巨乳]】
 			B += 1
 		IF B > 0
 			DRAWLINE
@@ -1065,16 +1073,16 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)
 			TFLAG:13 = 89
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML %CALLNAME:MASTER%が朝起きると腰の辺りに重みを感じた
 				PRINTFORM 目をやると%CALLNAME:TARGET%が上に跨り%CALLNAME:MASTER%の
-				IF TALENT:MASTER:109
+				IF TALENT:MASTER:109	; 【MASTER:[貧乳]】
 					PRINT 小さな
-				ELSEIF TALENT:MASTER:143
+				ELSEIF TALENT:MASTER:143	; 【MASTER:[超乳]】
 					PRINT 常識外れに大きな
-				ELSEIF TALENT:MASTER:141
+				ELSEIF TALENT:MASTER:141	; 【MASTER:[爆乳]】
 					PRINT 爆乳級の
-				ELSEIF TALENT:MASTER:110
+				ELSEIF TALENT:MASTER:110	; 【MASTER:[巨乳]】
 					PRINT 豊かな
 				ENDIF
 				PRINTL 胸にペニスを挟み、腰を振っている…
@@ -1088,12 +1096,12 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)
 			PRINTFORML %EXPNAME:2%＋{B}
 			EXP:3 += B
 			PRINTFORML %EXPNAME:3%＋{B}
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{B*2}
 				EXP:40 += B*2
 				EXP:MASTER:40 += B*2
 			ENDIF
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML 気付かれないように胸からはみ出た先端を口に含むと、可愛らしい悲鳴を上げて%CALLNAME:TARGET%が精を放った
 			ENDIF
 			PRINTFORML %PALAMNAME:0%の珠＋{B*50}
@@ -1130,56 +1138,56 @@ ENDIF
 ;欲望8奉仕精神8かつ[恋慕]か[淫乱]で発生
 ;[オトコ]か[ふたなり]か[半人半妖]なら精液中毒1以上でフェラ
 ;[オトコ]でないならレズ中毒1以上でクンニ
-IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)
+IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)	; 【[恋慕] / TARGET:[淫乱] / [欲望]Lv>=8 / [奉仕精神]Lv>=6】
 	;フェラ判定
-	IF ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && (CFLAG:97 & 256) == 0
-		IF ABL:11 == 1
+	IF ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122) && (CFLAG:97 & 256) == 0	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ] / [精液中毒]Lv>=1 / [朝イベントカットフラグ]】
+		IF ABL:11 == 1	; 【[精液中毒]Lv==1】
 			A = 1
-		ELSEIF ABL:11 == 2
+		ELSEIF ABL:11 == 2	; 【[精液中毒]Lv==2】
 			A = 2
-		ELSEIF ABL:11 == 3
+		ELSEIF ABL:11 == 3	; 【[精液中毒]Lv==3】
 			A = 3
-		ELSEIF ABL:11 == 4
+		ELSEIF ABL:11 == 4	; 【[精液中毒]Lv==4】
 			A = 4
-		ELSEIF ABL:11 >= 5
+		ELSEIF ABL:11 >= 5	; 【[精液中毒]Lv>=5】
 			A = 3 + (ABL:11 / 2)
 		ENDIF
 		
 		;猫舌だとダメ
-		SIF TALENT:54
+		SIF TALENT:54	; 【[猫舌]】
 			RETURN 0
 		;男嫌い
-		SIF TALENT:82 && TALENT:MASTER:122
+		SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 			A -= 1
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			A += 1
 		;汚臭鈍感
-		SIF TALENT:61
+		SIF TALENT:61	; 【[汚臭鈍感]】
 			A += 1
 		;汚臭敏感
-		SIF TALENT:62
+		SIF TALENT:62	; 【[汚臭敏感]】
 			A -= 1
 		;献身的
-		SIF TALENT:63
+		SIF TALENT:63	; 【[献身的]】
 			A += 1
 		;恋慕
-		SIF TALENT:76
+		SIF TALENT:76	; 【[淫乱]】
 			A += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			A += 1
 		;恋人
-		SIF TALENT:153
+		SIF TALENT:153	; 【[恋人]】
 			A += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			A += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			A += 1
 		;反発感情があるとダメ
-		SIF MARK:3 > 0
+		SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 			RETURN 0
 		IF A > 0
 			DRAWLINE
@@ -1190,7 +1198,7 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)
 			TFLAG:13 = 3
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML 朝、%CALLNAME:MASTER%は%CALLNAME:TARGET%のフェラで目を覚ました
 			ENDIF
 			;イベント時の口上呼び出し。CALL前にAをLOCALに退避、CALL後戻す
@@ -1203,18 +1211,19 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)
 			EXP:20 += A*2
 			PRINTFORML %EXPNAME:20%＋{A*2}
 			;主人公射精量記録（フェラで目覚め）
-			SIF TALENT:MASTER:121 || TALENT:MASTER:122
+			IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
 				FLAG:5040 += A * (16 + RAND:9)
 				FLAG:(5800 + NO:TARGET) += A * (16 + RAND:9)
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			ENDIF
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{A*2}
 				EXP:40 += A*2
 				EXP:MASTER:40 += A*2
 			ENDIF
 			;PRINTFORML %CALLNAME:TARGET%は精液の貼りついた顔で朝の挨拶をしてきた
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				;[サド]いと口移し
-				IF TALENT:83 && TALENT:151 == 0
+				IF TALENT:83 && TALENT:151 == 0	; 【[サド] / [キス未経験]なし】
 					PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%を押し倒し口付けてきた
 					PRINTFORML %CALLNAME:TARGET%の舌と共に何とも言えない味が広がる…
 					PRINTFORML %EXPNAME:96%＋1
@@ -1236,51 +1245,51 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)
 		ENDIF
 	ENDIF
 	;クンニ判定
-	IF ABL:12 >= 1 && TALENT:MASTER:122 == 0 && (CFLAG:97 & 512) == 0
-		IF ABL:12 == 1
+	IF ABL:12 >= 1 && TALENT:MASTER:122 == 0 && (CFLAG:97 & 512) == 0	; 【MASTER:[オトコ]なし / [レズ中毒]Lv>=1 / [朝イベントカットフラグ]】
+		IF ABL:12 == 1	; 【[レズ中毒]Lv==1】
 			A = 1
-		ELSEIF ABL:12 == 2
+		ELSEIF ABL:12 == 2	; 【[レズ中毒]Lv==2】
 			A = 2
-		ELSEIF ABL:12 == 3
+		ELSEIF ABL:12 == 3	; 【[レズ中毒]Lv==3】
 			A = 3
-		ELSEIF ABL:12 == 4
+		ELSEIF ABL:12 == 4	; 【[レズ中毒]Lv==4】
 			A = 4
-		ELSEIF ABL:12 >= 5
+		ELSEIF ABL:12 >= 5	; 【[レズ中毒]Lv>=5】
 			A = 3 + (ABL:12 / 2)
 		ENDIF
 		
 		;猫舌だとダメ
-		SIF TALENT:54
+		SIF TALENT:54	; 【[猫舌]】
 			RETURN 0
 		;両刀
-		SIF TALENT:81 && TALENT:MASTER:122 == 0
+		SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 			A += 1
 		;汚臭鈍感
-		SIF TALENT:61
+		SIF TALENT:61	; 【[汚臭鈍感]】
 			A += 1
 		;汚臭敏感
-		SIF TALENT:62
+		SIF TALENT:62	; 【[汚臭敏感]】
 			A -= 1
 		;献身的
-		SIF TALENT:63
+		SIF TALENT:63	; 【[献身的]】
 			A += 1
 		;恋慕
-		SIF TALENT:76
+		SIF TALENT:76	; 【[淫乱]】
 			A += 1
 		;親愛
-		SIF TALENT:88
+		SIF TALENT:88	; 【[親愛]】
 			A += 1
 		;恋人
-		SIF TALENT:153
+		SIF TALENT:153	; 【[恋人]】
 			A += 1
 		;相愛
-		SIF TALENT:89
+		SIF TALENT:89	; 【[相愛]】
 			A += 1
 		;淫乱
-		SIF TALENT:85
+		SIF TALENT:85	; 【[恋慕]】
 			A += 1
 		;反発感情があるとダメ
-		SIF MARK:3 > 0
+		SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 			RETURN 0
 		IF A > 0
 			DRAWLINE
@@ -1291,7 +1300,7 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)
 			TFLAG:13 = 87
 			CALL SELF_MAEKOJO
 			;地の文章カット
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML 朝、%CALLNAME:MASTER%は%CALLNAME:TARGET%のクンニで目を覚ました
 			ENDIF
 			;イベント時の口上呼び出し。CALL前にAをLOCALに退避、CALL後戻す
@@ -1299,12 +1308,12 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)
 			CALL SELF_KOJO
 			A = LOCAL
 			
-			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)
+			IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
 				PRINTFORML %EXPNAME:40%＋{A*2}
 				EXP:40 += A*2
 				EXP:MASTER:40 += A*2
 			ENDIF
-			IF (CFLAG:99 & 1) == 0
+			IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 				PRINTFORML %CALLNAME:TARGET%の顔に付いた愛液を舐め取ってやると、%CALLNAME:TARGET%はくすぐったそうに身をよじった
 			ENDIF
 			PRINTFORML %PALAMNAME:4%の珠＋{A*100}
@@ -1327,43 +1336,43 @@ ELSE
 ENDIF
 @EVENT_NEWDAY_SOINE
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 1024
+SIF CFLAG:97 & 1024	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;起きたら隣で寝てる
 ;[恋慕]かつ親密LV6以上で発生
-IF ABL:0 >= 6 && TALENT:85
-	IF ABL:0 == 1
+IF ABL:0 >= 6 && TALENT:85	; 【[恋慕] / [親密]Lv>=6】
+	IF ABL:0 == 1	; 【[親密]Lv==1】
 		A = 2
-	ELSEIF ABL:0 == 2
+	ELSEIF ABL:0 == 2	; 【[親密]Lv==2】
 		A = 3
-	ELSEIF ABL:0 == 3
+	ELSEIF ABL:0 == 3	; 【[親密]Lv==3】
 		A = 4
-	ELSEIF ABL:0 == 4
+	ELSEIF ABL:0 == 4	; 【[親密]Lv==4】
 		A = 5
-	ELSEIF ABL:0 >= 5
+	ELSEIF ABL:0 >= 5	; 【[親密]Lv>=5】
 		A = 4 + (ABL:0 / 2)
 	ENDIF
 
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		A -= 1
 	;両刀
-	SIF TALENT:81 && TALENT:MASTER:122 == 0
+	SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 		A += 1
 	;恋慕
-	SIF TALENT:76
+	SIF TALENT:76	; 【[淫乱]】
 		A += 2
 	;親愛
-	SIF TALENT:88
+	SIF TALENT:88	; 【[親愛]】
 		A += 2
 	;恋人
-	SIF TALENT:153
+	SIF TALENT:153	; 【[恋人]】
 		A += 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 3
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF A > 0
 		DRAWLINE
@@ -1374,7 +1383,7 @@ IF ABL:0 >= 6 && TALENT:85
 		TFLAG:13 = 83
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ますと、すぐ隣で%CALLNAME:TARGET%が寝息を立てていた
 			PRINTFORML 服が乱れ、白い首筋があらわになっている。柔らかな寝顔に、思わず見惚れてしまう
 		ENDIF
@@ -1383,12 +1392,12 @@ IF ABL:0 >= 6 && TALENT:85
 		CALL SELF_KOJO
 		A = LOCAL
 		
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:16 >= 1
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:16 >= 1	; 【[生意気]>=1】
 				PRINTFORML そっと揺り起こすと、むにゃむにゃと呟いてから目を開けた%CALLNAME:TARGET%は、照れ隠しのように胸に顔を押しつけてきた
-			ELSEIF TALENT:63
+			ELSEIF TALENT:63	; 【[献身的]】
 				PRINTFORML 揺り起こすと、寝ぼけた%CALLNAME:TARGET%がぎゅっとしがみついてきた。柔らかな体の温もりがじわりと伝わる
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML 起こそうとした瞬間、%CALLNAME:TARGET%がうっすら目を開いていた。真っ赤な顔のまま、視線をそらさずにいる
 			ELSE
 				PRINTFORML そっと揺り起こすと、寝ぼけた%CALLNAME:TARGET%が目を細めて抱きついてきた
@@ -1412,39 +1421,39 @@ ENDIF
 @EVENT_NEWDAY_NEGAO
 ;起きたら見られてた
 ;[恋慕]かつ親密LV6以上で発生
-IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0
-	IF ABL:0 == 1
+IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0	; 【[恋慕] / [親密]Lv>=6 / [朝イベントカットフラグ]】
+	IF ABL:0 == 1	; 【[親密]Lv==1】
 		B = 2
-	ELSEIF ABL:0 == 2
+	ELSEIF ABL:0 == 2	; 【[親密]Lv==2】
 		B = 3
-	ELSEIF ABL:0 == 3
+	ELSEIF ABL:0 == 3	; 【[親密]Lv==3】
 		B = 4
-	ELSEIF ABL:0 == 4
+	ELSEIF ABL:0 == 4	; 【[親密]Lv==4】
 		B = 5
-	ELSEIF ABL:0 >= 5
+	ELSEIF ABL:0 >= 5	; 【[親密]Lv>=5】
 		B = 4 + (ABL:0 / 2)
 	ENDIF
 	
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		B -= 1
 	;両刀
-	SIF TALENT:81 && TALENT:MASTER:122 == 0
+	SIF TALENT:81 && TALENT:MASTER:122 == 0	; 【[両刀] / MASTER:[オトコ]なし】
 		B += 1
 	;恋慕
-	SIF TALENT:76
+	SIF TALENT:76	; 【[淫乱]】
 		B += 2
 	;親愛
-	SIF TALENT:88
+	SIF TALENT:88	; 【[親愛]】
 		B += 2
 	;恋人
-	SIF TALENT:153
+	SIF TALENT:153	; 【[恋人]】
 		B += 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		B += 3
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF B > 0
 		DRAWLINE
@@ -1455,7 +1464,7 @@ IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0
 		TFLAG:13 = 84
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ますと、顔をすぐそこまで近づけた%CALLNAME:TARGET%と目があった
 		ENDIF
 		T = TARGET
@@ -1466,12 +1475,12 @@ IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0
 		CALL SELF_KOJO
 		B = LOCAL
 		
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:16 >= 1
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:16 >= 1	; 【[生意気]>=1】
 				PRINTFORML 文句を言いながらも、%CALLNAME:TARGET%の目が妙に柔らかい
-			ELSEIF TALENT:83
+			ELSEIF TALENT:83	; 【[サド]】
 				PRINTFORML %CALLNAME:TARGET%はニヤリと口角を上げ、枕の横に手をついてのしかかってきた
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				;強気
 				IF R > 0
 					PRINTFORML %CALLNAME:TARGET%は恥ずかしそうに目を伏せながらも、何か言いたそうに口を開きかけた
@@ -1514,65 +1523,65 @@ ENDIF
 
 @EVENT_NEWDAY_OTO
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 8192
+SIF CFLAG:97 & 8192	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;騒音で起こされる
 ;反発感情LV3以上で発生
-IF MARK:3 >= 3
+IF MARK:3 >= 3	; 【[反発感情]Lv>=3】
 	B = MARK:3 * MARK:3
-	IF ABL:15 == 1
+	IF ABL:15 == 1	; 【[サドっ気]Lv==1】
 		B += 1
-	ELSEIF ABL:15 == 2
+	ELSEIF ABL:15 == 2	; 【[サドっ気]Lv==2】
 		B += 2
-	ELSEIF ABL:15 == 3
+	ELSEIF ABL:15 == 3	; 【[サドっ気]Lv==3】
 		B = 3
-	ELSEIF ABL:15 == 4
+	ELSEIF ABL:15 == 4	; 【[サドっ気]Lv==4】
 		B = 4
-	ELSEIF ABL:15 >= 5
+	ELSEIF ABL:15 >= 5	; 【[サドっ気]Lv>=5】
 		B = 3 + (ABL:15 / 2)
 	ENDIF
 
 	;反抗的
-	SIF TALENT:11
+	SIF TALENT:11	; 【[反抗的]】
 		B += 1
 	;生意気
-	IF TALENT:16 == 1
+	IF TALENT:16 == 1	; 【[生意気]】
 		B += 1
-	ELSEIF TALENT:16 == 2
+	ELSEIF TALENT:16 == 2	; 【[生意気:強]】
 		B -= 1
 	ENDIF
 	;サド
-	SIF TALENT:83
+	SIF TALENT:83	; 【[サド]】
 		B += 3
 	;小悪魔
-	SIF TALENT:87
+	SIF TALENT:87	; 【[小悪魔]】
 		B += 1
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		B += 1
 	;臆病
-	SIF TALENT:10
+	SIF TALENT:10	; 【[臆病]】
 		B -= 2
 	;自制心
-	SIF TALENT:20
+	SIF TALENT:20	; 【[自制心]】
 		B -= 3
 	;無関心
-	SIF TALENT:21
+	SIF TALENT:21	; 【[無関心]】
 		B -= 1
 	;献身的
-	SIF TALENT:63
+	SIF TALENT:63	; 【[献身的]】
 		B -= 1
 	;恋慕
-	SIF TALENT:76
+	SIF TALENT:76	; 【[淫乱]】
 		B -= 1
 	;親愛
-	SIF TALENT:88
+	SIF TALENT:88	; 【[親愛]】
 		B -= 1
 	;恋人
-	SIF TALENT:153
+	SIF TALENT:153	; 【[恋人]】
 		B -= 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		B -= 1
 	IF B > 0
 		DRAWLINE
@@ -1583,7 +1592,7 @@ IF MARK:3 >= 3
 		TFLAG:13 = 85
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORM 朝、%CALLNAME:MASTER%はけたたましい金属音で目を覚ました
 		ENDIF
 		T = TARGET
@@ -1594,7 +1603,7 @@ IF MARK:3 >= 3
 		CALL SELF_KOJO
 		B = LOCAL
 		
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORM 顔をしかめながら起き上がると、%CALLNAME:TARGET%が
 			;強気なキャラ
 			IF R > 0
@@ -1620,30 +1629,30 @@ ENDIF
 
 @EVENT_NEWDAY_TE
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 16384
+SIF CFLAG:97 & 16384	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;起きたら手で弄られている
 ;親密LV8以上欲望LV8以上かつ[恋慕]か[淫乱]か[相愛]で発生
-IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)
-	IF ABL:0+ABL:1 < 16
+IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)	; 【[恋慕] / [淫乱] / [相愛] / [親密]Lv>=8 / [欲望]Lv>=8】
+	IF ABL:0+ABL:1 < 16	; 【[親密] / [欲望]Lv<16】
 		A = 1
-	ELSEIF ABL:0+ABL:1 < 22
+	ELSEIF ABL:0+ABL:1 < 22	; 【[親密] / [欲望]Lv<22】
 		A = 2
-	ELSEIF ABL:0+ABL:1 >= 22
+	ELSEIF ABL:0+ABL:1 >= 22	; 【[親密] / [欲望]Lv>=22】
 		A = 1 + (ABL:0 / 5) + (ABL:1 / 5)
 	ENDIF
 
 	;献身的
-	SIF TALENT:63
+	SIF TALENT:63	; 【[献身的]】
 		A += 1
 	;恋慕
-	SIF TALENT:85
+	SIF TALENT:85	; 【[恋慕]】
 		A += 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 2
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF A > 0
 		DRAWLINE
@@ -1654,15 +1663,15 @@ IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)
 		TFLAG:13 = 90
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、意識が浮かび上がってきたとき、%CALLNAME:TARGET%の柔らかな手が動いているのに気づいた
-			IF TALENT:16 >= 1
+			IF TALENT:16 >= 1	; 【[生意気]>=1】
 				PRINTFORML いたずらっぽく笑う%CALLNAME:TARGET%の指が、容赦なく動き続ける
-			ELSEIF TALENT:83
+			ELSEIF TALENT:83	; 【[サド]】
 				PRINTFORML 目が合った瞬間、%CALLNAME:TARGET%はニヤリと笑い、さらに力を込めた
-			ELSEIF TALENT:63
+			ELSEIF TALENT:63	; 【[献身的]】
 				PRINTFORML 上目遣いで何か問いたそうに口を動かす%CALLNAME:TARGET%の表情は、緊張と期待が混ざっていた
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML %CALLNAME:TARGET%は耳元に顔を近づけながら、逃げ場のない手つきを続けた
 			ELSE
 				PRINTFORML 目が合うと%CALLNAME:TARGET%は一瞬手を止めたが、すぐにまた動き始めた
@@ -1673,12 +1682,12 @@ IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)
 		CALL SELF_KOJO
 		A = LOCAL
 
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:16 >= 1
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:16 >= 1	; 【[生意気]>=1】
 				PRINTFORML %CALLNAME:TARGET%は満足そうな表情を浮かべながら手を引いた
-			ELSEIF TALENT:63
+			ELSEIF TALENT:63	; 【[献身的]】
 				PRINTFORML %CALLNAME:TARGET%はそっと手を引いて、照れくさそうに顔を背けた
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML %CALLNAME:TARGET%は何か言いたそうに口を開きかけてから、静かに身を寄せてきた
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%は少し息を乱しながら、静かに体を離した
@@ -1709,39 +1718,39 @@ ENDIF
 
 @EVENT_NEWDAY_MIMI
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 32768
+SIF CFLAG:97 & 32768	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;耳元に吐息・舌先で起こされる
 ;親密6奉仕精神5以上で発生
-IF ABL:0 >= 6 && ABL:6 >= 5
-	IF ABL:0+ABL:6 < 11
+IF ABL:0 >= 6 && ABL:6 >= 5	; 【[親密]Lv>=6 / [奉仕精神]Lv>=5】
+	IF ABL:0+ABL:6 < 11	; 【[親密] / [奉仕精神]Lv<11】
 		A = 1
-	ELSEIF ABL:0+ABL:6 < 17
+	ELSEIF ABL:0+ABL:6 < 17	; 【[親密] / [奉仕精神]Lv<17】
 		A = 2
-	ELSEIF ABL:0+ABL:6 >= 17
+	ELSEIF ABL:0+ABL:6 >= 17	; 【[親密] / [奉仕精神]Lv>=17】
 		A = (ABL:0 / 5) + (ABL:6 / 5)
 	ENDIF
 
 	;献身的
-	SIF TALENT:63
+	SIF TALENT:63	; 【[献身的]】
 		A += 1
 	;恋慕
-	SIF TALENT:85
+	SIF TALENT:85	; 【[恋慕]】
 		A += 1
 	;親愛
-	SIF TALENT:88
+	SIF TALENT:88	; 【[親愛]】
 		A += 1
 	;恋人
-	SIF TALENT:153
+	SIF TALENT:153	; 【[恋人]】
 		A += 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 2
 	;キス魔
-	SIF TALENT:155
+	SIF TALENT:155	; 【[キス魔]】
 		A += 1
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF A > 0
 		DRAWLINE
@@ -1752,13 +1761,13 @@ IF ABL:0 >= 6 && ABL:6 >= 5
 		TFLAG:13 = 91
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、耳元を温かい息がくすぐり、%CALLNAME:MASTER%はゆっくりと目を開けた
-			IF TALENT:83
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML %CALLNAME:TARGET%の舌先が耳朶を這い、逃げようとした体を片手でしっかりと押さえた
-			ELSEIF TALENT:155
+			ELSEIF TALENT:155	; 【[キス魔]】
 				PRINTFORML 耳に唇を押しつけ、そのまま何度も小さなキスを繰り返している
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML ゆっくりと吐息を注ぎながら、%CALLNAME:TARGET%の額が耳のそばに押しつけられている
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%が耳元に顔を寄せ、静かに息を吹きかけていた
@@ -1769,10 +1778,10 @@ IF ABL:0 >= 6 && ABL:6 >= 5
 		CALL SELF_KOJO
 		A = LOCAL
 
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:83
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML 起き上がろうとすると、%CALLNAME:TARGET%は体を退かさずに次の攻め場所を探すように顔を動かした
-			ELSEIF TALENT:63
+			ELSEIF TALENT:63	; 【[献身的]】
 				PRINTFORML 目が合うと%CALLNAME:TARGET%は恥ずかしそうに顔を赤くして、そっと頭を%CALLNAME:MASTER%の肩口に預けた
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%は体を引きながら、照れくさそうに顔を背けた
@@ -1804,30 +1813,30 @@ ENDIF
 
 @EVENT_NEWDAY_NORI
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 65536
+SIF CFLAG:97 & 65536	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;馬乗りで押さえ込まれて起こされる
 ;[サド]か[生意気]かつ親密8欲望7以上で発生
-IF ABL:0 >= 8 && ABL:1 >= 7 && (TALENT:83 || TALENT:16 >= 1)
-	IF ABL:0+ABL:1 < 15
+IF ABL:0 >= 8 && ABL:1 >= 7 && (TALENT:83 || TALENT:16 >= 1)	; 【[サド] / [生意気]>=1 / [親密]Lv>=8 / [欲望]Lv>=7】
+	IF ABL:0+ABL:1 < 15	; 【[親密] / [欲望]Lv<15】
 		A = 1
-	ELSEIF ABL:0+ABL:1 < 21
+	ELSEIF ABL:0+ABL:1 < 21	; 【[親密] / [欲望]Lv<21】
 		A = 2
-	ELSEIF ABL:0+ABL:1 >= 21
+	ELSEIF ABL:0+ABL:1 >= 21	; 【[親密] / [欲望]Lv>=21】
 		A = (ABL:0 / 5) + (ABL:1 / 5)
 	ENDIF
 
 	;サド
-	SIF TALENT:83
+	SIF TALENT:83	; 【[サド]】
 		A += 2
 	;淫乱
-	SIF TALENT:76
+	SIF TALENT:76	; 【[淫乱]】
 		A += 1
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		A -= 2
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF A > 0
 		DRAWLINE
@@ -1838,11 +1847,11 @@ IF ABL:0 >= 8 && ABL:1 >= 7 && (TALENT:83 || TALENT:16 >= 1)
 		TFLAG:13 = 92
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、目を覚ましたとき、%CALLNAME:TARGET%はすでに%CALLNAME:MASTER%の腰の上に跨って座っていた
-			IF TALENT:83
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML 両手首を頭の上で押さえつけ、抵抗を許さない体勢で見下ろしてくる
-			ELSEIF TALENT:16 >= 1
+			ELSEIF TALENT:16 >= 1	; 【[生意気]>=1】
 				PRINTFORML 逃げようとするより早く体重をかけてきて、ニヤリとしたまま動こうとしない
 			ELSE
 				PRINTFORML 腰に手を乗せたまま、じっとこちらを見下ろしている
@@ -1853,10 +1862,10 @@ IF ABL:0 >= 8 && ABL:1 >= 7 && (TALENT:83 || TALENT:16 >= 1)
 		CALL SELF_KOJO
 		A = LOCAL
 
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:83
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML %CALLNAME:TARGET%はゆっくりと重心をかけ直し、支配を確かめるように腰を落ち着けた
-			ELSEIF TALENT:16 >= 1
+			ELSEIF TALENT:16 >= 1	; 【[生意気]>=1】
 				PRINTFORML 十分に堪能したらしく、%CALLNAME:TARGET%はふいと視線を外して立ち上がった
 			ELSE
 				PRINTFORML しばらく動かずにいた%CALLNAME:TARGET%が、ゆっくりと体を離した
@@ -1888,36 +1897,36 @@ ENDIF
 
 @EVENT_NEWDAY_KUBISUJI
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 131072
+SIF CFLAG:97 & 131072	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;首筋・うなじに唇を這わされて起こされる
 ;親密7欲望6以上で発生
-IF ABL:0 >= 7 && ABL:1 >= 6
-	IF ABL:0+ABL:1 < 13
+IF ABL:0 >= 7 && ABL:1 >= 6	; 【[親密]Lv>=7 / [欲望]Lv>=6】
+	IF ABL:0+ABL:1 < 13	; 【[親密] / [欲望]Lv<13】
 		A = 1
-	ELSEIF ABL:0+ABL:1 < 19
+	ELSEIF ABL:0+ABL:1 < 19	; 【[親密] / [欲望]Lv<19】
 		A = 2
-	ELSEIF ABL:0+ABL:1 >= 19
+	ELSEIF ABL:0+ABL:1 >= 19	; 【[親密] / [欲望]Lv>=19】
 		A = (ABL:0 / 5) + (ABL:1 / 5)
 	ENDIF
 
 	;サド
-	SIF TALENT:83
+	SIF TALENT:83	; 【[サド]】
 		A += 2
 	;淫乱
-	SIF TALENT:76
+	SIF TALENT:76	; 【[淫乱]】
 		A += 2
 	;恋慕
-	SIF TALENT:85
+	SIF TALENT:85	; 【[恋慕]】
 		A += 1
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 1
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		A -= 2
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF A > 0
 		DRAWLINE
@@ -1928,13 +1937,13 @@ IF ABL:0 >= 7 && ABL:1 >= 6
 		TFLAG:13 = 93
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、%CALLNAME:MASTER%は首筋に湿った感触を覚えて目が覚めた
-			IF TALENT:83
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML %CALLNAME:TARGET%の唇がうなじから耳の裏まで丁寧に舐め上げ、止まる気配がない
-			ELSEIF TALENT:76
+			ELSEIF TALENT:76	; 【[淫乱]】
 				PRINTFORML 首筋から鎖骨へと唇を這わせ、%CALLNAME:TARGET%の息が次第に乱れてきている
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML %CALLNAME:TARGET%が首元に顔を埋め、ゆっくりと唇を押しつけている
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%が首筋に顔を近づけ、そっと唇を寄せていた
@@ -1945,10 +1954,10 @@ IF ABL:0 >= 7 && ABL:1 >= 6
 		CALL SELF_KOJO
 		A = LOCAL
 
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:83
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML 肌に赤い痕を残してから、%CALLNAME:TARGET%はようやく唇を離した
-			ELSEIF TALENT:76
+			ELSEIF TALENT:76	; 【[淫乱]】
 				PRINTFORML %CALLNAME:TARGET%は名残惜しそうにしながらも、ゆっくりと顔を引いた
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%はそっと唇を離し、%CALLNAME:MASTER%の顔を覗き込んだ
@@ -1956,11 +1965,14 @@ IF ABL:0 >= 7 && ABL:1 >= 6
 		ENDIF
 		EXP:23 += A
 		EXP:96 += A
-		EXP:40 += A
 		EXP:MASTER:96 += A
 		PRINTFORML %EXPNAME:23%＋{A}
 		PRINTFORML %EXPNAME:96%＋{A}
-		PRINTFORML %EXPNAME:40%＋{A}
+		IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
+			EXP:40 += A
+			EXP:MASTER:40 += A
+			PRINTFORML %EXPNAME:40%＋{A}
+		ENDIF
 		PRINTFORML %PALAMNAME:15%の珠＋{A*100}
 		PRINTFORMW %PALAMNAME:4%の珠＋{A*50}
 		JUEL:15 += A*100
@@ -1982,33 +1994,33 @@ ENDIF
 
 @EVENT_NEWDAY_SURI
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 262144
+SIF CFLAG:97 & 262144	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;体を押しつけて擦り付けてくる
 ;[淫乱]か高い相愛状態かつ親密9欲望9以上で発生
-IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >= 11))
-	IF ABL:0+ABL:1 < 18
+IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >= 11))	; 【[淫乱] / [相愛] / [恋慕] / [親密]Lv>=9 / [欲望]Lv>=9 / [欲望]Lv>=11】
+	IF ABL:0+ABL:1 < 18	; 【[親密] / [欲望]Lv<18】
 		A = 1
-	ELSEIF ABL:0+ABL:1 < 24
+	ELSEIF ABL:0+ABL:1 < 24	; 【[親密] / [欲望]Lv<24】
 		A = 2
-	ELSEIF ABL:0+ABL:1 >= 24
+	ELSEIF ABL:0+ABL:1 >= 24	; 【[親密] / [欲望]Lv>=24】
 		A = (ABL:0 / 5) + (ABL:1 / 4)
 	ENDIF
 
 	;淫乱
-	SIF TALENT:76
+	SIF TALENT:76	; 【[淫乱]】
 		A += 2
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 1
 	;恋慕
-	SIF TALENT:85
+	SIF TALENT:85	; 【[恋慕]】
 		A += 1
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		A -= 2
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF A > 0
 		DRAWLINE
@@ -2020,13 +2032,13 @@ IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >=
 		TFLAG:13 = 105
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、%CALLNAME:MASTER%が目を覚ました時には、%CALLNAME:TARGET%の体が密着して重なっていた
-			IF TALENT:76
+			IF TALENT:76	; 【[淫乱]】
 				PRINTFORML %CALLNAME:TARGET%は薄く目を開けたまま、腰をゆっくりと動かして肌を擦りつけてきた
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML 目が覚めているのに気づくと、%CALLNAME:TARGET%は構わずに動き続け、熱い息が肌にかかった
-			ELSEIF TALENT:85
+			ELSEIF TALENT:85	; 【[恋慕]】
 				PRINTFORML うっすらと目を細めながら、%CALLNAME:TARGET%が柔らかな体を押しつけて擦り付けてきた
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%の体が密着したまま、ゆっくりとした動きが続いていた
@@ -2037,10 +2049,10 @@ IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >=
 		CALL SELF_KOJO
 		A = LOCAL
 
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:76
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:76	; 【[淫乱]】
 				PRINTFORML %CALLNAME:TARGET%は熱で潤んだ目を向けてから、ようやく体の動きを収めた
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML しばらくして%CALLNAME:TARGET%は静かに体を密着させたまま動きを止め、荒い息だけが残った
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%はゆっくりと体を引いて、乱れた息を整えた
@@ -2048,11 +2060,14 @@ IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >=
 		ENDIF
 		EXP:23 += A
 		EXP:96 += A*2
-		EXP:40 += A
 		EXP:MASTER:96 += A*2
 		PRINTFORML %EXPNAME:23%＋{A}
 		PRINTFORML %EXPNAME:96%＋{A*2}
-		PRINTFORML %EXPNAME:40%＋{A}
+		IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
+			EXP:40 += A
+			EXP:MASTER:40 += A
+			PRINTFORML %EXPNAME:40%＋{A}
+		ENDIF
 		PRINTFORML %PALAMNAME:15%の珠＋{A*150}
 		PRINTFORMW %PALAMNAME:4%の珠＋{A*50}
 		JUEL:15 += A*150
@@ -2074,33 +2089,33 @@ ENDIF
 
 @EVENT_NEWDAY_ASHIKOSHI
 ;カットフラグが立っていたらリターン
-SIF CFLAG:97 & 524288
+SIF CFLAG:97 & 524288	; 【[朝イベントカットフラグ]】
 	RETURN 0
 ;目覚めたら腰が合わされている
 ;[サド]か[淫乱]か高い相愛状態かつ親密10欲望10以上で発生
-IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 >= 12))
-	IF ABL:0+ABL:1 < 20
+IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 >= 12))	; 【[サド] / [淫乱] / [相愛] / [親密]Lv>=10 / [欲望]Lv>=10 / [欲望]Lv>=12】
+	IF ABL:0+ABL:1 < 20	; 【[親密] / [欲望]Lv<20】
 		A = 1
-	ELSEIF ABL:0+ABL:1 < 26
+	ELSEIF ABL:0+ABL:1 < 26	; 【[親密] / [欲望]Lv<26】
 		A = 2
-	ELSEIF ABL:0+ABL:1 >= 26
+	ELSEIF ABL:0+ABL:1 >= 26	; 【[親密] / [欲望]Lv>=26】
 		A = (ABL:0 / 5) + (ABL:1 / 4)
 	ENDIF
 
 	;サド
-	SIF TALENT:83
+	SIF TALENT:83	; 【[サド]】
 		A += 2
 	;淫乱
-	SIF TALENT:76
+	SIF TALENT:76	; 【[淫乱]】
 		A += 2
 	;相愛
-	SIF TALENT:89
+	SIF TALENT:89	; 【[相愛]】
 		A += 1
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		A -= 3
 	;反発感情があるとダメ
-	SIF MARK:3 > 0
+	SIF MARK:3 > 0	; 【[反発感情]Lv>0】
 		RETURN 0
 	IF A > 0
 		DRAWLINE
@@ -2112,13 +2127,13 @@ IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 
 		TFLAG:13 = 106
 		CALL SELF_MAEKOJO
 		;地の文章カット
-		IF (CFLAG:99 & 1) == 0
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
 			PRINTFORML 朝、目が覚める前から、%CALLNAME:TARGET%が下半身を押しつけ腰を重ねていた
-			IF TALENT:83
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML 目が合った瞬間、%CALLNAME:TARGET%は止まるどころかゆっくりと腰を動かし始めた
-			ELSEIF TALENT:76
+			ELSEIF TALENT:76	; 【[淫乱]】
 				PRINTFORML %CALLNAME:TARGET%は体の向きを変え、より深く腰を合わせようと体を押し込んできた
-			ELSEIF TALENT:89 || TALENT:153
+			ELSEIF TALENT:89 || TALENT:153	; 【[相愛] / [恋人]】
 				PRINTFORML %CALLNAME:TARGET%はそのまま目を閉じ、ただ密着した体温を確かめるように動いていた
 			ELSE
 				PRINTFORML %CALLNAME:TARGET%の腰が%CALLNAME:MASTER%に合わされたまま、ゆっくりとした動きが続いていた
@@ -2129,10 +2144,10 @@ IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 
 		CALL SELF_KOJO
 		A = LOCAL
 
-		IF (CFLAG:99 & 1) == 0
-			IF TALENT:83
+		IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
+			IF TALENT:83	; 【[サド]】
 				PRINTFORML %CALLNAME:TARGET%はゆっくり体を引いてから、乱れた息で%CALLNAME:MASTER%を見下ろした
-			ELSEIF TALENT:76
+			ELSEIF TALENT:76	; 【[淫乱]】
 				PRINTFORML %CALLNAME:TARGET%は体を離しがたそうに身を引き、熱で滲んだ目を細めた
 			ELSE
 				PRINTFORML しばらく動きを止めていた%CALLNAME:TARGET%が、名残惜しそうに体を離した
@@ -2140,11 +2155,14 @@ IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 
 		ENDIF
 		EXP:23 += A
 		EXP:96 += A*2
-		EXP:40 += A*2
 		EXP:MASTER:96 += A*2
 		PRINTFORML %EXPNAME:23%＋{A}
 		PRINTFORML %EXPNAME:96%＋{A*2}
-		PRINTFORML %EXPNAME:40%＋{A*2}
+		IF (TALENT:MASTER:122 == 0) && (TALENT:122 == 0)	; 【MASTER:[オトコ]なし / [オトコ]なし】
+			EXP:40 += A*2
+			EXP:MASTER:40 += A*2
+			PRINTFORML %EXPNAME:40%＋{A*2}
+		ENDIF
 		PRINTFORML %PALAMNAME:15%の珠＋{A*200}
 		PRINTFORMW %PALAMNAME:4%の珠＋{A*50}
 		JUEL:15 += A*200

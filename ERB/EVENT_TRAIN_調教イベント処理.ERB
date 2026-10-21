@@ -4,9 +4,25 @@
 ;============================================================
 @EVENTTRAIN
 #PRI
+;衰弱療養中のパートナーとは調教を開始できない（安全防護）
+IF TARGET >= 0 && TARGET < CHARANUM && BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	PRINTL 
+	SETCOLOR 0xFF6666
+	PRINTFORMW （%CALLNAME:TARGET%は体力を消耗して衰弱療養中（お休み）のため、調教を開始できません）
+	RESETCOLOR
+	BEGIN AFTERTRAIN
+	RETURN 0
+ENDIF
+;一緒に過ごす（調教開始）回数加算
+IF TARGET >= 1 && TARGET < CHARANUM
+	CFLAG:TARGET:1213 += 1
+ENDIF
 ;前回の調教終了時に立てた、強制終了・追加パートナーターン抑止フラグを戻す。
 TFLAG:999 = 0
 TFLAG:301 = 0
+TFLAG:898 = 0
+TFLAG:899 = 0
+TFLAG:51 = 0
 ;主人公の射精を0に
 BASE:MASTER:2 = 0
 ;主人公の精神絶頂を0に
@@ -21,9 +37,12 @@ BASE:TARGET:3 = 0
 REPEAT 200
 	TFLAG:COUNT = 0
 REND
+SIF TARGET >= 0 && TARGET < CHARANUM
+	TEQUIP:TARGET:53 = 0
+FLAG:22 = 0
 
 ;調教者は誰か
-IF ASSIPLAY == 0
+IF ASSIPLAY == 0	; 【調教者:[主人]】
 	PLAYER = MASTER
 ELSE
 	PLAYER = ASSI
@@ -31,26 +50,31 @@ ENDIF
 
 
 ;コンフィグによる各種フラグ操作
-IF (FLAG:23 & 1) && TALENT:152
+IF (FLAG:23 & 1) && TALENT:152	; 【[合意]】
 	;初期ウフフONで合意持ちなら最初からウフフ
 	TFLAG:44 = 1
 ENDIF
 IF (FLAG:23 & 8)
 	;主導権を初期設定
-	SIF CFLAG:15 == 1
+	SIF CFLAG:15 == 1	; 【[主導権設定]==1】
 		TFLAG:45 = 0
-	SIF CFLAG:15 == 2
+	SIF CFLAG:15 == 2	; 【[主導権設定]==2】
 		TFLAG:45 = 1
+ENDIF
+
+;初期ウフフONの場合、ウフフ時指定衣装の自動着用チェック
+IF TFLAG:44 == 1	; 【[ウフフ中]==1】
+	CALL AUTO_WEAR_FAVORITE_CLOTH
 ENDIF
 
 ;旧FINISH.ERBから移動
 @EVENTTURNEND
 #PRI
 ;売却や助手化が可能になったか
-SIF TARGET < 0
+SIF TARGET < 0 || BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
 	RETURN 0
-IF (ABL:0 >= 10 && ABL:1 >= 8) || (ABL:0 >= 5 && ABL:1 >= 5 && ABL:9 >= 3) || CFLAG:2 >= 1000 || TALENT:152 || TALENT:153
-	IF CFLAG:1 <= 1
+IF (ABL:0 >= 10 && ABL:1 >= 8) || (ABL:0 >= 5 && ABL:1 >= 5 && ABL:9 >= 3) || CFLAG:2 >= 1000 || TALENT:152 || TALENT:153	; 【[合意] / [恋人] / [親密]Lv>=10 / [欲望]Lv>=8 / [親密]Lv>=5 / [欲望]Lv>=5 / [レズっ気]Lv>=3 / [好感度]>=1000】
+	IF CFLAG:1 <= 1	; 【[助手可能]<=1】
 		TFLAG:13 = 31
 		CALL SELF_KOJO
 		PRINTFORMW %NAME:TARGET%が助手可能になりました
@@ -120,3 +144,14 @@ ISASSI:ASSI = 1
 
 RETURN 0
 
+
+
+;-------------------------------------------------
+; ウフフ時指定衣装の自動着用処理
+;-------------------------------------------------
+@AUTO_WEAR_FAVORITE_CLOTH
+IF TARGET >= 1 && TARGET < CHARANUM && CFLAG:TARGET:1215 > 0 && TEQUIP:TARGET:65 == 0	; 【無[コスプレ] / TARGET:[ウフフ時指定衣装]>0】
+	CALL CLOTH_NAME
+	TEQUIP:TARGET:65 = CFLAG:TARGET:1215
+	PRINTFORMW （二人きりの雰囲気を察した%CALLNAME:TARGET%は、事前に指定されていた【%TSTR:(CFLAG:TARGET:1215)%】に着替えました）
+ENDIF

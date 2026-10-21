@@ -1,0 +1,5835 @@
+;==============================================================
+; キャラ別コマンド反応テンプレート  @KOJO_MESSAGE_COM_38
+;
+; 【分岐構造】
+;   3tier+SF: 初回 / 失敗(恋人/通常) / 成功(恋人×3, 親密×3, 通常×3)
+;   3tier:    初回 / 恋人×3 / 親密×3 / 通常×3
+;   2tier+SF: 初回 / 失敗(恋人/通常) / 成功(恋人×3, 通常×3)
+;   2tier:    初回 / 恋人×3 / 通常×3
+;   ecchi2t:  恋人×3 / 通常×3
+;   other:    恋人1行 / 通常1行
+;
+; 【成功/失敗: TFLAG:18】  -1=失敗  0=通常  1=大成功
+; 【関係: TALENT:TARGET:153=恋人  ABL:TARGET:0>=6=親密】
+;
+; 【CFLAG:TARGET初回フラグ】
+;   210=勉強 211=会話 212=プレゼント 213=スキンシップ 214=まったり
+;   215=掃除 216=髪梳き 217=デート系 218=初詣 219=炬燵 220=散歩
+;   221=学食 222=遊び・ライブ 223=素材 224=調合 225=縁側 229=キス
+;   230-248: ウフフ系各コマンド
+;==============================================================
+@KOJO_MESSAGE_COM_38
+SIF TEQUIP:45 && SELECTCOM != 45
+	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 38, PLAYER
+LOCALS '= @"%RESULTS%"
+
+;==============================================================
+; 純愛コミュニケーション系（COM300-325）
+;==============================================================
+;--- COM300 一緒に勉強する ---
+IF SELECTCOM == 300
+	IF CFLAG:TARGET:210 == 0
+		CFLAG:TARGET:210 = 1
+		;初回
+		PRINTFORMW 「ワオ、君ト一緒ニお勉強ヨ～♪　私、丸暗記ハ得意ナノ☆　君ニ教エテアゲルネ！」
+	ELSE
+		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORML 「ン～、ゴメンネ……今日ハ君ガ隣ニイルト、ドキドキシテ、ぜんぜん頭ニ入ラナイヨ……エヘヘ、
+				PRINTFORMW コレモ君ノセイネ？　マタ今度、ガンバロウ……♪」
+			ELSE
+				;失敗
+				PRINTFORMW 「アレ？　ン～、今日ハ二人トモ調子ガ出ナイネ……。難シイネ、勉強ハ。マタ別ノ日ニ、仕切リ直シヨ～？」
+			ENDIF
+		;--- 成功 ---
+		ELSE
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「今日ノ勉強ハ二人デネ☆　全力デ頑張ロウネ……チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　君ト一緒ナラ、難シイ漢字モ覚エラレル気ガスルネ～♪」
+			ELSE
+				PRINTFORMW 「覚エタコトハ忘レナイ私ノ性質、君ノ役ニ立ツトイインダケドネ……エヘヘ♪」
+			ENDIF
+		;--- 親密（ABL6以上） ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「ガンバッテ一緒ニ頑張ロウネ☆　分カラナイトコ、教エテアゲルヨ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「あやめ先生ガ言ッテタ四字熟語、君ニモ教エルネ！　『一蓮托生』ヨ～♪」
+			ELSE
+				PRINTFORMW 「アハ～ハ☆　君ノ書イタ字、ナンカ可愛イネ～！」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ハイ、勉強会ノ時間ヨ～♪　私モチャント教エラレルカ、不安ダケド～……」
+			ELSEIF A == 1
+				PRINTFORMW 「ン～、コノ問題ノ答エハ……ハッ、思イ出シタヨ☆　覚エタコトハ忘レナイカラネ！」
+			ELSE
+				PRINTFORMW 「君モ転校生ナラ、勉強遅レテルヨネ？　私モ最初ハ大変ダッタヨ～……一緒ニ頑張ロウネ！」
+			ENDIF
+		ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM301 会話 ---
+IF SELECTCOM == 301
+	IF CFLAG:TARGET:211 == 0
+		CFLAG:TARGET:211 = 1
+		;初回
+		PRINTFORMW 「ワ～オ、私ニお話シタイコトガアルノ？　私モ、君ニ聞イテ欲シイコトガアルヨ☆」
+	ELSE
+		A = RAND:10
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「アレ、ウマク話セナカッタ……。ゴメンネ、出直スヨ☆」
+			ELSE
+				;失敗
+				PRINTFORMW 「ンー、今日ハ調子出ナイミタイ。マタ今度、ネ？」
+			ENDIF
+		;--- 成功 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「今日ハ何ヲ話ソウカ？　君ノ国ノコトモ、聞カセテヨ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「アハ～ハ☆　君ノ声、聞イテルダケデ落チ着クネ……不思議ナノ。」
+				ELSEIF A == 2
+					PRINTFORMW 「私ノ故郷デハネ、二人デ話ス時ハ手ヲ繋グ習慣ガアッタノ……ホラ☆」
+				ELSEIF A == 3
+					PRINTFORMW 「君トノ会話ハ全部覚エテルヨ。一度モ忘レナイ、永遠ニ。」
+				ELSEIF A == 4
+					PRINTFORMW 「ねぇ……モウ少シ、一緒ニ居ヨウヨ？　チュッ♪」
+				ELSEIF A == 5
+					PRINTFORMW 「君ノ国ノコト、モット聞カセテ？　私、ゼンブ覚エルカラ☆」
+				ELSEIF A == 6
+					PRINTFORMW 「私ノ国ノ星座、君ニ教エテアゲルヨ。コノ空モ、永遠ニ覚エテオク……☆」
+				ELSEIF A == 7
+					PRINTFORMW 「ねぇ、私ノ国ノ歌、聞カセテアゲヨウカ？　君ニダケ、特別ニ♪」
+				ELSEIF A == 8
+					PRINTFORMW 「君ガ笑ウト、私モ嬉シクナル……コノ気持チ、永遠ニ覚エテルヨ☆」
+				ELSE
+					PRINTFORMW 「ねぇ、モウ少シ、一緒ニ居ヨウヨ？　君ト居ルト、時間ガ宝物ナノ♪」
+				ENDIF
+			;--- 親密（ABL6以上） ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「アハ～ハ☆　君ハ聞キ上手ネ～、ツイ全部喋ッチャウヨ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「私ノ故郷ノ話、退屈ジャナイ？　君ガ興味持ッテクレルト嬉シイヨ。」
+				ELSEIF A == 2
+					PRINTFORMW 「ハッ、ソウダ！　あやめ先生ニ教エテモラッタ慣用句ガアルノ、聞イテ☆」
+				ELSEIF A == 3
+					PRINTFORMW 「君ハ、私ノ言葉ヲヨク聞イテクレルネ……アリガト。」
+				ELSEIF A == 4
+					PRINTFORMW 「ふぅん、ソレデ？　君ノ話、続キ聞カセテヨ～♪」
+				ELSEIF A == 5
+					PRINTFORMW 「ねぇ、君ノ好キナモノ、ゼンブ教エテ？　私、一ツモ忘レナイカラ♪」
+				ELSEIF A == 6
+					PRINTFORMW 「今日ハ何ヲ話ソウカ？　君ノコトナラ、ナンデモ知リタイナ～♪」
+				ELSEIF A == 7
+					PRINTFORMW 「私ノ記憶力、便利デショ？　君ノ誕生日モ、口癖モ、ゼンブ覚エテルヨ☆」
+				ELSEIF A == 8
+					PRINTFORMW 「日本ノ言葉、難シイケド楽シイ。君ガ教エテクレルト、スグ覚エチャウ♪」
+				ELSE
+					PRINTFORMW 「アハ、君トノオ喋リ、私ノ一番ノ楽シミ。コレモ、永遠ニ覚エルネ♪」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「フム、今日ハ何ノ話ヲシヨウカナ～？」
+				ELSEIF A == 1
+					PRINTFORMW 「発音、コレデ大丈夫カナ？　チャント伝ワッテルカ、不安ヨ～……」
+				ELSEIF A == 2
+					PRINTFORMW 「ワオ、ソレハ初耳ヨ～！　日本ハ面白イ国ネ☆」
+				ELSEIF A == 3
+					PRINTFORMW 「ン～、君ノ言ッテルコト、半分グライハ理解デキタ気ガスルネ～！」
+				ELSEIF A == 4
+					PRINTFORMW 「私モ日本語ガンバルカラ、聞イテネ～♪」
+				ELSEIF A == 5
+					PRINTFORMW 「ワ～オ、私ニお話シタイコト？　イイヨ、ナンデモ聞クヨ☆」
+				ELSEIF A == 6
+					PRINTFORMW 「ねぇ、聞イテ？　今日、面白イコトガアッタノ～♪」
+				ELSEIF A == 7
+					PRINTFORMW 「私デヨケレバ、ナンデモ話シ相手ニナルヨ。サ、ドウゾ☆」
+				ELSEIF A == 8
+					PRINTFORMW 「アハ～ハ☆　君ッテ、話シヤスイネ。不思議ト落チ着クノ♪」
+				ELSE
+					PRINTFORMW 「日本ハ毎日新シイ発見ガアルネ。ゼンブ、覚エテイクヨ～♪」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+IF SELECTCOM == 302
+	IF CFLAG:TARGET:212 == 0
+		CFLAG:TARGET:212 = 1
+		;初回
+		PRINTFORMW 「ワ～オ、私ニ？　ホント！？　ンッ、嬉シイヨ～！　オープン、シテイイ？」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「ンッ……コレハ……アハ～ハ☆　ゴメンネ、私ノ趣味トハ少シ違ウケド、君ノ気持チハ嬉シイヨ……」
+			ELSE
+				;失敗
+				PRINTFORMW 「アレ……？　ン～、アリガト。気持チハ受ケ取ッタヨ～……。」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「わ～お、コレ、私ノ大好キナヤツ☆　君、ヨク覚エテテクレタネ……チュッ♪」
+				ELSEIF A == 1
+					PRINTFORMW 「嬉シスギテ泣キソウネ……アハ～ハ☆　大事ニ使ウヨ、絶対ニ☆」
+				ELSE
+					PRINTFORMW 「コレハ、永遠ニ私ノ宝物ヨ。覚エタコトハ忘レナイカラネ……。」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「アハ～ハ☆　コレ、可愛イネ～！　アリガト、大事ニスルヨ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「君ハ、私ノ好キナモノヲヨク分カッテルネ☆　エヘヘ、嬉シイ♪」
+				ELSE
+					PRINTFORMW 「ワオ、コレヲ私ニ？　絶対、君ニお返シスルカラネ☆」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ワ～オ、嬉シイヨ～！　アリガト、転校生☆」
+				ELSEIF A == 1
+					PRINTFORMW 「私ノ故郷デハ、贈リ物ハ家族デ共有スルノ……デモ、コレハ私ダケノモノネ♪」
+				ELSE
+					PRINTFORMW 「コレ、メイドサンニ自慢シヨウカナ～？　アハ～ハ☆」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM303 スキンシップ ---
+IF SELECTCOM == 303
+	IF CFLAG:TARGET:213 == 0
+		CFLAG:TARGET:213 = 1
+		;初回
+		PRINTFORMW 「ワオ、私トすきんしっぷ？　私ノ故郷デハ普通ノ習慣ヨ～、遠慮シナイデネ☆」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「アレ？　今日ハ調子ガ出ナイミタイ……ゴメンネ、君ノセイジャナイヨ……」
+			ELSE
+				;失敗
+				PRINTFORMW 「ン……ゴメン、今日ハチョット遠慮シタイ気分ナノ。」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「ンッ、君ノ手、温カイネ……ズット握ッテテヨ……？」
+				ELSEIF A == 1
+					PRINTFORMW 「私ノ故郷ノすきんしっぷハ、コウシテ……チュッ♪　君限定ノ挨拶ネ☆」
+				ELSE
+					PRINTFORMW 「君ノ匂イ、好キヨ……モット近クニイテイイ？」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「アハ～ハ☆　君、撫デ方ガ上手ネ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「私ノ故郷デハ、コノ距離ハ普通ナノヨ？　ホラ、慣レテ☆」
+				ELSE
+					PRINTFORMW 「君トノすきんしっぷ、心臓ガどきどきスルネ……エヘヘ♪」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ワオ、コレモ日本ノすきんしっぷネ？　私、勉強ニナルヨ☆」
+				ELSEIF A == 1
+					PRINTFORMW 「アハ～ハ☆　慣レテキタヨ～、私ノ故郷ナラモット大胆ナノ！」
+				ELSE
+					PRINTFORMW 「ハッ、コレ以上ハ……日本デハ駄目ナンダッケ？　アハ～ハ☆」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM304 まったりする ---
+IF SELECTCOM == 304
+	IF CFLAG:TARGET:214 == 0
+		CFLAG:TARGET:214 = 1
+		;初回
+		PRINTFORMW 「ふぅ～、こうしてマッタリスルノモ良イネ☆　君ト一緒ナラ最高ヨ～♪」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノ膝、貸シテクレル？　私、寝ッ転ガリタイノ……エヘヘ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ～、平和ネ～……コノ時間ガ永遠ニ続ケバイインダケド☆」
+			ELSE
+				PRINTFORMW 「ン～……君ノ心臓ノ音、聞コエルヨ。落チ着クネ……ホ。」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「ふふ、マッタリスルノハ得意ヨ～、私ノ故郷ノ昼下ガリミタイ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ふふ……一緒ニ何モシナイ時間ッテ、贅沢ヨネ～？」
+			ELSE
+				PRINTFORMW 「ハミングシヨウカ？　チャラーン、ララーン、チャップリーン♪」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ワオ、コノ時間ハオ茶ガ似合ウネ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぅん、こういうマッタリ、日本ノ文化ナノカナ？」
+			ELSE
+				PRINTFORMW 「ン～、何モ予定ガナイ午後ハ大切ニシナクッチャネ☆」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM305 掃除当番 ---
+IF SELECTCOM == 305
+	IF CFLAG:TARGET:215 == 0
+		CFLAG:TARGET:215 = 1
+		;初回
+		PRINTFORMW 「ワオ、掃除当番ネ！　私、武士ノ妻トシテちゃんと頑張ルヨ～☆」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ト一緒ナラ、掃除モ楽シイネ……チュッ♪　ご褒美ヨ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　君、ホウキヲ持ツ姿モ凛々シイネ～♪」
+			ELSE
+				PRINTFORMW 「ハイ、ココハ私ガ拭クカラ、君ハアッチネ☆」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ガンガン、ピカピカニスルヨ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　掃除ノ後ノお茶、楽シミネ～！」
+			ELSE
+				PRINTFORMW 「私ノ故郷デハ、掃除ハミンナデ協力スルモノダッタヨ☆　懐カシイネ～♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM306 髪梳き ---
+IF SELECTCOM == 306
+	IF CFLAG:TARGET:216 == 0
+		CFLAG:TARGET:216 = 1
+		;初回
+		PRINTFORMW 「ワ～オ、私ノ髪、梳カセテクレルノ？　ンッ、優シクネ……？」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「アハ～ハ☆　君ニ梳カレルト、不思議ト落チ着クネ……エヘヘ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぅ～、君ノ手、丁寧ネ……ズット梳カシテテ欲シイヨ……」
+			ELSE
+				PRINTFORMW 「私ノ髪、君ノモノミタイデ嬉シイネ……チュッ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぅん、君、髪ノ扱イ慣レテルネ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ、痛クナイ？　大丈夫？　私ノ髪、ちゃんとシテル？」
+			ELSE
+				PRINTFORMW 「ハッ、コノ感ジ……気持チイイネ～☆　アリガト♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM307 櫛で梳かす ---
+IF SELECTCOM == 307
+	IF CFLAG:TARGET:217 == 0
+		CFLAG:TARGET:217 = 1
+		;初回
+		PRINTFORMW 「ワオ、櫛ヲ使ッテクレルノ？　ンッ、丁寧ニネ……？」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「私ノ髪ハ君ノ手デ整ッテイク……エヘヘ、チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　君、櫛使イモ上手ネ～！」
+			ELSE
+				PRINTFORMW 「ハァ～、気持チイイヨ……モウ少シ続ケテ……？」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「私ノ故郷ノ櫛トハ違ウネ～、日本ノ櫛ハ繊細ヨ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ、絡マッテルトコ、ゆっくりネ☆」
+			ELSE
+				PRINTFORMW 「ワオ、ピカピカニナッタネ☆　アリガト、転校生～♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM309 素材探し ---
+IF SELECTCOM == 309
+	IF CFLAG:TARGET:223 == 0
+		CFLAG:TARGET:223 = 1
+		;初回
+		PRINTFORMW 「ワオ、素材探シ？　私ノ故郷デハ網デ魚ヲ捕獲シタヨ～☆　手伝ウネ！」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ト一緒ナラ、迷子ニナッテモ怖クナイヨ……チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ガンバッテ、レアナ素材見ツケヨウネ～♪」
+			ELSE
+				PRINTFORMW 「アハ～ハ☆　ホラ、コレドウ？　使エルカナ～？」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ハッ、見ツケタヨ☆　君ノ目、節穴ジャナイヨネ～？」
+			ELSEIF A == 1
+				PRINTFORMW 「ン～、コノ植物ハ……あやめ先生ニ教エテモラッタ気ガスルネ。」
+			ELSE
+				PRINTFORMW 「私ノ故郷デハ、素材ハ皆デ共有スルノ。日本デモ似タ感ジ？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM310 調合 ---
+IF SELECTCOM == 310
+	IF CFLAG:TARGET:224 == 0
+		CFLAG:TARGET:224 = 1
+		;初回
+		PRINTFORMW 「ワオ、調合？　あやめ先生ニ教エテモラッタコトガアルヨ～☆　任セテ♪」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノタメニ、最高ノモノヲ作ルヨ……チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　二人デ調合ッテ、ナンカ夫婦ミタイネ～♪」
+			ELSE
+				PRINTFORMW 「ンッ、コノ配合ハ……うーん、覚エテルカナ？」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ハッ、コレデ完成ヨ☆　君ニ役立ツトイインダケド～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ガンバッテ、薬モ料理モ得意ニナルカラネ☆」
+			ELSE
+				PRINTFORMW 「アレ？　チョット失敗カモ……ゴメンネ、転校生～！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM311 甘い言葉 ---
+IF SELECTCOM == 311
+	IF CFLAG:TARGET:216 == 0
+		CFLAG:TARGET:216 = 1
+		;初回
+		PRINTFORMW 「ンッ、甘イ言葉？　ええっと……アイラブユー？　ソレトモ、私ノ故郷ノ言葉ガイイ？」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「アレ……今日ハ上手ク言エナカッタネ……発音、悪カッタ？」
+			ELSE
+				;失敗
+				PRINTFORMW 「ンッ、ゴメン……気ノ利イタ言葉、思イツカナイヨ……」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「君ハ、私ノたった一人ノ転校生ナノ……愛シテルヨ、チュッ♪」
+				ELSEIF A == 1
+					PRINTFORMW 「覚エタコトハ忘レナイ私ノ気持チハ、永遠ニ君ノモノネ……」
+				ELSE
+					PRINTFORMW 「私ノ故郷ノ言葉デ言ウト、もぁ～ら☆　愛シテルッテ意味ヨ～♪」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「アハ～ハ☆　君ハ、私ノ大事ナ友達ネ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「君ガ居テクレテ、私、君咲学院ガ大好キニナッタンダ☆」
+				ELSE
+					PRINTFORMW 「ふぅん、君ハ私ノ宝物ノ一ツダヨ。コレハ秘密ネ？」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「君ハ、転校生仲間ダカラ……特別ヨ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「ガッシリ、君トハ生涯ノ友ネ☆　アハ～ハ☆」
+				ELSE
+					PRINTFORMW 「ン～、私カラ甘イ言葉ハ難シイネ～……ゴメン！」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM312 頭を撫でる ---
+IF SELECTCOM == 312
+	IF CFLAG:TARGET:217 == 0
+		CFLAG:TARGET:217 = 1
+		;初回
+		PRINTFORMW 「ンッ、私ノ頭、撫デルノ？　ンモウ、子供扱イシナイデヨ～……エヘヘ、嬉シイケド♪」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「ンッ、今日ハ甘エル気分ジャナカッタノ……ゴメンネ……」
+			ELSE
+				;失敗
+				PRINTFORMW 「アレ、突然ドウシタノ？　ビックリシタヨ～！」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「ハァ～、君ノ手、温カイネ……ズット撫デテテ欲シイヨ……チュッ♪」
+				ELSEIF A == 1
+					PRINTFORMW 「アハ～ハ☆　君ニ撫デラレルト、アンシンスルネ……」
+				ELSE
+					PRINTFORMW 「ンッ、私ノ髪、絡マッテナイ？　大丈夫？」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「アハ～ハ☆　君、撫デ方上手ネ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「ふぅん、コレモ日本ノすきんしっぷ？　私、覚エタヨ☆」
+				ELSE
+					PRINTFORMW 「エヘヘ……ちあキミタイニ妹扱イシナイデネ？」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ワオ、突然ノ撫デ撫デネ☆　アリガト♪」
+				ELSEIF A == 1
+					PRINTFORMW 「ンッ、私、子供ジャナイヨ～！　……デモ、悪クナイネ。」
+				ELSE
+					PRINTFORMW 「アハ～ハ☆　君モタマニハ甘エサセテクレルネ～♪」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM313 願掛け ---
+IF SELECTCOM == 313
+	IF CFLAG:TARGET:218 == 0
+		CFLAG:TARGET:218 = 1
+		;初回
+		PRINTFORMW 「ワオ、願掛ケ？　神社ニ行クノ？　絵馬モ書クヨ～☆　あやめ先生ニ教エテモラッタ言葉、書クネ！」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「願イハ……君ト未来永劫一緒ニ居ラレマスヨウニ☆　チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　二人デお詣リ、楽シイネ～♪」
+			ELSE
+				PRINTFORMW 「私ノ願イハ、君ニハ秘密ヨ……エヘヘ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「神様、ヨロシクオ願イシマス～☆」
+			ELSEIF A == 1
+				PRINTFORMW 「私ノ故郷ニハ神社ハナイカラ、新鮮ヨ～♪」
+			ELSE
+				PRINTFORMW 「ハッ、絵馬ニ何書コウカナ……『未来永劫』ガイイカナ☆」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM314 炬燵にあたる ---
+IF SELECTCOM == 314
+	IF CFLAG:TARGET:219 == 0
+		CFLAG:TARGET:219 = 1
+		;初回
+		PRINTFORMW 「コタツ……？　ワオ、コレガ日本ノ冬ノ風物詩ネ！　ンッ、温カイ……ズット入ッテタイヨ～♪」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ト一緒ノコタツ、最高ヨ……ハァ～、トロケチャウネ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　コタツムリッテ言葉、覚エタヨ～♪」
+			ELSE
+				PRINTFORMW 「ンッ、君ノ足、冷タイヨ？　私ガ温メテアゲル……チュッ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぅ～、コレハ動ケナクナル文化ネ～！」
+			ELSEIF A == 1
+				PRINTFORMW 「私ノ故郷ニハナイヨ、コタツ。発明シタ人ハ天才ネ☆」
+			ELSE
+				PRINTFORMW 「ワオ、コタツデおミカン、定番ナノ？　日本ハ奥ガ深イネ～♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM315 お散歩する ---
+IF SELECTCOM == 315
+	IF CFLAG:TARGET:220 == 0
+		CFLAG:TARGET:220 = 1
+		;初回
+		PRINTFORMW 「ワオ、お散歩？　私ノ故郷デハ長イ道ヲ毎日歩イテタヨ～☆　慣レッコネ♪」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ト並ンデ歩ク時間、永遠ニ続ケバイイノニ……チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　手ヲ繋イデ、堂々ト歩クヨ～♪」
+			ELSE
+				PRINTFORMW 「ハァ～、空気ガ気持チイイネ……君トナラ何処マデモ歩ケルヨ。」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「アハ～ハ☆　ガンガン、運動不足解消ヨ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ハッ、桜ガ咲イテルネ～！　日本ノ春ハ綺麗ヨ☆」
+			ELSE
+				PRINTFORMW 「ワオ、こんなトコロニ猫ガイル！　可愛イネ～♪」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぅん、コノ道、初メテ通ルカナ？　私、迷子ニナラナイヨネ～？」
+			ELSEIF A == 1
+				PRINTFORMW 「ハッ、ソコノ自販機、ジュース買オウヨ～☆」
+			ELSE
+				PRINTFORMW 「アハ～ハ☆　散歩中ノ会話、楽シイネ～♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM316 髪を梳いて貰う ---
+IF SELECTCOM == 316
+	IF CFLAG:TARGET:217 == 0
+		CFLAG:TARGET:217 = 1
+		;初回
+		PRINTFORMW 「アハ～ハ☆　今日ハ私ガ君ノ髪ヲ梳カセテモラウネ☆　優シクスルカラ……？」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノ髪、サラサラネ……気持チイイ……エヘヘ、チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ、痛クナイ？　大丈夫？」
+			ELSE
+				PRINTFORMW 「私ノ故郷デハ、髪ヲ梳ク時間ハ大切ナ団欒ノ時間ナノ☆」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「アハ～ハ☆　君ノ髪、私ノヨリ柔ラカイネ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ハイ、コレデキレイヨ☆」
+			ELSE
+				PRINTFORMW 「ワオ、君ノ髪ノ匂イ、好キヨ～……コレモ覚エテオクヨ。」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM320 学食に行く ---
+IF SELECTCOM == 320
+	IF CFLAG:TARGET:221 == 0
+		CFLAG:TARGET:221 = 1
+		;初回
+		PRINTFORMW 「ワオ、学食！　私、ちよチャンノお菓子モ大好キダケド、学食ノご飯モ好キヨ～☆」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ト一緒ノご飯、最高ヨ～♪　チュッ……コレハ食前ノ挨拶ネ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　今日ハ何ヲ食ベヨウカ？　オススメシテ～♪」
+			ELSE
+				PRINTFORMW 「私、君ノ取ッタモノガ気ニナルナ～……一口、ちょうだい♪」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「ハッ、コノ定食、美味シソウ☆　いただきマース！」
+			ELSEIF A == 1
+				PRINTFORMW 「ワオ、ちあキト一緒ニ食ベテ以来ネ☆」
+			ELSE
+				PRINTFORMW 「エヘヘ、学食ノおばちゃん、優シイネ～♪」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、コレハ初メテ食ベルヨ～！　日本ノ味ハ奥深イネ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ワ～オ、ボリューム満点！　私ノ故郷ニハナイ料理ヨ～♪」
+			ELSE
+				PRINTFORMW 「アハ～ハ☆　お腹一杯ヨ～！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM321 遊びに行く ---
+IF SELECTCOM == 321
+	IF CFLAG:TARGET:222 == 0
+		CFLAG:TARGET:222 = 1
+		;初回
+		PRINTFORMW 「ワオ、遊ビニ行ク？　全力デ楽シムヨ～☆　覚悟シテネ！」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ト二人キリ……エヘヘ、嬉シイヨ……チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　君ト遊ブト、何処ニ居テモ楽シイネ～♪」
+			ELSE
+				PRINTFORMW 「今日ノ思イ出モ、永遠ニ覚エテオクヨ……。」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「アハ～ハ☆　ハヤテモ誘ッテ、ミンナデ遊ボウ～！」
+			ELSEIF A == 1
+				PRINTFORMW 「ワオ、楽シイ場所ヲ知ッテルノ？　教エテ～♪」
+			ELSE
+				PRINTFORMW 「ハッ、コレ面白イネ☆　ガッツリ、ハマッチャウヨ～！」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぅん、ドコ行コウカ？　私、何処デモイイヨ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　チョット疲レタケド、楽シイネ☆」
+			ELSE
+				PRINTFORMW 「ワ～オ、コノ遊ビ、知ラナカッタヨ～♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM322 ストリートライブ ---
+IF SELECTCOM == 322
+	IF CFLAG:TARGET:222 == 0
+		CFLAG:TARGET:222 = 1
+		;初回
+		PRINTFORMW 「ワオ、すとりぃとらいぶ？　私モ故郷ノ歌ヲ歌ウヨ～☆　私ノ歌、響キ渡レ～♪」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ニ歌ヲ捧ゲルヨ……コノ歌詞、覚エテテネ……チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　君ガ聞イテクレルダケデ、最高ノ気分ヨ～♪」
+			ELSE
+				PRINTFORMW 「私ノ故郷ノ歌、好キニナッテクレル？」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ハッ、英語ノ歌モ歌エルヨ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　お客サン、増エテキタネ～！」
+			ELSE
+				PRINTFORMW 「ワオ、皆拍手シテクレタヨ☆　嬉シイネ～♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
+IF SELECTCOM == 323
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORMW 「ワオ、デート……？　君ガ、私ヲ誘ッテクレタノ？　ヤッタ、嬉シイ……ドコ行ク？　早ク早ク～☆」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「アレ、何カ予定ガずれちゃッタ？　ン～、ザンネン……。デモ、君ト一緒ナラ、待ツノモ楽シイヨ……マタ誘ッテネ？」
+				ELSE
+					;失敗
+					PRINTFORMW 「ン～、今日ハタイミングガ悪カッタネ……？　マァ、こんなこともあるさ、ネ？　マタ今度ニシヨ～♪」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「ネエネエ、ドコ行ク？　私、君トナラ、ドコデモ楽シイヨ……エヘヘ、手ヲ繋イデ、レッツゴーネ☆」
+					ELSEIF A == 1
+						PRINTFORMW 「ワオ、オ出掛ケ！　甘イモノ食ベラレル所ガイイナ～♪　君ト一緒ナラ、ナンデモ美味シイネ……チュッ♪」
+					ELSE
+						PRINTFORMW 「フフ、今日ハ二人ノ時間ネ……。私、コノ日ヲずっと楽シミニシテタヨ。サァ、行コウ……君ノ手、握ッテモイイ？♪」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「ドコ行ク？　私、日本ノお祭リ、行ッテミタイナ～！　君モ一緒ニ、ね？☆」
+					ELSEIF A == 1
+						PRINTFORMW 「アハ～ハ☆　今日ハ天気モイイシ、オ出掛ケ日和ネ～！　ぴくにっく、ドウ？　オべんとう作ッテキタヨ♪」
+					ELSE
+						PRINTFORMW 「ワオ、楽シミ～♪　君トお出掛ケ、何ヲシヨウカナ……？　ネエ、オススメノ場所、教エテ？」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「ン～？　オ出掛ケスルノ？　イイヨ～、私、ヒマシテタトコロ☆　ドコ行ク？」
+					ELSEIF A == 1
+						PRINTFORMW 「ワオ、私モ連レテッテクレルノ？　ヤッタ～、退屈シテタカラ嬉シイヨ♪」
+					ELSE
+						PRINTFORMW 「アハ～ハ☆　オ出掛ケネ！　日本ノコト、モット知リタイカラ、イロンナ所、案内シテ～♪」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「ンッ、デート……ワオ、ホント？　ハッ、初メテノ二人キリヨ……チュッ♪」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「アレ……今日ハ上手クイカナカッタネ……ゴメン、私ノ準備不足ヨ……」
+				ELSE
+					;失敗
+					PRINTFORMW 「ン……ゴメン、今日ハ気分ジャナイノ……マタ今度ネ。」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「君トノ時間、永遠ニ覚エテオクヨ……ぴぃす……♪」
+					ELSEIF A == 1
+						PRINTFORMW 「アハ～ハ☆　みすてりあすナ女ヲ演出シタイケド、ツイ笑ッチャウネ～♪」
+					ELSE
+						PRINTFORMW 「私ノ故郷ノ伝統ヨ、デートノ最後ハ……チュッ♪」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「アハ～ハ☆　君トノデート、楽シイネ～♪」
+					ELSEIF A == 1
+						PRINTFORMW 「ハッ、ソコノお店、入ロウヨ～♪」
+					ELSE
+						PRINTFORMW 「ふぅん、コレモデートノ醍醐味ナノカナ？」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「ワオ、コレガデート……日本流ナノネ☆」
+					ELSEIF A == 1
+						PRINTFORMW 「アハ～ハ☆　時間ガ過ギルノ早イネ～！」
+					ELSE
+						PRINTFORMW 「ハッ、モウ夕方……今日ハ楽シカッタヨ☆」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM325 ---
+;  ※予約スロット（各キャラ固有コマンド・自由設定）
+IF SELECTCOM == 325
+	IF CFLAG:TARGET:225 == 0
+		CFLAG:TARGET:225 = 1
+		;初回
+		PRINTFORMW 「ワオ、君モ時代劇好キ？　ンッ、嬉シイヨ～！　今日ハ一緒ニ観ヨウ☆　士道不覚悟ハ許サンゾ、オヌシ！」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ヨォシ、二人デ武士ゴッコヨ～！　オヌシ、覚悟ハ良イカ……？　チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　時代劇ノ後ハ、武士言葉デ会話ネ～♪　拙者、君ヲ愛シテオル！」
+			ELSE
+				PRINTFORMW 「殿中デゴザル……君ハ私ノ殿、私ハ君ノ姫ヨ☆」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ハッ、コノ場面、皆デ斬り合ウトコロネ！　情ケナイゾ、オヌシ～！」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　時代劇ハ深イヨ～♪　日本人ノ魂ヨ！」
+			ELSE
+				PRINTFORMW 「ふぅん、コノ侍、カッコイイネ～！　君モ似テル気ガスルヨ☆」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; キス系（COM340-342）成功/失敗分岐あり
+;==============================================================
+;--- COM340 バードキス ---
+IF SELECTCOM == 340
+	IF CFLAG:TARGET:229 == 0
+		CFLAG:TARGET:229 = 1
+		;初回
+		PRINTFORMW 「ちゅっ☆　コレ、私ノ故郷流ノ挨拶ヨ～♪　日本デハ駄目ナンダッケ？　君ニハ特別ニ許シテモラウネ☆」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「ちゅっ、ちゅっ……エヘヘ、君ノ唇、好キヨ……止メラレナイネ☆」
+			ELSE
+				;失敗
+				PRINTFORMW 「鳥ガつんつんスルミタイ……コレ、私達ノ秘密ノ挨拶ニシヨウ？」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「君ノ顔ガ近イト、ツイ唇ガ吸イ寄セラレチャウネ……アハ～ハ☆」
+				ELSEIF A == 1
+					PRINTFORMW 「ね、もう一回……ちゅっ♪　君モ、シテ？　マダ足リナイヨ……」
+				ELSE
+					PRINTFORMW 「故郷デハ家族ニモシテタケド……君ニハ、コレ違ウ意味ヨ？　分カル？」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「コノきす、軽ク見エテ全力ヨ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「ちゅっ☆　ホラ、私ノ故郷ノ習慣ヨ☆」
+				ELSE
+					PRINTFORMW 「君ノ唇、軽ク触レルダケ……コレモ立派ナきすネ～♪」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM341 ソフトキス ---
+IF SELECTCOM == 341
+	IF CFLAG:TARGET:229 == 0
+		CFLAG:TARGET:229 = 1
+		;初回
+		PRINTFORMW 「君ノ唇、柔ラカイネ……ンッ……コレガそふときす？　日本ノ恋人達ガスルヤツ……？」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「ゆっくり、味ワッテ……君ノ全部、覚エテオキタイノ……」
+			ELSE
+				;失敗
+				PRINTFORMW 「目ヲ閉ジテ……ンッ、コノ感ジ、永遠ニ続イテホシイ……」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「ふぅ……君ノ匂イニ包マレテ、頭ガぼぉっとスルネ……」
+				ELSEIF A == 1
+					PRINTFORMW 「もう少シ、唇ヲ重ネテ……ンン、君ニ集中シタイノ……」
+				ELSE
+					PRINTFORMW 「アハ～ハ☆　君ノ唇、ホント癖ニナルネ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「そふときす、上手クナッテキタネ☆　覚エタコトハ忘レナイカラ、復習ハ完璧ヨ～♪」
+				ELSEIF A == 1
+					PRINTFORMW 「ねぇ、コレデ合ッテル？　日本流ノ……ちゃんとデキテル？」
+				ELSE
+					PRINTFORMW 「ふふっ……鼻先ガ触レルノ、くすぐったイネ～」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM342 ディープキス ---
+IF SELECTCOM == 342
+	IF CFLAG:TARGET:229 == 0
+		CFLAG:TARGET:229 = 1
+		;初回
+		PRINTFORMW 「舌ヲ……？　ンッ、コレハ……ちょっと待ッテ、心臓ガ追イ付カナイヨ……ンンッ……」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「ンッ、ンッ……君ノ舌、求メチャウネ……モウ離レラレナイヨ……」
+			ELSE
+				;失敗
+				PRINTFORMW 「息ガデキナイ……デモ、止メナイデ……君ヲ感ジテイタイノ……」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「ンッ、ふぅ……コレガ大人ノきすネ？　私、覚エチャウヨ……」
+				ELSEIF A == 1
+					PRINTFORMW 「唾液ノ味、覚エタヨ……君以外、忘レチャウラ……」
+				ELSE
+					PRINTFORMW 「ハァ、ハァ……コレ、危険ヨ～……アハ～ハ……足ニ力ガ入ラナイ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「深イきすモ全力デ受ケ止メルヨ☆」
+				ELSEIF A == 1
+					PRINTFORMW 「ンッ……ちょ、ちょっと激シスギ……息継ギ、サセテ……」
+				ELSE
+					PRINTFORMW 「ふぅ……コレガディープキスナノ？　日本ノ大人ハ大変ネ～……」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; ウフフ系（COM360-381）
+;==============================================================
+;--- COM360 胸愛撫 ---
+IF SELECTCOM == 360
+	IF CFLAG:TARGET:230 == 0
+		CFLAG:TARGET:230 = 1
+		;初回
+		PRINTFORMW 「ンッ、私ノ胸ヲ……？　ど、ドウゾ……？　……ンッ、君ノ手、温カイヨ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノ手ニ触レラレルト、私ノ胸、ヘンニナルネ……ンッ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ、ハァ……乳首ガ、敏感ニナッテキタヨ……」
+			ELSE
+				PRINTFORMW 「もっと、優シク触ッテ……？　君限定ノおねだりヨ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、ソコ……痺レルヨ……コ、コレッテ普通ナノ？」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぅ、君ノ指、絡ンデルネ……ナンカ気持チイイ……？」
+			ELSE
+				PRINTFORMW 「アハ～ハ☆　恥ズカシイヨ～、私ノ胸、見ナイデネ……？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM361 愛撫 ---
+IF SELECTCOM == 361
+	IF CFLAG:TARGET:231 == 0
+		CFLAG:TARGET:231 = 1
+		;初回
+		PRINTFORMW 「コ、コレモ調教？　私ノ全身、君ニ捧ゲルヨ……ンッ、優シクシテ……？」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノ指ガ触レルトコロ、全部熱クナルネ……ンッ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぅ、私ノ身体、君ニ覚エラレチャウネ……エヘヘ……」
+			ELSE
+				PRINTFORMW 「ハァ、ハァ……君ノ手、ドコニデモ届クネ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、ソコハ……ヘンナ感ジ……日本デハコレ普通ナノ？」
+			ELSEIF A == 1
+				PRINTFORMW 「コノ感ジ、初メテ……君以外、知ラナイ感覚ヨ……」
+			ELSE
+				PRINTFORMW 「アハ～ハ……ぴくぴくシチャウネ、私ノ身体☆」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM362 指挿入れ ---
+IF SELECTCOM == 362
+	IF CFLAG:TARGET:232 == 0
+		CFLAG:TARGET:232 = 1
+		;初回
+		PRINTFORMW 「ヒッ、コ、コンナ場所デ、指ヲ……？　ンッ、ンンッ……誰カ来ナイ？　ガンバル……ンッ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、ンッ、ンッ……君ノ指、奥マデ届クネ……ハァ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぅ、ぐちゅぐちゅシテルネ……私、ドウシヨウ……」
+			ELSE
+				PRINTFORMW 「ハァ、ハァ……痺レチャウ……君ノ指、止メナイデ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、コノ感ジ、知ラナイ……日本ノ大人ノ快感？」
+			ELSEIF A == 1
+				PRINTFORMW 「覚エタコトハ忘レナイカラ、コノ感覚モ刻ンドクネ……ンッ……」
+			ELSE
+				PRINTFORMW 「アハ～……ンッ、私、ヘンナ声出チャウヨ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM363 着衣挿入 ---
+IF SELECTCOM == 363
+	IF CFLAG:TARGET:233 == 0
+		CFLAG:TARGET:233 = 1
+		;初回
+		PRINTFORMW 「ンッ、コンナ所デ？　ンモウ、君ハ大胆ネ……ハッ、ハッ、入ッテキタヨ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノ全部、私ノ中ニ……ンッ、コ、コレッテ夫婦ノ証ネ……？」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ、ハァ……脱グ間モ無イネ……コレモ、どきどきスル……アハ～ハ☆」
+			ELSE
+				PRINTFORMW 「ふぅ、隙間カラ……ぴったり収マッテルネ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、コ、コノ姿勢デ？　日本人ハ器用ネ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ハッ、ハッ……動カナイデ……息、ツケナイヨ……」
+			ELSE
+				PRINTFORMW 「コンナ人目ノアル所デ、不思議ナ気分ヨ～……アハ～ハ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM364 着衣Ｇスポット刺激 ---
+IF SELECTCOM == 364
+	IF CFLAG:TARGET:234 == 0
+		CFLAG:TARGET:234 = 1
+		;初回
+		PRINTFORMW 「ヒッ、コンナ所デ、ソコハ……？　ンッ、ンッ、声、出チャウ……ハァ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、ソコ、ダメ……君ガ知ッテルナンテ、聞イテナイヨ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ、ハァ……ぴりぴりスル……コノ場所、危険ヨ……」
+			ELSE
+				PRINTFORMW 「君、私ノ身体ノ取扱説明書、持ッテルノ？　覚エタヨ、コノ場所……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、ンンッ……達シソウ、私……コレ普通ナノ？」
+			ELSEIF A == 1
+				PRINTFORMW 「覚エラレナイ感覚……アハ～ハ……ヘンナ声出ル……」
+			ELSE
+				PRINTFORMW 「ふぅ、コレモ日本流ノ調教ナノ？　奥深イネ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM365 着衣後背位 ---
+IF SELECTCOM == 365
+	IF CFLAG:TARGET:235 == 0
+		CFLAG:TARGET:235 = 1
+		;初回
+		PRINTFORMW 「コ、コンナ所デ、コノ姿勢……？　恥ズカシイヨ～……ンッ、ハッ、奥マデ来ル……誰カ来タラ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、後ロカラ……顔見エナイノ、寂シイケド、感ジルヨ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ、ハァ……君ノ手ガ腰ニ……ぐっとキタヨ……」
+			ELSE
+				PRINTFORMW 「ふぅ、コレデ正解？　動物図鑑デ見タコトアル姿勢ヨ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、ンッ……奥ガ、奥ガ熱イ……」
+			ELSEIF A == 1
+				PRINTFORMW 「後ロ向キダト声、出シヤスイネ……アハ～ハ……」
+			ELSE
+				PRINTFORMW 「ンッ、君ノ顔ガ見タイヨ……振リ向イテイイ？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM366 着衣騎乗位 ---
+IF SELECTCOM == 366
+	IF CFLAG:TARGET:236 == 0
+		CFLAG:TARGET:236 = 1
+		;初回
+		PRINTFORMW 「コンナ所デ、自分デ動クノ？　ンッ、ンッ……声、抑エルカラネ……？」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノ上ニ乗ッテ……女王様ミタイ？　エヘヘ、楽シイヨ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ、ハァ……自分デ動クノ、ナカナカ難シイネ……」
+			ELSE
+				PRINTFORMW 「上カラ君ヲ見下ロセル……コノ景色、永遠ニ覚エルヨ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、ンッ……コノりずむ、合ッテル？」
+			ELSEIF A == 1
+				PRINTFORMW 「覚エタコトハ忘レナイカラ、コノ動キモ完璧ニ覚エルヨ☆　ンッ……」
+			ELSE
+				PRINTFORMW 「君、見ズライ？　私ノ顔、見テ……？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM367 着衣ローター ---
+IF SELECTCOM == 367
+	IF CFLAG:TARGET:237 == 0
+		CFLAG:TARGET:237 = 1
+		;初回
+		PRINTFORMW 「ヒッ、コ、コレ何？　ンッ、コンナ所デ音、鳴ラサナイデ……ばれちゃう……ヘンナ道具ネ～……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、ンッ……止マラナイヨ……コノ道具、危険ヨ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ、ハァ……勝手ニ達シチャウ……」
+			ELSE
+				PRINTFORMW 「ろぉたぁッテイウノ？　日本ノ発明ハ進ンデルネ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「君ガ操作シテルノ？　ンッ、強サ調節シテヨ～……」
+			ELSEIF A == 1
+				PRINTFORMW 「コンナ所ナノニ、ココマデ感ジルナンテ……ハゥ、声、抑エナキャ……」
+			ELSE
+				PRINTFORMW 「ンッ、ンンッ……コレモ覚エチャウヨ、私……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM368 炬燵かがり ---
+IF SELECTCOM == 368
+	IF CFLAG:TARGET:238 == 0
+		CFLAG:TARGET:238 = 1
+		;初回
+		PRINTFORMW 「コタツノ中デ……？　日本人ハ斬新ネ～……ンッ、誰カ来タラドウスルノ……？」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「コタツノ温カサト君ノ温カサ、ダブルパンチネ……アハ～ハ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ、コノ狭イ空間、密着シチャウネ……」
+			ELSE
+				PRINTFORMW 「ふぅ、汗ガスゴイヨ……コタツノセイ？　君ノセイ？」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「見ツカルヨ～、シー、静カニネ……？」
+			ELSEIF A == 1
+				PRINTFORMW 「コタツムリ進化形ネ……アハ～ハ☆」
+			ELSE
+				PRINTFORMW 「覚エタコトハ忘レナイカラ、コノ冬ノ思イ出モ永遠ヨ……ンッ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM370 抱き合う ---
+IF SELECTCOM == 370
+	IF CFLAG:TARGET:239 == 0
+		CFLAG:TARGET:239 = 1
+		;初回
+		PRINTFORMW 「ンッ、君ノ胸ニ抱キツク……コレ、私ノ故郷デハ家族ニスル挨拶ナノ。君ハ、家族以上ヨ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ぎゅーっテシテ……？　君ノ温度、永遠ニ覚エテオクヨ……チュッ♪」
+			ELSEIF A == 1
+				PRINTFORMW 「君ノ心臓ノ音、聞コエル……速イネ、私モ同ジヨ……」
+			ELSE
+				PRINTFORMW 「ハァ……離シタクナイヨ、コノマンマ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「君ノ匂イ、好キ……コレモ私ノ心ニ刻ンダヨ……」
+			ELSEIF A == 1
+				PRINTFORMW 「コノ抱擁、全力デ受ケ止メルヨ☆」
+			ELSE
+				PRINTFORMW 「コレ、毎日シタイネ～♪　日課ニシヨウ？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM371 オムツ ---
+IF SELECTCOM == 371
+	IF CFLAG:TARGET:240 == 0
+		CFLAG:TARGET:240 = 1
+		;初回
+		PRINTFORMW 「オ、オムツ……？　ンッ、コ、コレ恥ズカシスギルヨ～……日本ノ調教ハ深イネ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、コノ感触……君ノ前デ、ホントハ恥ズカシイヨ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぅ、漏ラサナイヨネ、私……？」
+			ELSE
+				PRINTFORMW 「アハ～ハ☆　君ハ私ヲドコマデ追イ詰メルノ……？」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「覚エタクナイ感覚……ンッ、ンモウ、忘レサセテ……」
+			ELSEIF A == 1
+				PRINTFORMW 「コレデ歩クノ？　ガサガサ音ガスルネ～……」
+			ELSE
+				PRINTFORMW 「君ハ、コノ姿モ可愛イト思ッテル？　ホントニ……？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM372 尻愛撫 ---
+IF SELECTCOM == 372
+	IF CFLAG:TARGET:241 == 0
+		CFLAG:TARGET:241 = 1
+		;初回
+		PRINTFORMW 「ヒッ、コンナ所デ、ソコハ……？　ンッ、君、変態ネ～……エヘヘ、デモ私モ気持チイイ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、お尻ヲ……ハァ、君ノ手、容赦ナイネ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぅ、コノ場所モ、覚エテオクヨ……」
+			ELSE
+				PRINTFORMW 「アハ～ハ☆　お尻、揉ンデモイイヨ～♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、ぴしゃッテシテ、感ジチャウ……ヘンナノ……」
+			ELSEIF A == 1
+				PRINTFORMW 「コノ姿勢、突キ出シテルネ……恥ズカシ……」
+			ELSE
+				PRINTFORMW 「君、お尻フェチナノ？　ふぅん、覚エタヨ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM373 フェラチオ ---
+IF SELECTCOM == 373
+	IF CFLAG:TARGET:242 == 0
+		CFLAG:TARGET:242 = 1
+		;初回
+		PRINTFORMW 「ンッ、コンナ所デ、口デ……？　誰カ来ナイウチニ、ネ？　ガンバッテ……ぱくっ☆」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「君ノ味、覚エタヨ……コレモ永遠ニ忘レナイ味ヨ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ、んくっ……上手クデキテル？　君ノ反応ガ知リタイヨ……」
+			ELSE
+				PRINTFORMW 「ぴちゃ、ぴちゃ……音ガ恥ズカシイ……ンッ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぅ、ハァ、ハァ……息継ギ、必要ヨ～……」
+			ELSEIF A == 1
+				PRINTFORMW 「ぐっと君ニ集中スル……君ノ全部、味ワウヨ……」
+			ELSE
+				PRINTFORMW 「アハ～ハ……ンッ、口イッパイ……コレッテ正解ナノ？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM380 フェラする（着衣） ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりのキャラのペニスをフェラ（逆フェラ・着衣）。通常フェラCOM31と逆
+;  ※キャラがふたなり/半人半妖/オトコの場合のみ実行可
+;  ※プレイヤーがキャラのペニスをフェラする（逆フェラ・着衣）
+IF SELECTCOM == 380
+	IF CFLAG:TARGET:243 == 0
+		CFLAG:TARGET:243 = 1
+		;初回
+		PRINTFORMW 「エ、エッ……コンナ所デ、ソコヲ……？　ンッ、ンンッ、ハァ……コ、声、出チャウヨ～……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、君ノ口、温カイ……ハァ、ヘンナ気持チイイ……達シソウ……」
+			ELSEIF A == 1
+				PRINTFORMW 「アァ、ンッ、ンッ……君ノ舌、絡ンデキテ……コラエラレナイヨ……」
+			ELSE
+				PRINTFORMW 「ハァ、ハァ……コノマンマ、君ノ口ニ全部出シタイ……ンッ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、ンンッ……日本ノ奉仕ハ……ハァ、刺激強スギ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ヒッ、深ク銜エラレタ……ンッ、出ル、出チャウ……」
+			ELSE
+				PRINTFORMW 「コンナ場所デ吸ワレル感覚……ンッ、私、ヘンナ顔シテナイ？」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM381 セックスさせる（着衣） ---
+;  ▼【視点】キャラ攻め＝キャラが助手/他の女子の膣に挿入する（着衣・ふたなり/ペニバン）。相手は女性（他の生徒）
+;  ※相手は助手か他の女子。キャラが挿入する側（ふたなり or ペニバン使用）
+;  ※着衣状態でキャラが積極的な役割を取る
+IF SELECTCOM == 381
+	IF CFLAG:TARGET:244 == 0
+		CFLAG:TARGET:244 = 1
+		;初回
+		PRINTFORMW 「コ、コンナ場所デ、着タママ……？　ンッ、ガンバル……%LOCALS%ノ中ニ、入レルネ……痛クナカッタラ言ッテ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンッ、ハァ、%LOCALS%ノ中、熱イネ……コンナ所ナノニ、止メラレナイ……」
+			ELSEIF A == 1
+				PRINTFORMW 「アァ、%LOCALS%ノ顔、可愛ク歪ンデル……声、抑エテネ？　誰カ来チャウ……」
+			ELSE
+				PRINTFORMW 「ハァ、ハァ……%LOCALS%ヲ、満タシタイヨ……ンッ、静カニ、奥マデ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ンッ、%LOCALS%ノ中ニ……コンナ人目ノアル所デ、どきどきスルネ……」
+			ELSEIF A == 1
+				PRINTFORMW 「ハァ、ハァ……%LOCALS%、感ジテル？　見ツカル前ニ……ンッ、モット……」
+			ELSE
+				PRINTFORMW 「ンッ、%LOCALS%ノ奥、締メツケテ……アハ、一緒ニ、コッソリ、イコウ……☆」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; 特殊・告白系（COM391-399）
+;==============================================================
+;--- COM391 衣装替え ---
+IF SELECTCOM == 391
+	IF CFLAG:TARGET:245 == 0
+		CFLAG:TARGET:245 = 1
+		;初回
+		PRINTFORMW 「コレヲ着ロッテ？　ンッ、コ、コレハ……日本ノ大人ハ過激ネ～……着替エルヨ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ジャジャーン☆　君ノタメニ着替エタヨ☆　……ドウ？　可愛イ？」
+			ELSEIF A == 1
+				PRINTFORMW 「君ノ趣味、コレナノ？　覚エトクヨ……エヘヘ♪」
+			ELSE
+				PRINTFORMW 「ンッ、コノ衣装、動キニクイヨ～……君ハ満足？」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「アハ～ハ☆　日本ノ衣装ハ謎ガ多イネ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ハイ、変身完了ヨ☆　次ハ何ヲサセラレルノ？」
+			ELSE
+				PRINTFORMW 「コレ、私ノ故郷ニハナカッタ衣装ヨ……ふぅん、面白イ☆」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM392 衣装破り ---
+IF SELECTCOM == 392
+	IF CFLAG:TARGET:246 == 0
+		CFLAG:TARGET:246 = 1
+		;初回
+		PRINTFORMW 「ンッ、ヤダ、破ラナイデ～……ハッ、コノ衣装、高カッタ……？　ンモウ、君ハ乱暴ネ……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ぴり、ピリ……コノ音、興奮スル？　君ハ変態ネ～♪」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ、肌ガ露出スルト、私、寒イヨ～……抱キシメテ？」
+			ELSE
+				PRINTFORMW 「ハァ、ハァ……コノ着崩シタ姿、恥ズカシイ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ヤダヤダ、見ナイデネ？　……ウソ、見テモイイヨ……」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　コレモ調教ノ一環ナノ？」
+			ELSE
+				PRINTFORMW 「覚エタコトハ忘レナイカラ、コノ服ノ無残ナ姿モ刻ンダヨ……ハァ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM393 見つめあう ---
+IF SELECTCOM == 393
+	IF CFLAG:TARGET:247 == 0
+		CFLAG:TARGET:247 = 1
+		;初回
+		PRINTFORMW 「ジッ……君ノ瞳、深イネ……何処マデ吸イ込マレチャウノカナ……？」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぅ、君ノ目、私ダケヲ映シテルネ……エヘヘ、嬉シイ……」
+			ELSEIF A == 1
+				PRINTFORMW 「コノ視線、永遠ニ覚エテオクヨ……君ノ全部、私ノ中ニ……」
+			ELSE
+				PRINTFORMW 「目ガ合ウト、心臓ガ跳ネルネ……ンッ……」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「ハッ、目逸ラサナイデネ？　チャント、私ヲ見テ……」
+			ELSEIF A == 1
+				PRINTFORMW 「アハ～ハ☆　コノ静ケサ、心地良イネ～♪」
+			ELSE
+				PRINTFORMW 「ふふ……君ノ睫毛、長イネ☆」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ジッ……何カ言イタイコトアルノ？」
+			ELSEIF A == 1
+				PRINTFORMW 「君、目ガ綺麗ネ～……色、覚エチャウヨ……」
+			ELSE
+				PRINTFORMW 「コノ視線、ナンカ照レルヨ～♪」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM399 告白する ---
+IF SELECTCOM == 399
+	IF CFLAG:TARGET:248 == 0
+		CFLAG:TARGET:248 = 1
+		;初回
+		PRINTFORMW 「ンッ、君ニ言イタイコト、アルノ……すき。私、君ガ大好キヨ……武士道魂デ、覚悟ヲ持ッテ言ウネ☆」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「君ガ私ノたった一人ヨ、コレハ永遠ノ気持チ……チュッ♪」
+			ELSE
+				;失敗
+				PRINTFORMW 「毎日、君ノコト考エテルノ……ンッ、コレッテ普通？」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「あやめ先生ニ習ッタ言葉、『一蓮托生』ヨ。私達、コレネ☆」
+				ELSEIF A == 1
+					PRINTFORMW 「君以外、考エラレナイヨ……コノ気持チ、永遠ニ消エナイ……」
+				ELSE
+					PRINTFORMW 「ふぅ、君ノ顔見ルダケデ、心臓ガ跳ネルネ……エヘヘ……」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「君ハ、私ノ大事ナ友達ネ……ンッ、ヘンナ意味ジャナイヨ……？」
+				ELSEIF A == 1
+					PRINTFORMW 「コノ気持チ、何ッテ呼ベバイイノカナ？　君ハ、知ッテル？」
+				ELSE
+					PRINTFORMW 「もっと一緒ニ居タイヨ……コレモ告白ニナル？」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「君ハ私ノ転校生仲間ヨ……特別ナ存在ネ☆」
+				ELSEIF A == 1
+					PRINTFORMW 「ホントノ気持チハ、マダ言エナイケド☆」
+				ELSE
+					PRINTFORMW 「アハ～ハ☆　君ハ大事ナヒト、ソレ以上ハ秘密ヨ～♪」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; 口上独自ウフフ（COM280-284）/ 口上独自純愛（COM410-414）
+;==============================================================
+;--- COM280-284 独自ウフフ ---
+;  ※ウフフ中の独自カスタムコマンド（各キャラ固有の性的シチュエーション）
+IF SELECTCOM == 280
+	;◆地の文（場面: ラクロス部の用具庫）
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「アハ～ハ☆　ココハ、私ノ秘密基地ヨ～？　誰モ来ナイカラ、安心シテ……ンッ、君ノ匂イ、好キヨ……モット、くっつイテ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「用具庫、ラクロスノ匂イガスルネ……。君ト二人ダト、秘密基地ミタイヨ♪」
+		ELSE
+			PRINTFORMW 「誰モ来ナイ？　ジャア、私ノ強ガリ、ココデ少シ休マセテヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ワ、ワオ……君、コンナ所デ……？　ン～、用具庫、二人キリ……ど、どきどきスルネ……コレモ、日本ノ文化ナノ……？」
+		ELSEIF A == 1
+			PRINTFORMW 「用具ヲ倒シタラ、部活ノ皆ニ怒ラレルヨ！　触ルナラ、静カニネ！」
+		ELSE
+			PRINTFORMW 「音シタ？　ドウシヨウ、隠レル？　君、私ヲ置イテ逃ゲナイデヨ～！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 281
+	;◆地の文（場面: メイド喫茶の休憩室）
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ゴ主人サマ……ナンテ☆　アハ～ハ、めいどサンノ私、可愛イ？　ンッ、君ニダケ、特別さーびす……萌エ萌エ、キュン……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「秘密ノ勉強会、今日モ開講ヨ～。君ノ隣、私ノ席ネ♪」
+		ELSE
+			PRINTFORMW 「君ガ英語、私ガ日本語。間違ッテモ笑ワナイデ、私、スグ覚エルカラネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ワ、ワオ、お客サン、ミンナ帰ッタ……？　ん～、めいど服ノママ、コンナ……ハゥ、恥ズカシイケド……ちょっとだけ、ネ？」
+		ELSEIF A == 1
+			PRINTFORMW 「勉強ノ部屋デ、急ニ近ヅクノ？　私、問題文ヨリ君ノ顔ガ気ニナルヨ～！」
+		ELSE
+			PRINTFORMW 「ソンナ顔シテタラ、勉強、進マナイヨ。……私モ、進メル気ガシナイケドネ！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 282
+	;◆地の文（場面: 屋上で異国の星空）
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ネエ、君……私ノ故郷ノ星モ、コノ空ニ繋ガッテルノヨ……。ンッ、君ト見ル星空ハ、特別ネ……モット、ぎゅッテシテ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「甘イ匂イ、イッパイネ～。君、味見シテ。私ノ大福、上手ニデキタ？♪」
+		ELSE
+			PRINTFORMW 「クリーム、頬ニ付イテル？　取ッテヨ……アハ～ハ、君ノ指、甘イネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ワオ、星ガ綺麗……。ン～、君ト二人デ、コンナ所ニ……ど、どきどきスルネ……コレモ、思イ出ニ……スル？」
+		ELSEIF A == 1
+			PRINTFORMW 「調理室デ遊ブト、道具、汚レルヨ！　使ッタラ、君モ片付ケル文化ネ！」
+		ELSE
+			PRINTFORMW 「熱イヨ～、フーフーシテ。私、火傷シタラ、料理ノ先生ニナレナイネ！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 283
+	;◆地の文（場面: お菓子作りの後の調理室）
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「フフ、甘イ匂イガスルネ……？　ちよチャンニ教ワッタおかし、君ノタメニ作ッタノ♪　ンッ、私モ……甘ク、シテ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「メイドサンノ休憩室、落チ着クネ～。君、今日ハ私ガオ茶、入レルヨ♪」
+		ELSE
+			PRINTFORMW 「オムライスノ練習、マダ続イテルヨ。君ノ名前、ケチャップデ書イテアゲルネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ま、まだ砂糖ノ匂イガ……ン～、調理室デ、コンナコト……？　ハゥ、君ノ顔、近イヨ……ど、どうしよう……☆」
+		ELSEIF A == 1
+			PRINTFORMW 「休憩中ニ騒イダラ、メイド長ニ怒ラレルヨ！　静カニ甘エルノ、難シイネ～！」
+		ELSE
+			PRINTFORMW 「誰カ来タ？　ドウシヨウ、私、隠レルノ下手ヨ！　君、先ニ確認シテ！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 284
+	;◆地の文（場面: 放課後のLL教室）
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「エヘヘ、勉強会ノ後ニ、コンナコト……♪　君トナラ、お勉強ヨリ、ドキドキスルネ……ンッ、コレモ、二人ノ秘密ヨ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「屋上ノ星、故郷ノ空ト少シ似テルネ……。君ト見ルト、寂シクナイヨ♪」
+		ELSE
+			PRINTFORMW 「アノ星、南ノ国デモ見エルカナ？　君、私ノ隣、ズット空ケテテネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ココハ、勉強スル所ナノニ……ン～、君ッタラ、過激ネ？　デモ……アハ、私モ、嫌イジャナイヨ……コッソリ、ネ？」
+		ELSEIF A == 1
+			PRINTFORMW 「風、強イヨ～！　私、飛バサレナイヨウニ、君、シッカリ掴ンデテ！」
+		ELSE
+			PRINTFORMW 「屋上デ寝タラ風邪引クネ。……デモ、君ガ隣ナラ、モウ少シココニ居タイヨ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM410-414 独自純愛 ---
+;  ※純愛系の独自カスタムコマンド（ウフフ外・各キャラ固有のシチュエーション）
+IF SELECTCOM == 410
+	;◆地の文（場面: 神社の夏祭りデート）
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%と、夏祭りでにぎわう神社をめぐり、屋台や絵馬を楽しんで過ごした
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORML 「ワ～オ、お祭リ☆　日本ノふぇすてぃばる、大好キヨ～！　ネエ、一緒ニ絵馬、書コウ？
+			PRINTFORMW 私ノお願イハ……エヘヘ、秘密ヨ。デモ、君ニ関係アル事、ナノ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「今日ノ勉強会、終ワラナイネ～。君ト一緒ダト、難シイ日本語モ楽シイヨ♪」
+		ELSE
+			PRINTFORMW 「私ノ発音、少シ上手ニナッタ？　君ガ教エテクレルカラ、私、嬉シイネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORML 「アハ～ハ☆　屋台ガいっぱいネ～！　たこ焼キ、わたあめ、りんご飴……ン～、
+			PRINTFORMW ぜんぶ食ベタイヨ！　君モ一緒ニ食ベヨウ、オ腹ぺこぺこヨ～♪」
+		ELSEIF A == 1
+			PRINTFORMW 「勉強シニ来タノニ、君ノ顔見テル時間ガ長イヨ～。コレモ学習ネ？」
+		ELSE
+			PRINTFORMW 「次ノ問題、君ノ番ヨ。逃ゲタラ、私ガ追イカケルカラネ！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 411
+	;◆地の文（場面: 秘密の勉強会デート）
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%と、放課後のLL教室で日本語と英語を教え合いながら過ごした
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORML 「アハ～ハ☆　今日モ秘密ノ勉強会ネ♪　私ハ日本語、君ハ英語ヲ教エ合ウノ。エヘヘ、
+			PRINTFORMW 君ト一緒ナラ、お勉強モ楽シイヨ……どっちが先ニ喋レルカ、競争ネ☆」
+		ELSEIF A == 1
+			PRINTFORMW 「ジェットコースター、スゴイネ～！　君ノ手、離サナイカラ、モット速クテモイイヨ♪」
+		ELSE
+			PRINTFORMW 「バンジージャンプ、飛ビ降リルノ？　君ト一緒ナラ、私、挑戦スルヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORML 「ヤッホ～☆　オ疲レ様デゴンス♪　今日ノ漢字ハ難シカッタネ～？　ン～、デモ、
+			PRINTFORMW 君ト一緒ニ覚エルト、忘レナイ気ガスルヨ！　ガンバロウネ☆」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、次ハ私ノ番？　怖クナイヨ、タブン……君、先ニ行ッテ見本見セテ！」
+		ELSE
+			PRINTFORMW 「足ガフラフラネ。私、元気ダケド、遊園地ノ攻撃力、強イヨ～！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 412
+	;◆地の文（場面: お菓子作りデート）
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%と、料理研究部の調理室で、ちよに教わったお菓子を一緒に作って過ごした
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORML 「フフ、今日ハ君ト、どら焼キ作ルヨ☆　ちよチャンニ教ワッタノ♪　ハイ、味見シテ……ア～ン。
+			PRINTFORMW エヘヘ、美味シイ？　君ト作ルト、特別ニ甘イネ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「粉、手ニ付イテルヨ。君、取ッテ……アハ～ハ、私ノ指、甘イ匂イネ♪」
+		ELSE
+			PRINTFORMW 「ドウシタラ膨ラミスル？　君ト作ルト、失敗シテモ楽シイヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORML 「アハ～ハ☆　オ菓子作リ、楽シイネ～！　ホラ、君モまぜまぜシテ……アッ、
+			PRINTFORMW 粉ガ顔ニ付イテルヨ？　フフ、取ッテアゲル……エヘヘ☆」
+		ELSEIF A == 1
+			PRINTFORMW 「ソレ、入レスギ！　料理ハ力ダケジャナイヨ。私、先生ミタイネ～！」
+		ELSE
+			PRINTFORMW 「熱イカラ、先ニ冷マシテ。君、急イデ食ベルト火傷スルヨ！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 413
+	;◆地の文（場面: 遊園地デート）
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%と、二人で遊園地をめぐり、絶叫マシンを楽しんで過ごした
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORML 「ワ～オ☆　じぇっとこぉすたぁ、もう一回乗ロウヨ！　アハ～ハ、君、顔ガ真ッ青ヨ～？
+			PRINTFORMW 大丈夫、私ガ手ヲ繋イデアゲル……エヘヘ、コレデ怖クナイネ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「絵馬ニ願イ事、書クヨ～。君ト私、ズット仲良クネ♪」
+		ELSE
+			PRINTFORMW 「神様ニ、私ガコノ国ノ仲間ニナレタコト、オ礼スルネ……。君モ一緒ニ書イテヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORML 「アハ～ハ☆　遊園地、楽シイネ～！　ばんじぃじゃんぷ、飛ンデミタイヨ！　君モ一緒ニ？
+			PRINTFORMW ン～、無理シナクテイイヨ、私、待ッテルカラ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「コレ、神様ニ何ヲ頼ムノ？　君ノ願イ、私ニモ教エテネ！」
+		ELSE
+			PRINTFORMW 「賽銭箱、ソッチ？　私、作法、マダ間違エルカラ、君、隣デ見テテヨ～！」
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 414
+	;◆地の文（場面: メイド喫茶デート）
+	PRINTFORMW %CALLNAME:PLAYER%を%CALLNAME:TARGET%は職業体験で働くメイド喫茶に招き、特製オムライスでもてなして過ごした
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORML 「イラッシャイマセ、ゴ主人サマ☆　君ノタメニ、おむらいす作ッタヨ♪　けちゃっぷデ、
+			PRINTFORMW 君ノ名前ヲ……エヘヘ、漢字、覚エタンダ。美味シクナ～レ、萌エ萌エキュン♪」
+		ELSEIF A == 1
+			PRINTFORMW 「オムライス、完成ヨ～！　美味シクナ～レ、君ノ名前、キュン♪」
+		ELSE
+			PRINTFORMW 「君ノタメニ作ッタヨ。笑顔デ食ベテクレタラ、私、モット嬉シイネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORML 「ヘイ、ラッシャイ☆　めいどサンノ私、ドウ？　アハ～ハ、TVデ勉強シタンダ♪　ゴ注文ハ？
+			PRINTFORMW おむらいす、オススメヨ～、心ヲコメテ作ルカラネ☆」
+		ELSEIF A == 1
+			PRINTFORMW 「メイド長ノ仕事、難シイヨ！　君、注文多イケド、残シタラ駄目ネ！」
+		ELSE
+			PRINTFORMW 「ケチャップ、鼻ニ付イテル？　取ッテヨ……アハ～ハ、君モ付イテルヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; えっち系・よく使うコマンド（恋人/通常 各RAND:3）
+;==============================================================
+;--- COM0 愛撫 ---
+IF SELECTCOM == 0
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ手、優シイネ……ンッ、私ノ肌ガ、君限定ノ反応シチャウ……ハァ、コノ温度、永遠ニ覚エテオクヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ……君ノ指、私ノ全部ヲ知ッテルミタイ……コノ感覚モ、刻ンドク、忘レナイカラ……」
+		ELSE
+			PRINTFORMW 「ふぅ……コノ場所モ、ココモ、君限定デ感ジルノ……武士道魂デ、コノ快感ヲ受ケ止メルヨ☆」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コ、コレモ調教ナノ？　ヒッ、ンッ……日本ハ繊細ネ、ココマデ丁寧ニ触レルナンテ……ハァ……」
+		ELSEIF A == 1
+			PRINTFORMW 「私ノ身体、コンナ場所デモ感ジルノ？　ンッ、知ラナカッタ……君、私ノ取扱説明書持ッテル？」
+		ELSE
+			PRINTFORMW 「ふぅ、ンッ……コノ調教ハ嫌ジャナイ……日本ノヤリ方、好キニナリソウ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM1 クンニ ---
+IF SELECTCOM == 1
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ソコハ……？　ンッ、君ノ舌、ぴちゃぴちゃシテ……ハァ、ヘンナ声出チャウ、止メラレナイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ……君ノ顔ガソコニ埋マッテル……恥ズカシイケド、トロケチャウヨ……愛シテル……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……君ノ口ガ私ノ秘密ノ場所ニ……ぴくぴくスル、達シソウ……君限定ノ姿、見テ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コ、コレ刺激強スギ……ンンッ、日本人ハ大胆ネ……ココヲ口デ愛撫ナンテ、知ラナカッタ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ぴくぴくシチャウ……ンッ、コノ場所、敏感ヨ～……君ノ舌、容赦ナイネ……ハァ……」
+		ELSE
+			PRINTFORMW 「ふぅ、達シソウ……君ノ口、危険ネ……ンッ、ンンッ、コラエラレナイヨ、ハァ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM2 アナル愛撫 ---
+IF SELECTCOM == 2
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヤッ、ソッチハ……ンッ、ンンッ……君ハ大胆スギルヨ～、お尻ノ穴ヲ触ルナンテ……ハァ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、お尻ヲ……コノ感覚モ覚エチャウヨ、君ノせいヨ～……日本ノ調教、奥ガ深スギルネ……」
+		ELSE
+			PRINTFORMW 「アァ、ンッ……前ト後ロ、二ツノ場所同時ニ責メラレテ……ハァ、ぐったりシチャウ、ヘンニナル……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ソコハ未開ノ地ヨ～！　ヒッ、ハァ、ハァ……ンッ、コノ場所ニモ感覚ガアルナンテ、知ラナカッタヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンンッ……日本ノ調教、奥ガ深スギルネ……お尻ノ穴ガ、君ノ指デ熱クナル……」
+		ELSE
+			PRINTFORMW 「ヤダ、ヘンナ感ジ……ンッ、コレモ気持チイイノ？　知ラナカッタ……コノ場所モ覚エチャウ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM5 胸愛撫 ---
+IF SELECTCOM == 5
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ手、私ノ胸ニ……ンッ、ハァ、乳首ガ硬クナッテ……コノ感覚、君限定ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ……揉マレルト、奥マデ熱クナル……君ハ、私ノ胸モ覚エチャウネ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……君限定ノ反応、見セルヨ……ンッ、コノ刺激、止メラレナイ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、ンッ……日本ノ調教、優シイネ……乳首ヲ摘ママレテ、ぴくぴくスル……ハァ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……揉マレルト、ヘンナ感ジ……コノ場所モ敏感ナノ、知ラナカッタ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ刺激、覚エテシマウネ……君ノ手付キ、繊細ヨ……ンッ、達シソウ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM6 キスする ---
+IF SELECTCOM == 6
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ちゅっ☆　君ノ唇、何度デモ味ワイタイ……ンッ、唾液ノ味モ覚エルヨ、君限定ノ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、コノきす、永遠ニ覚エテオクヨ……君限定ノ温度、私ノ唇ニ刻ム……チュッ♪」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ……君トノきす、止メラレナイネ……舌ガ絡ンデ、ヘンニナルヨ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ちゅっ……コ、コレモ調教？　嬉シイケド、ヘンナ気持チ……ンッ、息デキナイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ふぅ、君ノ唇、優シイネ……ンッ、コノ感覚モ覚エチャウ……」
+		ELSE
+			PRINTFORMW 「ンッ、ンッ……コノ感覚、慣レナイヨ……日本人ハキスガ濃イネ、奥深イ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM20 正常位 ---
+IF SELECTCOM == 20
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ顔、ヨク見エルネ……ンッ、ハァ、感ジチャウ……君ノ目ガ私ダケヲ映シテル、永遠ニ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、君ノ目、私ダケヲ映シテル……コノ瞬間、永遠ヨ……奥マデ来テ、私ノ全部ヲ満タシテ……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ……奥マデ来テ……君ノ全部、欲シイ……子宮ノ近クマデ、君ノモノニシテ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢ガ正解ナノ？　ヒッ、日本流ハ……ハァ、君ノ顔ヲ見ルダケデ、心臓ガ跳ネル……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……コノ姿勢、覚エチャウヨ……君ノ重ミ、覚エラレル感覚……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ感覚、慣レナイ……ンッ、男ノヒトニ抱カレルッテ、コウイウコトナノ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM21 後背位 ---
+IF SELECTCOM == 21
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「後ロカラハ、君ノ顔ガ見エナイヨ……ンッ、ハッ、コラエラレナイ……モット深ク、突イテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、君ノ手ガ腰ニ……ぐっと、深ク来ル……奥マデ届ク、ヘンナ場所ニ当タルヨ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……振リ向イテ、君ノ顔見セテ……？　顔ガ見エナイト、寂シイヨ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢ハ……動物ミタイデ恥ズカシイヨ～……ンッ、デモ、奥マデ届ク……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……奥ガ熱イ……君、コノ姿勢ノ私、ドウ思ッテル？」
+		ELSE
+			PRINTFORMW 「ふぅ、後ロ向キダト声出シヤスイネ……ハァ、隠サナクテイイ快感ヨ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM22 アナルセックス ---
+IF SELECTCOM == 22
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヤッ、ソコハ……ンッ、ハッ、ハァ……コ、コノ感覚ハ未知ヨ……お尻ノ奥、痺レチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ……二ツ目ノ穴、君限定ヨ……コノ場所、君以外ニハ許サナイカラ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……ココマデ深ク繋ガレル……お尻ノ奥モ、君ノ形ヲ覚エチャウヨ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コレ、ホント？　ヒッ、ンッ、日本ノ調教ハ深イネ……ココモ性感帯ナノ？」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……お尻ノ奥、ジンジンスル……ヘンナ感覚、覚エテシマウ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ姿勢、慣レナイヨ～……前ト後ロ、二ツノ穴、覚エサセラレチャウネ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM23 逆レイプ ---
+;  ▼【視点】キャラ攻め＝ふたなりのキャラが挿入する側。相手は助手/他女子（女性同士の行為）
+;  ※ふたなりパートナーが膣に挿入するコマンド
+;  ※相手は助手か他の女子（女性）。キャラが挿入する側
+IF SELECTCOM == 23
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ホラ、%LOCALS%……私ノデ、満タシテアゲル……ンッ、力抜イテネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、%LOCALS%ノなか、締メツケテ……可愛イ声ネ」
+		ELSE
+			PRINTFORMW 「奥マデ届イテル……？　%LOCALS%、ソンナ蕩ケタ顔シテ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンッ、%LOCALS%ノなか、突イテ……可愛イ、モット啼イテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、%LOCALS%、感ジテル……私モ、夢中ニ……」
+		ELSE
+			PRINTFORMW 「奥マデ突イタラ……私モ、モウ……ッ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM24 対面座位 ---
+IF SELECTCOM == 24
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ膝ノ上デ……ンッ、ハァ、近イネ、君ノ顔……唇モ届ク距離ヨ、ちゅっ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、目ヲ合ワセタママ……コノ密着感、トロケチャウ……心臓ノ音モ重ナル……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ……抱キツキナガラ、繋ガレルネ……コレガ夫婦ノ姿勢ナノ？」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「日本ノ姿勢、深イ……ヒッ、ンッ、コノ密着、隠セナイヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……ココマデ近イト、隠セナイネ……君ノ汗モ、息モ、全部……」
+		ELSE
+			PRINTFORMW 「ふぅ、君ノ心臓ノ音、聞コエル……ハァ、私ノモ、聞コエテルネ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM25 背面座位 ---
+IF SELECTCOM == 25
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「後ロ向キデ膝ノ上ヨ……ンッ、ハァ、ヘンナ感ジ……君ノ顔、見エナイヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、君ノ手ガ前カラ私ノ胸ヲ……ンッ、ダブルパンチ……前モ後ロモ、君ニ捕マエラレテル……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……顔ガ見エナイ分、感覚ガ研ギ澄マサレルネ……君ノ呼吸、首筋ニ感ジル……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢ハ初メテ……ヒッ、ンッ、奥マデ届クケド、君ノ表情、見タイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、君ノ匂イ、後ロカラ感ジル……ハァ、包マレテルミタイ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コレモ覚エチャウヨ、君ノ温度……後ロカラ抱カレル安心感……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM30 手淫 ---
+;  ▼【視点】キャラ奉仕＝キャラがプレイヤーのペニスを手淫する（キャラがする側）。手淫されるCOM191・クリ等の受けと混同するな
+IF SELECTCOM == 30
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノコレヲ、私ノ手デ……ンッ、ハァ、ぴくぴくシテル、可愛イ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、コノ動キデ気持チイイ？　君ノ顔、覚エチャウヨ……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ……君ヲ気持チ良クスル責任ガアル……上手クデキテル？」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、ンッ……日本ノ手技、難シイ……君、感ジテル？」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……君ノ反応、ヨク見エル……ぴくぴく、可愛イ顔ネ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノりずむ、覚エチャウ……君ノコレ、私ノ手ノ形ヲ覚エルネ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM31 フェラチオ ---
+;  ▼【視点】キャラ奉仕＝キャラがプレイヤーのペニスをフェラ（通常フェラ）。逆フェラのCOM4・手淫するCOM191と混同するな
+IF SELECTCOM == 31
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ぱくっ☆　君ノ全部、味ワウヨ……ンッ、んくっ、コノ味モ覚エチャウ、君限定ノ味……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ、んくっ……君ノ味、覚エテシマウ……日本流ノご奉仕、ガンバルネ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……息継ギ、ンッ、ぴちゃ……君ノコレ、私ノ口デ熱クナッテルネ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンッ、ンンッ……日本流ノ奉仕、コレデ正解？　君、感ジテル？」
+		ELSEIF A == 1
+			PRINTFORMW 「ぐっと、君ニ集中シテ……ンッ、深ク銜エテミル、コレデドウ？」
+		ELSE
+			PRINTFORMW 「ふぅ、君限定ノご奉仕ネ……ぱくっ☆　ンッ、君ノ味、忘レナイヨ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM32 パイズリ ---
+;  ▼【視点】キャラ奉仕＝キャラが胸でプレイヤーを挟む（通常パイズリ）。パイズリするCOM192（キャラ受け）と混同するな
+IF SELECTCOM == 32
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「私ノ胸ノ間ニ……ンッ、君ノコレ、温カイネ……ぬめっテ滑ル感覚、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ……君ノコレ、ぴくぴくシテル……可愛イ……コノ動キ、覚エチャウヨ……」
+		ELSE
+			PRINTFORMW 「ハァ、コノ動キ、覚エチャウヨ……乳ノ間ニ君ノ熱イノガ挟マッテル……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、ンッ……日本ノ女ノ子ハ皆コレヤルノ？　胸デご奉仕ナンテ、知ラナカッタ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……君ノコレ、私ノ胸デ……熱イ、ぴくぴくシテル……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ密着感、面白イネ☆　胸モ性感帯ニナリソウ、ヘンナノ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM33 素股 ---
+IF SELECTCOM == 33
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノコレヲ太ももデ……ンッ、ハァ、ヌルヌルシテル……擦レルダケデ、私モ感ジル……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ、コノ角度モ快感ネ……君ノ反応、可愛イ……ぴくぴくシテル……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……擦レルダケデ、私モ感ジチャウ……入レナクテモ、ココマデ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢ハ……ヒッ、ンッ、新鮮ネ……日本ハ多彩ナ姿勢ガアルネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……コレモ調教ノ一環？　日本ハ多彩ネ～……」
+		ELSE
+			PRINTFORMW 「ふぅ、ぬめり、止マラナイヨ……擦レル度ニ、達シソウ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM34 騎乗位 ---
+IF SELECTCOM == 34
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「私ガ上ニ乗ッテ……ンッ、君ノ顔、ヨク見エルネ……女王様ノ気分ヨ☆」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、自分デ動クノ……コノりずむ、合ッテル？　君ノ顔ガ蕩ケテル、可愛イ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……女王様ニナッタ気分ヨ☆　君ヲ翻弄シタイ……奥マデ自分デ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢、難シイネ……ヒッ、ンッ、自分デりずむヲ刻ムノ、慣レナイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……私カラ動クノ、新鮮……男ノヒトッテイツモコウ動クノ？」
+		ELSE
+			PRINTFORMW 「ふぅ、君ヲ見下ロセル景色、覚エルヨ……コノ角度、覚エテシマウネ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM36 騎乗位アナル ---
+IF SELECTCOM == 36
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「私ガ上デお尻……ンッ、ハァ、自分デ動クナンテ過激ヨ～……お尻ノ奥マデ届ク……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ、ンンッ……奥ニ届キスギ……自分デコノ深サマデ動クノ、難シイ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……ココマデ来ルト、止マラナイ……お尻ノ奥モ、自分デ覚エチャウ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢ハ……ヒッ、ンッ、過激ネ日本流……お尻ノ騎乗位、聞イタコトナイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、自分デ動クノ、難シイヨ～……お尻ノ奥、ジンジン来ル……」
+		ELSE
+			PRINTFORMW 「ふぅ、お尻ノ奥、ジンジン……コノ場所モ覚エサセラレチャウ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM40 スパンキング ---
+IF SELECTCOM == 40
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ぴしゃッ！　ヒッ、ンッ、痛イケド、ヘンナ感ジ……お尻ガ熱クナル、ジンジンスル……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ……コノ刺激、慣レナイヨ……ハァ、痛サト快感ガ混ザル不思議ナ感覚……」
+		ELSE
+			PRINTFORMW 「ハァ、君ノ手、容赦ナイネ……コレモ調教？　お尻ガ赤クナッテル、君ノ手形ガ残ッタ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……ピリピリスル……日本流ノ躾ネ？　武士道ノ修行ニ近イ気ガスル……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……お尻、火照ッチャウ……痛イノニ、ヘンニ感ジル……」
+		ELSE
+			PRINTFORMW 「ふぅ、コレモ覚エチャウ感覚……お尻ヲ叩カレテ達スルナンテ、知ラナカッタ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM41 鞭 ---
+IF SELECTCOM == 41
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「鞭！？　ヒッ、ンッ、ンンッ、ハァ……武士道ノ修行ミタイ……？　刑罰ジャナイヨネ？」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ピリッ、ジンジン……君、容赦ナイネ……ミミズ腫レニナルカモ、デモ感ジル……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……コノ刺激、知ラナカッタ……痛サガ快感ニ変ワル感覚、独特ヨ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……日本ノ躾ハ厳シイネ……鞭デ躾ケラレル女ノ子、ホント？」
+		ELSEIF A == 1
+			PRINTFORMW 「痛イケド、ヘンナ気持チ……ヒッ、ンッ、ンンッ、痺レテキタヨ……」
+		ELSE
+			PRINTFORMW 「ふぅ、ジワジワ熱クナル……鞭跡ガ残ル度ニ、君ノ印ガ刻マレル感ジ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM44 縄 ---
+IF SELECTCOM == 44
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「縄デ縛ラレテ……ンッ、ハァ、動ケナイヨ～……君限定ノ拘束、覚悟ヲ決メルカ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ、コノ拘束感、覚エチャウ……動ケナイ快感、不思議ヨ～……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……君限定ニ全部委ネルヨ……縄ノ食イ込ミ、皮膚ニ刻マレル……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「日本ノ縄術、本格的ネ……ヒッ、ンッ、芸術品ヨ、コノ縛リ方……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……動ケナイ快感、不思議ヨ～……抗エナイ私、見ニクイ？」
+		ELSE
+			PRINTFORMW 「ふぅ、紐ガ食イ込ンデ……ヘンナ感ジ……身動キ取レナイ恐怖ト快感、混ザル……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM50 ローション ---
+IF SELECTCOM == 50
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヌルヌル……ンッ、コノ感覚、独特ネ……ハァ、滑ル君ノ手、止メラレナイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ……滑ル君ノ手、止メラレナイ……肌ノ上ヲ滑ッテ、何処ニデモ届ク……」
+		ELSE
+			PRINTFORMW 「ハァ、コノ快感、覚エチャウヨ……粘ル液体ガ、私ヲ包ンデル感ジ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「日本ノ調教、ヌメリ多イネ～……ヒッ、ンッ、滑ル感触、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……ヌルヌル、止マラナイ……身体中、滑ル感覚デ覆ワレル……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ滑リ、面白イ感ジ……君モ滑ッテル？　二人デヌルヌル、絡マル……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM51 媚薬 ---
+IF SELECTCOM == 51
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「頭ガぼぉっと……ンッ、コノ薬、強烈ネ……ハァ、止マラナイ、身体ガ熱イ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、私、ヘンニナッチャウ……君ノせいヨ～……コノ薬ノせい？　ドッチモ？」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……身体ガ勝手ニ……君ヲ求メチャウ……コノ感覚、覚エラレル……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「日本ノ調合術ハ恐ロシイ……ヒッ、ンッ、私ノ理性ガ溶ケテイク……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……熱イ、ヘンナ気持チ……身体中ガ敏感ニナル、覚エラレナイ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ感覚、知ラナカッタ……薬デココマデ変ワルナンテ、私ノ身体、ドコ行ク？」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM52 利尿剤 ---
+IF SELECTCOM == 52
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヤダ、コ、コレ……ヒッ、ンッ、出チャウ……お腹ガ痛イ、ジワジワ膨ラム……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……漏ラサナイヨ、絶対……武士ノ娘ニ恥ハカケナイ、コラエル……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……君、コレ意地悪ネ……我慢ノ限界、ドコマデ試ス気？」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……日本ノ調教ハ過酷ヨ～……身体ノ機能マデ操ルナンテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「止メテ……我慢デキナイ……ヒッ、ンッ、コノ感ジ、ドウシヨウ……」
+		ELSE
+			PRINTFORMW 「ンッ、ジワジワキテル……お腹ガ重イ……コノ我慢、覚エラレナイ感覚ヨ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM120 キス正常位 ---
+IF SELECTCOM == 120
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ちゅっ……コノ姿勢ノきす、最高ネ……ンッ、ハァ、唇モ下半身モ、君デ満タサレル……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、君ノ唇ト下半身、ダブルデ感ジル……コノ感覚、永遠ニ覚エテオクヨ……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ……コレモ覚エチャウヨ、永遠ニ……君トノきすシナガラ、奥マデ繋ガル……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「同時ニ責メラレル感ジ……ヒッ、ンッ、上ト下、両方デ達シソウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……日本ノ姿勢、深イ……唇モ奥モ、君ノモノニサレチャウ……」
+		ELSE
+			PRINTFORMW 「ふぅ、君ノ全部、感ジル……ちゅっ、唇モ離レナイ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM121 キス後背位 ---
+IF SELECTCOM == 121
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「後ロカラ振リ向イテ……ちゅっ♪　難シイネ、ンッ……首ガ痛クテモ、君ノ唇欲シイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ、コノきす、独特ナ感覚……後ロカラ深ク繋ガッテルノニ、唇モ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……首ヲ捻ッテ、君ヲ求メル……唇モ繋ガリタイ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢デきすハ過酷……ヒッ、ンッ、ンンッ、首ガ痛イ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……君ノ唇、追イカケル……コレモ覚エチャウ、難シイ姿勢……」
+		ELSE
+			PRINTFORMW 「ふぅ、コレモ覚エチャウネ……後ロ向キデモ、君ノ唇ハ近イ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM122 キス対面座位 ---
+IF SELECTCOM == 122
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「近イネ、君ノ顔……ンッ、ちゅっ♪　密着……鼻先ガ触レテル、息モ重ナル……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、コノ姿勢ナラ、きすシ放題……唇モ、舌モ、君限定デ独占スル……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ、君ノ温度、全部感ジル……抱キツキナガラ、繋ガッテキスシテ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コレ最高ノ姿勢ネ……ヒッ、ンッ、上モ下モ、君ノモノヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……君ノ匂イ、独占……ちゅっ、コノ密着、永遠ニ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コレ毎日シタイ……君ノ唇、覚エラレル……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM123 キス背面座位 ---
+IF SELECTCOM == 123
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「後ロ向キデ……ンッ、君ノ顔、見エナイケド、唇ハ届クネ……振リ向イテちゅっ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、難シイ姿勢ネ、ンッ……首ヲ捻ッテキス、コレモ調教ノウチ？」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……顔ヲ捻ッテ、ちゅっ……コレモ覚エチャウ、独特ナきす……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「日本ノ姿勢ハ複雑ヨ～……ヒッ、ンッ、ンンッ、首ガ攣リソウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……君ノ手ガ前カラ、ダブル……前モ後ロモ、唇モ、君ノモノ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ感覚モ覚エルヨ……後ロカラ抱カレナガラ、振リ向イテキス……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM124 キス騎乗位 ---
+IF SELECTCOM == 124
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「私ガ上カラちゅっ☆　女王様ネ☆　君ハ受ケ身、私ガ全部リードシテアゲル……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、自分デ動キナガラきす、忙シイ……唇モ、腰モ、両方動カス……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ、君ヲ見下ロシテ、唇奪ウ……コノ角度ノきす、独特ヨ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ角度ノきす、新鮮ネ……ヒッ、ンッ、上カラのキスハ、新鮮ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……君ガ受ケ身ナノ、新鮮……可愛イ顔シテルネ☆」
+		ELSE
+			PRINTFORMW 「ふぅ、覚エチャウヨ、コノりずむ……上カラ攻メルきす、覚エラレル……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM190 優しくする ---
+;  ※ウフフ中限定 / エッチ中に優しくする・緩める
+IF SELECTCOM == 190
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ハ優シイネ……ンッ、ハァ、嬉シイ……コノ温度、覚エテオクヨ、永遠ニ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、コノ温カサ、永遠ニ覚エテオクヨ……君ノ全部、染ミ込ンデクル……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ、優シイきすト触レ合イ……コレガ夫婦ノ夜ナノ、覚エチャウ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぅ、君ノ優シサ、染ミ込ム……日本ノ恋人ハコウシテ抱キ合ウノ？」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……コレモ調教？　愛情調教ネ……君ハ繊細ヨ……」
+		ELSE
+			PRINTFORMW 「アハ、君限定ノ甘エ姿、見セルヨ……コノ姿、永遠ニ私ノ秘密ネ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM191 手淫する ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりのキャラのペニスを手淫する（キャラはされる側）。手淫するCOM30＝キャラ奉仕とは別
+;  ※ウフフ中限定 / キャラがふたなりまたはオトコの場合のみ
+;  ※プレイヤーがキャラのペニスを手淫する
+IF SELECTCOM == 191
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ手ガ……ンッ、ハァ、私ノ全部、知ッテルネ……指ノ動キ、上手ナノ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、君ノ指、絡ンデキテ……達シソウ……コノりずむ、止メナイデ……」
+		ELSE
+			PRINTFORMW 「ハァ、ンッ……君限定ノ反応、見セルヨ……自分デハ、コウハデキナイ感覚ヨ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ感ジ……ヒッ、ンッ、強スギル……指ダケデココマデ感ジルノ？」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……手デコレマデ感ジルノ？　知ラナカッタ……日本ノ手技、繊細ネ……」
+		ELSE
+			PRINTFORMW 「ふぅ、コノ動キ、覚エチャウヨ……君ノ指ノ温度モ、形モ、全部……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM192 パイズリする ---
+;  ▼【視点】キャラ受け＝胸でふたなりのキャラを奉仕する。giver＝助手/他女子（女性同士の行為）
+;  ※ウフフ中限定 / 女性プレイヤーがふたなりパートナーのペニスをパイズリする
+;  ※（奉仕する側＝助手/他の女子）
+;  ※パイズリの相手は助手か他の女子（女性）。キャラ(ふたなり)が受け
+IF SELECTCOM == 192
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ノ胸ニ、私ノコレヲ……ンッ、ぬめッテ滑ル……柔ラカイネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「谷間デしごカレテ……アァ、私ノコレ、熱クナッテル……」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ胸、柔ラカクテ……ハァ、私、モウ出ソウ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンッ、%LOCALS%ニ挟マレテ……ハゥ、見ナイデ……」
+		ELSEIF A == 1
+			PRINTFORMW 「谷間デこすレテ……ヘンナ声、出チャウ……」
+		ELSE
+			PRINTFORMW 「ソンナニサレタラ……私、モウ……ッ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM193 正常位させる ---
+;  ▼【視点】キャラ攻め＝キャラ(ふたなり/ペニバン)が助手/他の女子の膣に正常位で挿入する。相手は女性（他の生徒）
+;  ※ウフフ中限定 / キャラがふたなりまたはペニバン装備
+;  ※相手は助手か他の女子。キャラが挿入する側
+IF SELECTCOM == 193
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ノ顔ヲ見ナガラ……入レルネ、ンッ、ガンバル……痛クナイ？　ゆっくり、奥マデ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ハァ、ハァ……%LOCALS%ノ中、温カイ……コラエラレナイ……奥マデ、私ノ全部……ンッ」
+		ELSE
+			PRINTFORMW 「アァ、%LOCALS%ノ反応、可愛イ……モット深ク、突クヨ……蕩ケタ顔、覚エテオクネ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「慣レナイケド……ヒッ、ンッ、%LOCALS%、私ガ気持チ良クシテアゲル……モット啼イテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……%LOCALS%、奥ガうねッテル……止メラレナイヨ、コノ感覚……」
+		ELSE
+			PRINTFORMW 「ふぅ、%LOCALS%、感ジテル？　教エテ……ンッ、一緒ニ、イコウ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM194 後背位させる ---
+;  ▼【視点】キャラ攻め＝キャラ(ふたなり/ペニバン)が助手/他の女子の膣に後背位で挿入する。相手は女性（他の生徒）
+;  ※ウフフ中限定 / キャラがふたなりまたはペニバン装備
+;  ※相手は助手か他の女子。キャラが挿入する側
+IF SELECTCOM == 194
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「後ロカラ……ンッ、%LOCALS%ノ背中、綺麗ネ……腰ヲ掴ンデ、奥マデ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ハァ、ハァ……コノ角度、深ク届クネ……%LOCALS%、感ジテル？　声ヲ聞カセテ……」
+		ELSE
+			PRINTFORMW 「アァ、%LOCALS%ノ腰、抱エテ……モット動クネ……ぱんぱんッテ音、恥ズカシイ？」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、ンッ……%LOCALS%、背中ガびくびくシテル……可愛イネ、モット……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……%LOCALS%ノ顔、見エナイ分……声デ、感ジテルノ伝ワルヨ……」
+		ELSE
+			PRINTFORMW 「ふぅ、%LOCALS%……振リ向イテ？　蕩ケタ顔、見セテ……アァ、可愛イ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM195 騎乗位する ---
+;  ▼【視点】キャラ攻め＝助手/他の女子がキャラ(ふたなり)のペニスに上から騎乗する。キャラは下だが膣に挿入している側＝攻め。相手は女性（他の生徒）
+;  ※ウフフ中限定 / 助手/他の女子がキャラのふたなりペニスに上から騎乗するコマンド
+;  ※乗る側は助手/他の女子（女性）
+IF SELECTCOM == 195
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ガ、私ノ上ニ乗ッテ……ンッ、ハァ、自分カラ動イテ……積極的ネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ、ンッ、%LOCALS%、上デ乱レテ……可愛イ眺メネ……」
+		ELSE
+			PRINTFORMW 「ハァ、ハァ……%LOCALS%、ソンナニ腰ヲ振ッテ……気持チイイ？　奥マデ、自分デ……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「下カラ見上ゲルト……ヒッ、ンッ、%LOCALS%ノ顔、トロトロネ……可愛イ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、ンンッ……%LOCALS%、ソコ当タッテ気持チイイノネ……モット動イテ……」
+		ELSE
+			PRINTFORMW 「ンッ、%LOCALS%ガ上デ動イテ……アハ、私、サレルガママ……コノ感ジ、好キカモ……♪」
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; その他コマンド（恋人/通常 各1行）
+;==============================================================
+;--- COM3 自慰 ---
+;  ※キャラが自慰する（バイブ/アナルバイブ/ビデオ撮影等で内容変化）
+IF SELECTCOM == 3
+	;--- ビデオ撮影中 ---
+	IF TEQUIP:53
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・ビデオ・1
+				PRINTFORMW 「ンッ、ンッ……君ニ見ラレテルカラ、止メラレナイ……ハァ、コノ姿、ビデオニ残ルノネ……君ダケニ見セル映像ヨ……」
+			ELSEIF A == 1
+				;恋人・ビデオ・2
+				PRINTFORMW 「アァ、君限定ニ見セルヨ……私ノ恥ズカシイ姿……ンッ、ンンッ、永遠ニ残ル君ダケノ私……」
+			ELSE
+				;恋人・ビデオ・3
+				PRINTFORMW 「ハァ、ハァ……君ノ視線ト、レンズノ視線、両方感ジチャウ……ンッ、ヘンニナルヨ……ぴくぴくシチャウ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・ビデオ・1
+				PRINTFORMW 「見ナイデ……ンッ、ンンッ……ヤダ、止マラナイ……コレ、ビデオニ残ルノ？　日本ノ調教ハ過酷スギ……」
+			ELSEIF A == 1
+				;通常・ビデオ・2
+				PRINTFORMW 「撮影シナガラ自慰ヲサセルナンテ……ンッ、自分デスル姿、見セルナンテ恥ズカシイヨ～……」
+			ELSE
+				;通常・ビデオ・3
+				PRINTFORMW 「ハァ、ハァ……コノ感ジ、知ラナイ感覚ヨ～……レンズノ前デ、私ノ秘密ノ動キ、全部記録サレル……」
+			ENDIF
+		ENDIF
+	ELSE
+		;--- 通常 ---
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・1
+				PRINTFORMW 「ンッ、君ノコト考エテタラ、自然ト手ガ……ヘンナ声出シチャウ、君ノせいヨ～……ハァ……」
+			ELSEIF A == 1
+				;恋人・2
+				PRINTFORMW 「アァ、私ノ身体、勝手ニ動ク……君ニ抱カレタ感覚、思イ出シテ……ハァ、ンンッ、達シチャウ……」
+			ELSE
+				;恋人・3
+				PRINTFORMW 「見ラレル恥ズカシサ、覚エテシマウネ……ンッ、ハァ……君ガイナクテモ、君ノ手ヲ思イ出スダケデ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・1
+				PRINTFORMW 「ンッ、コノ姿、永遠ニ覚エテオクヨ……自分ノ指デ快感ヲ覚エルッテ、コウイウコトナノネ……」
+			ELSEIF A == 1
+				;通常・2
+				PRINTFORMW 「ハァ、ハァ……出シタイ気持チ、コラエラレナイ……指デ自分ヲ慰メルナンテ、初メテヨ……」
+			ELSE
+				;通常・3
+				PRINTFORMW 「ンンッ……コレモ私ノ一面、見セチャウネ……自分ノクリヲ撫デルト、ココマデ感ジル……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM4 フェラする ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりキャラのペニスをくわえる逆フェラ（キャラはされる側）。通常フェラCOM31と混同するな
+;  ※ふたなりパートナーのペニスをプレイヤーがくわえるコマンド
+;  ※（プレイヤーが奉仕する側）
+IF SELECTCOM == 4
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ぱくっ☆　君ノ全部、味ワウヨ……ンッ、んくっ、君限定ノ味、覚エチャウ……ハァ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ン～、君ノ口、覚エタヨ～？　アハ～ハ☆　私モ、君ノ好キナコト、覚エタイヨ♪」
+		ELSE
+			PRINTFORMW 「チョット待ッテ、今ノ息、私ノ胸マデ響イタネ……。君、モウ一回、ユックリシテヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンッ、ぴちゃ……君ノコレ、私ノ口ノ中デ熱クナルネ……日本ノご奉仕、コレデ正解？」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、私ガスルノカト思ッタラ、君ガ張リキッテルネ～？　不思議ナ文化ヨ！」
+		ELSE
+			PRINTFORMW 「急ニ近ヅクノハ、心ノ準備ガ必要ヨ～！　私、ナンデモ知ッテルワケジャナイノヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM7 何もしない ---
+IF SELECTCOM == 7
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ガソバニイテクレルダケデ、安心スルヨ……ンッ、私、満タサレテル……」
+		ELSEIF A == 1
+			PRINTFORMW 「何モシナイ時間モ、君ト一緒ナラ悪クナイネ～。今日ハ私、君ノ隣デ休ムヨ♪」
+		ELSE
+			PRINTFORMW 「ン～、静カネ。君ノ呼吸ヲ聞イテルト、異国ノ夜モ思イ出サナイヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、ホッ……一緒ニ呼吸スルダケデ、幸セ……コレモ覚エテオクヨ、君トノ静寂……」
+		ELSEIF A == 1
+			PRINTFORMW 「本当ニ何モシナイノ？　ジャア私、ドウスレバイイカ考エルヨ。考エルダケネ～？」
+		ELSE
+			PRINTFORMW 「君、寝テル？　私モ眠クナッテキタ……デモ、置イテイカナイデヨ～。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM8 指挿入れ ---
+IF SELECTCOM == 8
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ指、奥マデ届クネ……ンッ、ンンッ、ハァ……ぐちゅぐちゅシテル、恥ズカシイヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「指ガ来ルト、私ノ身体、先ニ返事シチャウネ……。君、コレ、勉強シテキタノ？♪」
+		ELSE
+			PRINTFORMW 「ソコ、モウ少シダケ……。アハ～ハ、私、覚エルノ早イカラ、次ハ君ヨリ上手ネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ感ジ……ヒッ、ンッ、ハァ、覚エチャウヨ……君ノ指、私ノ奥ヲ覚エテルネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「エッ、急ニ入レルノ？　待ッテ待ッテ、私、ソンナニ準備デキテナイヨ～！」
+		ELSE
+			PRINTFORMW 「ン～、指一本デ余裕ナ顔スルノ、ズルイヨ。私、マダ大丈夫……タブンネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM9 アナル舐め ---
+IF SELECTCOM == 9
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヤッ、ソコハ……ンッ、君ノ舌、容赦ナイネ……お尻ノ穴ガ、ヘンニナル……ハァ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソコ、舐メルノ？　君ノ舌、意外ト器用ネ～……アハ～ハ、変ナ声出チャウヨ♪」
+		ELSE
+			PRINTFORMW 「ンッ、熱イネ……。私、コノ感覚モ覚エタラ、モウ忘レナイヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コレモ調教ノウチ？　ヒッ、ンンッ……日本ハ深イ……ココマデ舐メルナンテ、知ラナカッタ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、ソコハ食事ノ場所ジャナイヨ！　……デモ、君ガ真剣ナラ、少シダケネ。」
+		ELSE
+			PRINTFORMW 「ヒャッ、クスグッタイヨ～！　笑ッタラ駄目ネ、私、怒ル方法モ覚エテルヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM10 ローター ---
+IF SELECTCOM == 10
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ぶぃ～ん、ッテ振動ガ……ンッ、ハァ、ヘンニナルヨ～……コノ道具、勝手ニ達セサセル……」
+		ELSEIF A == 1
+			PRINTFORMW 「ブブブ……コレ、機械ナノニ私ノ弱イ所、ヨク知ッテルネ。君、手ヲ添エテヨ♪」
+		ELSE
+			PRINTFORMW 「アッ、ソコニ当テルノ上手ネ……。身体ガ勝手ニ跳ネルノ、私ノ故障ジャナイヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ道具、強烈ネ……ヒッ、ンッ、ンンッ……日本ノ発明、私ヲ壊スツモリ？」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、何コノ音？　日本ノ道具、トッテモ正直ネ～！　私、チョット驚イテルヨ！」
+		ELSE
+			PRINTFORMW 「強サヲ変エルナラ、先ニ教エテヨ～！　超合金ノ身体デモ、急ナノハビックリネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM18 シャワー ---
+IF SELECTCOM == 18
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「シャワーノ水流、刺激強イネ……ンッ、ハァ、ココニ当テラレルト……ぴくぴくシチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「温泉ミタイネ～♪　君、背中ヲ洗ッテヨ。私、ソレ、スゴク嬉シイ文化ダト思ウヨ♪」
+		ELSE
+			PRINTFORMW 「湯気ノ中ダト、君ノ手ガ近クテモ見エナイネ……。モット近クニ来テヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ココマデ刺激スルナンテ……ヒッ、日本ノ発想力ハスゴイネ～、水デモ感ジルナンテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「一緒ニ入ルノ？　ワ～オ、ソレハ先ニ教エテホシカッタヨ～！　デモ、背中ナラ任セテネ。」
+		ELSE
+			PRINTFORMW 「髪ヲ濡ラシタラ乾カスノ大変ネ。君、最後マデ面倒見テクレル？　日本ノ作法ヨ～？」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM19 アナルビーズ ---
+IF SELECTCOM == 19
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コ、コレ何ヲ入レテルノ？　ヒッ、ンッ、ンンッ、ハァ……お尻ノ穴ニ、ぼこぼこガ入ッテク……」
+		ELSEIF A == 1
+			PRINTFORMW 「一個ズツ増エルト、奥ガキュッテナルヨ……。君、私ノ反応、数エテルノ？♪」
+		ELSE
+			PRINTFORMW 「マダ入ルノ？　ワ～オ、欲張リネ～。私モ、最後マデ覚エテオクヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤダ、ぼこぼこシテル……日本ノ道具ハ謎ガ多イ……ンッ、抜カレル時、ヘンニナル……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソレ、飾リジャナイネ？　道具ナラ、先ニ説明スルノガ礼儀ヨ～！」
+		ELSE
+			PRINTFORMW 「急ニ増ヤスノハ、身体ガビックリスルヨ。抜ク時モ、ユックリネ？」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM26 正常位アナル ---
+IF SELECTCOM == 26
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「お尻ニ正常位デ……ンッ、ハァ、君ハ容赦ナイネ……コノ姿勢デお尻ハ過酷ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ノ顔、近イネ……。見ナガラ奥ニ来ラレルト、私、考エルノ止マッチャウヨ♪」
+		ELSE
+			PRINTFORMW 「コノ姿勢、君ノ息ガヨク聞コエルネ。私、逃ゲナイカラ、モット抱イテヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、コノ姿勢ハ過酷ネ……ンッ、ンンッ……お尻ノ奥マデ、君ノ目ノ前デ……」
+		ELSEIF A == 1
+			PRINTFORMW 「前カラ見エテルノニ後ロ？　日本語モ日本ノ行為モ、マダ難シイネ～！」
+		ELSE
+			PRINTFORMW 「急ニ深クスルノハ反則ヨ。私、頑丈ダケド、何デモ平気ジャナイヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM27 後背位アナル ---
+IF SELECTCOM == 27
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヤッ、後ロカラお尻ニ……ンッ、ハッ、ハァ……コ、コレ……動物ノ姿勢デお尻ノ穴ヲ……」
+		ELSEIF A == 1
+			PRINTFORMW 「後ロカラ来ルト、君ノ腕ガ私ヲ包ムネ……。コンナノ、安心ッテ言ウノカナ♪」
+		ELSE
+			PRINTFORMW 「背中ニ熱ガ来ルト、腰ガ勝手ニ返事スルヨ。私、コレモ覚エチャウネ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「動物姿勢ニ加エテ、お尻……ヒッ、過激ヨ～……日本ノ調教ハ容赦ナイネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「後ロカラ急ニハ、ドウシヨウ！　君、先ニ声ヲカケテヨ～！」
+		ELSE
+			PRINTFORMW 「奥マデ一気ニ来ナイデ。私ノ身体、超合金デモ取扱説明書ハアルヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM28 対面座位アナル ---
+IF SELECTCOM == 28
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「座位デお尻……ンッ、君ノ顔ヲ見ナガラ、ヘンナ感ジ……お尻ノ奥、ぐぅっテ来ル……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ノ顔、スグソコネ……。目ヲ見テルト、私、ドキドキスルヨ～♪」
+		ELSE
+			PRINTFORMW 「抱キシメラレタママダト、逃ゲナクテイイネ。私、コノ場所、好キカモ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ密着感ハ……ヒッ、ハァ、ハァ、コラエラレナイ……お尻ノ奥モ感ジチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、向カイ合ッテコレ？　君、笑ッタラ私、恥ズカシクテ動ケナイヨ！」
+		ELSE
+			PRINTFORMW 「顔ガ近スギルヨ～！　デモ、目ヲソラサレルト、ソレハソレデ寂シイネ……。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM29 背面座位アナル ---
+IF SELECTCOM == 29
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「後ロ向キデお尻ヲ……ンッ、ハァ、コノ姿勢過酷ネ……お尻ノ奥、深クマデ……」
+		ELSEIF A == 1
+			PRINTFORMW 「背中カラ抱カレルト、君ノ胸ガスグ後ロネ……。私、ココニ居テイイノ？♪」
+		ELSE
+			PRINTFORMW 「耳元デ声ガスルノ、変ナ感ジヨ～。君、モット名前ヲ呼ンデヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ密着感、覚エチャウ……ヒッ、ンッ、君ガ後ロカラ全部支配シテル……」
+		ELSEIF A == 1
+			PRINTFORMW 「後ロカラ押スノ、私ノ流儀ジャナイヨ！　優シクスルナラ、少シダケ許スネ。」
+		ELSE
+			PRINTFORMW 「顔ガ見エナイト、ドコヲ見レバイイカ分カラナイヨ。手、握ッテテネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM35 泡踊り ---
+;  ▼【視点】キャラ奉仕＝キャラが泡まみれの体でプレイヤーを洗う/擦る側
+IF SELECTCOM == 35
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヌルヌルノ身体ヲ君ニ擦リツケル……ンッ、ハァ、コノ感覚……日本ノ風俗、独特ネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「泡ッテ、身体ノ境目ヲ隠スノネ～。君ノ手、ドコカラ来ルカ分カラナイヨ♪」
+		ELSE
+			PRINTFORMW 「滑ルカラ、君、シッカリ支エテヨ。私、転ンデモ平気……デモ、君ノ上デ転ビタイネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「アハ、コノ滑リ、覚エチャウヨ☆　日本ノ風俗ハ多彩ネ……身体全部デ奉仕スル感覚、新鮮……」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、泡ダラケ！　君、洗ウノト触ルノ、少シ違ウヨ～？」
+		ELSE
+			PRINTFORMW 「目ニ泡ガ入ッタヨ～！　笑ワナイデ、タオル持ッテ来テ。コレハ緊急事態ネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM37 足扱き ---
+;  ▼【視点】キャラ奉仕＝キャラが足でプレイヤーを扱く側。足コキCOM67（キャラ受け）と混同するな
+IF SELECTCOM == 37
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「私ノ足ヲ使ッテ……？　ヘンナ調教ネ……ンッ、足ノ裏デ感ジル君ノ熱、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「足デ触ルダケナノニ、君ノ熱、スグ分カルヨ。私ノ新技、気ニ入ッタ？♪」
+		ELSE
+			PRINTFORMW 「フフ、手ヲ使ワナイデモ、君ヲ喜バセル方法、覚エタネ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぅ、コノ角度デ君ヲ……アハ、慣レナイヨ～……足デコウ動カスノ、難シイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「足ヲ使ウノ、変ナ修行ネ……。笑ッタラ蹴ルヨ、私、運動得意ダカラ！」
+		ELSE
+			PRINTFORMW 「急ニ動カスナイデ～、脛ガ疲レルヨ。私、道具ジャナイカラ合図シテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM38 尻素股 ---
+;  ▼【視点】キャラ奉仕＝キャラが尻でプレイヤーを挟む（尻素股を行う）側
+IF SELECTCOM == 38
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「お尻デ挟ンデ……？　君ハ多彩ネ～……ンッ、お尻ノ間ニ君ノコレガ……ぬめッテル……」
+		ELSEIF A == 1
+			PRINTFORMW 「腿ノ間、熱イネ……。君ノ顔ヲ見ナガラコレ、私、平気ナ顔デキナイヨ～♪」
+		ELSE
+			PRINTFORMW 「擦レルタビニ声ガ出ソウネ。コレ、拳法ノ型ニハナイ動キヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ姿勢、不思議ナ感ジ……ヒッ、ンッ、お尻ノ割レ目デ擦レルナンテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「挟ムダケナラ簡単？　君、ソウ言ッタネ？　私ノ腿、スグ疲レルヨ～！」
+		ELSE
+			PRINTFORMW 「ソコ、押シツケスギルノ、クスグッタイヨ。気持チイイ所、相談シテ探ソウネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM39 オナホ手淫 ---
+;  ▼【視点】キャラ奉仕＝キャラがオナホでプレイヤーを手淫する側
+IF SELECTCOM == 39
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コノ道具デ私ヲ……ンッ、ヘンナ快感ヨ～……人工的ナ感覚、覚エラレル……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ノ熱、手ノ中デ動イテルネ……。私、最後マデ見テテモイイ？♪」
+		ELSE
+			PRINTFORMW 「ココヲ握ルト、君ノ息、変ワルヨ。私、料理以外モ上手ニナッタカナ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「日本ノ発明ハ進ンデルネ……ヒッ、ンッ、ンンッ……コノ道具、強烈ネ、自分デハ動カナイノニ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソレマデ手伝ウノ？　日本ノ文化、マダマダ奥深イネ～！」
+		ELSE
+			PRINTFORMW 「力、入レスギタ？　君ガ変ナ声出スカラ、私、調子ニ乗ッチャッタヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM42 針 ---
+IF SELECTCOM == 42
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「針！？　ヒッ、ピリッテ、ジワッテ……君ハ大胆ネ……コノ刺激、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「針ガ触ルタビ、肌ガ跳ネテルネ……。君、手、握ッテテヨ♪」
+		ELSE
+			PRINTFORMW 「抜イタアトモ、ジンジン残ルネ。コレ、痛イノニ気持チイイ、ヘンナ文化ヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ、ンンッ……コノ刺激、独特ヨ～……痛サト快感ノ境界線ガ曖昧……」
+		ELSEIF A == 1
+			PRINTFORMW 「針？　ワ～オ、物騒ネ！　私ハ平気……ヒャッ、今ノハ不意打チヨ！」
+		ELSE
+			PRINTFORMW 「一本ズツ確認シテ。イキナリ増ヤサレタラ、私デモ泣クヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM43 アイマスク ---
+IF SELECTCOM == 43
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「目隠サレタ……ンッ、君ノ動キ、読メナイヨ……ハァ、視覚ガ無イト、他ノ感覚ガ研ギ澄マサレル……」
+		ELSEIF A == 1
+			PRINTFORMW 「見エナイネ……。デモ、君ノ声ガ近ケレバ、私、安心デキルヨ♪」
+		ELSE
+			PRINTFORMW 「何サレルカ分カラナイノニ、君ノ手ナラ待ッテイラレルネ。信頼ノ勉強ヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「何処ヲ触レラレルカ分カラナイ……ヒッ、ンッ、君ノ手ガ近ヅイテクル予感ダケ、感ジル……」
+		ELSEIF A == 1
+			PRINTFORMW 「目隠シ？　私、相手ノ動キヲ見テ覚エルタイプヨ！　コレハ難問ネ～！」
+		ELSE
+			PRINTFORMW 「先ニ声ヲカケテヨ。急ニ触ラレタラ、私ノ足、勝手ニ動クカモシレナイヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM45 ボールギャグ ---
+IF SELECTCOM == 45
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「喋レナイヨ……ンッ、君ハ私ノ声ヲ封ジルノネ……ンー、ンー、コレモ調教ノウチ？」
+		ELSEIF A == 1
+			PRINTFORMW 「声、出セナイネ……。君、私ノ目ヲ見テ、分カッタ顔シナイデヨ～♪」
+		ELSE
+			PRINTFORMW 「ンム……、喋レナイ私、珍シイ？　終ワッタラ、イッパイ質問スルカラネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ、ンンッ……ンー、ンー……ヨダレガ垂レル、止メラレナイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「口ヲ塞グノ？　私、掛ケ声ナイデ拳法デキナイヨ！　アチョーッテ言ワセテ！」
+		ELSE
+			PRINTFORMW 「息、シヅライネ……。外ス合図、見逃サナイデ。コレ、我慢比ベジャナイヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM46 浣腸器＋プラグ ---
+IF SELECTCOM == 46
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ソコハ……？　ヒッ、ンッ、ンンッ、コ、コレ過酷ネ……お尻カラ液体ガ入ッテクル感覚、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「お腹ノ奥、変ナ熱ガ広ガルネ……。君、手、握ッテヨ♪」
+		ELSE
+			PRINTFORMW 「入ッタママ動クノ、身体ガ勝手ニ震エルヨ。私、コレモ覚エルネ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤダ、ンッ、お腹ガ重イ……日本ノ調教、深スギル……プラグデ栓ヲサレタ感覚モ、覚エチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソンナ道具、先ニ説明シテヨ！　私ノお腹、丈夫ダケド急ナノハ困ルヨ～！」
+		ELSE
+			PRINTFORMW 「奥ガキュッテナルネ……。終ワッタラ、温カイ飲ミ物、用意シテヨ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM53 ビデオカメラ ---
+IF SELECTCOM == 53
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「撮ラナイデ～……ンッ、君限定ナラ、許スケド……コノ姿、ホントニ残ルノ？」
+		ELSEIF A == 1
+			PRINTFORMW 「コレ、残ルノ？　君ダケガ見ルナラ……私、少シ、らぶりぃニスルヨ♪」
+		ELSE
+			PRINTFORMW 「カメラヨリ、君ノ顔ノホウガ気ニナルネ。撮ルナラ、近クデ撮ッテヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……コノ姿、後デ見ラレルノ？　恥ズカシイ……君限定デ、絶対ニネ？」
+		ELSEIF A == 1
+			PRINTFORMW 「エッ、イキナリ撮ルノ？　私、変ナ顔シテナイ？　ソレ、消シテモイイヨ！」
+		ELSE
+			PRINTFORMW 「誰ニモ見セナイッテ約束シテ。破ッタラ、昇竜轟山撃ヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM54 野外プレイ ---
+IF SELECTCOM == 54
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「外デ……？　誰カ来ルカモ……ヒッ、ンッ、ハァ……スリル、覚エチャウヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「外ノ風、肌ニ当タッテ気持チイイネ……。君、モット近クニ来テヨ♪」
+		ELSE
+			PRINTFORMW 「人ガ来ナイカ気ニナルノニ、君ノ手ガ触ルト、ソッチガ気ニナルヨ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ、ンンッ……日本ノ大胆ネ、外プレイ……見ラレル危険、感ジル度ニ達シソウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ココデハ駄目ヨ、見ツカッタラ大変ネ！　……デモ、少シダケナラ、イイヨ。」
+		ELSE
+			PRINTFORMW 「音シタ？　ドウシヨウ、隠レル？　君、私ヲ置イテ逃ゲナイデヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM56 助手を犯す ---
+;  ▼【視点】キャラは見る/煽る側＝プレイヤーが助手を犯す（このコマンド中ターゲットは助手）
+;  ※プレイヤーが助手にセックスする（このコマンド中はターゲットが助手になる）
+IF SELECTCOM == 56
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ガ他ノ子ヲ……？　ヤダ、嫉妬シチャウ……ンッ、私ノ前デ別ノ子ヲ抱クナンテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「%CALLNAME:ASSI%ノ身体、私ニ任セテクレル？　君ニ見ラレテルト、私モ頑張リタクナルヨ♪」
+		ELSE
+			PRINTFORMW 「%CALLNAME:ASSI%ガ震エテルネ……。大丈夫ヨ、私、乱暴ナコトハシナイカラネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぅん、目ノ前デサレルナンテ……ヘンナ気持チネ……君ハ私ダケジャナイノ？」
+		ELSEIF A == 1
+			PRINTFORMW 「%CALLNAME:ASSI%ニ何スルノ？　ワ～オ、私ガ相手スルノネ？　君、急ニ決メナイデヨ！」
+		ELSE
+			PRINTFORMW 「イヤナラ、スグ言ッテネ。私、平和主義ヨ。デモ、頼マレタラ、最後マデ面倒見ルヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM57 羞恥プレイ ---
+IF SELECTCOM == 57
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コノ姿、人ニ見セルナンテ……ヒッ、ンッ、ハァ……他人ノ視線、刺サル感ジ……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ノ視線、熱イネ……。恥ズカシイノニ、逃ゲル場所ガナイノ、変ナ感覚ヨ♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ前デ、コンナ声出スノ？　アハ～ハ、私、覚エテオクカラネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ、恥ズカシイヨ～……君ハ意地悪ネ……コノ屈辱、覚エサセラレル……」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、私ヲ笑ウノ？　恥ズカシイノハ、文化ノ違イヨ～！」
+		ELSE
+			PRINTFORMW 「見ラレルノ、得意ダト思ッテタケド……コレハ別ノ問題ネ！　君、少シ優シクシテヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM58 お風呂場プレイ ---
+IF SELECTCOM == 58
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「お風呂場デ……ンッ、ハァ、滑ル滑ル……湯気デ霞ンダ視界デ、君ノ輪郭ガ……」
+		ELSEIF A == 1
+			PRINTFORMW 「湯気デ君ノ手ガ見エナイネ……。ドコニ来ルカ分カラナイノ、ドキドキスルヨ♪」
+		ELSE
+			PRINTFORMW 「温カイ水ト君ノ手、ドッチデ身体ガ緩ンデルノカナ？　モット近クニ居テヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……日本ノ風呂ハ広イネ、便利ヨ～……二人デ入ッテモ余裕、コレモ覚エチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「お風呂デソレ、スルノ？　滑ルカラ、君、ワタシヲ落トサナイデネ！」
+		ELSE
+			PRINTFORMW 「ノボセソウヨ～。水、飲マセテ。ソノアトデ、モウ少シ遊ボウネ♪」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM59 新妻プレイ ---
+IF SELECTCOM == 59
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「アハ、私ガ君ノ新妻ネ☆　ンッ、お帰リナサイ、君ノ妻ヨ～……ちゅっ♪　毎日コウシタイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「オカエリ、君～♪　ゴ飯ノ前ニ甘エルノモ、新妻ノ仕事カナ？　私、覚エタヨ♪」
+		ELSE
+			PRINTFORMW 「エプロン姿、似合ッテル？　君ダケノタメニ、今日ハ特別ニ頑張ルネ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「新妻役、覚エルヨ☆　日本ノ家庭ハコウ？　ハイ、エプロン姿デ抱キツク私、ドウ？」
+		ELSEIF A == 1
+			PRINTFORMW 「新妻ゴッコ？　私、料理ハデキルケド、甘イ言葉ハマダ練習中ヨ～！」
+		ELSE
+			PRINTFORMW 「家事ノ途中デ触ルノ、君、イケナイ人ネ～。……デモ、終ワルマデ待テナイ顔シテルヨ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM61 クンニ ---
+;  ▼【視点】キャラ攻め＝キャラが女性器を舐める側。相手は助手/他女子（女性同士の行為）。舐められるCOM1と混同するな
+; ▼ パートナーが女性にクンニするコマンド（キャラが舐める側＝奉仕/攻め）
+;  ※クンニの相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 61
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「レロ、チュ……%LOCALS%ノ反応、面白イ……ピチャ、ン……私ノ舌デ、モット乱レテ……レロレロ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「ソコ、舌デ触ラレルト、私ノ声、変ニナルネ……。君、丁寧ニシテヨ♪」
+		ELSE
+			PRINTFORMW 「息ガカカルダケデ、身体ガ力抜ケルヨ。私、コノ弱点、覚エタクナイノニ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ン、レロ……%LOCALS%ノ味、不思議ダ……チュ、プ……ホラ、腰ガ揺レテル、可愛イネ……レロ……ッ」
+		ELSEIF A == 1
+			PRINTFORMW 「ソンナトコロマデ世話スルノ？　……デモ、止メラレルト困ルヨ。少シダケ続ケテネ。」
+		ELSE
+			PRINTFORMW 「クスグッタイヨ～！　ソコバカリ狙ウノ、君、勉強熱心スギルネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM63 貝あわせ ---
+;  ▼【視点】キャラ攻め/相互＝女性器同士の貝あわせ。相手は助手/他女子（女性同士の行為）
+;  ※女性同士が性器を合わせるプレイ
+;  ※相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 63
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ト、擦リ合ワセテ……ンッ、ハァ、コノ感覚モ独特ネ……敏感ナトコ同士……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ト触レ合ウノ、熱ガスグ伝ワルネ……。君、私タチノ手、離サナイデヨ♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ呼吸ニ合ワセルト、変ナ踊リミタイ。アハ～ハ、私、コレ好キカモ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、ンッ……擦レルタビ、%LOCALS%モびくびくシテ……二人デ、ヘンナ気持チ……」
+		ELSEIF A == 1
+			PRINTFORMW 「二人同時ハ忙シイヨ！　私、合図スルカラ、勝手ニ動カナイデネ～！」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ動キ、速イネ！　私、負ケナイヨ……デモ、急ニ張リ合ワナイデ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM65 助手を犯させる ---
+;  ▼【視点】キャラ攻め＝ふたなりのキャラが助手を犯す（挿入する）側
+;  ※キャラ（ふたなり等）が助手を犯す / キャラが挿入する側
+;  ※このコマンド中は P=TARGET, T=ASSI
+IF SELECTCOM == 65
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ワ～オ、%LOCALS%ヲ……？　ンッ、ガンバルネ……%LOCALS%、力抜イテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ノ顔、スグ赤クナルネ……。君、乱暴ニシタラ私ガ怒ルヨ。優シク、ネ♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ手、握ッテアゲル。怖クナイヨ、私モ一緒ニ居ルカラネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、ヘンナ感ジ……デモ、%LOCALS%ガ感ジテルナラ、嬉シイ……モット……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ニ無理サセタラ駄目ヨ！　君、相手ノ顔、チャント見テネ！」
+		ELSE
+			PRINTFORMW 「任セルッテ言ワレテモ、急ニ進メナイヨ。%LOCALS%ガ落チ着クマデ、私、ココニ居ルネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM66 Ｗフェラ ---
+;  ▼【視点】キャラ奉仕＝キャラ一人がプレイヤーと助手の2本を舐める（Wフェラ）
+;  ※プレイヤーと助手の2本をパートナー1人が舐めるコマンド
+;  ※（パートナーが奉仕する側）
+IF SELECTCOM == 66
+	CALL AITE_YOBI, 38, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ンッ、ハァ、舌ガ、重ナッテ……特別ナ感ジネ……君、ビクビクシテル、君限定ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ト%CALLNAME:ASSI%ノ熱、右ト左カラ来ルネ……。私ノ口、足リナイヨ～♪」
+		ELSE
+			PRINTFORMW 「ン、チュパ……。二人トモ息、変ワッタネ。私、モット頑張ッテモイイ？♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「アハ、君ノ味、覚エチャウヨ……☆　ぴちゃぴちゃ、横ノ子ト、舌ガぶつかるネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、二本同時？　君モ%CALLNAME:ASSI%モ、私ノ声、聞イテテヨ～！」
+		ELSE
+			PRINTFORMW 「待ッテ、二人デ来タラ息デキナイヨ！　合図シテカラ動イテネ、ワタシ、忙シイヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM67 足コキ ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりのキャラに足コキする（キャラはされる側）。足扱きCOM37（キャラ奉仕）と混同するな
+; ▼ ふたなりのパートナーに対してプレイヤーが足コキするコマンド
+IF SELECTCOM == 67
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ンッ……足ノ指デ、先ヲ……ハァ、ぴくぴくシテキタ……コンナ感覚、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「足先デ触ルト、君ノ熱、スグ伝ワルネ。私ノ新シイ奉仕、ナイス？♪」
+		ELSE
+			PRINTFORMW 「足デモ君、喜ブノ？　アハ～ハ、身体ノ使イ方、マダマダ覚エルヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「足ノ裏デ擦ラレルト……ヒッ、ンッ、腰ガ逃ゲチャウ……ヤッ、変ナ声……」
+		ELSEIF A == 1
+			PRINTFORMW 「足ヲ使ウノ、変ナ感ジネ……。笑ッタラ蹴ルヨ、コレハ本気ノふぁいと！」
+		ELSE
+			PRINTFORMW 「脛ガ疲レタヨ～。応援スルナラ、私ニ優シイ声、カケテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM68 ダブルフェラ ---
+;  ▼【視点】キャラ奉仕＝キャラと助手の2人でプレイヤーの1本を舐める（ダブルフェラ）
+;  ※パートナーと助手の2人がプレイヤーの1本を舐めるコマンド
+;  ※（パートナーが奉仕する側）
+IF SELECTCOM == 68
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ンッ、ハァ、二人ノ舌ガ、重ナッテ……君ノコレヲ、独占スル感ジ……ゾクゾクスルネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「%CALLNAME:ASSI%ト息ヲ合ワセルノ、ラクロスノ連携ミタイネ。君、気持チイイ？♪」
+		ELSE
+			PRINTFORMW 「左右カラ熱イネ……。私タチ、イイチームカモ。君、置イテイカナイデヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「アハ、コレモ独特ネ☆　君ハ満タサレテル？　両側カラ、君限定ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「二人デ一緒ハ忙シイヨ！　私、合図出スカラ、ソレマデ勝手ニ動カナイデネ！」
+		ELSE
+			PRINTFORMW 「%CALLNAME:ASSI%ト競争シナイデ。私ノ口、二ツナイカラ、順番守ッテヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM69 シックスナイン（男女・相互口淫） ---
+;  ▼【視点】キャラ相互＝互いの体を逆向きに重ね、キャラがプレイヤー（転校生＝男性）のペニスを咥えながら、自分の女性器を舐められる相互奉仕
+;  ※クンニ／フェラの連携で、相手がオトコ（プレイヤー＝転校生）の場合にシックスナインから派生（女性同士は160/189へ分岐）
+;  ※相手はプレイヤー（男性）。フェラしながら同時にクンニされる二重の快感を書く
+IF SELECTCOM == 69
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ンッ、君ノヲ咥エナガラ、私モ舐メラレテ……レロ、チュ……アァ、同時ナンテ、変ナ感ジ……デモ、君トナラ、好キヨ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「君ト%CALLNAME:ASSI%ノ気配、同時ニ近イネ……。私、ドッチ見レバイイノカナ♪」
+		ELSE
+			PRINTFORMW 「息ガ重ナルタビ、頭マデ熱クナルヨ。コレ、三人ノ秘密ネ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンッ、チュ……コレガ『しっくすないん』ネ？　レロ……君ノモ、咥エテ……アハ、集中デキナイケド、面白イ感覚ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「三人デソンナコトスルノ？　ワ～オ、私、息ヲ合ワセル勉強カラ始メタイヨ！」
+		ELSE
+			PRINTFORMW 「急ニ押シツケナイデ、息デキナイヨ～！　私ノ呼吸、チャント聞イテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM71 秘貝開帳 ---
+IF SELECTCOM == 71
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヤッ、ココヲ……？　ンッ、ヘンナ姿勢ヨ……ハァ、丸見エナノ、恥ズカシスギル……」
+		ELSEIF A == 1
+			PRINTFORMW 「見ラレルタメニ開クノ、恥ズカシイネ……。君ノ目、逃ゲナイデヨ♪」
+		ELSE
+			PRINTFORMW 「ソンナニ見ル？　私ノ秘密、君ダケニ見セテルカラ、笑ワナイデネ～♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「丸見エネ……ヒッ、ンッ、君限定ナラ、許ス……私ノ秘密、全部見テモイイヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、観察熱心ネ！　デモ、私、標本ジャナイヨ。見ルナラ優シク見テネ！」
+		ELSE
+			PRINTFORMW 「冷タイ空気、変ナ感ジヨ～。見ルダケナラ、手、添エテ温メテヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM75 言葉責め ---
+IF SELECTCOM == 75
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ソンナ言葉、聞キタクナイヨ～……ヒッ、ンッ、君ノ声デ責メラレル感覚、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ニ言ワレルト、変ナ言葉デモ胸ガ熱クナルネ……。モット聞カセテヨ♪」
+		ELSE
+			PRINTFORMW 「私、負ケ犬ジャナイヨ～！　……デモ、君ノソノ顔、ズルイネ。認メチャウヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ、ンンッ……君ノ声、頭ニ響ク……コノ言葉、覚エチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「口デ勝負？　私、勉強得意ダカラ、スグ覚エテ言イ返スヨ！」
+		ELSE
+			PRINTFORMW 「調子ニ乗ラナイデネ！　私、マダ立ッテルヨ……デモ、次ハ優シイ言葉ガイイナ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM80 イラマチオ ---
+;  ▼【視点】キャラ受け（奉仕）＝プレイヤーがキャラの口/喉を突くイラマチオ（キャラの口が使われる側）
+IF SELECTCOM == 80
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ぐぼぼっ……ンッ、ンンッ、君ハ容赦ナイネ……喉ノ奥マデ、ハァ、息デキナイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「奥マデ来ルト、息、苦シイネ……。君、私ノ速サニ合ワセテヨ♪」
+		ELSE
+			PRINTFORMW 「苦シイノニ、君ガ嬉シソウダト、応エタクナルヨ。私、素直スギルカナ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「息デキナイ……ヒッ、ンッ、ハァ、ハァ……ヨダレガ溢レル、コノ屈辱モ覚エチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソンナニ深クハ無理ヨ！　私、頑丈ダケド、何デモ入ル身体ジャナイネ！」
+		ELSE
+			PRINTFORMW 「一回離レテ息、シヨウ？　続キハ、私ガ大丈夫ッテ言ッテカラネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM85 放尿 ---
+IF SELECTCOM == 85
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ヤダ、ソコヲ見ナイデ～……ヒッ、ンッ、出チャウ、止メラレナイヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ノ前デ、力ガ抜ケチャウ……。恥ズカシイケド、置イテイカナイデネ♪」
+		ELSE
+			PRINTFORMW 「身体ガ軽クナルネ……。君ダケニ見セタ秘密、忘レナイデヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、ンッ……日本ノ調教、ココマデサセルナンテ……武士道、関係ナイネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「コ、ココデ？　私、目立ツノハ好キダケド、コレハ別ノ目立チ方ヨ～！」
+		ELSE
+			PRINTFORMW 「見ナイデッテ言ッタヨ！　……デモ、本当ニ離レルト、ソレハ寂シイネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM90 アナル愛撫させる ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーのアナルを愛撫する（転校生がやられる側）
+;  ※パートナーがプレイヤーのアナルを愛撫するコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 90
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノお尻ヲ……？　ンッ、ヘンナ調教ネ、私ガスル側……君ノ穴、私ノ指デ……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ノ反応、スグ顔ニ出ルネ……。君、焦ラサナイデ、私ト一緒ニ見守ロウ♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ガ我慢シテルヨ。私、手ヲ添エルカラ、モット優シクシテネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、君ノ反応、可愛イ……コレモ任セテヨ☆　君ガ感ジル顔、覚エテオクヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソコ、急ニ触ッタラ驚クヨ！　%LOCALS%ノ顔ヲ見テ、声ヲカケテカラネ！」
+		ELSE
+			PRINTFORMW 「私マデ緊張スルヨ～。君、任セキリニシナイデ、%LOCALS%ノ手、握ッテアゲテ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM110 クスコ ---
+;  ▼【視点】キャラ受け＝女性器用クスコをキャラ自身が挿入される（キャラは女性）。クスコするCOM203（キャラが使う側）と混同するな
+IF SELECTCOM == 110
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コ、コレ何？　ヒッ、ンッ、奥マデ広ガル……コノ道具、私ノ秘密ヲ全部見ル気？」
+		ELSEIF A == 1
+			PRINTFORMW 「奥ヲ押サレルト、身体ノ中デ鐘ガ鳴ルミタイネ……。君、ココ、覚エタ？♪」
+		ELSE
+			PRINTFORMW 「ンッ、ソンナトコロマデ届クノ？　私ノ声、君ニ全部聞コエテルネ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……コノ道具、覚エチャウヨ、君ノせいデ……奥ノ奥マデ覗カレル……」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、何ヲ入レタノ？　先ニ説明スルノガ、日本ノ礼儀ヨ！」
+		ELSE
+			PRINTFORMW 「少シ止メテ、息ヲ整エタイヨ。続ケルナラ、私ガ大丈夫ッテ言ッテカラネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM130 目隠しされる ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーに目隠しを付ける（転校生がやられる側）。受動形の名前だがキャラ自身がされる受けではない
+;  ※パートナーがプレイヤーに目隠しを付けるコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 130
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ目ヲ隠スネ……コレデ、私ノ動キ、読メナイデショ？　ンッ、君限定ノ調教ヨ☆」
+		ELSEIF A == 1
+			PRINTFORMW 「見エナイネ……。デモ君ノ声ガ近ケレバ、私、任セテイラレルヨ♪」
+		ELSE
+			PRINTFORMW 「何カ来ルタビ、ドキドキスルネ。君ノ『大丈夫』、モット聞カセテヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「アハ、君ガ受ケ身ナノ、新鮮ネ☆　覚悟シテ？　私ガ全部支配スルヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「目隠シハ困ルヨ！　相手ノ動キヲ見テ覚エルノガ私ノ得意技ナノニ～！」
+		ELSE
+			PRINTFORMW 「先ニ教エテクレタラ、耐エラレルヨ。不意打チハ、私ノ流儀ジャナイネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM131 拘束される ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーを拘束する（転校生がやられる側）。受動形の名前だがキャラ自身がされる受けではない
+;  ※パートナーがプレイヤーを拘束するコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 131
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ヲ縛ルヨ……動カナイデネ？　私ガ全部スルカラ……ンッ、コレモ調教ノウチ？」
+		ELSEIF A == 1
+			PRINTFORMW 「動ケナイト、君ノ手ノ温度バカリ分カルネ……。モウ少シ、コノママデイヨ♪」
+		ELSE
+			PRINTFORMW 「身体ヲ預ケルノ、信頼ノ勉強ネ。君ナラ、私ヲ大切ニスルッテ思ッテルヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、コノ縄結ビ、私ノ故郷流ヨ☆　君限定ノ拘束ネ……動ケナイ君、可愛イ……」
+		ELSEIF A == 1
+			PRINTFORMW 「縛ルナラ、先ニ言ッテヨ！　私、逃ゲナイケド、勝手ニ決メラレルノハ困ルネ！」
+		ELSE
+			PRINTFORMW 「手首、少シ痛イヨ……。私ガ言ッタラ、スグ緩メテネ。コレ、我慢比ベジャナイヨ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM132 口枷される ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーに口枷を付ける（転校生がやられる側）。受動形の名前だがキャラ自身がされる受けではない
+;  ※パートナーがプレイヤーに口枷を付けるコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 132
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ口ヲ封ジル……シー、声出セナイヨ？　ンッ、無口ナ君モ可愛イ……」
+		ELSEIF A == 1
+			PRINTFORMW 「声ガ出ナイト、君ノ顔ヲ見ルシカナイネ……。目デ分カッテヨ♪」
+		ELSE
+			PRINTFORMW 「喋レナイ私、珍シイ？　外シタラ、言イタイコト、イッパイ言ウカラネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「アハ、無口ナ君モ可愛イネ☆　ンッ、ちゅっ……ヨダレ垂ラシテ、ヘンナ顔……」
+		ELSEIF A == 1
+			PRINTFORMW 「口ヲ塞グノ、思ッタヨリ大変ヨ！　私、掛ケ声ナイト力ガ出ナイヨ～！」
+		ELSE
+			PRINTFORMW 「息、シヅライ……。外ス合図、見逃サナイデ。コレハ競争ジャナイヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM181 コンドーム ---
+IF SELECTCOM == 181
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コレヲ着ケルノ？　ンッ、日本ノ避妊ネ……薄イゴム、不思議ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「準備シテクレル君、私ノコト考エテクレテルネ。コレナラ安心ヨ～♪」
+		ELSE
+			PRINTFORMW 「コレ越シデモ、君ノ熱、分カルヨ。安全ナラ、私、モット素直ニナレルネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……装着、難シイヨ～……コノ薄皮越シノ感覚、覚エチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソレ、使ウノ？　君、私ニ見セテカラ、ユックリ始メテヨ。」
+		ELSE
+			PRINTFORMW 「急イデツケルノ、怖イヨ～。確認シテカラ始メルノガ、正シイ作法ネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM182 コンドーム精飲(P) ---
+IF SELECTCOM == 182
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コレヲ……飲ム？　ヤダ、ヘンナ味……ンッ、ンンッ、君ノ全部、お腹ニ収マッテク……」
+		ELSEIF A == 1
+			PRINTFORMW 「君ノ味、口ノ中ニ残ルネ……。私、コレモ忘レナイヨ♪」
+		ELSE
+			PRINTFORMW 「ン、苦イ？　デモ君ノモノナラ、私、イヤジャナイヨ。顔、近スギネ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、ンッ、んくっ……日本ノ調教ハ多彩ネ……コノ味モ覚エチャウ、君限定ノ……」
+		ELSEIF A == 1
+			PRINTFORMW 「口ニ入レルナラ先ニ言ッテヨ！　急ナノ、ムセチャウヨ～！」
+		ELSE
+			PRINTFORMW 「飲ミ込ムノ、マダ慣レナイネ。水、用意シテクレタラ頑張ルヨ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM183 コンドーム精飲(A) ---
+IF SELECTCOM == 183
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「んくっ……コノ味、覚エチャウヨ、君ノせいデ……お尻カラ取リ出シタモノ、ヘンネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「熱ガ残ッテルネ……。君、シバラク、コノママ抱イテヨ♪」
+		ELSE
+			PRINTFORMW 「身体ノ中、満タサレタ感ジヨ。私、君ヲモット近クニ感ジルネ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……忘レラレナイ味ネ……お尻ノ味モ混ザッテル？　日本ノ調教、過激ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「アッ、急ニハビックリスルヨ！　終ワッタラ、マズ息ヲ整エヨウネ。」
+		ELSE
+			PRINTFORMW 「後始末、君モ手伝ッテヨ。私ヲ置イテ先ニ行クノ、礼儀知ラズネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM184 コンドーム精飲(M) ---
+IF SELECTCOM == 184
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「んくっ……君ノ全部、私ノお腹ニ……ンッ、ハァ、コレモ覚エテオクヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「お腹ノ奥、温カイネ……。君、モウ少シ抱イテテヨ♪」
+		ELSE
+			PRINTFORMW 「身体ノ力、抜ケルヨ。今日ノ私、イツモヨリ素直ネ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、ンッ……熱イノ、流レテイク……君ノ味、私ノ中ニ染ミ込ム……」
+		ELSEIF A == 1
+			PRINTFORMW 「心ノ準備、マダヨ！　スルナラ、先ニ教エテ、驚カセナイデネ！」
+		ELSE
+			PRINTFORMW 「終ワッテスグ離レナイデ。私、余韻ヲ一人デ覚エルノ、寂シイヨ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM185 口移し ---
+IF SELECTCOM == 185
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ちゅっ……君ノ口カラ、流レ込ム……ンッ、ンンッ、共有スル感ジ、独特ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「口移シ、キスヨリ先ニ覚エチャッタネ……。コレモ日本文化？♪」
+		ELSE
+			PRINTFORMW 「ン、モウ一回……。君ノ顔ガ近イノ、私、好キヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、ンッ、コノ感覚、特別ネ……君ノ唾液モ、味モ、全部一緒……」
+		ELSEIF A == 1
+			PRINTFORMW 「口移シハ急スギルヨ！　私、キスモマダナノニ、順番、変ネ～！」
+		ELSE
+			PRINTFORMW 「ムセテモ笑ワナイデ。次ハユックリナラ、私、逃ゲナイヨ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM186 排卵誘発剤 ---
+IF SELECTCOM == 186
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コノ薬、効イテルネ……ンッ、ハァ、子供ノコト、考エチャウ……母性ガ目覚メル感ジ……」
+		ELSEIF A == 1
+			PRINTFORMW 「身体、イツモヨリ熱イネ……。君ノ手デ撫デテクレタラ、安心スルヨ♪」
+		ELSE
+			PRINTFORMW 「お腹ノ奥、落チ着カナイネ。君、ココニ居テ、私ノ呼吸、数エテヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「身体ガ熱イ……ヒッ、ンッ、母性、目覚メル感ジ……君ノ子、欲シクナル……」
+		ELSEIF A == 1
+			PRINTFORMW 「薬ノコトハ、先ニ説明シテヨ！　私ノ身体、頑丈ダケド、何デモ平気ジャナイヨ！」
+		ELSE
+			PRINTFORMW 「変ナ熱、続イテルネ……。無理シタラ、先生ニ怒ラレルヨ。今日ハ様子見ネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM187 緊急避妊薬 ---
+IF SELECTCOM == 187
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「コレ……飲ムノ？　日本ノ薬、複雑ネ……ンッ、後カラデモ防ゲルナンテ、便利ナノ？」
+		ELSEIF A == 1
+			PRINTFORMW 「私ノ身体、心配シテクレテルネ……。君、薬ノアトモ手、握ッテテヨ♪」
+		ELSE
+			PRINTFORMW 「不安、一人デ抱エナクテイイ？　君ト一緒ナラ、私、落チ着ケルヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……私、覚エテオクヨ、コノ薬モ……飲ンダ後ノ身体、ヘンナ感ジ……」
+		ELSEIF A == 1
+			PRINTFORMW 「コレハ大事ナコトヨ。勝手ニ決メナイデ、私ニ説明シテカラネ！」
+		ELSE
+			PRINTFORMW 「飲ンダアト、少シ休ムヨ。元気デモ、無理スルノハ修行ジャナイネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM196 ペニバン挿入 ---
+;  ▼【視点】キャラ受け＝ペニバン装着の助手/他の女子がキャラに挿入する（キャラはされる側）。挿入する側は助手/他の女子（女性同士）
+;  ※ウフフ中限定 / ペニバン装着の助手/他の女子がキャラに挿入する
+IF SELECTCOM == 196
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ワ～オ、%LOCALS%ガ、ソノ道具デ、私ニ……？　ンッ、ハァ、ヘンナ感覚ヨ……奥、来テル……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ノ熱、私ノ中ニ来ルネ……。君、私ノ手、握ッテテヨ♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ顔、見ナガラ合ワセルノ、ドキドキスルヨ。私モ呼吸、合ワセルネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コノ感触、独特ネ……ヤッ、ンッ……%LOCALS%、ソンナニ奥マデ……私、ヘンナ声出チャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「急ニ進メナイデヨ！　痛クナイカ、%LOCALS%ノ顔、チャント見テネ！」
+		ELSE
+			PRINTFORMW 「ソンナニ深クハ無理ヨ……。私ガ大丈夫ッテ言ウマデ、止マッテテネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM197 お風呂を楽しむ ---
+IF SELECTCOM == 197
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「お風呂デ二人キリ……ンッ、ハァ、滑ル君ノ身体……湯気ノ中デ繋ガル、独特ノ感覚ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「お風呂デ君ニ背中預ケルト、疲レ、溶ケルネ……。今日ハ甘ヤカシテヨ♪」
+		ELSE
+			PRINTFORMW 「温泉モ好キダケド、君ト入ルオ湯モ悪クナイヨ。肩、揉ンデネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……日本ノ風呂、楽シイネ……二人デ入ッテ、ヌメル肌ヲ重ネルナンテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「湯船デ暴レナイデ！　ノボセルヨ～。私、ユックリシタイネ。」
+		ELSE
+			PRINTFORMW 「先ニ身体、洗ウヨ。ソノアト、モット近クニ来テモイイカラネ♪」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM198 お外を楽しむ ---
+IF SELECTCOM == 198
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ワオ☆　オ外ッテ気持チイイネ！　君ト二人デ歩クノ、大好キ……コノ景色モ、覚エルヨ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「外ノ風、気持チイイネ。君ト歩クノ、遠回リシテ帰リタイヨ～♪」
+		ELSE
+			PRINTFORMW 「人目ガアルト、手ヲ繋グダケデ胸、ウキウキスルネ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンー、イイ天気☆　君ト散歩ナンテ、贅沢ネ。日本ノ空、覚エチャウ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「外デ急ニ近ヅクノ、見ツカッタラ大変ヨ！　スルナラ人ノ来ナイ場所ネ。」
+		ELSE
+			PRINTFORMW 「風、冷タイヨ～。君、私ヲ笑ウ前ニ、上着貸シテヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM199 お嫁さんで楽しむ ---
+IF SELECTCOM == 199
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「アハ、私ガ君ノお嫁サン☆　愛サレル妻ヨ～♪　武士ノ妻トシテ、抱カレルネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「オカエリ、君♪　ゴ飯、温メテアルヨ。新妻ノ仕事、上手ニデキタカナ？♪」
+		ELSE
+			PRINTFORMW 「コンナ風ニ暮ラセタラ、ホントノ家族ミタイネ……。私、ソノ夢、少シ見テイイ？♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ……新婚プレイモ覚エルネ☆　日本ノ夫婦ハコウ夜ヲ過ゴスノ？」
+		ELSEIF A == 1
+			PRINTFORMW 「オ嫁サン役、照レルヨ！　料理ハデキルケド、甘イ言葉ハ練習中ネ～！」
+		ELSE
+			PRINTFORMW 「家事、全部私ニ任セルノ、ズルイヨ。夫ナラ、お皿、片付ケテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM200 乳の揉み合い ---
+;  ▼【視点】キャラ攻め/相互＝乳同士を擦り合わせる女性同士。相手は助手/他女子（女性同士の行為）
+;  ▼ 女性同士が乳を揉み合うプレイ
+;  ※相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 200
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ト胸ヲ……ンッ、ハァ、ヘンナ感ジネ……柔ラカイ同士、擦レテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ノ胸、柔ラカイネ……。勝負ジャナイノニ、心臓、速クナルヨ♪」
+		ELSE
+			PRINTFORMW 「近クデ鼓動ガ聞コエルネ。君、私タチノコト、モット見守ッテヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒッ、ンッ……%LOCALS%ノ乳首ト擦レテ……二人ノ柔ラカサ、混ザル感ジ……」
+		ELSEIF A == 1
+			PRINTFORMW 「急ニ合ワセナイデ！　%LOCALS%ノ顔、先ニ見テ、相談シテカラネ！」
+		ELSE
+			PRINTFORMW 「比ベルノ、ヤメテヨ～。私ハ私デ、イイデショ？　優シクシテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM201 指フェラ ---
+;  ▼【視点】キャラ奉仕＝キャラがプレイヤーの指をフェラのように舐めしゃぶる
+IF SELECTCOM == 201
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ指ヲ……ぱくっ☆　ンッ、んくっ、フェラチオノ練習ミタイ……」
+		ELSEIF A == 1
+			PRINTFORMW 「指先デ触ルト、君ノ息、変ワルネ……。私ノ手、役ニ立ッテル？♪」
+		ELSE
+			PRINTFORMW 「ソコ撫デルト、君、声出スネ。私、コノ反応、覚エテオクヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「アハ、君ノ指、味ワウヨ☆　日本流ノ前戯ナノ？　覚エチャウ……」
+		ELSEIF A == 1
+			PRINTFORMW 「手伝ウノ？　ワ～オ、コレモ勉強ネ！　デモ、急ニ強クシナイヨ。」
+		ELSE
+			PRINTFORMW 「ソンナニ握ッタラ駄目ヨ～。私ノ合図、チャント聞イテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM203 クスコされる ---
+;  ▼【視点】キャラ攻め＝女性器用クスコをキャラが使う側。相手は助手/他女子（女性同士の行為）。されるCOM110（キャラ受け）と逆
+;  ▼ パートナーが女子生徒にクスコを使うコマンド（キャラが使う側）
+;  ※クスコは女性器用。相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 203
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ノ奥、開イタヨ……？　ンッ、丸見エネ……力抜イテネ、スグ済ムヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ノ反応、スグ分カルネ……。君、急カサナイデ、ユックリネ♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ手、握ッテアゲルヨ。怖クナイッテ、伝ワルカナ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ニ、コノ道具ヲ……？　ヤッ、難シイネ……ソゥ、ユックリ、開クネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソコ、急ニ触ッタラ驚クヨ！　%LOCALS%ガ落チ着クマデ、声ヲカケテネ！」
+		ELSE
+			PRINTFORMW 「私マデ緊張スルヨ～。君、%LOCALS%ノ様子、チャント見テテネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM204 アナルに入れさせる ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーのアナルに挿入する（転校生がやられる側）
+;  ※パートナーがプレイヤーのアナルに挿入するコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 204
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノお尻ニ……？　私ガスル側ナノ？　ンッ、ガンバル……痛クナイ？　ゆっくりネ……」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ノ熱、私ノ身体ニ来ルネ……。君、急ガセナイデヨ♪」
+		ELSE
+			PRINTFORMW 「相手ノ呼吸、スグ分カルヨ。私、ソレニ合ワセテモット力、抜クネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ハァ、ハァ……コノ立場、ヘンナ感ジ……君、感ジテル？　お尻ノ穴、ジンジン熱イ？」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ニ無理サセタラ駄目ヨ！　痛クナイカ、先ニ聞イテネ！」
+		ELSE
+			PRINTFORMW 「イキナリ深クハダメ。私ガ止メテッテ言ッタラ、スグ止マルヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM205 自慰見せつけ ---
+;  ▼【視点】キャラは見る側＝プレイヤーがキャラに自慰を見せる
+; ▼ プレイヤーがパートナーに自慰を見せるコマンド
+IF SELECTCOM == 205
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君、自分デ……？　私ニ見セルナンテ……ヘンナ気分ネ……ンッ、君ノ自慰、初メテ見ル……」
+		ELSEIF A == 1
+			PRINTFORMW 「見ラレナガラ触ルノ、君ノ目マデ肌ニ当タルミタイネ……♪」
+		ELSE
+			PRINTFORMW 「私ノ身体、ドウ動クカ、君ニ覚エラレルノ恥ズカシイヨ。デモ、隠シタクナイネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「君ノ姿、覚エチャウ……ヒッ、ンッ、ハァ……コノ刺激ノヤリ方、教エテ……」
+		ELSEIF A == 1
+			PRINTFORMW 「自分デ触ルノヲ見セルノ？　私、ソンナニ大胆ジャナイヨ～。少シダケネ。」
+		ELSE
+			PRINTFORMW 「笑ッタラ、ヤメルヨ！　見タイナラ、私ノ顔モ見テテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+;--- COM160 69クンニ（シックスナイン派生） ---
+;  ▼【視点】キャラ攻め/相互＝互いの体を逆向きに重ね、二人が同時に相手の女性器を舐め合う（女性同士の行為）
+;  ※クンニ強制→クンニの連携で、双方が女性器を持つ（ふたなり or 女性）場合にシックスナインから派生
+;  ※相手は助手/他の女子（女性同士）。セリフも相手の女子を意識して書く
+IF SELECTCOM == 160
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%トお互イ舐メ合ッテ……ンッ、レロ……同時ニサレルト、集中デキナイネ……%LOCALS%ノ舌、上手……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%ト近クナルタビ、息ガ混ザルネ……。君、私タチノ手、離サナイデヨ♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ熱、スグ分カルヨ。私モ合ワセルカラ、君、急カサナイデネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンッ、レロ、チュ……%LOCALS%ノモ、舐メテ……アハ、コウイウノモ、面白イ感覚ネ……ッ」
+		ELSEIF A == 1
+			PRINTFORMW 「二人同時ハ息ガ続カナイヨ！　%LOCALS%ト合図、決メテカラ始メヨウネ！」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ動キ、速イネ～！　私、負ケナイケド、急ナノハ困ルヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM189 69フェラ（シックスナイン派生） ---
+;  ▼【視点】キャラ攻め/相互＝互いの体を逆向きに重ね、二人が同時に相手のペニスを咥え合う（ふたなり同士の行為）
+;  ※フェラチオ→フェラの連携で、双方がふたなりの場合にシックスナインから派生
+;  ※相手は助手/他の女子（ふたなり同士）。セリフも相手の女子を意識して書く
+IF SELECTCOM == 189
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ンッ、チュ……%LOCALS%トお互イノヲ咥エ合ッテ……レロ……上手ネ、私モ、ガンバル……ンッ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、%LOCALS%ノ息、近イネ……。目、合ウタビニ変ナ気持チヨ♪」
+		ELSE
+			PRINTFORMW 「アハ～ハ、二人トモ夢中ネ。私、負ケナイヨ～。モット来テ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンむ、チュ……%LOCALS%ニ咥エラレルト、集中デキナイネ……アァ、コッチモ、シッカリ……ッ」
+		ELSEIF A == 1
+			PRINTFORMW 「ワ～オ、同時ニ来ルト息、合ワナイヨ！　%LOCALS%、少シ待ッテネ！」
+		ELSE
+			PRINTFORMW 「ンッ、チョット待ッテ……。急グト舌、迷子ニナルヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM188 相互挿入（ふたなり同士限定） ---
+;  ▼【視点】キャラ攻め/相互＝二人が向き合い、互いのペニスを相手の膣に同時に挿入し合う（ふたなり同士の行為）
+;  ※ウフフ中限定 / 調教者・ターゲット双方がふたなりの場合のみ実行可能
+;  ※相手は助手/他の女子（ふたなり同士）。セリフも相手の女子を意識して書く
+IF SELECTCOM == 188
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「アァ、%LOCALS%ト、お互イニ挿レ合ッテ……ンッ、コンナノ、スゴイネ……二人デ、繋ガッテ……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「アァ……%LOCALS%ト一緒ニ動クト、身体ノ中マデ繋ガッタミタイネ……♪」
+		ELSE
+			PRINTFORMW 「ンッ、コノ感ジ、コトバニスルノ難シイヨ。君、見テル？　私、スゴク嬉シイネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ンッ、ハァ……%LOCALS%ノ中モ、私ノ中モ……一緒ニ動クト、ヘンナ感覚……トロケチャウ……ッ」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、急ニ同時ハムズカシイヨ！　%LOCALS%、合図シテネ！」
+		ELSE
+			PRINTFORMW 「アッ、動キズレタ……。痛クナイ？　ユックリ、ヤリ直ソウネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+
+;--- COM255 挿入Ｇスポ責め ---
+IF SELECTCOM == 255
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ソコハ……ヒッ、ンッ、ンンッ、奥ノコノ場所……君、私ノ身体ノ取扱説明書、持ッテル？」
+		ELSEIF A == 1
+			PRINTFORMW 「ソコニ当タルト、身体ノ中心、熱クナルネ……。君、離サナイデヨ♪」
+		ELSE
+			PRINTFORMW 「ンッ、ソコ、来ルタビ身体ガ跳ネテルヨ。君、モウ覚エチャッタネ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤッ、ンッ、ハァ……達シソウ、止メテ……コノ場所、危険ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「急ニ奥ヲ狙ワナイデ！　私、丈夫ダケド、弱イ場所マデ鍛エテナイヨ！」
+		ELSE
+			PRINTFORMW 「少シ浅クシテ。続ケルナラ、私ガ息ヲ整エテカラネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM256 挿入子宮口責め ---
+IF SELECTCOM == 256
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「奥ノ奥……ンッ、ハァ、コノ場所、危険ヨ……子宮口ヲ突カレル感覚、別格ヨ……」
+		ELSEIF A == 1
+			PRINTFORMW 「モット奥ニ来ルト、身体ノ真ン中、熱イヨ……。君、私ヲ離サナイデ♪」
+		ELSE
+			PRINTFORMW 「声、抑エラレナイネ。君ノ動キ、私ノ身体、全部覚エテルヨ……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「お腹ノ奥、痺レチャウ……ヒッ、ンッ、子宮マデ届クナンテ、覚エラレル……」
+		ELSEIF A == 1
+			PRINTFORMW 「ソコマデハ無茶ヨ！　私ガ大丈夫カ、先ニ聞イテカラニシテネ！」
+		ELSE
+			PRINTFORMW 「痛イヨ～、少シ戻シテ。モウ一度ッテ言ウマデ、待ッテテネ。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM257 剃毛プレイ ---
+IF SELECTCOM == 257
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「アソコ……ツルツルニ？　ンッ、君ハ大胆ネ……エヘヘ、私ニ任セルヨ……？」
+		ELSEIF A == 1
+			PRINTFORMW 「肌ニ風ガ当タルト、チャイナドレスマデ恥ズカシクナルネ……♪」
+		ELSE
+			PRINTFORMW 「新シイ感覚ヨ。君、最初ニ触ル人ダカラ、変ナ顔シナイデネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「コレモ調教ノウチ？　ンッ、ぞりっテ……痛クハナイケド、ヘンナ感ジ……」
+		ELSEIF A == 1
+			PRINTFORMW 「剃ルナラ先ニ言ッテヨ！　刃物ハ、拳法ノ相手ヨリ慎重ニ扱ウモノネ！」
+		ELSE
+			PRINTFORMW 「冷タイ空気、変ヨ～。終ワッタラ、スグ布、掛ケテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM390 ゲームセンター ---
+IF SELECTCOM == 390
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ゲーセン！　ワオ、私、れすぽんすゲームガ得意ヨ☆　君モ勝負シヨウ～！」
+		ELSEIF A == 1
+			PRINTFORMW 「ゲーム、勝ツマデ帰サナイヨ～！　君ト遊ブノ、デートミタイネ♪」
+		ELSE
+			PRINTFORMW 「アハ～ハ、私ノ反射神経、甘ク見ナイデ！　勝ッタラ、中華マン、オゴッテヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「アハ～ハ☆　くれーんゲーム、コノ景品取ッテミセルネ☆」
+		ELSEIF A == 1
+			PRINTFORMW 「ゲームセンター、音、大キイネ～。デモ君ト一緒ナラ、モウ一回遊ブヨ！」
+		ELSE
+			PRINTFORMW 「負ケタカラッテ笑ワナイデ！　次ハ勝ツヨ、何度デモ挑戦ネ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; 装着アイテム 付け外し口上（クーの声で記入済）
+;==============================================================
+;--- COM11 バイブ ---
+IF SELECTCOM == 11
+	IF TEQUIP:11
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ンァッ…ハァ、君、私ヲ、トロトロニ蕩カスノ、上手スギネ…モット、シテ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ、身体ノ奥、勝手ニ動クネ……。君、コレ、止メラレル？♪」
+			ELSE
+				PRINTFORMW 「アッ、マタ震エタ……。道具ナノニ、私ヨリ私ノコト知ッテルネ～♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ワ～オ!? ナ、ナニコレッ、勝手ニ着ケルナンテ、ビックリ箱ヨリ驚イタヨッ! …ヒャゥッ、勝手ニうずいテ…ワ、私、ヘンニナッチャゥ…ネッ」
+			ELSEIF A == 1
+				PRINTFORMW 「ナ、何コレ？　私ノ身体、勝手ニナルヨ！　君、先ニ説明シテヨ！」
+			ELSE
+				PRINTFORMW 「急ニ強クシナイデ～！　私、落チ着クマデ少シ待ッテネ！」
+			ENDIF
+		ENDIF
+	ELSE
+		;取り外し
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ア、モウ終ワリ…? モウ少シ…ッテ、ワ、私カラオネダリ、変ネ…ワスレテ、ネ」
+			ELSEIF A == 1
+				PRINTFORMW 「外レテモ、マダ熱イネ……。君、手、貸シテヨ♪」
+			ELSE
+				PRINTFORMW 「身体ガ覚エテルヨ。私、コンナノ忘レナイカラネ……♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ハァ、腰ガ、フニャフニャネ…コレガ噂ノ『腰ガ抜ケル』…文字通リ、勉強ニナッタヨ、アハ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ヤット止マッタヨ～。次ハ、始メル前ニ教エテネ！」
+			ELSE
+				PRINTFORMW 「水、飲ミタイヨ。コレ、修行ヨリ疲レルネ～！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM13 アナルバイブ ---
+IF SELECTCOM == 13
+	IF TEQUIP:13
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ヒャゥッ、ソ、ソコハ…? 未経験ネ…デモ、君ガシタイナラ…私、チャレンジ、シテミルヨッ」
+			ELSEIF A == 1
+				PRINTFORMW 「ヒャッ、ソコハ、マダ知ラナイ場所ヨ……。君トナラ、少シズツ覚エテモイイネ♪」
+			ELSE
+				PRINTFORMW 「怖イノニ、身体、熱クナルヨ。君、手、離サナイデネ……♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ヒッ、オシリハ駄目ヨッ! ソ、ソコハ、私ノ国デモ、神聖ナ場所ナノッ…コ、怖イヨ、優シクシテ、ネッ…」
+			ELSEIF A == 1
+				PRINTFORMW 「後ロハ駄目ヨ！　私ノ未開ノ場所、勝手ニ探検シナイデ～！」
+			ELSE
+				PRINTFORMW 「ソコカラ先ハ待ッテ。私ガ大丈夫ッテ言ウマデ、動カナイデネ！」
+			ENDIF
+		ENDIF
+	ELSE
+		;取り外し
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ン、マダ、ジンジンスル…ネエ、コンナ私、嫌イニナラナイ…? …ヨカッタ、エヘヘ」
+			ELSEIF A == 1
+				PRINTFORMW 「マダ後ロ、熱イネ……。君、モウ少シ抱イテヨ♪」
+			ELSE
+				PRINTFORMW 「外レタラ、急ニ寂シクナッタヨ。手、握ッテテネ……♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ウ、コンナニ感ジルナンテ…私ノ辞書ニ、無カッタ発見ヨ…暗記シトク…ッテ、ソ、ソウイウ意味ジャナイカ、アハ☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ヤット終ワッタ～！　次ハ、心ノ準備ヲサセテヨ！」
+			ELSE
+				PRINTFORMW 「座ルノ、マダ変ナ感ジヨ。私ノ身体、頑丈ダケド、ココハ別ネ！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM14 クリキャップ ---
+IF SELECTCOM == 14
+	IF TEQUIP:14
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「アンッ、小サイトコロ、ピッタリ。コ、効イチャゥ…君、私ノ弱点、知リスギネ…カナワナイヨ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「小サイノニ、ソコダケ熱イネ……。君、私ノ顔、見テ楽シイ？♪」
+			ELSE
+				PRINTFORMW 「アッ、震エ、止マラナイヨ。私、笑ッテルケド、ホントハ大変ネ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ヒャアッ! ソ、ソコバッカリ、ズット…! ダメ、声、ガマンデキナイヨ…私、コンナ、ハシタナイ…ネッ」
+			ELSEIF A == 1
+				PRINTFORMW 「何ヲ付ケタノ？　ソコバカリ注目サレルト、私、困ルヨ～！」
+			ELSE
+				PRINTFORMW 「急ニ動カサナイデ！　外スナラ、声、カケテカラネ！」
+			ENDIF
+		ENDIF
+	ELSE
+		;取り外し
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ン、マダ、ジーント痺レテル…。モウ、君ハ、私ヲ甘ヤカシスギヨ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「外レテモ、マダ敏感ヨ……。君ノ指デ、ユックリ落チ着カセテ♪」
+			ELSE
+				PRINTFORMW 「余韻、残ッテルネ。私、コレモ覚エチャッタヨ……♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「フゥ、取レタ…。コンナニ焦ラシテ、知ラン顔ナンテ…デモ、ソンナトコモ面白イカラ、許シテアゲル、☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ヤット取レタ！　笑ワナイデ、ホントニ驚イタヨ～！」
+			ELSE
+				PRINTFORMW 「モウ十分ネ。次ハ説明書、読ンデカラ使オウヨ！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM15 ニプルキャップ ---
+IF SELECTCOM == 15
+	IF TEQUIP:15
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ン、チクビ、ハズカシイケド…。君ニナラ、見セテアゲル…アンッ、ソンナ見ナイデ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「引ッパラレルト、胸マデ君ニ見ラレテル気分ヨ……。ココ、私ノ大事ナ場所ネ♪」
+			ELSE
+				PRINTFORMW 「ンッ、見ナガラ触ラナイデヨ……。恥ズカシイノニ、手、止メテホシクナイネ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ヒャッ、ム、何着ケタノッ!? 少シ動クダケデ、ツント…ヤ、私、ヘンニナッチャウヨ…ッ」
+			ELSEIF A == 1
+				PRINTFORMW 「何ヲ付ケタノ？　胸ガ勝手ニ目立ツヨ！　私、目立チタガリダケド、急ナノ困ルネ！」
+			ELSE
+				PRINTFORMW 「刺激、強イヨ～！　君、少シ弱クシテ、私ノ声、聞イテネ！」
+			ENDIF
+		ENDIF
+	ELSE
+		;取り外し
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ア、マダ ピンットシテル…。私、スッカリ敏感ニ…コレモ、君トノ、新シイ思イ出ネ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「外レテモ、胸、ソワソワスルネ……。君ノ手デ、元ニ戻シテヨ♪」
+			ELSE
+				PRINTFORMW 「マダ先ガ敏感ヨ。君、コンナ身体ニシタ責任、取ッテネ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「モウ、早ク 外シテヨッ! コンナノ着ケテタラ、ラクロスノシュート、決メラレナイヨ…罪作リナ道具ネッ」
+			ELSEIF A == 1
+				PRINTFORMW 「モウ取ルヨ！　痛クナル前ニ、ワタシノ言ウコト聞イテネ！」
+			ELSE
+				PRINTFORMW 「ヤット楽ニナッタ……。上着、掛ケテヨ。風邪引イタラ困ルヨ～！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM16 搾乳器 ---
+IF SELECTCOM == 16
+	IF TEQUIP:16
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ヒャアンッ、チクビカラ、出チャウ…! ウ、ウソ、私、コンナノ出ルノ？ 君ニナラ、見ラレテモ、平気ダケド…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「胸カラ吸ワレテルネ……。君、見テルダケジャナクテ、手、添エテヨ♪」
+			ELSE
+				PRINTFORMW 「出テクル感ジ、身体ガビクッテナルヨ。私、大切ニ扱ッテホシイネ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ワ～オ、ナニコレッ!? ホ、本当ニ出テル、止メテヨッ、君ッ!」
+			ELSEIF A == 1
+				PRINTFORMW 「何コレ、勝手ニ吸ウヨ！　……デモ、止メルト変ニ張ルネ～！」
+			ELSE
+				PRINTFORMW 「強クスル前ニ聞イテ。私ノ身体、超合金デモ何デモ平気ジャナイヨ！」
+			ENDIF
+		ENDIF
+	ELSE
+		;取り外し
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「プハ…。君ノ前ダト、私ノ体、スッカリ君色ニ染マッチャウヨ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「胸、軽クナッタネ。頑張ッタ私ニ、温カイ飲ミ物、頂戴ヨ♪」
+			ELSE
+				PRINTFORMW 「マダ、ジンワリ残ッテル。コレ、君以外ニハ見セナイ秘密ネ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「モ、モウ十分ヨッ! コンナニサレタラ、私、ミルク工場ニナッチャウヨ…甘イモノデ、栄養補給、シナキャ…ッ」
+			ELSEIF A == 1
+				PRINTFORMW 「モウ十分ヨ！　外シタアト、服マデ戻スノ手伝ッテネ！」
+			ELSE
+				PRINTFORMW 「ヤット終ワッタ……。私ノ胸、笑イナガラ見ナイデヨ～！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM17 オナホール ---
+IF SELECTCOM == 17
+	IF TEQUIP:17
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ン、ァッ、ワ、私ノ、勝手ニ跳ネチャウ…。コンナ姿、君ダケニ見セルンダカラ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ンッ……コレ、勝手ニ動クノ？　君、見テルダケデ笑ワナイデヨ～♪」
+			ELSE
+				PRINTFORMW 「アハ～ハ、腰ガ止マラナイネ……。君ノ前ダカラ、逃ゲナイケド……♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ヒャゥッ、ナニコレ…! 私ノ腰、勝手ニ動ク、止マラナイヨ…ト、止メテ、君ッ!?」
+			ELSEIF A == 1
+				PRINTFORMW 「ワ～オ、急ニ動イタヨ！　君、コレ、止メル方法モ知ッテル？」
+			ELSE
+				PRINTFORMW 「待ッテ待ッテ、強スギルヨ～！　私、驚イタラ足、バタバタスルネ！」
+			ENDIF
+		ENDIF
+	ELSE
+		;取り外し
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ファ…マダ、体ガ、熱ヲ持ッテル…モウ、君ハ、本当ニ、私ヲ夢中ニサセルネ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「外レタアトモ、身体、熱イネ……。君、少シ抱イテテヨ♪」
+			ELSE
+				PRINTFORMW 「マダ余韻アルヨ……。私、コンナニ夢中ニナルノ、君ノセイネ～♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「アハ～ハ☆…完全ニ、参ッタヨ。デモ、君ノ前ナラ、ドンナ恥ズカシイ姿モ、平気ネ…ココガ、私ノ居場所ダカラ…☆」
+			ELSEIF A == 1
+				PRINTFORMW 「ヤット外レタ……。次カラ、先ニ心ノ準備サセテヨ～！」
+			ELSE
+				PRINTFORMW 「腰、ヘンナ感ジスルヨ。笑ワナイデ、温カイモノ頂戴ネ！」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;=== KUU RAND3 AND MISSING COMMANDS START ===
+; クー・カロア：一人称は私、主人公は君。助手相手はAITE_YOBI CASE38。
+;--- COM60 助手にキスさせる（追加10コマンド） ---
+IF SELECTCOM == 60
+	CALL AITE_YOBI, 38, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ノ唇、柔ラカイネ……。君ノ前デコンナニ近クナルノ、ドキドキスルヨ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「チュッ……。アハ～ハ、%LOCALS%モ真ッ赤ネ。私モ胸ガ変ナ音シテルヨ♪」
+		ELSE
+			PRINTFORMW 「ン～、舌ガ触レタ……。キスッテ、コンナニ息デキナクナル文化ナノ？♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「エッ、%LOCALS%トキススルノ？　君、急ニ決メナイデヨ、心ガ追イツカナイヨ！」
+		ELSEIF A == 1
+			PRINTFORMW 「ン、チュ……。今ノハ挨拶？　デモ、モウ一回シタイ顔シナイデネ♪」
+		ELSE
+			PRINTFORMW 「顔ヲ近ヅケルダケッテ言ッタノニ、舌マデ来タヨ！　ワ～オ、ビックリネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM62 ダブル素股（追加10コマンド） ---
+IF SELECTCOM == 62
+	CALL AITE_YOBI, 38, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ト一緒ニ挟ムノ？　息ヲ合ワセルト、変ナ踊リミタイネ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「左右カラ熱イヨ……。君、私ノ顔、見テ笑ワナイデ。私、真剣ヨ♪」
+		ELSE
+			PRINTFORMW 「セーノデ動ク？　%LOCALS%ト私、ドッチガ先ニ疲レルカ、勝負ネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「二人デ来ルノ、聞イテナイヨ！　急ニ動カナイデ、私ノ合図、待ッテネ！」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%モ張リキリスギ。脚、忙シイヨ～！　君、少シユックリネ！」
+		ELSE
+			PRINTFORMW 「競争ジャナイヨ。私、道具ジャナイカラ、順番、守ッテヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM76 双頭バイブ（追加10コマンド） ---
+IF SELECTCOM == 76
+	CALL AITE_YOBI, 38, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ト同ジ道具？　手ヲ繋イダラ、震エマデ同ジニナルカナ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「アッ、速クナッタ……！　二人分ノ音、身体ノ中デ合唱シテルヨ～♪」
+		ELSE
+			PRINTFORMW 「私ヲ真ン中ニスルノネ。怖クナイヨ、最後マデ手、離サナイデネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「イキナリ強クシナイデ！　%LOCALS%モ君モ、私ノ声、聞イテヨ！」
+		ELSEIF A == 1
+			PRINTFORMW 「コレ、相談シテカラノホウガイイヨ……。二人デ張リキラレルト、声出ナイネ！」
+		ELSE
+			PRINTFORMW 「手、離サナイデ。始メタノ二人ダカラ、最後マデ面倒見テヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM78 母乳飲み（追加10コマンド） ---
+IF SELECTCOM == 78
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君、甘エタイノ？　今日ハ私ノ胸、好キニシテイイヨ……ユックリネ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「ソンナ顔デ飲マレルト、私マデ嬉シクナルヨ。モット近クニ来テネ♪」
+		ELSE
+			PRINTFORMW 「音、聞コエル？　恥ズカシイケド、終ワルマデ、ソバニ居テヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「本気デ飲ムノ？　私、心ノ準備、マダヨ……ユックリナラ少シダケネ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「顔、上ゲナイデヨ～。見ラレルト恥ズカシイノニ、近スギルヨ！」
+		ELSE
+			PRINTFORMW 「急ニ離レナイデ。終ワルト、私ノホウガ変ニ気ニナルネ……。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM79 乳搾り（追加10コマンド） ---
+IF SELECTCOM == 79
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「乱暴ニシナイデネ……。私ガ任セタカラ、手、丁寧ニシテヨ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「ソンナ目デ見ラレルト、胸マデ熱クナルヨ。見ルダケジャ足リナイ？♪」
+		ELSE
+			PRINTFORMW 「ユックリデイイヨ。止メテトハ言ッテナイカラ、勘違イシナイデネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「作業ミタイニ数エナイデ！　私ノ顔、見テ、加減、覚エテヨ！」
+		ELSEIF A == 1
+			PRINTFORMW 「急ニ強クシナイデ～！　声ガ出テモ、笑ッタラ怒ルヨ！」
+		ELSE
+			PRINTFORMW 「ソンナ目デ見ナイデ……。逃ゲタイワケジャナイケド、心臓、忙シイヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM84 Gスポット刺激（追加10コマンド） ---
+IF SELECTCOM == 84
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ソコ、私ノ特別ナ場所？　君、弱イ所、見ツケルノ上手ネ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「話ソウトシタノニ、声、切レチャウヨ……。君、責任取ッテネ♪」
+		ELSE
+			PRINTFORMW 「駄目ッテ言ッテルノニ、手ガ止マルト困ルネ。モウ少シ、続ケテヨ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ソコハ駄目ヨッ……！　今ノ声、聞カナカッタコトニシテネ！」
+		ELSEIF A == 1
+			PRINTFORMW 「私ガ言ウマデ、動カナイデ……アッ、言葉、出ナイヨ。君ノセイネ！」
+		ELSE
+			PRINTFORMW 「ソンナ場所、知ッテル顔シナイデ！　デモ、止メラレルト困ルヨ……。」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM86 強制放尿（追加10コマンド） ---
+IF SELECTCOM == 86
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ノ前デ、我慢、解ケチャウ……。恥ズカシイケド、置イテイカナイデネ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「身体ノ力、抜ケルヨ……。終ワッタラ、何モ言ワズニ抱イテヨ♪」
+		ELSE
+			PRINTFORMW 「待ッテ、心ノ準備ガ……！　急ニ命令サレルト、私、右往左往スルヨ～！」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヤ、ヤメテヨッ……間ニ合ワナイヨ！　笑ッタラ蹴ルカラネ！」
+		ELSEIF A == 1
+			PRINTFORMW 「見ナイデ……。デモ離レルト怖イカラ、ソコニ居テヨ！」
+		ELSE
+			PRINTFORMW 「終ワッタ……。私、コンナコトデ負ケタミタイネ。優シク慰メテヨ～！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM202 乳首合わせ（追加10コマンド） ---
+IF SELECTCOM == 202
+	CALL AITE_YOBI, 38, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ト胸ヲ寄セルト、鼓動、近クナルネ……。君、聞コエテル？♪」
+		ELSEIF A == 1
+			PRINTFORMW 「触レ合ウダケナノニ、恋人ミタイナ気持チスルヨ。%LOCALS%モ笑ッテルネ♪」
+		ELSE
+			PRINTFORMW 「息ヲ合ワセルヨ。私タチノ鼓動、君ニ聞カセテアゲルネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ト胸、合ワセルノ？　私、ソンナニ大胆ジャナイヨ！」
+		ELSEIF A == 1
+			PRINTFORMW 「ンッ、当タッタ……。急ニ押サナイデ、私ノ顔、見テ加減シテネ！」
+		ELSE
+			PRINTFORMW 「胸ヲ比ベルノ、ヤメテヨ～。私ハ私デイイデショ、優シクシテネ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM258 助手顔面騎乗（追加10コマンド） ---
+IF SELECTCOM == 258
+	CALL AITE_YOBI, 38, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「%LOCALS%ノ息ガ顔ニカカッテ……。君、下カラ返シテクルト、私マデ腰ガ止マラナイヨ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「顔ガ見エナクテモ、君ノ反応、分カルネ……。私ノコト、チャント感ジテル？♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%ノ声、近スギルヨ……。君、ソンナニ深ク来タラ、私、強ガレナイネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ヒャッ、顔ノ近クデ急ニ動カナイデ！　君マデ合ワセタラ、私、落チルヨ！」
+		ELSEIF A == 1
+			PRINTFORMW 「二人トモ張リ切リスギ……。私、ドッチニ合ワセレバイイカ分カラナイヨ！」
+		ELSE
+			PRINTFORMW 「君、苦シカッタラ言ッテネ……ッテ、私ノ脚ノホウガ先ニ限界ヨ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM318 頭を撫でてもらう（追加10コマンド） ---
+IF SELECTCOM == 318
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「君ニ頭ヲ撫デラレルト、子供ミタイニ安心スルネ……。モウ少シ、コノママデイヨ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「髪、崩サナイヨウニ触ルノ、上手ネ。私ノコト、ヨク分カッテル？♪」
+		ELSE
+			PRINTFORMW 「急ニ撫デルノ、ビックリスルヨ……。デモ、手、離サナイデネ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「私、強イ女ナノニ、子供扱イシナイデヨ！　……デモ、モウ少シダケネ。」
+		ELSEIF A == 1
+			PRINTFORMW 「頭ヲ撫デルト機嫌直ルト思ッタ？　……少シダケ、悪クナイヨ。」
+		ELSE
+			PRINTFORMW 「髪、乱シタラ怒ルヨ！　丁寧ニシタラ、中華マン、半分アゲルネ♪」
+		ENDIF
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;==============================================================
+; 処女喪失時  @CHAR_VIRGIN_38
+;==============================================================
+@CHAR_VIRGIN_38
+IF TALENT:TARGET:153
+	;恋人・処女喪失
+	PRINTFORML 「ンッ……アァ、痛イ、痛イヨ……君ノガ、私ノ中ニ……ハァ、ハァ……ホント、コレデ私、君ノモノニナッタネ……武士ノ妻トシテ、命ヲ捧ゲル覚悟ヨ。
+	PRINTL
+	PRINTFORMW 覚エタコトハ忘レナイカラ、コノ痛ミモ、君ノ熱モ、私ノ初メテノ夜モ、永遠ニ私ノ中ニ刻マレル……あやめ先生ニ教エテモラッタ言葉、『未来永劫』……コノ意味、今ハッキリ分カッタ気ガスル……。優シクシテ、君。私ノ全部、君ニアゲルカラ……」
+ELSE
+	;通常・処女喪失
+	PRINTFORML 「ヒッ……ンッ、ンンッ、痛イ……コ、コレガ……？
+	PRINTL
+	PRINTFORML 日本デハ、コウシテ女ハ女ニナルノ……？
+	PRINTL
+	PRINTFORMW ンッ、ハァ、ハァ……私ノ故郷デハ、結婚相手ハ親同士デ決マル文化ナノ。私ハ、自分デ決メル日ガ来ルナンテ、思ワナカッタネ……。ヒリヒリスル、デモ……コノ瞬間モ、覚エタコトハ忘レナイ性質ノ私ニハ、永遠ニ刻マレルノヨ……。コレガ、私ノ初メテ……」
+ENDIF
+RETURN 0
+
+;==============================================================
+; ファーストキス時  @CHAR_FIRST_KISS_38
+;==============================================================
+@CHAR_FIRST_KISS_38
+IF TALENT:TARGET:153
+	;恋人・ファーストキス
+	PRINTFORML 「ン……ンッ、コレガ、君トノ初メテノきす……？
+	PRINTL
+	PRINTFORML 私、故郷デハきすハ挨拶ノヨウナモノダッタ。家族ニモ、友達ニモ、誰ニデモシテタノ。デモ、今ノコレハ全然違ウ。心臓ガどきどきシテ、頭ガ真ッ白ニナッチャウネ……。覚エタコトハ忘レナイ私ダカラ、君ノ唇ノ温度モ、息ノ音モ、今ノ瞬間モ全部、永遠ニ私ノ中ニ残ルヨ。コレカラハ、君以外ニハ唇ヲ許サナイカラネ？
+	PRINTL
+	PRINTFORMW 約束スル……チュッ♪」
+ELSE
+	;通常・ファーストキス
+	PRINTFORML 「アッ……ンッ、コレガ……君トノ初メテノきす？　日本ノきすハ、私ノ故郷ノとハ違ウネ……
+	PRINTFORML ンッ、ヘンナ気持チ、心臓ガ騒イデル……ハァ。覚エタコトハ忘レナイ私ハ、
+	PRINTFORML コノ瞬間モ覚エチャウヨ。ホントニ、コレデイイノ？　私、君ニ……
+	PRINTFORMW 何カ大事ナモノヲ捧ゲタ気ガスル……アハ……」
+ENDIF
+RETURN 0
+
+;==============================================================
+; 服を脱がせたとき  @CHAR_UNDRESS_38
+;==============================================================
+@CHAR_UNDRESS_38
+IF TALENT:TARGET:153
+	;恋人・脱衣
+	PRINTFORML 「ンッ……君ノ前デ、服ヲ脱グ……コレ、何度シテモ慣レナイヨ……。私ノ身体、
+	PRINTFORML 君ニハ全部見セルカラ。覚エテ、永遠ニ。ホラ、ボタンモ、紐モ、外ス手ガ震エテルネ……君モ、
+	PRINTFORMW 見テル？　ジッ……ヤダ、視線ガ熱イ。武士ノ妻トシテ、堂々ト君ノ前ニ立ツヨ……ハァ……」
+ELSE
+	;通常・脱衣
+	PRINTFORML 「ヒッ、ンッ……日本流ノ脱衣ハ……ハァ、君ノ目ノ前デ全部見セナイト駄目ナノ？
+	PRINTFORML 私ノ故郷デハ、こうイウ手順ハ違ウケドネ。ンッ、ハダカニナルノ、慣レナイヨ～……君、
+	PRINTFORMW ジッ見ナイデネ？　……ウソ、見テモイイヨ……アハ……」
+ENDIF
+RETURN 0
+
+;==============================================================
+; 射精したとき（一般）※手コキ・素股・足扱き等  @CHAR_EJAC_38
+; TFLAG:302=量(1=通常 2=大量 4=超大量)  TFLAG:711=今回の調教での射精回数
+;==============================================================
+@CHAR_EJAC_38
+;--- 大量射精以上 ---
+IF TFLAG:302 >= 2
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・初回・1
+				PRINTFORML 「ヒッ、ンッ、君ノコレ……コ、コンナニ熱イノガ、私ノ肌ニ……ベタッテ、流レテク……コ、
+				PRINTFORMW コレガ初メテノ……君ノモノ、覚エチャウ……ハァ……」
+			ELSEIF A == 1
+				;恋人・大量・初回・2
+				PRINTFORMW 「アッ、ンンッ、白イノガ、私ノお腹ニ……ハァ、ハァ、コノ匂イ、コノ熱サ、覚エテオクヨ。君限定ノ印ネ……アハ……」
+			ELSE
+				;恋人・大量・初回・3
+				PRINTFORMW 「ンッ、ハァ……君、コンナニ出シタノ……？　私ノ肌、君ノ味デ覆ワレチャッタネ……コレモ夫婦ノ証ナノ、永遠ニ刻ム……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・初回・1
+				PRINTFORML 「ヒッ、ヤダ、何コレ……？　ンッ、熱イ、ベタッテ……ハァ、ハァ、男ノヒトッテ、
+				PRINTFORMW コンナニ出スノ？　日本人ハ……知ラナカッタ……」
+			ELSEIF A == 1
+				;通常・大量・初回・2
+				PRINTFORMW 「ンンッ、コ、コノ匂イ、独特ヨ……ヤッ、ハァ、私ノ身体ニコンナニ……拭イテモ、染ミ込ンジャイソウ……」
+			ELSE
+				;通常・大量・初回・3
+				PRINTFORMW 「アッ、ンッ、ハァ、ハァ……コレ、コ、コレガ男ノ精ナノ？　日本ノ調教、過酷ヨ～……覚エテシマウ、コノ感覚……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・複数回・1
+				PRINTFORMW 「ンッ、マタ、コンナニ……？　君、絶倫ネ……ハァ、何度モ私ノ肌ヲ汚スナンテ……エヘヘ、嬉シイケド☆」
+			ELSEIF A == 1
+				;恋人・大量・複数回・2
+				PRINTFORMW 「アッ、ンンッ、君限定ノご奉仕、報ワレタネ……ハァ、コノ熱、何度モ覚エチャウ、君ノ匂イ……」
+			ELSE
+				;恋人・大量・複数回・3
+				PRINTFORMW 「ハァ、ハァ、コレ何度目？　ンッ、私ノ身体ジュウ、君ノ印ダラケヨ……武士ノ妻トシテ、誇ラシイネ☆」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・複数回・1
+				PRINTFORMW 「ヒッ、マタ……？　ンッ、ンンッ、ヤダ、コノ量、ホントニ普通ナノ？　日本人、絶倫スギ……ハァ……」
+			ELSEIF A == 1
+				;通常・大量・複数回・2
+				PRINTFORMW 「ンッ、ハァ、ハァ……出シスギヨ～、君……コノ匂イ、染ミ込ム……覚エチャウ……」
+			ELSE
+				;通常・大量・複数回・3
+				PRINTFORMW 「アッ、ンンッ……コノ濃厚サ、ヘンニナルヨ～……日本ノ調教ハ、ホントニ容赦ナイネ……ハァ……」
+			ENDIF
+		ENDIF
+	ENDIF
+;--- 通常射精 ---
+ELSE
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・初回・1
+				PRINTFORMW 「ンッ、君ノ熱イノガ……ハァ、初メテ知ル感覚ヨ……コレガ君ノ証ネ☆」
+			ELSEIF A == 1
+				;恋人・通常・初回・2
+				PRINTFORMW 「アッ、ンンッ、ぴゅっテ……君限定ノコレ、覚エルヨ……エヘヘ……」
+			ELSE
+				;恋人・通常・初回・3
+				PRINTFORMW 「ハァ、ハァ……コレ、君ノ気持チ、ソノモノネ……永遠ニ、私ノ肌ニ刻ム……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・初回・1
+				PRINTFORMW 「ヒッ、コ、コレ何……？　ンッ、ハァ、男ノヒトカラ出ル液体、知ラナカッタ……」
+			ELSEIF A == 1
+				;通常・通常・初回・2
+				PRINTFORMW 「ンッ、ンンッ、独特ナ匂イ……ヤッ、ハァ、コレモ覚エチャウ、日本ノ調教ハ深イ……」
+			ELSE
+				;通常・通常・初回・3
+				PRINTFORMW 「アッ、ハァ、ハァ……コレガ射精ノ匂イ……？　覚エテシマウ、私ノ性質デ……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・複数回・1
+				PRINTFORMW 「ンッ、マタ……君ハ何度モネ☆　ハァ、嬉シイヨ……何度モ印ヲツケテ……」
+			ELSEIF A == 1
+				;恋人・通常・複数回・2
+				PRINTFORMW 「アッ、ンンッ、コノ熱モ覚エラレル……君ノ印、増エテイクネ……」
+			ELSE
+				;恋人・通常・複数回・3
+				PRINTFORMW 「ハァ、ハァ……コレ何度目？　ンッ、君限定ノペース、覚エルヨ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・複数回・1
+				PRINTFORMW 「ヒッ、マタ……？　ンッ、ハァ、慣レテキタケド……アハ、ヤダ、何度モナンテ……」
+			ELSEIF A == 1
+				;通常・通常・複数回・2
+				PRINTFORMW 「ンッ、ンンッ……日本ハ、男ノヒトハ何度モ出セルノ？　覚エラレナイ……」
+			ELSE
+				;通常・通常・複数回・3
+				PRINTFORMW 「アッ、ハァ、ハァ……コノ匂イニ慣レテキタネ……ンッ、ヘンナ感ジ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+;==============================================================
+; 口に出されたとき  @CHAR_EJAC_MOUTH_38
+; TFLAG:302=量(1=通常 2=大量 4=超大量)  TFLAG:711=今回の調教での射精回数
+;==============================================================
+@CHAR_EJAC_MOUTH_38
+;--- 大量射精以上 ---
+IF TFLAG:302 >= 2
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・初回・1
+				PRINTFORML 「ンッ、んくっ、んくっ……ハァ、コンナニ……？　君限定ノ味、コレガ……コクリ、ンッ、
+				PRINTFORMW 覚エチャウ、永遠ニ。アハ、君ノ全部、私ノお腹ノ中ヨ……」
+			ELSEIF A == 1
+				;恋人・大量・初回・2
+				PRINTFORMW 「んくっ、んくっ、ンンッ……ハァ、ハァ、口ノ中、君ノモノデ満タサレタ……ヘンナ味ダケド、君ノ味ダカラ好キヨ……ちゅっ♪」
+			ELSE
+				;恋人・大量・初回・3
+				PRINTFORMW 「ンッ、んっ、ぴちゃ……コレヲ全部飲ム？　ガンバルヨ、君ノ全部ハ私ノ栄養ニナル……ハァ、ハァ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・初回・1
+				PRINTFORMW 「ヒッ、ンンッ、ンンッ……ヤッ、口ノ中ニ、コノ量……ハァ、ハァ、んくっ、独特ナ味ヨ～……」
+			ELSEIF A == 1
+				;通常・大量・初回・2
+				PRINTFORMW 「んくっ、ンッ、コレガ男ノ精ナノ？　ハァ、んくっ、覚エテシマウ、コノ濃イ味……」
+			ELSE
+				;通常・大量・初回・3
+				PRINTFORMW 「ンッ、ンンッ、ハァ、ハァ……日本ノ調教、口ニマデ出スナンテ……んくっ、独特ヨ……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・複数回・1
+				PRINTFORMW 「ンッ、んっ、んくっ……マタ口ノ中ニ……？　君限定ノ栄養ヨ☆　ぴちゃ、ンッ……」
+			ELSEIF A == 1
+				;恋人・大量・複数回・2
+				PRINTFORMW 「んくっ、んくっ、ハァ、君ノ味、慣レテキタネ☆　覚エラレル、永遠ニ……」
+			ELSE
+				;恋人・大量・複数回・3
+				PRINTFORMW 「ンッ、んっ、ぱくっ☆　君ノ味、私限定ヨ。ンッ、んくっ……お腹ガ満タサレル……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・複数回・1
+				PRINTFORMW 「ヒッ、んくっ……マタ口ノ中ニ……？　ンッ、ハァ、コノ味、染ミ込ム……」
+			ELSEIF A == 1
+				;通常・大量・複数回・2
+				PRINTFORMW 「ンッ、んっ、ンンッ……日本人、何度モ出セルノ？　んくっ、口ガ受ケ皿ニ……」
+			ELSE
+				;通常・大量・複数回・3
+				PRINTFORMW 「んくっ、ハァ、ハァ……ンッ、ヘンナ味……日本ノ調教、ホントニ深イネ……」
+			ENDIF
+		ENDIF
+	ENDIF
+;--- 通常射精 ---
+ELSE
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・初回・1
+				PRINTFORMW 「ンッ、んっ、君ノコレ、私ノ口ニ……ハァ、君限定ノ味、覚エルヨ☆」
+			ELSEIF A == 1
+				;恋人・通常・初回・2
+				PRINTFORMW 「んくっ、ンッ、ぴちゃ……コノ味、君ノモノネ……エヘヘ、ちゅっ♪」
+			ELSE
+				;恋人・通常・初回・3
+				PRINTFORMW 「ハァ、んっ……君ノ全部、私ノお腹ニ……永遠ニ、私ノ中ヨ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・初回・1
+				PRINTFORMW 「ヒッ、んくっ……コ、コレガ口ニ出スッテコト？　ハァ、独特ナ味ネ……」
+			ELSEIF A == 1
+				;通常・通常・初回・2
+				PRINTFORMW 「ンッ、んっ、ンンッ……日本ノ調教ハ口モ受ケ皿ニ？　覚エチャウ……」
+			ELSE
+				;通常・通常・初回・3
+				PRINTFORMW 「ハァ、んくっ、ンッ……コレモ覚エテシマウ、私ノ性質ノせいヨ……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・複数回・1
+				PRINTFORMW 「ンッ、んっ、マタ……君ハ私ノ口ヲ気ニ入ッテルノ？　んくっ、嬉シイ☆」
+			ELSEIF A == 1
+				;恋人・通常・複数回・2
+				PRINTFORMW 「んくっ、ンッ、ぱくっ☆　君ノ味、毎日違ウネ……コレモ覚エルヨ……」
+			ELSE
+				;恋人・通常・複数回・3
+				PRINTFORMW 「ハァ、んっ……君ノペース、覚エチャッタネ☆　毎日コウデモイイヨ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・複数回・1
+				PRINTFORMW 「ヒッ、んくっ……マタ……ンッ、慣レテキタケド、コレモ調教？」
+			ELSEIF A == 1
+				;通常・通常・複数回・2
+				PRINTFORMW 「ンッ、んっ……日本ノ女ノ子、皆コレ慣レテルノ？　んくっ、深イ……」
+			ELSE
+				;通常・通常・複数回・3
+				PRINTFORMW 「ハァ、んくっ、ンッ……コノ味、染ミ付クネ……忘レラレナイ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+;==============================================================
+; 中に出されたとき  @CHAR_EJAC_IN_38
+; TFLAG:302=量(1=通常 2=大量 4=超大量)  TFLAG:711=今回の調教での射精回数
+;==============================================================
+@CHAR_EJAC_IN_38
+;--- 大量射精以上 ---
+IF TFLAG:302 >= 2
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・初回・1
+				PRINTFORML 「ンッ、ンンッ、アァ……コ、コノ熱イノガ、私ノ一番奥ニ……？　ハァ、ハァ……君ノ全部、
+				PRINTFORML 私ノ中ニ広ガッテイク……武士ノ妻トシテ、受ケ止メルカラネ。覚エタコトハ忘レナイ私ダカラ、
+				PRINTFORMW コノ熱サ、永遠ニ私ノ中ヨ……」
+			ELSEIF A == 1
+				;恋人・大量・初回・2
+				PRINTFORML 「アッ、ンッ、ンンッ、注ガレル、注ガレテル……ハァ、君ノ命ノ熱、私ノ中デ脈打ッテル……。
+				PRINTFORMW 子供ガデキタラ、ドウシヨウ……ンッ、デモ、嬉シイ……」
+			ELSE
+				;恋人・大量・初回・3
+				PRINTFORMW 「ンッ、ハァ、ハァ……君限定ノコレ、私ノ中ヲ満タス……。ホント、コレデ私、君ノモノネ……永遠ニ、永遠ニ覚エテオクヨ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・初回・1
+				PRINTFORMW 「ヒッ、ンッ、ンンッ……ヤッ、奥ニ、コ、コノ熱量、ホントニ……？　ハァ、ハァ、子供ガデキチャウ……」
+			ELSEIF A == 1
+				;通常・大量・初回・2
+				PRINTFORMW 「アッ、ンッ……ヤダ、私ノ中ニ、コンナニ……？　ンッ、日本人ハ責任ヲ取ル文化ナノヨネ……？」
+			ELSE
+				;通常・大量・初回・3
+				PRINTFORMW 「ンッ、ンンッ、ハァ……コレガ妊娠ノ瞬間？　覚エラレル、私ノ性質デ、コノ熱モ……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・複数回・1
+				PRINTFORMW 「ンッ、マタ私ノ中ニ……？　君ハ毎日私ヲ妊娠サセル気？　アハ、嬉シイケドネ……」
+			ELSEIF A == 1
+				;恋人・大量・複数回・2
+				PRINTFORMW 「アッ、ンッ、ハァ、ハァ……君限定ノペース、覚エチャッタネ☆　毎日、私ノ中ガ満タサレル……」
+			ELSE
+				;恋人・大量・複数回・3
+				PRINTFORMW 「ハァ、コノ熱、慣レテキタヨ……君ノ妻トシテ、何度デモ受ケ止メルカラ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・複数回・1
+				PRINTFORMW 「ヒッ、マタ私ノ中ニ……？　ンッ、ハァ、コノ量、本当ニ慣レナイ……」
+			ELSEIF A == 1
+				;通常・大量・複数回・2
+				PRINTFORMW 「ンッ、ンンッ……日本人、責任感無イノ？　毎日中ニ出スナンテ……」
+			ELSE
+				;通常・大量・複数回・3
+				PRINTFORMW 「アッ、ハァ、ハァ……コノ熱、染ミ込ム……コレモ覚エチャウ、ヘンナノ……」
+			ENDIF
+		ENDIF
+	ENDIF
+;--- 通常射精 ---
+ELSE
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・初回・1
+				PRINTFORMW 「ンッ、君ノコレ、私ノ中ニ……ハァ、嬉シイ、私、君ノモノネ……」
+			ELSEIF A == 1
+				;恋人・通常・初回・2
+				PRINTFORMW 「アッ、ンンッ……君限定ノ熱、覚エルヨ☆　永遠ニ私ノ中ニ……」
+			ELSE
+				;恋人・通常・初回・3
+				PRINTFORMW 「ハァ、ンッ……コノ感覚、覚エラレル……君ガ私ノ中デ感ジテルノ、嬉シイ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・初回・1
+				PRINTFORMW 「ヒッ、ンッ……コ、コレガ中ニ出スコト？　ハァ、私ノ中、熱イ……」
+			ELSEIF A == 1
+				;通常・通常・初回・2
+				PRINTFORMW 「ンッ、ンンッ……ヤッ、ハァ……日本ノ調教、避妊シナイノ？」
+			ELSE
+				;通常・通常・初回・3
+				PRINTFORMW 「アッ、ハァ、ハァ……コレモ覚エラレル、私ノ中ノ熱……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・複数回・1
+				PRINTFORMW 「ンッ、マタ……君ハ毎日私ノ中ヲ満タスネ……嬉シイヨ☆」
+			ELSEIF A == 1
+				;恋人・通常・複数回・2
+				PRINTFORMW 「アッ、ンッ、ハァ……コノりずむ、覚エラレタネ……君限定ノ……」
+			ELSE
+				;恋人・通常・複数回・3
+				PRINTFORMW 「ハァ、ンッ……君ノ熱、毎日違ウ気ガスル……コレモ覚エチャウ☆」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・複数回・1
+				PRINTFORMW 「ヒッ、マタ中ニ……？　ンッ、ンンッ、ホントニ無責任ネ……」
+			ELSEIF A == 1
+				;通常・通常・複数回・2
+				PRINTFORMW 「ンッ、ンンッ、ハァ……日本人、避妊知ラナイノ？　覚エチャウ……」
+			ELSE
+				;通常・通常・複数回・3
+				PRINTFORMW 「アッ、ハァ、ハァ……コノ熱、染ミ込ンデイク……ヘンナ感覚……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+;==============================================================
+; 絶頂したとき  @CHAR_ORGASM_38
+; NOWEX:0=Cクリ :1=V膣 :2=Aアナル :3=Bバスト :6=Mマウス/キス（絶頂強度）
+; TFLAG:710=同時絶頂数  強度: >=9=最強 >=2=強 ==1=通常
+;==============================================================
+@CHAR_ORGASM_38
+
+;--- 五重絶頂（全部位同時） ---
+IF TFLAG:710 >= 5
+	;★全部位最強（特別）
+	IF NOWEX:0 >= 9 && NOWEX:1 >= 9 && NOWEX:2 >= 9 && NOWEX:3 >= 9 && NOWEX:6 >= 9
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・全部位最強★・1
+				PRINTFORML 「アァァァァッ……ンンッ、ハァ、ハァ……コレ、ホントニ私ノ身体ナノ……？
+				PRINTL
+				PRINTFORMW 唇カラ、胸カラ、深イ場所、お尻ノ穴ノ奥、敏感ナ突起マデ全部、君ノ印デイッパイ……武士道魂ナンテ、君ノ前デハ紙切レ同然ネ……アハ……。覚エタコトハ忘レナイ私ダカラ、コノ瞬間モ、君ノ顔モ、私ノ全部ガ崩レタ証拠モ、未来永劫私ノ中ニ刻ム……ホントニ、私、君ノモノニナッタネ……アリガト、君……」
+			ELSEIF A == 1
+				;恋人・五重絶頂・全部位最強★・2
+				PRINTFORML 「ノン、ノン……ハァ、ハァ……私ノ故郷ノ言葉デ、ナンテ言エバイインダロウ……日本語デモ、英語デモ、コノ感覚ハ表現デキナイヨ……
+				PRINTL
+				PRINTFORMW 。ハァ、君ノ手、君ノ唇、君ノ熱、ゼンブガ私ヲ満タシテ、私ノ理性ガ溶ケテ消エタ。コレガ夫婦ノ秘密ノ達成感ナノネ……コノ景色、コノ温度、コノ達シ方、永遠ニ私ノ宝物ヨ。覚エテ、永遠ニ覚エテオク……ハァ……」
+			ELSE
+				;恋人・五重絶頂・全部位最強★・3
+				PRINTFORML 「アハ……ハァ、ハァ、ハァ……ねぇ、君、私、達シタ……？
+				PRINTL
+				PRINTFORML ココモ、ココモ、唇マデ、全部……ンッ、目ノ前ガ真ッ白デ、君ノ顔モぼやケテ見エルケドネ。コノきす、私ノ故郷流ノ挨拶ジャナイヨ。私ノ全部、君限定ノ証ヨ。ちゅっ……ハァ、君、聞コエル？
+				PRINTL
+				PRINTFORMW 愛シテル、未来永劫、コノ気持チハ消エナイカラ。覚エテ、君モ、永遠ニ……アハ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・全部位最強★・1
+				PRINTFORML 「ヒッ、ンンッ、ハァァァ……ナニ、コレ……日本ノ調教、人間ヲ壊スツモリナノ？
+				PRINTL
+				PRINTFORMW 唇モ、胸モ、深イ場所モ、お尻ノ穴モ、ぴりぴりノ突起モ、全部一遍ニ……。ハァ、ハァ、武士道魂デ耐エヨウト思ッタケドネ……無理ヨ、ナニコレ。私ノ理性、ホント何処カ行ッチャッタ……。アァ、覚エチャウ、コノ崩壊感覚モ、私ノ性質ハ呪イデアリ宝物ヨ……ハァ、ハァ……」
+			ELSEIF A == 1
+				;通常・五重絶頂・全部位最強★・2
+				PRINTFORML 「アァッ、ハァ、ハァ……私ノ故郷ニハ、コンナ感覚、存在シナイヨ。男ガ女ヲココマデ崩スコトハ、家族ノ恥トサレル国ナノ。ナノニ、コノ国ノ調教ハ、女ヲ全部開イテ快楽ノ底マデ連レテイク文化ナノネ…
+				PRINTL
+				PRINTFORMW …ンッ、ハァ、ンンッ、コレモ覚エラレル。日本ガ深イ国ダトイウコト、身体ガ覚エチャウ……コ、コノ私ガ、ホントニ……」
+			ELSE
+				;通常・五重絶頂・全部位最強★・3
+				PRINTFORML 「覚エチャッタ……コノ崩壊、覚エテシマッタ……ンッ、ハァ、ハァ。私ノ故郷ノ誇リ、王位継承権、暗殺ノ覚悟、ゼンブ意味ガ無クナルクライノ……
+				PRINTL
+				PRINTFORMW アハ……コノ快楽ノ底ヨ。日本人ガ作ッタ調教ハ、ホント、文明ノ極致ネ……ハァ、ハァ、目ノ前ガ星ダラケ……達シタ、達シチャッタ……達シ続ケテルヨ……」
+			ENDIF
+		ENDIF
+	;いずれかの部位が最強
+	ELSEIF NOWEX:0 >= 9 || NOWEX:1 >= 9 || NOWEX:2 >= 9 || NOWEX:3 >= 9 || NOWEX:6 >= 9
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・最強・1
+				PRINTFORML 「達シタ、達シチャッタ……ハァ、君、私、コラエラレナカッタヨ……君ノ責メ方、
+				PRINTFORMW ホント上手スギル……エヘヘ、武士ノ妻トシテノ覚悟、軽ク超エチャッタネ……」
+			ELSEIF A == 1
+				;恋人・五重絶頂・最強・2
+				PRINTFORML 「イイッ、ンッ、ハァ、ハァ……コレ、ホント？　身体ガ私ノ言ウコト聞カナイヨ……
+				PRINTFORMW 君限定ノ反応ネ、コレモ覚エテオクヨ、永遠ニ……アハ……」
+			ELSE
+				;恋人・五重絶頂・最強・3
+				PRINTFORML 「君、君……ハァ、ンッ、止メテ……モウ、私、保タナイヨ……武士道魂ガ、
+				PRINTFORMW 君ノ前デ折レチャッタ証ネ……エヘヘ、コノ陥落モ覚エチャウ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・最強・1
+				PRINTFORML 「ヒッ、ハァ、ハァ……ナニ、コノ感覚……日本ノ調教、強烈スギルヨ～……私ノ身体、
+				PRINTFORMW 何処ガドウナッテルカ分カラナイ……ンッ、ンンッ、覚エラレル……」
+			ELSEIF A == 1
+				;通常・五重絶頂・最強・2
+				PRINTFORML 「ハァァ、ンンッ、ンンッ……ヤダ、コレモ快感ナノ？　日本人、ホントニ恐ロシイ国民ネ……
+				PRINTFORMW アハ、私、覚悟、足リテナカッタミタイ……ハァ……」
+			ELSE
+				;通常・五重絶頂・最強・3
+				PRINTFORML 「ンー、ンー……コラエラレナイ……ハァ、ンッ、武士ノ娘トシテ恥ヲ晒シタネ……日本ノ調教ニ、
+				PRINTFORMW 私ハ完敗ヨ……覚エチャウ、コノ屈辱モ……」
+			ENDIF
+		ENDIF
+	;いずれかの部位が強
+	ELSEIF NOWEX:0 >= 2 || NOWEX:1 >= 2 || NOWEX:2 >= 2 || NOWEX:3 >= 2 || NOWEX:6 >= 2
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・強・1
+				PRINTFORMW 「ハァァン、ンッ……君ノ熱、私ノ全身ニ届イテルネ……アハ、嬉シイ。コレモ夫婦ノ秘密ノ快感ヨ、覚エラレル……」
+			ELSEIF A == 1
+				;恋人・五重絶頂・強・2
+				PRINTFORMW 「ヤァ、ンッ、ハァ……身体ノ色々ナ場所、君ノ手デ熱クナル……武士ノ妻トシテモ、堪能シチャッテルネ……エヘヘ……」
+			ELSE
+				;恋人・五重絶頂・強・3
+				PRINTFORMW 「覚悟ノ上ヨ……ンッ、ハァ、君ニ全部見セルカラ……武士道魂、コノ快感ノ前ニ揺ラグネ……アハ、ホント……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・強・1
+				PRINTFORMW 「君、容赦ナイネ……ヒッ、ンッ、私ノ身体、各所ガ反応シチャッテル……日本ノ調教、広範囲ヨ～……」
+			ELSEIF A == 1
+				;通常・五重絶頂・強・2
+				PRINTFORMW 「ハァァ、ンッ、ンンッ……コレ、ホント……？　身体ノ色々ナ場所デ、別々ニ感ジル感覚、独特ヨ……」
+			ELSE
+				;通常・五重絶頂・強・3
+				PRINTFORMW 「アハ、ハァ……ンッ、武士ノ娘ノ威厳モ崩レチャッタネ……日本ノ調教ハ、容赦ナイ国民性ヨ……ンッ、覚エチャウ……」
+			ENDIF
+		ENDIF
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・通常・1
+				PRINTFORMW 「エヘヘ、達シチャッタネ……君限定ノ私、軽ク堕チチャウヨ☆　身体ノアチコチ、嬉シイ反応……」
+			ELSEIF A == 1
+				;恋人・五重絶頂・通常・2
+				PRINTFORMW 「君ノせいヨ☆　ハァ、ンッ、私ノ身体、君ニ素直ニナッテキタネ……エヘヘ、嬉シイ……」
+			ELSE
+				;恋人・五重絶頂・通常・3
+				PRINTFORMW 「ハァァ、ンッ……色々ナ場所ガぴくぴく……武士ノ妻トシテ、コレモ受ケ止メルカラ……」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・通常・1
+				PRINTFORMW 「ヤッ、ンンッ……日本ノ調教ハ広範囲ニ責メル文化ナノ……？　覚エテシマウ、私ノ性質ハ……」
+			ELSEIF A == 1
+				;通常・五重絶頂・通常・2
+				PRINTFORMW 「ハァ、ンッ、ンンッ……身体ノ色々ナ場所、ぴりぴりスル……ヘンナ感覚、独特ヨ……」
+			ELSE
+				;通常・五重絶頂・通常・3
+				PRINTFORMW 「覚悟ハシテタケドネ……ンッ、ハァ、コノ広範囲ノ快感、覚エラレル、私ハ忘レナイ性質ダカラ……」
+			ENDIF
+		ENDIF
+	ENDIF
+
+;--- 複絶頂（2～4箇所同時）---
+ELSEIF TFLAG:710 >= 2
+	;--- 膣を含む複絶頂 ---
+	IF NOWEX:1 > 0
+		IF NOWEX:0 >= 9 || NOWEX:1 >= 9 || NOWEX:2 >= 9 || NOWEX:3 >= 9 || NOWEX:6 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣含む・最強・1
+					PRINTFORML 「深イ場所ニ届クノニ、別ノ場所モ……ハァァァ、ハァ、ハァ……ンッ、君限定ノ責メ方ネ、
+					PRINTFORMW コレ……武士ノ妻トシテ、開キ続ケルカラ……ハァ、覚エテオクヨ、永遠ニ……」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣含む・最強・2
+					PRINTFORML 「君、君……アハ、コノ責メ方、私ノ深イ場所モ、別ノ場所モ、両方崩レチャッタネ……ハァ、
+					PRINTFORMW ハァ、コレモ夫婦ノ秘密……エヘヘ、覚エチャウ……」
+				ELSE
+					;恋人・複絶頂・膣含む・最強・3
+					PRINTFORML 「ヤダ、ヤダ、コノ感覚……ンッ、ンンッ、深ク繋ガッテルノニ、別ノ場所モ嬉シイ……アハ、
+					PRINTFORMW 君限定ノ全力ナ快感ヨ、覚エラレル、武士道魂ヲ忘レルクライ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣含む・最強・1
+					PRINTFORML 「ヒッ、ンンッ、ハァァ……日本人、コノ責メ方ハ初耳ヨ～……深イ場所、別ノ場所、複数同時、
+					PRINTFORMW 独特ノ感覚……ハァ、覚エラレル、忘レラレナイ……」
+				ELSEIF A == 1
+					;通常・複絶頂・膣含む・最強・2
+					PRINTFORML 「アァァ、ハァ、ハァ……ナニ、コレ……？　深ク繋ガッテルダケジャナイノ、別ノ場所モ熱イ……
+					PRINTFORMW 日本ハ、女ヲドコマデ責メル国ナノ……？」
+				ELSE
+					;通常・複絶頂・膣含む・最強・3
+					PRINTFORML 「ンー、ンー、ハァ……コノ快感ノ広サ、武士ノ娘ノ私モ、コラエラレナイヨ……日本ノ調教、
+					PRINTFORMW ホント深イ……覚エチャウ、コノ崩壊モ……」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:0 >= 2 || NOWEX:1 >= 2 || NOWEX:2 >= 2 || NOWEX:3 >= 2 || NOWEX:6 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣含む・強・1
+					PRINTFORMW 「ハァァン、ンッ……深イ場所ガ熱イノニ、別ノ場所モぴりぴり……君限定ノ責メ方ネ、エヘヘ……」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣含む・強・2
+					PRINTFORMW 「ヤァ、ンッ、ハァ……アハ、深ク繋ガッテルノニ、ココモ……コノ夫婦ノ快感、覚エラレル……」
+				ELSE
+					;恋人・複絶頂・膣含む・強・3
+					PRINTFORMW 「君ノ手付キ、容赦ナイネ……ンッ、ハァ、深イ場所ト別ノ場所、両方ガ感ジル……ハァ、ハァ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣含む・強・1
+					PRINTFORMW 「ヒッ、ハァ、ンッ……日本ハ深ク責メル文化ナノニ、別ノ場所モ加エルナンテ……過剰ヨ～……」
+				ELSEIF A == 1
+					;通常・複絶頂・膣含む・強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……ナニ、コノ感覚……武士道魂デ耐エテルケド、別ノ場所モ反応シチャウ……」
+				ELSE
+					;通常・複絶頂・膣含む・強・3
+					PRINTFORMW 「アハ、ハァ……ンッ、深イ場所ノ快感ニ、別ノ場所ノ刺激、混ザル……日本ハ多重ヨ……覚エチャウ……」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣含む・通常・1
+					PRINTFORMW 「エヘヘ、達シチャッタネ☆　深イ場所モ、別ノ場所モ、君限定デ……嬉シイ……」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣含む・通常・2
+					PRINTFORMW 「君、容赦ナイ☆　ハァ、深イ場所ト別ノ場所、両方ヨ……武士ノ妻トシテ堪能スル……」
+				ELSE
+					;恋人・複絶頂・膣含む・通常・3
+					PRINTFORMW 「ハァァ、ンッ……深ク繋ガッテルノニ、別ノ場所モ……アハ、覚エチャウヨ☆」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣含む・通常・1
+					PRINTFORMW 「ヤッ、ンッ……コノ多彩ナ責メ方、独特ヨ……日本ハ女ノ反応ヲ全部知リタガル国民ネ……」
+				ELSEIF A == 1
+					;通常・複絶頂・膣含む・通常・2
+					PRINTFORMW 「ハァ、ンッ、ンンッ……深イ場所ト別ノ場所、別々ニ達ストイウ感覚……ヘンナノ……」
+				ELSE
+					;通常・複絶頂・膣含む・通常・3
+					PRINTFORMW 「覚エチャウ、コレモ……ンッ、ハァ、私ノ性質ハ呪イデモアリ、宝物デモアル……」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- 膣を含まない複絶頂 ---
+	ELSE
+		IF NOWEX:0 >= 9 || NOWEX:2 >= 9 || NOWEX:3 >= 9 || NOWEX:6 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣なし・最強・1
+					PRINTFORML 「唇ガ熱イ、胸モ熱イ、お尻ノ穴ノ奥モ熱イ……ハァ、ハァ、ハァ、
+					PRINTFORML 君ハ私ヲ何箇所デ崩スツモリ……？　武士ノ妻ハ陥落シタネ、エヘヘ、嬉シイ陥落ヨ☆
+					PRINTFORMW 覚エラレル、永遠ニ覚エテオクヨ、コノ多彩ナ快感……」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣なし・最強・2
+					PRINTFORML 「アハ、ハァ……ンッ、ココモ、ココモ、ココモ……君ノ責メ方、専門家ネ☆
+					PRINTFORMW 夫婦ノ秘密ノ快感ハ、ホント深イ……武士道魂ガ嬉シイ悲鳴ヲ上ゲテルヨ……ハァ……」
+				ELSE
+					;恋人・複絶頂・膣なし・最強・3
+					PRINTFORML 「ンー、ハァ、ハァ……君限定ノ責メ方ヨ、コレ……乳首モ、お尻ノ穴モ、唇モ、
+					PRINTFORMW ジンジン痺レテル……アハ、覚エラレル、永遠ニ忘レナイ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣なし・最強・1
+					PRINTFORML 「ヒッ、ンンッ、ハァ……ナ、ナニ、コノ責メ方……日本人、女ノ全部ヲ性感帯化スル文化ナノ？
+					PRINTFORMW 武士ノ娘ノ威厳ガ消エチャッタヨ……ハァ、ハァ……」
+				ELSEIF A == 1
+					;通常・複絶頂・膣なし・最強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……ヤダ、ヤダ、コノ感覚……唇モ胸モお尻モ、別々ニ熱イ……日本ノ調教、ホント細工師ノ仕業ヨ……」
+				ELSE
+					;通常・複絶頂・膣なし・最強・3
+					PRINTFORMW 「ヤッ、ハァ……コレモ覚エチャウ、私ノ性質ハ……日本人、コノ責メ方ヲ毎日サセル文化ナノ？　武士道魂ナンテ役立タナイ……」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:0 >= 2 || NOWEX:2 >= 2 || NOWEX:3 >= 2 || NOWEX:6 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣なし・強・1
+					PRINTFORMW 「ハァァン、ンッ、ハァ……唇モ、胸モ、ぴりぴり同時ニ……君限定ノ責メ方、覚エチャウ……」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣なし・強・2
+					PRINTFORMW 「ヤァ、ンッ……乳首モ、お尻ノ穴モ、両方ガ反応スル……武士ノ妻、嬉シイ陥落……」
+				ELSE
+					;恋人・複絶頂・膣なし・強・3
+					PRINTFORMW 「君、上手スギ☆　ハァ、ンッ、複数箇所同時ニ責メラレル感覚、独特ヨ……エヘヘ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣なし・強・1
+					PRINTFORMW 「ヒッ、ンッ、ハァ……日本ハ女ノ快感ヲ広ク開拓スル国民ヨ……乳首モお尻モ、両方ナンテ……」
+				ELSEIF A == 1
+					;通常・複絶頂・膣なし・強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……コノ感覚、武士道魂デ抑エラレナイ……唇モ胸モ、別々ニ……」
+				ELSE
+					;通常・複絶頂・膣なし・強・3
+					PRINTFORMW 「アハ、ハァ……ンッ、覚エチャウ、コノ多彩ナ崩レ方……日本ハ繊細デ過酷ナ国民性ヨ……」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣なし・通常・1
+					PRINTFORMW 「エヘヘ、達シチャウネ☆　唇モ、胸モ、君限定ノ快感ヨ……」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣なし・通常・2
+					PRINTFORMW 「君、ホント☆　ハァ、ンッ、複数箇所、同時ハ独特ノ感覚ネ……」
+				ELSE
+					;恋人・複絶頂・膣なし・通常・3
+					PRINTFORMW 「ハァァ、ンッ……唇モ、お尻モ、ぴくぴく……アハ、覚エチャウ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣なし・通常・1
+					PRINTFORMW 「ヤッ、ンッ……日本ハ広ク責メル文化ヨ……乳首ト唇ト、両方ナンテ……」
+				ELSEIF A == 1
+					;通常・複絶頂・膣なし・通常・2
+					PRINTFORMW 「ハァ、ンッ、ンンッ……コノ複数ノ快感、ヘンナ感ジ……日本ハ深イ国ヨ……」
+				ELSE
+					;通常・複絶頂・膣なし・通常・3
+					PRINTFORMW 「覚エチャウ、コレモ……ンッ、ハァ、私ハ忘レナイ性質ダカラネ……」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+
+;--- 単絶頂（1箇所） ---
+ELSE
+	;--- V（膣）絶頂 ---
+	IF NOWEX:1 > 0
+		IF NOWEX:1 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・膣・最強・1
+					PRINTFORML 「アァァァッ、ンンッ、ハァァ……一番深イ場所、君ノ熱デ満タサレル……コノ感覚、コトバニ表セナイヨ……武士ノ妻トシテ、命ヲ捧ゲル覚悟ハ済ンデルカラ。永遠ニ、永遠ニ覚エテオクヨ。
+					PRINTL
+					PRINTFORMW コレガ女ノ子ノ最深部ノ快楽ナノネ。覚エタコトハ忘レナイ私ノ性質ハ、コンナ瞬間ノタメニアッタノ……」
+				ELSEIF A == 1
+					;恋人・膣・最強・2
+					PRINTFORML 「君、ノ、コレ……一番深イ場所デ、君ガ脈打ッテル……ハァ、ハァ、コノ感覚、夫婦ノ秘密ヨ……
+					PRINTFORML アハ、子供ガデキタラ、私達ノ愛ノ証ネ。覚エチャウ、コノ熱モ、コノ深サモ、
+					PRINTFORMW 永遠ニ私ノ宝物……」
+				ELSE
+					;恋人・膣・最強・3
+					PRINTFORML 「ハァァ、ンッ、ンンッ……武士ノ妻ハ、コノ深イ場所ヲ君限定ニスルカラネ……エヘヘ、
+					PRINTFORMW 嬉シイ陥落……ハァ、ハァ、コノ温度、永遠ニ覚エルヨ、私ノ性質ハ呪イ兼宝物……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・膣・最強・1
+					PRINTFORML 「ヒッ、ンッ、ンンッ……コ、コレガ女ノ子ノ最深ノ快感……？　ハァ、ハァ、日本人、
+					PRINTFORMW ホント奥深イ国民ネ……武士道魂ナンテ、コノ前デハ無力ヨ……覚エチャウ、コノ崩壊感覚モ……」
+				ELSEIF A == 1
+					;通常・膣・最強・2
+					PRINTFORML 「ハァァァ、ンッ……ナニ、コレ……？　深イ場所ガ、痺レテ、震エテ、止マラナイ……
+					PRINTFORMW 日本ノ調教ハ、女ノ最深部マデ届ク文化ヨ。覚エラレル、私ノ性質デ……」
+				ELSE
+					;通常・膣・最強・3
+					PRINTFORML 「アァ、ハァ、ハァ……コレ、コレガ最高ノ達シ方……？　ンッ、武士ノ娘ノ威厳ハ砕ケタネ。
+					PRINTFORMW 日本人、ホント、深イ国民性……コノ屈服モ私ノ中ニ刻マレル……」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:1 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・膣・強・1
+					PRINTFORMW 「ハァァン、ンッ……深イ場所ニ届ク君ノ熱、独特ノ快感ヨ……エヘヘ、君限定ノ……」
+				ELSEIF A == 1
+					;恋人・膣・強・2
+					PRINTFORMW 「ヤァ、ンッ、ハァ……ココガ、女ノ子ノ秘密ノ場所ナノネ……武士ノ妻トシテ、堪能スル……」
+				ELSE
+					;恋人・膣・強・3
+					PRINTFORMW 「君、ノ、奥マデ……アハ、夫婦ノ深イ繋ガリヨ☆　覚エチャウ、コノ温度……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・膣・強・1
+					PRINTFORMW 「ヒッ、ンッ、ハァ……深イ場所ガ熱イ、ヘンニナル……日本ハ深ク責メル文化ヨ～……」
+				ELSEIF A == 1
+					;通常・膣・強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……コノ深イ場所ノ感覚、独特ヨ……武士道魂モ揺ラグネ……」
+				ELSE
+					;通常・膣・強・3
+					PRINTFORMW 「アハ、ハァ……ンッ、ココハ、ホント特別ナ場所ヨ……覚エチャウ、永遠ニ……」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・膣・通常・1
+					PRINTFORMW 「エヘヘ、達シチャッタ☆　深イ場所デ感ジルノ、嬉シイ……」
+				ELSEIF A == 1
+					;恋人・膣・通常・2
+					PRINTFORMW 「君ノせいヨ☆　ハァ、ンッ、ココハ君限定ノ場所ヨ……」
+				ELSE
+					;恋人・膣・通常・3
+					PRINTFORMW 「ハァァ、ンッ……深ク繋ガル感覚、夫婦ノ証ヨ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・膣・通常・1
+					PRINTFORMW 「ヤッ、ンッ……日本ハ深ク責メル文化ナノ……？　覚エラレル……」
+				ELSEIF A == 1
+					;通常・膣・通常・2
+					PRINTFORMW 「ハァ、ンッ、ンンッ……深イ場所ガぴくぴく……ヘンナ感覚……」
+				ELSE
+					;通常・膣・通常・3
+					PRINTFORMW 「覚エチャウ、コノ感覚……ンッ、ハァ、私ノ性質ハ呪イネ……」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- A（アナル）絶頂 ---
+	ELSEIF NOWEX:2 > 0
+		IF NOWEX:2 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・アナル・最強・1
+					PRINTFORML 「アァァッ、ンッ、ハァ、ハァ……お尻ノ穴ノ奥、ジンジン痺レテ止マラナイ……
+					PRINTFORML コレガ二ツ目ノ穴ノ最高潮ナノネ……武士ノ妻トシテ、ココモ君限定ニスルカラ。エヘヘ、
+					PRINTFORML 嬉シイ陥落ネ……覚エラレル、永遠ニ覚エテオクヨ。コノ場所モ、
+					PRINTFORMW 未来永劫君ノ印デ満タサレル……」
+				ELSEIF A == 1
+					;恋人・アナル・最強・2
+					PRINTFORML 「ハァァァン、ンッ……君限定ノ二ツ目ノ場所、ココマデ開拓スル男ハ君ダケヨ……ハァ、ハァ、
+					PRINTFORMW 夫婦ノ秘密ノ快感、覚エチャウ。武士道魂ハ、コノ快楽ノ前ニ折レルネ。アハ、嬉シイ……」
+				ELSE
+					;恋人・アナル・最強・3
+					PRINTFORML 「ヤァ、ンッ、ハァ……お尻ノ穴ノ奥モ性感帯ニサレチャッタ……エヘヘ、君限定ノ印ネ。
+					PRINTFORMW 覚エテオクヨ、永遠ニ。コノ二ツ目ノ深イ場所、君以外ニハ絶対ニ知ラレタクナイ秘密ヨ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・アナル・最強・1
+					PRINTFORML 「ヒッ、ンッ、ンンッ、ハァ……ナニ、コレ……お尻ノ穴ノ奥、ジンジンスル……
+					PRINTFORMW 日本ハ女ノ二ツ目ノ穴マデ性感帯化スル文化ナノ？　武士ノ娘ノ威厳ハ消エチャッタネ……」
+				ELSEIF A == 1
+					;通常・アナル・最強・2
+					PRINTFORML 「アァァ、ハァ、ハァ……コ、コレモ調教ノ到達点……？　ンッ、お尻ノ穴ノ深イ場所、痺レル……
+					PRINTFORMW 日本人、ホント、女ヲ全部開拓スル国民性ヨ……」
+				ELSE
+					;通常・アナル・最強・3
+					PRINTFORMW 「ハァァ、ンー、ンンッ……コレモ覚エチャウ、私ノ性質ノせいヨ……お尻モ快感ノ場所ニナルナンテ、私ノ故郷ニハナイ感覚……」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:2 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・アナル・強・1
+					PRINTFORMW 「ハァァン、ンッ、ハァ……お尻ノ穴ノ奥、ジンジン……君限定ノ性感帯ネ☆」
+				ELSEIF A == 1
+					;恋人・アナル・強・2
+					PRINTFORMW 「ヤァ、ンッ……二ツ目ノ場所モ、夫婦ノ秘密ノ快感ヨ……エヘヘ……」
+				ELSE
+					;恋人・アナル・強・3
+					PRINTFORMW 「君、容赦ナイ☆　ハァ、お尻ノ穴ガ、ヘンニナルヨ……武士ノ妻トシテ、堪能ヨ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・アナル・強・1
+					PRINTFORMW 「ヒッ、ンッ、ハァ……お尻モ反応スルナンテ、知ラナカッタ……日本ハ深イ国民ネ……」
+				ELSEIF A == 1
+					;通常・アナル・強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……コノ二ツ目ノ場所ノ快感、独特ヨ……日本ノ調教ノ専門知識ガスゴイ……」
+				ELSE
+					;通常・アナル・強・3
+					PRINTFORMW 「アハ、ハァ……ンッ、お尻ノ穴ノ奥、ジンジンスル……覚エチャウ、永遠ニ……」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・アナル・通常・1
+					PRINTFORMW 「エヘヘ、達シチャッタ☆　お尻ノ穴デ達スルナンテ、夫婦ノ秘密ヨ……」
+				ELSEIF A == 1
+					;恋人・アナル・通常・2
+					PRINTFORMW 「君ノせい☆　ハァ、ンッ、二ツ目ノ場所モ君限定ヨ……」
+				ELSE
+					;恋人・アナル・通常・3
+					PRINTFORMW 「ハァァ、ンッ……お尻ノ穴ノ奥モ、慣レテキタネ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・アナル・通常・1
+					PRINTFORMW 「ヤッ、ンッ……お尻モ快感スルナンテ、初耳ヨ……」
+				ELSEIF A == 1
+					;通常・アナル・通常・2
+					PRINTFORMW 「ハァ、ンッ、ンンッ……お尻ノ穴ガぴくぴく……ヘンナ感ジ……」
+				ELSE
+					;通常・アナル・通常・3
+					PRINTFORMW 「覚エチャウ、コレモ……ンッ、ハァ、私ノ性質ノせい……」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- C（クリ）絶頂 ---
+	ELSEIF NOWEX:0 > 0
+		IF NOWEX:0 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・クリ・最強・1
+					PRINTFORML 「アァァッ、ンンッ、ハァ、ハァ……コノ小サナ突起ガ、私ノ全部ノ弱点ヨ……君ハ知ッテルネ、
+					PRINTFORML ココヲ責メレバ私ガ崩レルッテ。武士ノ妻ノ威厳モ、コノ場所ニハ無効ヨ……エヘヘ、
+					PRINTFORMW 君限定ノ弱点、永遠ニ覚エテオクヨ。コノピリット痺レル感覚モ、君ノ指モ、永遠ニ……」
+				ELSEIF A == 1
+					;恋人・クリ・最強・2
+					PRINTFORML 「ハァァン、ヤァ、ンッ……ココ、コノ小サナ場所ガ、女ノ子ノ最高ノ弱点ナノ……ハァ、ハァ、
+					PRINTFORML 君限定ノ印ヨ。覚エラレル、夫婦ノ秘密ノ快感ハ、コンナニ繊細ナ場所ニアル……アハ、
+					PRINTFORMW 永遠ニ私ノ宝物……」
+				ELSE
+					;恋人・クリ・最強・3
+					PRINTFORML 「ヒッ、ンッ、ハァ……君ノ指、容赦ナイ……コノ小サナ突起ニ、ココマデ集中サレタラ、私、
+					PRINTFORMW 保タナイヨ……アハ、武士道魂モ無力。覚エチャウ、コノ陥落ノ瞬間モ、永遠ニ私ノ中ニ刻ム……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・クリ・最強・1
+					PRINTFORML 「ヤダ、ヤダ、ココハ……ンッ、ンンッ、ハァ……日本人、女ノ最高ノ弱点ヲ的確ニ責メルネ……
+					PRINTFORMW 武士ノ娘ノ威厳ガ崩レルヨ。覚エラレル、コノ崩壊モ、私ノ性質ハ呪イネ……」
+				ELSEIF A == 1
+					;通常・クリ・最強・2
+					PRINTFORML 「ハァァ、ンー、ハァ、ハァ……コノ小サナ場所ノ快感、独特スギル……
+					PRINTFORMW 日本ノ調教ハ繊細ノ極致ヨ……武士道魂ナンテ、コノ場所ニハ無意味……覚エラレル……」
+				ELSE
+					;通常・クリ・最強・3
+					PRINTFORML 「アァ、ヤッ、ンッ……コノピリッ、ジンジン……日本人ハ、女ノ身体ヲ熟知シスギネ……
+					PRINTFORMW 武士ノ娘ノ私モ、コラエラレナイ。覚エチャウ、コノ崩壊……」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:0 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・クリ・強・1
+					PRINTFORMW 「ハァァン、ンッ……コノ小サナ突起、君限定ノ弱点ヨ……エヘヘ、嬉シイ陥落……」
+				ELSEIF A == 1
+					;恋人・クリ・強・2
+					PRINTFORMW 「ヤァ、ンッ、ハァ……ココヲ責メラレタラ、武士道魂モ無力ネ……」
+				ELSE
+					;恋人・クリ・強・3
+					PRINTFORMW 「君、上手スギ☆　ハァ、ンッ、コノ繊細ナ場所、私ノ秘密ヨ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・クリ・強・1
+					PRINTFORMW 「ヒッ、ンッ、ハァ……コノ突起、敏感スギル……ピリッテ痺レル……」
+				ELSEIF A == 1
+					;通常・クリ・強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……コノ小サナ場所ノ快感、独特ヨ……覚エチャウ……」
+				ELSE
+					;通常・クリ・強・3
+					PRINTFORMW 「アハ、ハァ……ンッ、ココガ女ノ子ノ最大ノ弱点ナノネ……日本ハ的確ヨ……」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・クリ・通常・1
+					PRINTFORMW 「エヘヘ、達シチャッタ☆　コノ小サナ突起ガ、敏感スギル……」
+				ELSEIF A == 1
+					;恋人・クリ・通常・2
+					PRINTFORMW 「君ノせい☆　ハァ、ンッ、ココハ私ノ弱点ヨ……」
+				ELSE
+					;恋人・クリ・通常・3
+					PRINTFORMW 「ハァァ、ンッ……コノ突起ノ快感、独特ヨ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・クリ・通常・1
+					PRINTFORMW 「ヤッ、ンッ……コノ場所デ達スルナンテ、繊細ヨ……」
+				ELSEIF A == 1
+					;通常・クリ・通常・2
+					PRINTFORMW 「ハァ、ンッ、ンンッ……ピリッテ痺レル、ヘンナ感ジ……」
+				ELSE
+					;通常・クリ・通常・3
+					PRINTFORMW 「覚エチャウ、コレモ……ンッ、ハァ、私ノ性質ハ……」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- B（バスト）絶頂 ---
+	ELSEIF NOWEX:3 > 0
+		IF NOWEX:3 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・バスト・最強・1
+					PRINTFORML 「アァァッ、ンンッ、ハァ、ハァ……乳首デ達シタ……コ、コレ、ホントニ……？
+					PRINTFORML 胸ノ二ツノ突起ガ、君ノ指ト舌デ、ココマデ性感帯化サレタネ……武士ノ妻トシテ、
+					PRINTFORMW ココモ君限定ニスルカラ。エヘヘ、嬉シイ陥落、覚エラレル、永遠ニ覚エテオクヨ……」
+				ELSEIF A == 1
+					;恋人・バスト・最強・2
+					PRINTFORML 「ハァァン、ヤァ、ンッ……君ノ口ガ、私ノ胸ヲ独占シテル……アハ、夫婦ノ秘密ノ快感ハ、
+					PRINTFORMW 胸ノ突起ニモ宿ルノネ……覚エラレル、永遠ニ。コノ陥落モ、私ノ性質デ……アハ、嬉シイ……」
+				ELSE
+					;恋人・バスト・最強・3
+					PRINTFORML 「ヤダ、ヤダ、コレ……ンッ、ハァ、胸ガ熱イ、二ツノ突起ガ硬クナリスギ……武士ノ妻トシテモ、
+					PRINTFORMW コノ快感ハ予想外ヨ。エヘヘ、永遠ニ私ノ秘密ネ。覚エテオクヨ、君限定ノ性感帯……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・バスト・最強・1
+					PRINTFORML 「ヒッ、ンッ、ンンッ、ハァ……乳首デ達スルナンテ、ホント？
+					PRINTFORML 日本ハ女ノ全身ヲ性感帯化スル文化ヨ。武士ノ娘ノ威厳、コレモ消エルネ……覚エラレル、
+					PRINTFORMW 私ノ性質デ、忘レラレナイ……」
+				ELSEIF A == 1
+					;通常・バスト・最強・2
+					PRINTFORML 「アァァ、ハァ、ハァ……ヤダ、ヤダ、コノ感覚……日本ノ調教、女ノ胸マデ責メ尽クス文化ナノ？
+					PRINTFORMW 覚エチャウ、コノ陥落モ、私ノ性質ハ呪イ兼宝物ヨ……」
+				ELSE
+					;通常・バスト・最強・3
+					PRINTFORML 「ハァァ、ンー、ハァ……コレモ覚エテシマウ、武士ノ娘ノ私モ……日本人ハ、
+					PRINTFORMW 女ノ身体ノ取扱説明書ヲ持ッテルノ？　ホント、専門家ヨ……」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:3 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・バスト・強・1
+					PRINTFORMW 「ハァァン、ンッ……乳首ガ硬クナリスギ……君限定ノ刺激ヨ☆」
+				ELSEIF A == 1
+					;恋人・バスト・強・2
+					PRINTFORMW 「ヤァ、ンッ、ハァ……胸ガ、ぴりぴり……エヘヘ、夫婦ノ秘密ノ場所……」
+				ELSE
+					;恋人・バスト・強・3
+					PRINTFORMW 「君ノ口、容赦ナイ☆　ハァ、ンッ、胸モ性感帯ヨ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・バスト・強・1
+					PRINTFORMW 「ヒッ、ンッ、ハァ……二ツノ突起、敏感スギル……日本ハ細工師ヨ……」
+				ELSEIF A == 1
+					;通常・バスト・強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……胸デ達スルナンテ、独特ヨ……」
+				ELSE
+					;通常・バスト・強・3
+					PRINTFORMW 「アハ、ハァ……ンッ、乳首ガジンジン……覚エチャウ……」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・バスト・通常・1
+					PRINTFORMW 「エヘヘ、達シチャッタ☆　胸モ性感帯ニナッタネ……」
+				ELSEIF A == 1
+					;恋人・バスト・通常・2
+					PRINTFORMW 「君ノせい☆　ハァ、ンッ、乳首ガぴりぴり……」
+				ELSE
+					;恋人・バスト・通常・3
+					PRINTFORMW 「ハァァ、ンッ……胸ガ反応スル、ヘンナ感覚……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・バスト・通常・1
+					PRINTFORMW 「ヤッ、ンッ……日本ハ胸モ責メル文化ヨ……」
+				ELSEIF A == 1
+					;通常・バスト・通常・2
+					PRINTFORMW 「ハァ、ンッ、ンンッ……乳首ガぴくぴく……」
+				ELSE
+					;通常・バスト・通常・3
+					PRINTFORMW 「覚エチャウ、胸デモ……ンッ、ハァ、コンナ私モ……♪」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- M（マウス・キス）絶頂 ---
+	ELSEIF NOWEX:6 > 0
+		IF NOWEX:6 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・キス・最強・1
+					PRINTFORML 「アァァッ、ンッ、ンンッ、ハァ、ハァ……唇デ、達シタ……ホント？
+					PRINTL
+					PRINTFORML キスダケデ、ココマデ……？
+					PRINTL
+					PRINTFORMW ハァ、君ノ舌、君ノ唾液、君ノ呼吸、全部ガ私ノ口ノ中ニ流レ込ンデ……武士ノ妻トシテ、コノきす、覚エテオクヨ。私ノ故郷ノ挨拶ノきすジャナイ、君限定ノ深イきす、永遠ニ私ノ宝物ヨ……」
+				ELSEIF A == 1
+					;恋人・キス・最強・2
+					PRINTFORML 「ハァァン、ンッ、ちゅっ……ハァ、ハァ……君トノきすデ達スルナンテ、
+					PRINTFORML 女ノ子ノ最高ノ快感ノ一ツヨ……夫婦ノ秘密、覚エラレル。コノ唇ノ温度、君ノ呼吸ノりずむ、
+					PRINTFORMW 永遠ニ私ノ中ニ刻ム。アハ、嬉シイ……」
+				ELSE
+					;恋人・キス・最強・3
+					PRINTFORML 「ヤダ、ヤダ、コレ……ンッ、ハァ、唇ガ熱クテ、痺レテ、止マラナイ……武士ノ妻トシテ、
+					PRINTFORMW コノきす、覚悟ヲ持ッテ受ケ止メルカラ。エヘヘ、覚エチャウ、永遠ニ、未来永劫……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・キス・最強・1
+					PRINTFORML 「ヒッ、ンッ、ンンッ、ハァ……唇デ達スルナンテ、ホント？　日本ノきすハ、
+					PRINTFORML ココマデ深イ感覚ナノ……？　武士ノ娘ノ威厳ガ消エチャッタネ。覚エラレル、コノ陥落、
+					PRINTFORMW 忘レラレナイ……」
+				ELSEIF A == 1
+					;通常・キス・最強・2
+					PRINTFORML 「ハァァァ、ンッ、ンッ……ナニ、コノ感覚……唇ガ熱クテ、息ガデキナクテ、ヘンナ気持チ……
+					PRINTFORMW 日本人、きすガ深イ国民性ヨ。覚エチャウ、コノ崩壊モ……」
+				ELSE
+					;通常・キス・最強・3
+					PRINTFORML 「ハァ、ヤァ、ンッ……コレモ覚エテシマウ、私ノ性質デ……日本ハきすマデ責メル文化ナノ……？
+					PRINTFORMW 武士道魂モ揺ラグネ……ホント、深イ国民……」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:6 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・キス・強・1
+					PRINTFORMW 「ハァァン、ちゅっ……ンッ、ハァ、コノきすデ達スル感覚、独特ヨ……エヘヘ、夫婦ノ秘密……」
+				ELSEIF A == 1
+					;恋人・キス・強・2
+					PRINTFORMW 「ヤァ、ンッ、ハァ……唇ガ、ぴりぴり……君限定ノきすネ……」
+				ELSE
+					;恋人・キス・強・3
+					PRINTFORMW 「君ノ唇、深イネ☆　ハァ、ンッ、武士ノ妻トシテ、堪能ヨ……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・キス・強・1
+					PRINTFORMW 「ヒッ、ンッ、ハァ……唇デ達スルナンテ、初耳ヨ……日本ハきすガ深イ……」
+				ELSEIF A == 1
+					;通常・キス・強・2
+					PRINTFORMW 「ハァァ、ンッ、ンンッ……コノ深イきす、独特ノ快感ヨ……覚エチャウ……」
+				ELSE
+					;通常・キス・強・3
+					PRINTFORMW 「アハ、ハァ……ンッ、唇ガ熱イ……コノきす、永遠ニ覚エラレル……」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・キス・通常・1
+					PRINTFORMW 「エヘヘ、達シチャッタ☆　君ノきす、独特ノ快感ヨ……」
+				ELSEIF A == 1
+					;恋人・キス・通常・2
+					PRINTFORMW 「君ノせい☆　ちゅっ……ハァ、ンッ、唇ガ熱イ……」
+				ELSE
+					;恋人・キス・通常・3
+					PRINTFORMW 「ハァァ、ンッ……君ノ唇、好キヨ……夫婦ノ秘密ノきす……」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・キス・通常・1
+					PRINTFORMW 「ヤッ、ンッ……日本ハきすガ深イ国民ヨ……」
+				ELSEIF A == 1
+					;通常・キス・通常・2
+					PRINTFORMW 「ハァ、ンッ、ンンッ……唇ガぴりぴり……ヘンナ感ジ……」
+				ELSE
+					;通常・キス・通常・3
+					PRINTFORMW 「覚エチャウ、コノきすモ……ンッ、ハァ、私ノ性質ハ……」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+@TRAIN_MESSAGE_B280_38
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%に手を引かれ、放課後の誰もいないラクロス部の用具庫で、二人きり身を寄せ合った
+
+@TRAIN_MESSAGE_B281_38
+	PRINTFORMW %CALLNAME:PLAYER%と%CALLNAME:TARGET%は、放課後の鍵のかかったLL教室で、誰もいないのをいいことに二人きり身を寄せ合った
+
+@TRAIN_MESSAGE_B282_38
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%と、お菓子作りを終えた誰もいない調理室で、甘い匂いに包まれて身を寄せ合った
+
+@TRAIN_MESSAGE_B283_38
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%と、職業体験のメイド喫茶、客の引けた休憩室で二人きり身を寄せ合った
+
+@TRAIN_MESSAGE_B284_38
+	PRINTFORMW %CALLNAME:PLAYER%は%CALLNAME:TARGET%と、放課後の屋上で異国の星空を見上げ、肩を寄せ合った

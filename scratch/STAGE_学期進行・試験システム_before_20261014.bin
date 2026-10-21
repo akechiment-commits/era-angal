@@ -1,0 +1,767 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+;---------------------------------------------------------
+;学期進行・試験システム
+;旧STAGE.ERB（戦闘システム）を学園生活用に全面改修
+;
+;学期進行メニュー
+;	@STAGE_CAPTURE
+@GET_SEMESTER_NAME
+;FLAG:24=学年(1=1年生,2=2年生,3=3年生,4+=卒業)、月で学期名をSTR:10に設定
+LOCAL:9 = DAY / 10 % 12
+IF FLAG:24 >= 4
+	STR:10 = 卒業済み
+ELSEIF LOCAL:9 <= 3
+	STR:10 = {FLAG:24}年 1学期（4～7月）
+ELSEIF LOCAL:9 == 4
+	STR:10 = {FLAG:24}年 夏休み（8月）
+ELSEIF LOCAL:9 <= 8
+	STR:10 = {FLAG:24}年 2学期（9～12月）
+ELSE
+	STR:10 = {FLAG:24}年 3学期（1～3月）
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+;学期進行メインメニュー
+;---------------------------------------------------------
+@STAGE_CAPTURE
+DRAWLINE
+CALL GET_SEMESTER_NAME
+
+;月次定期戦はENDING_CHECK側で毎ターン確実に発火（STAGE_CAPTUREからは削除）
+
+;日変わり判定 → 全キャラ学力Lv再計算（EXP:95と学力素質から動的算出）
+IF DAY != FLAG:208
+	FLAG:208 = DAY
+	REPEAT CHARANUM
+		SIF COUNT == MASTER
+			CONTINUE
+		CALL CALC_ACADEMIC_LEVEL, COUNT
+	REND
+ENDIF
+
+;今月残り日数
+LOCAL:0 = 10 - DAY % 10 - 1
+
+PRINTFORML 【どこへ行く？】
+PRINTFORML 現在: %STR:10%　{DAY:8}月 {DAY:1}日（今月残り{LOCAL:0}日）
+PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}
+PRINTL
+PRINTFORML [0] 教室へ行く（各クラスを訪問）
+PRINTFORML [1] 部室へ行く（各部活の部室を訪問）
+PRINTFORML [2] 委員会室へ行く（各委員会を訪問）
+PRINTFORML [3] ガチャ（カードを引いてキャラを強化）
+PRINTFORML [4] カードコレクション（所持カード確認）
+PRINTFORML [9] 戻る
+PRINTL
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 0
+	CALL LOCATION_SUBMENU_CLASS
+	RETURN RESULT
+ELSEIF RESULT == 1
+	CALL LOCATION_SUBMENU_CLUB
+	RETURN RESULT
+ELSEIF RESULT == 2
+	CALL LOCATION_SUBMENU_COMMITTEE
+	RETURN RESULT
+ELSEIF RESULT == 3
+	CALL GACHA_MAIN
+ELSEIF RESULT == 4
+	CALL CARD_COLLECTION_MAIN
+ELSEIF RESULT == 9
+	RETURN 0
+ELSE
+	GOTO INPUT_LOOP
+ENDIF
+RETURN 0
+
+
+@SCHOOL_LIFE_EVENT
+;---------------------------------------------------------
+; 学校生活イベント（FLAG:24の学期に応じた季節イベント）
+; TFLAG:90 にイベントIDをセットして返す → 口上側で反応可能
+;---------------------------------------------------------
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。
+	RETURN 0
+ENDIF
+
+DRAWLINE
+PRINTFORML 【学校生活イベント】
+
+;--- 月別イベントメニュー（DAY:8=実際の月番号）---
+LOCAL:8 = (DAY / 10 % 12 + 3) % 12 + 1
+IF LOCAL:8 == 4
+	; 4月・入学
+	PRINTL [1] 桜の下で花見をする
+	PRINTL [2] 体験入部に付き合う
+	PRINTL [3] 記念に一緒に写真を撮る
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 101
+		PRINTFORML 満開の桜並木を、ふたりで歩いた。
+		PRINTFORML 花びらが風に舞う中、春の始まりを感じた。
+		CFLAG:TARGET:2 += 3
+		PRINTFORMW 好感度 +3
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 102
+		PRINTFORML 体験入部の会場を一緒に回った。
+		PRINTFORML 色んな部活を見ながら、学校生活の幅が広がった気がした。
+		CFLAG:TARGET:2 += 2
+		EXP:TARGET:93 += 1
+		EXP:TARGET:99 += 1
+		EXP:TARGET:95 += 1
+		PRINTFORMW 好感度 +2、各技能経験 +1
+	ELSEIF LOCAL:0 == 3
+		TFLAG:90 = 103
+		PRINTFORML 君咲学院の入学記念写真を一緒に撮った。
+		PRINTFORML 少し照れながらも、並んで笑った。
+		CFLAG:TARGET:2 += 4
+		PRINTFORMW 好感度 +4
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSEIF LOCAL:8 == 5
+	; 5月・体育祭
+	PRINTL [1] 体育祭の練習を一緒にする
+	PRINTL [2] 応援グッズを手作りする
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 201
+		PRINTFORML 体育祭に向けて、グラウンドで練習した。
+		PRINTFORML 汗をかいて、何かが変わった気がした。
+		CFLAG:TARGET:2 += 3
+		EXP:TARGET:93 += 2
+		PRINTFORMW 好感度 +3、運動技能経験 +2
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 202
+		PRINTFORML 応援グッズをふたりで手作りした。
+		PRINTFORML 不器用でも、完成したときの達成感は本物だった。
+		CFLAG:TARGET:2 += 4
+		PRINTFORMW 好感度 +4
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSEIF LOCAL:8 == 6 || LOCAL:8 == 7
+	; 6～7月・梅雨・七夕
+	PRINTL [1] 七夕に短冊を一緒に書く
+	PRINTL [2] 梅雨の放課後、相合傘で帰る
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 301
+		PRINTFORML 笹の葉に短冊を結んだ。
+		PRINTFORML 隣で何を書いたか、あえて聞かなかった。
+		CFLAG:TARGET:2 += 3
+		PRINTFORMW 好感度 +3
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 302
+		PRINTFORML 雨が降り出した放課後、傘をひとつ分け合った。
+		PRINTFORML 肩が触れそうな距離が、少し気まずくて、でも悪くなかった。
+		CFLAG:TARGET:2 += 5
+		PRINTFORMW 好感度 +5
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSEIF LOCAL:8 == 8
+	; 8月・夏
+	PRINTL [1] 夏祭りに一緒に行く
+	PRINTL [2] 花火を並んで見る
+	PRINTL [3] 海・プールに行く
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 401
+		PRINTFORML 夜店の明かりの中、ふたりで夏祭りを回った。
+		PRINTFORML 人混みに迷わないよう、自然と近くにいた。
+		CFLAG:TARGET:2 += 5
+		PRINTFORMW 好感度 +5
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 402
+		PRINTFORML 夜空に打ち上がる花火を、肩を並べて見上げた。
+		PRINTFORML どちらも何も言わなかったけど、それでよかった。
+		CFLAG:TARGET:2 += 6
+		PRINTFORMW 好感度 +6
+	ELSEIF LOCAL:0 == 3
+		TFLAG:90 = 403
+		PRINTFORML 夏の日差しの中、水辺で思いっきりはしゃいだ。
+		PRINTFORML こんなに笑ったのは久しぶりだった。
+		CFLAG:TARGET:2 += 4
+		EXP:TARGET:93 += 2
+		PRINTFORMW 好感度 +4、運動技能経験 +2
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSEIF LOCAL:8 == 9
+	; 9月・文化祭
+	PRINTL [1] 文化祭の出し物の準備を手伝う
+	PRINTL [2] 文化祭当日、一緒に回る
+	PRINTL [3] 打ち上げに参加する
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 501
+		PRINTFORML 放課後の教室で、文化祭の準備を手伝った。
+		PRINTFORML 慌ただしくても、一緒にやると楽しかった。
+		CFLAG:TARGET:2 += 3
+		EXP:TARGET:99 += 2
+		PRINTFORMW 好感度 +3、表現技能経験 +2
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 502
+		PRINTFORML 文化祭の会場をふたりで歩き回った。
+		PRINTFORML 賑やかな雰囲気に、いつもと違う顔が見えた気がした。
+		CFLAG:TARGET:2 += 5
+		PRINTFORMW 好感度 +5
+	ELSEIF LOCAL:0 == 3
+		TFLAG:90 = 503
+		PRINTFORML 文化祭の打ち上げに混ぜてもらった。
+		PRINTFORML 疲れた顔で笑い合う時間が、何だか特別だった。
+		CFLAG:TARGET:2 += 4
+		PRINTFORMW 好感度 +4
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSEIF LOCAL:8 == 10
+	; 10月・ハロウィン
+	PRINTL [1] ハロウィンの仮装を一緒に考える
+	PRINTL [2] 秋の校庭で紅葉を眺める
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 601
+		PRINTFORML ハロウィンの仮装アイデアをふたりで出し合った。
+		PRINTFORML くだらないことで笑い転げた。
+		CFLAG:TARGET:2 += 4
+		PRINTFORMW 好感度 +4
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 602
+		PRINTFORML 校庭の銀杏が黄色く染まっていた。
+		PRINTFORML ふたりで並んで、しばらく秋の景色を眺めた。
+		CFLAG:TARGET:2 += 3
+		PRINTFORMW 好感度 +3
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSEIF LOCAL:8 == 11
+	; 11月・晩秋
+	PRINTL [1] 文化部の発表会を見に行く
+	PRINTL [2] 帰り道で話しながら帰る
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 701
+		PRINTFORML 文化部の発表会に足を運んだ。
+		PRINTFORML 舞台の上の熱量に、見ているこちらも引き込まれた。
+		CFLAG:TARGET:2 += 3
+		EXP:TARGET:99 += 1
+		PRINTFORMW 好感度 +3、表現技能経験 +1
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 702
+		PRINTFORML 放課後、並んで帰り道を歩いた。
+		PRINTFORML 他愛ない話が、どこまでも続いた。
+		CFLAG:TARGET:2 += 4
+		PRINTFORMW 好感度 +4
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSEIF LOCAL:8 == 12
+	; 12月・クリスマス
+	PRINTL [1] 終業式の後、一緒に帰る
+	PRINTL [2] クリスマスを一緒に過ごす
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 801
+		PRINTFORML 終業式を終えた帰り道、冬の空気が清々しかった。
+		PRINTFORML 年末の少し浮ついた空気の中、ふたりで歩いた。
+		CFLAG:TARGET:2 += 3
+		PRINTFORMW 好感度 +3
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 802
+		PRINTFORML イルミネーションの灯りの中、クリスマスをふたりで過ごした。
+		PRINTFORML この夜のことは、きっとずっと忘れない。
+		CFLAG:TARGET:2 += 7
+		PRINTFORMW 好感度 +7
+	ELSE
+		RETURN 0
+	ENDIF
+
+ELSE
+	; 1～3月（バレンタイン・冬・卒業前）
+	PRINTL [1] バレンタインのチョコを渡す
+	PRINTL [2] ホワイトデーのお返しをする
+	PRINTL [3] 卒業前夜、最後に話す
+	INPUT
+	LOCAL:0 = RESULT
+	IF LOCAL:0 == 1
+		TFLAG:90 = 901
+		PRINTFORML 手作りのチョコを渡した。
+		PRINTFORML 受け取った瞬間の顔が、忘れられない。
+		CFLAG:TARGET:2 += 6
+		PRINTFORMW 好感度 +6
+	ELSEIF LOCAL:0 == 2
+		TFLAG:90 = 902
+		PRINTFORML ホワイトデーのお返しを手渡した。
+		PRINTFORML 少し照れながら「ありがとう」と言い合った。
+		CFLAG:TARGET:2 += 5
+		PRINTFORMW 好感度 +5
+	ELSEIF LOCAL:0 == 3
+		TFLAG:90 = 903
+		PRINTFORML 卒業の前日の夜、最後にふたりで話した。
+		PRINTFORML 言葉が多くなくても、伝わるものがあった気がした。
+		CFLAG:TARGET:2 += 8
+		PRINTFORMW 好感度 +8
+	ELSE
+		RETURN 0
+	ENDIF
+ENDIF
+
+RETURN 1
+
+@PARTNER_MEMORY
+IF TARGET < 0
+	PRINTFORMW パートナーを選んでいません。
+	RETURN 0
+ENDIF
+
+DRAWLINE
+PRINTFORML 【%CALLNAME:TARGET%との思い出】
+PRINTL
+
+;好感度で分岐
+IF CFLAG:TARGET:2 >= 500	; 【TARGET:[好感度]>=500】
+	PRINTFORML %CALLNAME:TARGET%と過ごした日々が走馬灯のように蘇る。
+	PRINTFORML 最初はこんなに仲良くなるとは思わなかった。
+	IF CSTR:TARGET:25 != ""
+		PRINTFORML 部活の%CSTR:TARGET:25%、一緒に笑った瞬間、ふたりきりの時間……。
+	ENDIF
+	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%にとって、かけがえのない存在になっていた。
+	CFLAG:TARGET:2 += 3
+	PRINTFORMW 好感度 +3
+ELSEIF CFLAG:TARGET:2 >= 200	; 【TARGET:[好感度]>=200】
+	PRINTFORML 最近の%CALLNAME:TARGET%とのやりとりが頭に浮かぶ。
+	IF CSTR:TARGET:25 != ""
+		PRINTFORML %CSTR:TARGET:25%での姿、授業中のふとした表情。
+	ENDIF
+	PRINTFORML 一緒にいると自然と笑顔になれる。そういう相手だった。
+	CFLAG:TARGET:2 += 2
+	PRINTFORMW 好感度 +2
+ELSEIF CFLAG:TARGET:2 >= 50	; 【TARGET:[好感度]>=50】
+	PRINTFORML %CALLNAME:TARGET%とのやりとりを振り返ってみる。
+	PRINTFORML まだ知らないことがたくさんある。もっと話してみたいと思った。
+	CFLAG:TARGET:2 += 1
+	PRINTFORMW 好感度 +1
+ELSE
+	PRINTFORML %CALLNAME:TARGET%とはまだそこまで話せていない。
+	PRINTFORML でも、少しずつ距離が縮まっている気がした。
+	PRINTFORMW 好感度は変わらないが、何か芽生えるものがあった。
+ENDIF
+
+WAIT
+RETURN 1
+;---------------------------------------------------------
+;学習状況の表示
+;---------------------------------------------------------
+@SHOW_STUDY_STATUS
+CALL CALC_ACADEMIC_LEVEL, MASTER
+DRAWLINE
+
+IF TARGET >= 0
+	CALL CALC_ACADEMIC_LEVEL, TARGET
+	PRINTFORML （%CALLNAME:TARGET%）  学力：{ABL:88}  学習素質：{ABL:98}  学習経験：{EXP:TARGET:95}
+	PRINT 体力
+	A = BASE:0
+	SIF BASE:0 < 0	; 【[体力]<0】
+		A = 0
+	CALL PRINT_BAR_0, A, MAXBASE:0, 32
+	PRINTFORML ({A}/{MAXBASE:0})
+	PRINT 気力
+	A = BASE:1
+	SIF BASE:1 < 0	; 【[気力]<0】
+		A = 0
+	CALL PRINT_BAR, A, MAXBASE:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
+	PRINTFORML ({A}/{MAXBASE:1})
+ENDIF
+
+PRINTFORML （%CALLNAME:MASTER%）  学力：{ABL:MASTER:88}  学習素質：{ABL:MASTER:98}  学習経験：{EXP:MASTER:95}
+PRINT 体力
+A = BASE:MASTER:0
+SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
+	A = 0
+CALL PRINT_BAR_0, A, MAXBASE:MASTER:0, 32
+PRINTFORML ({A}/{MAXBASE:MASTER:0})
+PRINT 気力
+A = BASE:MASTER:1
+SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
+	A = 0
+CALL PRINT_BAR, A, MAXBASE:MASTER:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
+PRINTFORML ({A}/{MAXBASE:MASTER:1})
+
+DRAWLINE
+RETURN 1
+
+;---------------------------------------------------------
+;学期試験処理
+;---------------------------------------------------------
+@TAKE_EXAM
+; RETURN 1=中間試験合格、2=期末試験合格、3=不合格（追試へ）
+PRINTL 
+
+;試験名決定（TFLAG:83 0=中間 1=期末）
+IF TFLAG:83 == 0
+	STR:0 = 中間試験
+ELSE
+	STR:0 = 期末試験
+ENDIF
+
+CALL GET_SEMESTER_NAME
+PRINTFORML ＝＝＝ %STR:10% %STR:0% ＝＝＝
+PRINTL 
+
+;試験スコア計算（学力を事前に自動算出）
+CALL CALC_ACADEMIC_LEVEL, MASTER
+CALL GET_EXAM_SCORE
+
+;難易度による合格ラインの調整
+;合格ライン（学年が進むほど難化: 1年=45, 2年=55, 3年=65）
+LOCAL:5 = 35 + FLAG:24 * 10
+
+;ランダム変動（±10点）
+A = RAND:21 - 10
+P += A
+
+;パートナーがいれば勉強を教えてもらえるボーナス
+IF TARGET >= 0
+	;パートナーの学力で補正
+	CALL CALC_ACADEMIC_LEVEL, TARGET
+	LOCAL:3 = ABL:TARGET:88 / 20
+	;好感度でさらに補正
+	IF CFLAG:2 >= 500	; 【[好感度]>=500】
+		LOCAL:3 += 10
+	ELSEIF CFLAG:2 >= 200	; 【[好感度]>=200】
+		LOCAL:3 += 5
+	ELSEIF CFLAG:2 >= 50	; 【[好感度]>=50】
+		LOCAL:3 += 2
+	ENDIF
+	P += LOCAL:3
+	PRINTFORML %CALLNAME:TARGET%が勉強を手伝ってくれた（+{LOCAL:3}点）
+ENDIF
+
+SIF P < 0
+	P = 0
+SIF P > 100
+	P = 100
+
+;結果表示
+PRINTFORML あなたの得点：{P}点（合格ライン：{LOCAL:5}点）
+	;パートナーとの試験結果記録
+	IF TARGET >= 1 && TARGET < CHARANUM
+		CFLAG:TARGET:1272 = P
+		SIF P > CFLAG:TARGET:1271	; 【TARGET:[最高試験得点]】
+			CFLAG:TARGET:1271 = P
+	ENDIF
+PRINTL 
+
+;気力消費（試験は疲れる）
+BASE:MASTER:1 -= 100
+
+;--- 学期の区切り：長期学習経験の忘却(減衰)＋今学期勉強量のリセット ---
+;過去の貯金だけで合格できないよう、試験のたびに学習経験を約1割忘れ、今学期分は0に戻す
+EXP:MASTER:95 -= EXP:MASTER:95 / 10
+SIF EXP:MASTER:95 < 0	; 【MASTER:[学習経験]<0】
+	EXP:MASTER:95 = 0
+FLAG:210 = 0
+
+;合否判定
+IF P >= LOCAL:5
+	;合格
+	PRINTFORML ＊＊＊ 合格！ ＊＊＊
+	IF P >= LOCAL:5 + 30
+		PRINTFORML 素晴らしい成績です！クラスでもトップクラスの点数でした
+		SOURCE:18 = 500
+		SOURCE:5 = 200
+	ELSEIF P >= LOCAL:5 + 15
+		PRINTFORML なかなかの好成績です
+		SOURCE:18 = 300
+		SOURCE:5 = 100
+	ELSE
+		PRINTFORML ギリギリですが、合格は合格です
+		SOURCE:18 = 150
+		SOURCE:5 = 50
+	ENDIF
+	
+	;学習経験ボーナス（学期で微増）
+	LOCAL:9 = DAY / 10 % 12
+	IF LOCAL:9 <= 3
+		B = 3
+	ELSEIF LOCAL:9 <= 8
+		B = 4
+	ELSE
+		B = 5
+	ENDIF
+	PRINTFORML %EXPNAME:95%+{B}
+	EXP:MASTER:95 += B
+	SIF TARGET >= 0
+		EXP:95 += B
+	
+	;好感度ボーナス
+	IF TARGET >= 0
+		TFLAG:30 += 5
+	ENDIF
+	
+	;試験クリア処理（FLAG:27=ビットマスク bit0=中間1,bit1=期末1,bit2=中間2,bit3=期末2,bit4=試験3）
+	IF TFLAG:83 == 0
+		;中間試験合格
+		FLAG:27 |= TFLAG:84
+		IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
+			LOCAL:7 = 1
+			SIF P >= LOCAL:5 + 30
+				LOCAL:7 = 2
+			TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(LOCAL:7)
+		ENDIF
+		PRINTFORMW 中間試験に合格！後半戦もしっかり頑張ろう。
+		RETURN 1
+	ELSE
+		;期末試験合格
+		FLAG:27 |= TFLAG:84
+		CALL SEMESTER_DECK_RESULT
+		CALL GET_SEMESTER_NAME
+		IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
+			LOCAL:7 = 1
+			SIF P >= LOCAL:5 + 30
+				LOCAL:7 = 2
+			TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(LOCAL:7)
+		ENDIF
+		PRINTFORMW 期末試験に合格！次のステージへ！
+		RETURN 2
+	ENDIF
+ELSE
+	;不合格
+	PRINTFORML ……不合格
+	IF P < LOCAL:5 - 20
+		PRINTFORML かなり厳しい結果です。もっと勉強が必要でしょう
+	ELSE
+		PRINTFORML もう少しで合格でした。次は頑張りましょう
+	ENDIF
+	IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
+		TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(0)
+	ENDIF
+	SOURCE:18 = 30
+	
+	;不合格でも経験値は少し入る
+	B = 1
+	PRINTFORML %EXPNAME:95%+{B}
+	EXP:MASTER:95 += B
+	SIF TARGET >= 0
+		EXP:95 += B
+	
+	;好感度少し下がる
+	SIF TARGET >= 0
+		TFLAG:30 -= 2
+
+	;--- 不合格ペナルティ：ゲームオーバーではなく追試期間に入る ---
+	;追試期間中は女の子と過ごしたり部活ができず、自習で挽回する
+	FLAG:211 = 1
+	PRINTFORMW 追試になってしまった……。自習で学力を上げてから「追試を受ける」で受け直そう。それまでは女の子と過ごしたり、部活に出ることはできない。
+ENDIF
+
+PRINTW 
+
+RETURN 3
+
+;---------------------------------------------------------
+;試験スコア計算
+;結果はPに格納（0～100の範囲目安）
+;ABL:88は学習素質・学習経験から自動算出済み（CALC_ACADEMIC_LEVEL参照）
+;---------------------------------------------------------
+@GET_EXAM_SCORE
+P = 0
+
+;--- 学力＝「長期の基礎学力」＋「今学期の勉強量」のハイブリッド ---
+;基礎成分（学習素質ABL:98＋長期の学習経験EXP:95）。上限45 ≒ 全体の約4割
+LOCAL:0 = 20 + ABL:MASTER:98 / 4 + EXP:MASTER:95 / 12
+SIF LOCAL:0 > 45
+	LOCAL:0 = 45
+;今学期の勉強成分（FLAG:210）。上限60 ≒ 全体の約6割。試験のたびに0へリセットされる
+LOCAL:1 = FLAG:210 * 2
+SIF LOCAL:1 > 60
+	LOCAL:1 = 60
+P = LOCAL:0 + LOCAL:1
+
+;知識技能(ABL:95)の小補正（上限10）
+LOCAL:2 = ABL:MASTER:95
+SIF LOCAL:2 > 10
+	LOCAL:2 = 10
+SIF LOCAL:2 > 0
+	P += LOCAL:2
+
+;上限
+SIF P > 100
+	P = 100
+
+RETURN 1
+
+;---------------------------------------------------------
+;学力の自動算出（学習素質 + 学習経験 → ABL:88にセット）
+;ARG:0 = キャラインデックス（例: CALL CALC_ACADEMIC_LEVEL, MASTER）
+;---------------------------------------------------------
+@CALC_ACADEMIC_LEVEL(ARG)
+LOCAL:0 = TARGET
+TARGET = ARG:0
+; 学力は学習適性・学習経験から算出し、購入分(CFLAG:88)を加算する
+LOCAL:1 = ABL:TARGET:98 + EXP:TARGET:95 * ABL:TARGET:98 / 500
+IF CFLAG:TARGET:88 == 0 && ABL:TARGET:88 > LOCAL:1	; 【TARGET:[学力]】
+	; 既存セーブの購入済み分を初回計算時に取り込む
+	CFLAG:TARGET:88 = ABL:TARGET:88 - LOCAL:1
+ENDIF
+ABL:TARGET:88 = LOCAL:1 + CFLAG:TARGET:88
+TARGET = LOCAL:0
+RETURN 1
+
+;---------------------------------------------------------
+;以下、旧戦闘システムの関数（互換性のため残置）
+;emuera.configの設定により呼び出されなければ無視される
+;---------------------------------------------------------
+
+;---------------------------------------------------------
+;学期末試験 自動発動版
+;ENDING_CHECK(日数切れ)から呼ばれる
+; TAKE_EXAMの結果に応じて処理
+;不合格 → 追試ルートへ
+;---------------------------------------------------------
+@SEMESTER_EXAM_AUTO
+;TFLAG:83: 0=中間試験 1=期末試験
+PRINTL
+CALL GET_SEMESTER_NAME
+IF TFLAG:83 == 0
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　%STR:10% 中間試験の時期になりました！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+ELSE
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+	PRINTFORML 　%STR:10% 期末試験の時期になりました！
+	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
+ENDIF
+WAIT
+
+IF TARGET >= 0
+	IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+		PRINTFORML 保健室で静かに療養している%CALLNAME:TARGET%のことを気にかけつつ、試験会場へと向かった……
+	ELSE
+		TRYCALLFORM CHAR_EXAM_BEFORE_{NO:TARGET}
+	ENDIF
+ENDIF
+CALL TAKE_EXAM
+
+IF RESULT == 2
+	;期末合格 → 次学期（FLAG:24はTAKE_EXAM内で進んでいる）
+	RETURN 1
+ELSEIF RESULT == 1
+	;中間合格 → 後半へ（FLAG:27=1はTAKE_EXAM内で設定済み）
+	RETURN 1
+ELSEIF RESULT == 3
+	; 不合格は追試ルートへ進める
+	RETURN 1
+ELSE
+	; 想定外の戻り値 → バッドエンド
+	PRINTFORML
+	IF TFLAG:83 == 0
+		PRINTFORML 中間試験に合格できなかった。
+	ELSE
+		PRINTFORML 期末試験に合格できなかった。
+	ENDIF
+	PRINTFORMW %CALLNAME:MASTER%の学院生活はここで終わりを迎えた……
+	PRINTFORML
+	PRINTFORMW 　　　　　　　　―― Bad Ending（試験不合格）
+	PRINTFORML
+	PRINTFORMW 今の状態を引き継いで、最初からやり直せます。どうしますか？
+	PRINTFORML [0] こんな事はなかった事に！
+	PRINTFORML [1] やり直さない（ゲーム終了）
+	$INPUT_LOOP_FAIL
+	INPUT
+	SIF RESULT != 0 && RESULT != 1
+		GOTO INPUT_LOOP_FAIL
+	IF RESULT == 0
+		PRINTFORMW それでは1日目、1年生の4月に戻ります。
+		REPEAT CHARANUM
+			SIF TALENT:COUNT:134 || MARK:COUNT:90	; 【COUNT:[妊娠]】
+				CFLAG:COUNT:110 -= DAY
+		REND
+		DAY = 0
+		TIME = 0
+		FLAG:24 = 1
+		FLAG:25 = 0
+		FLAG:26 += 1
+		FLAG:27 = 0
+		TARGET = -1
+		ASSI = -1
+		CALL START_PARTNER_SELECT
+	ELSEIF RESULT == 1
+		PRINTFORMW お疲れ様でした。
+		QUIT
+	ENDIF
+ENDIF
+RETURN 1
+
+;---------------------------------------------------------
+;追試期間中の自習（ショップの[103]から呼ばれる）
+;一人で黙々と勉強し、今学期の勉強量を稼ぎつつ追試回数を消化する
+;---------------------------------------------------------
+@MAKEUP_STUDY
+PRINTL
+PRINTFORMW %CALLNAME:MASTER%は追試に向けて、ひとり黙々と自習した。
+;今学期の勉強量(FLAG:210)を加算（1自習=1ターンぶん、平均5前後）
+A = RAND:3 + 4
+FLAG:210 += A
+EXP:MASTER:95 += 1
+PRINTFORML 今学期の勉強+{A}（%EXPNAME:95%も少し増えた）
+;体力・気力を消費
+BASE:MASTER:0 -= 30
+BASE:MASTER:1 -= 50
+;現在の学力での追試見込み点を表示
+CALL CALC_ACADEMIC_LEVEL, MASTER
+CALL GET_EXAM_SCORE
+LOCAL:5 = 35 + FLAG:24 * 10
+PRINTFORML 今の学力なら、追試はおよそ {P} 点の見込み（合格ライン {LOCAL:5} 点）
+SIF P >= LOCAL:5
+	PRINTFORML → そろそろ「追試を受ける」で合格できそうだ！
+RETURN 1
+
+;---------------------------------------------------------
+;追試を受ける（ショップの[109]から呼ばれる）
+;現在の学力が合格ラインに届いていれば合格し、追試モードを抜ける
+;---------------------------------------------------------
+@TAKE_MAKEUP_EXAM
+PRINTL
+CALL GET_SEMESTER_NAME
+PRINTFORML ＝＝＝ %STR:10% 追試 ＝＝＝
+PRINTL
+CALL CALC_ACADEMIC_LEVEL, MASTER
+CALL GET_EXAM_SCORE
+LOCAL:5 = 35 + FLAG:24 * 10
+;気力消費
+BASE:MASTER:1 -= 80
+PRINTFORML あなたの得点：{P}点（合格ライン：{LOCAL:5}点）
+PRINTL
+IF P >= LOCAL:5
+	PRINTFORMW ＊＊＊ 追試に合格！ ＊＊＊　これでまた、いつも通りに過ごせる。
+	FLAG:211 = 0
+	FLAG:210 = 0
+ELSE
+	PRINTFORMW ……まだ合格点に届かない。もっと自習して、学力を上げよう。
+ENDIF
+RETURN 1

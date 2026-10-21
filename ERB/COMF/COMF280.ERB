@@ -9,19 +9,40 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;プレイヤーのみ（アシスタントプレイ中は使用不可）
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
+	RETURN 0
+;ウフフ中じゃないと無理
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;CFLAGがたてられてないと無理
 SIF !GETBIT(CFLAG:TARGET:独自コマンド使用判定, 0)
 	RETURN 0
-;恋人または好感度500以上が必要
-SIF TALENT:153 == 0 && CFLAG:2 < 500
+;合意がないと無理
+SIF TALENT:152 == 0	; 【[合意]なし】
 	RETURN 0
-;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+;恋人または好感度500以上が必要
+SIF TALENT:153 == 0 && CFLAG:2 < 500	; 【[恋人]なし / [好感度]<500】
+	RETURN 0
+;オトコだとダメ
+SIF TALENT:122	; 【[オトコ]】
+	RETURN 0
+;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;バイブ挿入中はV(膣)が塞がり、V系の独自コマンドと被るため不可
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
+	RETURN 0
+;クスコ挿入中はダメ
+SIF TEQUIP:61	; 【[クスコ]使用中】
+	RETURN 0
+;焼芋挿入中は不可
+SIF TEQUIP:71	; 【[焼芋]使用中】
+	RETURN 0
+;触手調教中はダメ
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
+	RETURN 0
+;子供体型持ちは、双方が調教者と調教対象ならOK。それ以外の場合は主人が禁断の知識持ちじゃないとダメ
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;独自コマンドは1回の調教につきいずれか1つだけ
 SIF TFLAG:独自コマンド使用済
@@ -31,11 +52,14 @@ TRYCALLFORM COM_ABLE280_{NO:TARGET}
 SIF RESULT == 0
 	RETURN 0
 ;プレイヤーのみ（アシスタントプレイ中は使用不可）
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
 	RETURN 0
 RETURN 1
 
 @COM280
+;合意なし・ウフフ外の安全ガード
+SIF TALENT:152 == 0 || TFLAG:44 == 0	; 【[合意]なし / 無[ウフフ中]】
+	RETURN 0
 ;この調教で独自コマンドを使用済みにする（1調教1回限り）
 TFLAG:独自コマンド使用済 = 1
 PRINTSL CSTR:80
@@ -67,7 +91,7 @@ TRYCALLFORM COM280_{NO:TARGET}
 ;----- 性交処理（他の性交Ｖコマンドと同等：処女喪失／Ｖ経験／射精）-----
 ;V経験を伴うコマンドのフラグ(処女喪失・処女膜再生対応)
 TFLAG:19 = 1
-SIF TALENT:85 && ASSIPLAY == 0 && EXP:0 == 0
+SIF TALENT:85 && ASSIPLAY == 0 && EXP:0 == 0	; 【[恋慕] / [Ｖ経験]==0 / 調教者:[主人]】
 	TFLAG:20 = 1
 ;Ｖ経験
 EXP:0 += 1
@@ -75,7 +99,7 @@ PRINTL Ｖ経験＋１
 ;既成事実3相当
 TFLAG:200 = 3
 ;射精ゲージ加算→射精チェック(正常位の射精量を流用)
-SIF TALENT:PLAYER:121 || TALENT:PLAYER:122
+SIF TALENT:PLAYER:121 || TALENT:PLAYER:122	; 【PLAYER:[ふたなり] / PLAYER:[オトコ]】
 	BASE:PLAYER:2 += CALC_EJAC(20, PLAYER)
 CALL SAMEN_CHECK
 IF E >= 1

@@ -133,7 +133,7 @@ GOTO LOOP
 ; ガチャ1回実行 ARG:0=ガチャ種別(1-5)
 ; 手順: レア度決定 → キャラ等確率選択 → カード選択
 ;--------------------------------------------------
-@GACHA_PULL(ARG, ARG:1)
+@GACHA_PULL(ARG)
 LOCAL:9 = RAND:10000  ;0～9999
 LOCAL:8 = 0           ;レア度(1=N 2=R 3=HR 4=SR 5=UR 6=MR)
 
@@ -575,10 +575,10 @@ IF LOCAL:13 == 1
 	PRINTFORML このカードが【キラ】になりました！ボーナス大幅アップ！
 ENDIF
 TARGET = LOCAL:8    ;TARGETを元のパートナーに戻す
-;UR以上は常にWAIT（10連中も止まる）、それ以外は10連中スキップ
+;通常は1枚ずつ待機。右クリックでスキップ中でもUR・MRだけは必ず停止する。
 IF LOCAL:1 >= 5
-	WAIT
-ELSEIF ARG:1 == 0
+	FORCEWAIT
+ELSE
 	WAIT
 ENDIF
 RETURN 1
@@ -689,13 +689,13 @@ RETURN
 
 ;--------------------------------------------------
 ; 10連ガチャ ARG:0=ガチャ種別(1-5)
-; GACHA_PULL の第2引数=1で各結果のWAITを省略
+; 各結果は通常WAIT。右クリックスキップ中もUR・MRはFORCEWAITで停止する。
 ;--------------------------------------------------
 @GACHA_PULL_10(ARG)
 DRAWLINE
 PRINTL 【10連ガチャ 開始！】
 REPEAT 10
-	CALL GACHA_PULL, ARG:0, 1
+	CALL GACHA_PULL, ARG:0
 REND
 DRAWLINE
 PRINTL 10連完了！
@@ -713,152 +713,103 @@ DRAWLINE
 PRINTL 【チケット購入】
 PRINTFORML 所持金：${MONEY}
 PRINTL
-PRINTFORML [1] ブロンズチケット1枚       300円  （今月残り{GLOBAL:233}枚）
-PRINTFORML [2] シルバーチケット1枚     1,500円  （今月残り{GLOBAL:234}枚）
-PRINTFORML [3] ゴールドチケット1枚     3,000円  （今月残り{GLOBAL:235}枚）
-PRINTFORML [4] プラチナチケット1枚    10,000円  （今月残り{GLOBAL:236}枚）
-PRINTFORML [11] ブロンズ10枚まとめ     3,000円
-PRINTFORML [12] シルバー10枚まとめ    15,000円
-PRINTFORML [13] ゴールド10枚まとめ    30,000円
-PRINTFORML [14] プラチナ5枚まとめ     50,000円
+PRINTFORML [1] ブロンズチケット1枚　300円（在庫{FLAG:15082}枚）
+PRINTFORML [2] シルバーチケット1枚　1,500円（在庫{FLAG:15083}枚）
+PRINTFORML [3] ゴールドチケット1枚　3,000円（在庫{FLAG:15084}枚）
+PRINTFORML [4] プラチナチケット1枚　10,000円（在庫{FLAG:15085}枚）
+PRINTFORML [11] ブロンズ10枚まとめ　3,000円
+PRINTFORML [12] シルバー10枚まとめ　15,000円
+PRINTFORML [13] ゴールド10枚まとめ　30,000円
+PRINTFORML [14] プラチナ5枚まとめ　50,000円
+SIF FLAG:15082 >= 100
+	PRINTFORML [21] ブロンズ100枚まとめ　30,000円
+SIF FLAG:15083 >= 100
+	PRINTFORML [22] シルバー100枚まとめ　150,000円
+SIF FLAG:15084 >= 100
+	PRINTFORML [23] ゴールド100枚まとめ　300,000円
+SIF FLAG:15085 >= 100
+	PRINTFORML [24] プラチナ100枚まとめ　1,000,000円
+SIF FLAG:15082 >= 1000
+	PRINTFORML [31] ブロンズ1000枚まとめ　300,000円
+SIF FLAG:15083 >= 1000
+	PRINTFORML [32] シルバー1000枚まとめ　1,500,000円
+SIF FLAG:15084 >= 1000
+	PRINTFORML [33] ゴールド1000枚まとめ　3,000,000円
+SIF FLAG:15085 >= 1000
+	PRINTFORML [34] プラチナ1000枚まとめ　10,000,000円
 PRINTL
 PRINTFORML [0] 戻る
 INPUT
 SELECTCASE RESULT
-CASE 1
-	IF GLOBAL:233 < 1
-		PRINTFORMW ブロンズチケットは今月の上限（150枚）に達しています。
-	ELSEIF MONEY < 300
-		PRINTFORMW お金が足りません（300円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 300
-		FLAG:15001 += 1
-		GLOBAL:233 -= 1
-		SAVEGLOBAL
-		PRINTFORMW ブロンズチケットを1枚入手した。（現在{FLAG:15001}枚）
-	ENDIF
-CASE 2
-	IF GLOBAL:234 < 1
-		PRINTFORMW シルバーチケットは今月の上限（30枚）に達しています。
-	ELSEIF MONEY < 1500
-		PRINTFORMW お金が足りません（1,500円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 1500
-		FLAG:15002 += 1
-		GLOBAL:234 -= 1
-		SAVEGLOBAL
-		PRINTFORMW シルバーチケットを1枚入手した。（現在{FLAG:15002}枚）
-	ENDIF
-CASE 3
-	IF GLOBAL:235 < 1
-		PRINTFORMW ゴールドチケットは今月の上限（15枚）に達しています。
-	ELSEIF MONEY < 3000
-		PRINTFORMW お金が足りません（3,000円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 3000
-		FLAG:15003 += 1
-		GLOBAL:235 -= 1
-		SAVEGLOBAL
-		PRINTFORMW ゴールドチケットを1枚入手した。（現在{FLAG:15003}枚）
-	ENDIF
-CASE 4
-	IF GLOBAL:236 < 1
-		PRINTFORMW プラチナチケットは今月の上限（5枚）に達しています。
-	ELSEIF MONEY < 10000
-		PRINTFORMW お金が足りません（10,000円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 10000
-		FLAG:15004 += 1
-		GLOBAL:236 -= 1
-		SAVEGLOBAL
-		PRINTFORMW プラチナチケットを1枚入手した。（現在{FLAG:15004}枚）
-	ENDIF
-CASE 11
-	IF GLOBAL:233 < 10
-		PRINTFORMW ブロンズチケットの今月の残り枚数が10枚未満です（残り{GLOBAL:233}枚）。
-	ELSEIF MONEY < 3000
-		PRINTFORMW お金が足りません（3,000円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 3000
-		FLAG:15001 += 10
-		GLOBAL:233 -= 10
-		SAVEGLOBAL
-		PRINTFORMW ブロンズチケットを10枚入手した。（現在{FLAG:15001}枚）
-	ENDIF
-CASE 12
-	IF GLOBAL:234 < 10
-		PRINTFORMW シルバーチケットの今月の残り枚数が10枚未満です（残り{GLOBAL:234}枚）。
-	ELSEIF MONEY < 15000
-		PRINTFORMW お金が足りません（15,000円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 15000
-		FLAG:15002 += 10
-		GLOBAL:234 -= 10
-		SAVEGLOBAL
-		PRINTFORMW シルバーチケットを10枚入手した。（現在{FLAG:15002}枚）
-	ENDIF
-CASE 13
-	IF GLOBAL:235 < 10
-		PRINTFORMW ゴールドチケットの今月の残り枚数が10枚未満です（残り{GLOBAL:235}枚）。
-	ELSEIF MONEY < 30000
-		PRINTFORMW お金が足りません（30,000円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 30000
-		FLAG:15003 += 10
-		GLOBAL:235 -= 10
-		SAVEGLOBAL
-		PRINTFORMW ゴールドチケットを10枚入手した。（現在{FLAG:15003}枚）
-	ENDIF
+CASE 1, 2, 3, 4
+	CALL TICKET_BUY, RESULT, 1
+CASE 11, 12, 13
+	CALL TICKET_BUY, RESULT - 10, 10
 CASE 14
-	IF GLOBAL:236 < 5
-		PRINTFORMW プラチナチケットの今月の残り枚数が5枚未満です（残り{GLOBAL:236}枚）。
-	ELSEIF MONEY < 50000
-		PRINTFORMW お金が足りません（50,000円必要、現在${MONEY}）。
-	ELSE
-		MONEY -= 50000
-		FLAG:15004 += 5
-		GLOBAL:236 -= 5
-		SAVEGLOBAL
-		PRINTFORMW プラチナチケットを5枚入手した。（現在{FLAG:15004}枚）
-	ENDIF
+	CALL TICKET_BUY, 4, 5
+CASE 21, 22, 23, 24
+	CALL TICKET_BUY, RESULT - 20, 100
+CASE 31, 32, 33, 34
+	CALL TICKET_BUY, RESULT - 30, 1000
 CASEELSE
 	RETURN 0
 ENDSELECT
 GOTO LOOP
 
-;--------------------------------------------------
-; 月次購入上限チェック・上乗せ
-; GLOBAL:232 = 購入制限月 (ゲーム内通算月数+1、0=未初期化。DECK_BATTLEのFLAG:207=DAY/10と同じ基準)
-; GLOBAL:233 = ブロンズ購入可能枚数 (月+150、未使用分は翌月に繰り越し累積)
-; GLOBAL:234 = シルバー購入可能枚数 (月+30、未使用分は翌月に繰り越し累積)
-; GLOBAL:235 = ゴールド購入可能枚数 (月+15、未使用分は翌月に繰り越し累積)
-; GLOBAL:236 = プラチナ購入可能枚数 (月+5、未使用分は翌月に繰り越し累積)
-;--------------------------------------------------
-@TICKET_BUDGET_CHECK
-;GETTIME(実世界の時計)ではなくDAY(ゲーム内経過日数)で月を判定する。
-;GETTIMEだと現実の暦月が変わらない限り購入枠が増えず、ゲーム内で
-;何ヶ月進めても在庫が復活しないバグになっていたため修正。
-;LOCAL:0 = ゲーム内通算月数+1（0を「未初期化」専用の値として空けるため+1）
-LOCAL:0 = DAY / 10 + 1
-
-IF GLOBAL:232 == 0
-	GLOBAL:233 = 150
-	GLOBAL:234 = 30
-	GLOBAL:235 = 15
-	GLOBAL:236 = 5
-	GLOBAL:232 = LOCAL:0
-ELSEIF LOCAL:0 != GLOBAL:232
-	;前回チェック月からの経過月数ぶんだけ上乗せ（前月以前の未使用分はリセットせず繰り越す）
-	LOCAL:1 = LOCAL:0 - GLOBAL:232
-	SIF LOCAL:1 < 1
-		LOCAL:1 = 1
-	GLOBAL:233 += 150 * LOCAL:1
-	GLOBAL:234 += 30 * LOCAL:1
-	GLOBAL:235 += 15 * LOCAL:1
-	GLOBAL:236 += 5 * LOCAL:1
-	GLOBAL:232 = LOCAL:0
+;チケット種別(1～4)と購入枚数。所持金とセーブ別在庫をまとめて検査する。
+@TICKET_BUY(ARG, ARG:1)
+SIF ARG < 1 || ARG > 4 || ARG:1 <= 0
+	RETURN 0
+SELECTCASE ARG
+CASE 1
+	LOCAL:0 = 300
+	LOCALS = ブロンズ
+CASE 2
+	LOCAL:0 = 1500
+	LOCALS = シルバー
+CASE 3
+	LOCAL:0 = 3000
+	LOCALS = ゴールド
+CASE 4
+	LOCAL:0 = 10000
+	LOCALS = プラチナ
+ENDSELECT
+LOCAL:1 = 15081 + ARG
+LOCAL:2 = 15000 + ARG
+LOCAL:3 = LOCAL:0 * ARG:1
+IF FLAG:(LOCAL:1) < ARG:1
+	PRINTFORMW %LOCALS%チケットの在庫が足りません（必要{ARG:1}枚、在庫{FLAG:(LOCAL:1)}枚）。
+	RETURN 0
+ELSEIF MONEY < LOCAL:3
+	PRINTFORMW お金が足りません（{LOCAL:3}円必要、現在${MONEY}）。
+	RETURN 0
 ENDIF
-SAVEGLOBAL
+MONEY -= LOCAL:3
+FLAG:(LOCAL:2) += ARG:1
+FLAG:(LOCAL:1) -= ARG:1
+PRINTFORMW %LOCALS%チケットを{ARG:1}枚入手した。（現在{FLAG:(LOCAL:2)}枚）
+RETURN 1
+
+;セーブ別の月次在庫。未使用分は翌月へ繰り越す。
+;FLAG:15081 = 補充済み通算月数+1（0=旧仕様・未初期化）
+;FLAG:15082～15085 = ブロンズ/シルバー/ゴールド/プラチナ在庫
+@TICKET_BUDGET_CHECK
+LOCAL:0 = DAY / 10 + 1
+IF FLAG:15081 == 0
+	;旧GLOBAL在庫はセーブ別に復元できないため、現在月の基本在庫から開始する。
+	FLAG:15082 = 150
+	FLAG:15083 = 30
+	FLAG:15084 = 15
+	FLAG:15085 = 5
+	FLAG:15081 = LOCAL:0
+ELSEIF LOCAL:0 > FLAG:15081
+	LOCAL:1 = LOCAL:0 - FLAG:15081
+	FLAG:15082 += 150 * LOCAL:1
+	FLAG:15083 += 30 * LOCAL:1
+	FLAG:15084 += 15 * LOCAL:1
+	FLAG:15085 += 5 * LOCAL:1
+	FLAG:15081 = LOCAL:0
+ENDIF
 RETURN 0
 
 ;============================================================

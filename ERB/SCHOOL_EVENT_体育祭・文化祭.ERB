@@ -11,7 +11,7 @@
 
 ;--- 体育祭（秋 Day12-13、TIME:1=60） ---
 ;授業時間(TIME==0)に発動
-IF TIME:1 == 60 && FLAG:15060 != DAY:3 && TIME == 0
+IF TIME:1 == 60 && FLAG:15060 != GET_SCHOOL_YEAR() && TIME == 0
 	PRINTL
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTFORML 　　　　今日は体育祭の日です！
@@ -20,7 +20,7 @@ IF TIME:1 == 60 && FLAG:15060 != DAY:3 && TIME == 0
 	CALL SELECT_EVENT_PARTNER, 54
 	IF RESULT == 0
 		PRINTFORMW 体育祭は見学するだけになった。
-		FLAG:15060 = DAY:3
+		FLAG:15060 = GET_SCHOOL_YEAR()
 	ELSE
 		A = RESULT
 		CALL SETUP_EVENT_TARGET, A
@@ -33,7 +33,7 @@ ENDIF
 
 ;--- 文化祭（秋 Day21-22、TIME:1=61） ---
 ;授業時間(TIME==0)に発動
-IF TIME:1 == 61 && FLAG:15061 != DAY:3 && TIME == 0
+IF TIME:1 == 61 && FLAG:15061 != GET_SCHOOL_YEAR() && TIME == 0
 	PRINTL
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTFORML 　　　　今日は文化祭の日です！
@@ -42,7 +42,7 @@ IF TIME:1 == 61 && FLAG:15061 != DAY:3 && TIME == 0
 	CALL SELECT_EVENT_PARTNER, 55
 	IF RESULT == 0
 		PRINTFORMW 文化祭は見学するだけになった。
-		FLAG:15061 = DAY:3
+		FLAG:15061 = GET_SCHOOL_YEAR()
 	ELSE
 		A = RESULT
 		CALL SETUP_EVENT_TARGET, A
@@ -55,7 +55,7 @@ ENDIF
 
 ;--- クイズ選手権（冬1月 Day10、TIME:1=62） ---
 ;授業時間(TIME==0)に発動
-IF TIME:1 == 62 && FLAG:15064 != DAY:3 && TIME == 0
+IF TIME:1 == 62 && FLAG:15064 != GET_SCHOOL_YEAR() && TIME == 0
 	PRINTL
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTFORML 　　　　今日はクイズ選手権の日です！
@@ -64,7 +64,7 @@ IF TIME:1 == 62 && FLAG:15064 != DAY:3 && TIME == 0
 	CALL SELECT_EVENT_PARTNER, 98
 	IF RESULT == 0
 		PRINTFORMW クイズ選手権は見学するだけになった。
-		FLAG:15064 = DAY:3
+		FLAG:15064 = GET_SCHOOL_YEAR()
 	ELSE
 		A = RESULT
 		CALL SETUP_EVENT_TARGET, A
@@ -77,7 +77,7 @@ ENDIF
 
 ;--- 学力コンテスト（夏7月 Day10、TIME:1=63） ---
 ;授業時間(TIME==0)に発動
-IF TIME:1 == 63 && FLAG:15005 != DAY:3 && TIME == 0
+IF TIME:1 == 63 && FLAG:15005 != GET_SCHOOL_YEAR() && TIME == 0
 	PRINTL
 	PRINTFORML ★━━━━━━━━━━━━━━━━━━━━━━━━★
 	PRINTFORML 　　　　今日は学力コンテストの日です！
@@ -86,7 +86,7 @@ IF TIME:1 == 63 && FLAG:15005 != DAY:3 && TIME == 0
 	CALL SELECT_EVENT_PARTNER, 98
 	IF RESULT == 0
 		PRINTFORMW 学力コンテストは見学するだけになった。
-		FLAG:15005 = DAY:3
+		FLAG:15005 = GET_SCHOOL_YEAR()
 	ELSE
 		A = RESULT
 		CALL SETUP_EVENT_TARGET, A
@@ -108,11 +108,11 @@ RETURN 0
 ;部活で鍛えた技能を使ってクリアを目指すイベント。
 ;年に1回（秋）開催。FLAG:15060/FLAG:51で実施済み管理。
 ;
-;FLAG:15060 = 体育祭を実施した年（DAY:3と比較）
-;FLAG:15061 = 文化祭を実施した年（DAY:3と比較）
+;FLAG:15060 = 体育祭を実施した年度（GET_SCHOOL_YEAR()と比較）
+;FLAG:15061 = 文化祭を実施した年度（GET_SCHOOL_YEAR()と比較）
 ;FLAG:15062 = 体育祭優勝経験フラグ（累計）
 ;FLAG:15063 = 文化祭大成功経験フラグ（累計）
-;FLAG:15064 = 学力コンテストを実施した年（DAY:3と比較）
+;FLAG:15064 = 学力コンテストを実施した年度（GET_SCHOOL_YEAR()と比較）
 ;FLAG:15065 = 学力コンテスト優勝経験フラグ（累計）
 ;
 ;スコア計算:
@@ -136,13 +136,18 @@ DRAWLINE
 PRINTFORML 【体育祭】
 PRINTL
 
-IF FLAG:15060 == DAY:3
+IF FLAG:15060 == GET_SCHOOL_YEAR()
 	PRINTFORMW 今年の体育祭はすでに終わりました。来年また頑張ろう。
 	RETURN 0
 ENDIF
 
 IF TARGET < 0
 	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	PRINTFORMW %CALLNAME:TARGET%は体力が尽き({BASE:TARGET:0})衰弱療養（休み）のため、行事に参加できません。
 	RETURN 0
 ENDIF
 
@@ -156,25 +161,25 @@ LOCAL:0 = ABL:MASTER:93 + ABL:MASTER:54 / 2 + RAND:15
 ;パートナー: 運動技能 + 運動素質/2 + ランダム(0-19)
 LOCAL:1 = ABL:TARGET:93 + ABL:TARGET:54 / 2 + RAND:10
 ;運動部パートナーボーナス
-IF CFLAG:TARGET:25 == 1
+IF CFLAG:TARGET:25 == 1	; 【TARGET:[初期噴乳経験]==1】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%は運動部！チームに勢いをつけた！
 ENDIF
 ;怪力・運動音痴の素質補正
-IF TALENT:MASTER:220
+IF TALENT:MASTER:220	; 【MASTER:[怪力]】
 	LOCAL:0 += 25
 	PRINTFORML ★あなたの怪力が炸裂した！
 ENDIF
-IF TALENT:TARGET:220
+IF TALENT:TARGET:220	; 【TARGET:[怪力]】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%の怪力がチームを引っ張った！
 ENDIF
-IF TALENT:TARGET:221 == 1
+IF TALENT:TARGET:221 == 1	; 【TARGET:[運動音痴]】
 	LOCAL:1 -= 10
 	SIF LOCAL:1 < 0
 		LOCAL:1 = 0
 	PRINTFORML ▼%CALLNAME:TARGET%の運動音痴がチームに響いた…
-ELSEIF TALENT:TARGET:221 == 2
+ELSEIF TALENT:TARGET:221 == 2	; 【TARGET:[運動音痴:強]】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%の運動音痴が昇華した怪力がチームを支えた！
 ENDIF
@@ -209,7 +214,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 300
 	ABL:MASTER:54 += 5
-	SIF ABL:MASTER:54 > 100
+	SIF ABL:MASTER:54 > 100	; 【MASTER:[運動素質]Lv>100】
 		ABL:MASTER:54 = 100
 	FLAG:15062 = FLAG:15062 + 1
 	FLAG:15004 += 5
@@ -224,7 +229,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 100
 	ABL:MASTER:54 += 3
-	SIF ABL:MASTER:54 > 100
+	SIF ABL:MASTER:54 > 100	; 【MASTER:[運動素質]Lv>100】
 		ABL:MASTER:54 = 100
 	FLAG:15004 += 1
 	ITEM:93 += 2
@@ -237,7 +242,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 50
 	ABL:MASTER:54 += 1
-	SIF ABL:MASTER:54 > 100
+	SIF ABL:MASTER:54 > 100	; 【MASTER:[運動素質]Lv>100】
 		ABL:MASTER:54 = 100
 	FLAG:15003 += 5
 	ITEM:93 += 1
@@ -258,26 +263,26 @@ TRYCALLFORM CHAR_SPORTS_FESTIVAL_{NO:TARGET}, LOCAL:6
 WAIT
 
 
-FLAG:15060 = DAY:3
+FLAG:15060 = GET_SCHOOL_YEAR()
 RETURN 1
 
 ;---------------------------------------------------------
-;文化祭の歌唱ボーナス
-;ARG = 対象キャラ。歌唱技能は最大20点、歌唱経験は最大20点。
+;文化祭のステージボーナス
+;ARG = 対象キャラ。表現技能は最大20点、歌唱経験は最大20点。
 ;カラオケや歌の練習で得た経験が、年1回の文化祭で実利に繋がる。
 ;---------------------------------------------------------
-@GET_CULTURE_SINGING_BONUS, ARG
-LOCAL = MIN(ABL:ARG:92 / 2, 20)
+@GET_CULTURE_PERFORMANCE_BONUS, ARG
+LOCAL = MIN(ABL:ARG:94 / 2, 20)
 
-IF EXP:ARG:93 >= EXPLV:5
+IF EXP:ARG:93 >= EXPLV:5	; 【ARG:[歌唱経験]>=EXPLV:5】
 	LOCAL += 20
-ELSEIF EXP:ARG:93 >= EXPLV:4
+ELSEIF EXP:ARG:93 >= EXPLV:4	; 【ARG:[歌唱経験]>=EXPLV:4】
 	LOCAL += 15
-ELSEIF EXP:ARG:93 >= EXPLV:3
+ELSEIF EXP:ARG:93 >= EXPLV:3	; 【ARG:[歌唱経験]>=EXPLV:3】
 	LOCAL += 10
-ELSEIF EXP:ARG:93 >= EXPLV:2
+ELSEIF EXP:ARG:93 >= EXPLV:2	; 【ARG:[歌唱経験]>=EXPLV:2】
 	LOCAL += 6
-ELSEIF EXP:ARG:93 >= EXPLV:1
+ELSEIF EXP:ARG:93 >= EXPLV:1	; 【ARG:[歌唱経験]>=EXPLV:1】
 	LOCAL += 3
 ENDIF
 
@@ -291,7 +296,7 @@ DRAWLINE
 PRINTFORML 【文化祭】
 PRINTL
 
-IF FLAG:15061 == DAY:3
+IF FLAG:15061 == GET_SCHOOL_YEAR()
 	PRINTFORMW 今年の文化祭はすでに終わりました。来年また頑張ろう。
 	RETURN 0
 ENDIF
@@ -301,8 +306,13 @@ IF TARGET < 0
 	RETURN 0
 ENDIF
 
+IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	PRINTFORMW %CALLNAME:TARGET%は体力が尽き({BASE:TARGET:0})衰弱療養（休み）のため、行事に参加できません。
+	RETURN 0
+ENDIF
+
 PRINTFORML %CALLNAME:MASTER%と%CALLNAME:TARGET%は一緒に文化祭の出し物を準備した！
-PRINTFORML 表現技能・表現素質に加え、歌唱技能と歌唱経験もステージの評価に影響する。
+PRINTFORML 表現技能・表現素質と歌唱経験がステージの評価に影響する。
 PRINTL
 
 ;--- スコア計算 ---
@@ -311,32 +321,32 @@ LOCAL:0 = ABL:MASTER:94 + ABL:MASTER:55 / 2 + RAND:15
 ;パートナー: 表現技能 + 表現素質/2 + ランダム(0-19)
 LOCAL:1 = ABL:TARGET:94 + ABL:TARGET:55 / 2 + RAND:10
 ;表現部パートナーボーナス
-IF CFLAG:TARGET:25 == 2
+IF CFLAG:TARGET:25 == 2	; 【TARGET:[初期噴乳経験]==2】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%は表現部！ステージに華を添えた！
 ENDIF
 ;アイドルの素質補正
-IF TALENT:MASTER:223
+IF TALENT:MASTER:223	; 【MASTER:[アイドル]】
 	LOCAL:0 += 25
 	PRINTFORML ★あなたのアイドルオーラがステージを輝かせた！
 ENDIF
-IF TALENT:TARGET:223
+IF TALENT:TARGET:223	; 【TARGET:[アイドル]】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%のアイドルオーラが観客を魅了した！
 ENDIF
 
-;歌唱技能・歌唱経験によるステージボーナス
-CALL GET_CULTURE_SINGING_BONUS, MASTER
+;表現技能・歌唱経験によるステージボーナス
+CALL GET_CULTURE_PERFORMANCE_BONUS, MASTER
 LOCAL:7 = RESULT
 IF LOCAL:7 > 0
 	LOCAL:0 += LOCAL:7
-	PRINTFORML ★あなたの歌唱力が文化祭ステージを盛り上げた！　歌唱ボーナス+{LOCAL:7}
+	PRINTFORML ★あなたの表現力が文化祭ステージを盛り上げた！　ステージボーナス+{LOCAL:7}
 ENDIF
-CALL GET_CULTURE_SINGING_BONUS, TARGET
+CALL GET_CULTURE_PERFORMANCE_BONUS, TARGET
 LOCAL:8 = RESULT
 IF LOCAL:8 > 0
 	LOCAL:1 += LOCAL:8
-	PRINTFORML ★%CALLNAME:TARGET%の歌唱力が観客を惹きつけた！　歌唱ボーナス+{LOCAL:8}
+	PRINTFORML ★%CALLNAME:TARGET%の表現力が観客を惹きつけた！　ステージボーナス+{LOCAL:8}
 ENDIF
 LOCAL:2 = LOCAL:0 + LOCAL:1
 
@@ -369,7 +379,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 300
 	ABL:MASTER:55 += 5
-	SIF ABL:MASTER:55 > 100
+	SIF ABL:MASTER:55 > 100	; 【MASTER:[表現素質]Lv>100】
 		ABL:MASTER:55 = 100
 	FLAG:15063 = FLAG:15063 + 1
 	FLAG:15004 += 5
@@ -384,7 +394,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 100
 	ABL:MASTER:55 += 3
-	SIF ABL:MASTER:55 > 100
+	SIF ABL:MASTER:55 > 100	; 【MASTER:[表現素質]Lv>100】
 		ABL:MASTER:55 = 100
 	FLAG:15004 += 1
 	ITEM:93 += 2
@@ -397,7 +407,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 50
 	ABL:MASTER:55 += 1
-	SIF ABL:MASTER:55 > 100
+	SIF ABL:MASTER:55 > 100	; 【MASTER:[表現素質]Lv>100】
 		ABL:MASTER:55 = 100
 	FLAG:15003 += 5
 	ITEM:93 += 1
@@ -418,7 +428,7 @@ TRYCALLFORM CHAR_CULTURE_FESTIVAL_{NO:TARGET}, LOCAL:6
 WAIT
 
 
-FLAG:15061 = DAY:3
+FLAG:15061 = GET_SCHOOL_YEAR()
 RETURN 1
 
 ;---------------------------------------------------------
@@ -429,13 +439,18 @@ DRAWLINE
 PRINTFORML 【クイズ選手権】
 PRINTL
 
-IF FLAG:15064 == DAY:3
+IF FLAG:15064 == GET_SCHOOL_YEAR()
 	PRINTFORMW 今年のクイズ選手権はすでに終わりました。来年また頑張ろう。
 	RETURN 0
 ENDIF
 
 IF TARGET < 0
 	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	PRINTFORMW %CALLNAME:TARGET%は体力が尽き({BASE:TARGET:0})衰弱療養（休み）のため、行事に参加できません。
 	RETURN 0
 ENDIF
 
@@ -449,16 +464,16 @@ LOCAL:0 = ABL:MASTER:95 + ABL:MASTER:56 / 2 + RAND:15
 ;パートナー: 知識技能(上限100) + 知識素質/2 + RAND:10
 LOCAL:1 = ABL:TARGET:95 + ABL:TARGET:56 / 2 + RAND:10
 ;知識部パートナーボーナス
-IF CFLAG:TARGET:25 == 3
+IF CFLAG:TARGET:25 == 3	; 【TARGET:[初期噴乳経験]==3】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%は知識部！鋭い分析で問題を解き切った！
 ENDIF
 ;霊感の素質補正
-IF TALENT:MASTER:222
+IF TALENT:MASTER:222	; 【MASTER:[霊感]】
 	LOCAL:0 += 20
 	PRINTFORML ★あなたの霊感が答えを導いた！
 ENDIF
-IF TALENT:TARGET:222
+IF TALENT:TARGET:222	; 【TARGET:[霊感]】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%の霊感がクイズの核心を突いた！
 ENDIF
@@ -493,7 +508,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 300
 	ABL:MASTER:56 += 5
-	SIF ABL:MASTER:56 > 100
+	SIF ABL:MASTER:56 > 100	; 【MASTER:[知識素質]Lv>100】
 		ABL:MASTER:56 = 100
 	FLAG:15065 = FLAG:15065 + 1
 	FLAG:15004 += 5
@@ -508,7 +523,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 100
 	ABL:MASTER:56 += 3
-	SIF ABL:MASTER:56 > 100
+	SIF ABL:MASTER:56 > 100	; 【MASTER:[知識素質]Lv>100】
 		ABL:MASTER:56 = 100
 	FLAG:15004 += 1
 	ITEM:93 += 2
@@ -521,7 +536,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 50
 	ABL:MASTER:56 += 1
-	SIF ABL:MASTER:56 > 100
+	SIF ABL:MASTER:56 > 100	; 【MASTER:[知識素質]Lv>100】
 		ABL:MASTER:56 = 100
 	FLAG:15003 += 5
 	ITEM:93 += 1
@@ -542,7 +557,7 @@ TRYCALLFORM CHAR_KNOWLEDGE_CONTEST_{NO:TARGET}, LOCAL:6
 WAIT
 
 
-FLAG:15064 = DAY:3
+FLAG:15064 = GET_SCHOOL_YEAR()
 RETURN 1
 
 ;---------------------------------------------------------
@@ -553,13 +568,18 @@ DRAWLINE
 PRINTFORML 【学力コンテスト】
 PRINTL
 
-IF FLAG:15005 == DAY:3
+IF FLAG:15005 == GET_SCHOOL_YEAR()
 	PRINTFORMW 今年の学力コンテストはすでに終わりました。来年また頑張ろう。
 	RETURN 0
 ENDIF
 
 IF TARGET < 0
 	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
+	RETURN 0
+ENDIF
+
+IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	PRINTFORMW %CALLNAME:TARGET%は体力が尽き({BASE:TARGET:0})衰弱療養（休み）のため、行事に参加できません。
 	RETURN 0
 ENDIF
 
@@ -573,7 +593,7 @@ LOCAL:0 = ABL:MASTER:88 + ABL:MASTER:98 / 2 + RAND:15
 ;パートナー: 学力 + 学力素質/2 + RAND:10
 LOCAL:1 = ABL:TARGET:88 + ABL:TARGET:98 / 2 + RAND:10
 ;知識部パートナーボーナス
-IF CFLAG:TARGET:25 == 3
+IF CFLAG:TARGET:25 == 3	; 【TARGET:[初期噴乳経験]==3】
 	LOCAL:1 += 15
 	PRINTFORML ★%CALLNAME:TARGET%は知識部！試験問題を見事に解き切った！
 ENDIF
@@ -608,7 +628,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 300
 	ABL:MASTER:98 += 5
-	SIF ABL:MASTER:98 > 100
+	SIF ABL:MASTER:98 > 100	; 【MASTER:[学力素質]Lv>100】
 		ABL:MASTER:98 = 100
 	FLAG:15006 = FLAG:15006 + 1
 	FLAG:15004 += 5
@@ -623,7 +643,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 100
 	ABL:MASTER:98 += 3
-	SIF ABL:MASTER:98 > 100
+	SIF ABL:MASTER:98 > 100	; 【MASTER:[学力素質]Lv>100】
 		ABL:MASTER:98 = 100
 	FLAG:15004 += 1
 	ITEM:93 += 2
@@ -636,7 +656,7 @@ IF LOCAL:2 >= LOCAL:3
 	PRINTL
 	CFLAG:TARGET:2 += 50
 	ABL:MASTER:98 += 1
-	SIF ABL:MASTER:98 > 100
+	SIF ABL:MASTER:98 > 100	; 【MASTER:[学力素質]Lv>100】
 		ABL:MASTER:98 = 100
 	FLAG:15003 += 5
 	ITEM:93 += 1
@@ -657,13 +677,13 @@ TRYCALLFORM CHAR_ACADEMIC_CONTEST_{NO:TARGET}, LOCAL:6
 WAIT
 
 
-FLAG:15005 = DAY:3
+FLAG:15005 = GET_SCHOOL_YEAR()
 RETURN 1
 
 ;---------------------------------------------------------
 ; イベント参加キャラ選択
 ; ARG:0 = 関連素質ABL番号（54=運動 / 55=表現 / 98=学力）
-; RESULT = 選択したChara番号(1-71)、0=参加しない
+; RESULT = 選択したChara番号(1-72)、0=参加しない
 ;---------------------------------------------------------
 @SELECT_EVENT_PARTNER, ARG
 TFLAG:100 = 0
@@ -673,33 +693,42 @@ INPUT
 IF RESULT == 0
 	RETURN 0
 ELSEIF RESULT == 1
-	IF TFLAG:100 > 0
+	IF TFLAG:100 > 0	; 【[ページ数]>0】
 		TFLAG:100 -= 1
 	ENDIF
 	GOTO SEP_LOOP
 ELSEIF RESULT == 8
 	IF TARGET >= 1 && TARGET < CHARANUM
+		IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+			PRINTFORMW %CALLNAME:TARGET%は体力が尽き({BASE:TARGET:0})衰弱療養（休み）のため、行事に参加できません。
+			GOTO SEP_LOOP
+		ENDIF
 		RETURN NO:TARGET
 	ENDIF
 	GOTO SEP_LOOP
 ELSEIF RESULT == 9
-	IF TFLAG:100 < 2
+	IF TFLAG:100 < 2	; 【[ページ数]<2】
 		TFLAG:100 += 1
 	ENDIF
 	GOTO SEP_LOOP
 ELSE
 	A = RESULT - 99
-	IF A < 1 || A > 71
+	IF A < 1 || A > 72
 		GOTO SEP_LOOP
 	ENDIF
 	SIF FLAG:(999+A) == 0
 		GOTO SEP_LOOP
+	LOCAL = GETCHARA(A)
+	IF LOCAL >= 0 && BASE:LOCAL:0 <= 0	; 【LOCAL:[体力]<=0】
+		PRINTFORMW %CALLNAME:LOCAL%は体力が尽き({BASE:LOCAL:0})衰弱療養（休み）のため、行事に参加できません。
+		GOTO SEP_LOOP
+	ENDIF
 	RETURN A
 ENDIF
 
 ;---------------------------------------------------------
 ; イベント参加キャラ一覧表示
-; ARG:0 = ページ（0～2: 1-25 / 26-50 / 51-71）
+; ARG:0 = ページ（0～2: 1-25 / 26-50 / 51-72）
 ; ARG:1 = 関連素質ABL番号
 ;---------------------------------------------------------
 @SHOW_EVENT_PARTNER_LIST, ARG, ARG:1
@@ -711,17 +740,30 @@ IF TARGET >= 1 && TARGET < CHARANUM
 	LOCAL:4 = NO:TARGET
 	CSVABL LOCAL:4, ARG:1, 0
 	LOCAL:3 = RESULT
-	PRINTFORML [8]%CSVNAME(LOCAL:4, 0),14,LEFT%（現パートナー・素質:{LOCAL:3}）
+	IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+		SETCOLOR 120, 120, 120
+		PRINTFORML [8]%CSVNAME(LOCAL:4, 0),14,LEFT%（パートナー・療養中のため参加不可）
+		RESETCOLOR
+	ELSE
+		PRINTFORML [8]%CSVNAME(LOCAL:4, 0),14,LEFT%（パートナー・適性:{LOCAL:3}）
+	ENDIF
 	PRINTL
 ENDIF
 LOCAL:2 = 0
-FOR LOCAL, 1, 72
+FOR LOCAL, 1, 73
 	SIF LOCAL <= (25 * ARG) || LOCAL > (25 * (ARG + 1))
 		CONTINUE
 	IF FLAG:(999 + LOCAL)
 		CSVABL LOCAL, ARG:1, 0
 		LOCAL:3 = RESULT
-		PRINTFORM [{LOCAL + 99}]%CSVNAME(LOCAL, 0),14,LEFT%(素質:{LOCAL:3})
+		LOCAL:5 = GETCHARA(LOCAL)
+		IF LOCAL:5 >= 0 && BASE:(LOCAL:5):0 <= 0
+			SETCOLOR 120, 120, 120
+			PRINTFORM [{LOCAL + 99}]%CSVNAME(LOCAL, 0),14,LEFT%(療養中)
+			RESETCOLOR
+		ELSE
+			PRINTFORM [{LOCAL + 99}]%CSVNAME(LOCAL, 0),14,LEFT%(適性:{LOCAL:3})
+		ENDIF
 		LOCAL:2 += 1
 		IF LOCAL:2 % 2 == 0
 			PRINTL
@@ -747,7 +789,7 @@ RETURN
 
 ;---------------------------------------------------------
 ; イベント用TARGETを一時設定
-; ARG:0 = Chara番号(1-71)
+; ARG:0 = Chara番号(1-72)
 ; FLAG:15040 = 元のTARGET登録番号（-1=パートナーなし）
 ; FLAG:15041 = 1なら一時追加済み（復元時にDELCHARAする）
 ;---------------------------------------------------------

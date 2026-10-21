@@ -12,13 +12,20 @@
 SIF TFLAG:DOTRAIN == 0 && TFLAG:CALLTRAIN == 0
 	RETURN 0
 
+;気絶判定：ターン開始時に気絶中（TFLAG:899）の場合、気絶時実行可能コマンド以外は不可
+IF TARGET >= 0 && TFLAG:899	; 【[気絶継続中]】
+	CALL COM_ABLE_FAINT_CHECK, ARG
+	SIF RESULT == 0
+		RETURN 0
+ENDIF
+
 ;炬燵判定
 ;300;一緒に勉強する 320;学食に行く 321;遊びに行く 323;デート 305;掃除当番 315;お散歩する
 ;309;素材探し 310;調合 322;ストリートライブ 367;着衣ローター
 ;363,セックス 365,着衣後背位 366,着衣騎乗位 371,オムツを履かせる
 IF ARG == 300 || ARG == 320 || ARG == 321 || ARG == 323 || ARG == 305 || ARG == 315 || ARG == 309 || ARG == 310 || ARG == 322 || ARG == 363 || ARG == 365 || ARG == 366 || ARG == 367 || ARG == 371
 	;炬燵にあたっていると出られないor炬燵にあたってるとできない
-	SIF TEQUIP:7
+	SIF TEQUIP:7	; 【[炬燵]使用中】
 		RETURN 0
 ENDIF
 
@@ -31,8 +38,10 @@ IF ARG == 9 || ARG == 19 || ARG == 26 || ARG == 27 || ARG == 28 || ARG == 29 || 
 ENDIF
 
 ;REVMODE関係
-IF TFLAG:34
-	IF ARG >= 500 && ARG <= 510
+IF TFLAG:34	; 【[主導権全委任]】
+	IF ARG == 509
+		RETURN 1
+	ELSEIF ARG >= 500 && ARG <= 510
 		LOCAL = REVMODE_CONVERT_PASSIVECOM(PREVCOM, TFLAG:36)
 		SIF REVMODE_ACTIVE_COMABLE(LOCAL, ARG-500)
 			RETURN 1
@@ -41,7 +50,7 @@ IF TFLAG:34
 		RETURN 0
 	ENDIF
 ;REVMODE（非ウフフ時）
-ELSEIF TFLAG:53
+ELSEIF TFLAG:53	; 【[パートナーのターンでのコマンド内容]】
 	IF ARG >= 500 && ARG <= 510
 		LOCAL = PASSIVEMODE_CONVERT_PASSIVECOM(PREVCOM, TFLAG:53)
 		SIF PASSIVEMODE_ACTIVE_COMABLE(LOCAL, ARG-500)
@@ -90,7 +99,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 RETURN 1
 
@@ -101,30 +110,30 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;性器が汚れているとMASTERの場合クンニはできない（調教者が汚れ無視か愛液、母乳のよごれならＯＫ）
-SIF STAIN:3 & 14 && ASSIPLAY == 0 && TALENT:MASTER:64 == 0
+SIF STAIN:3 & 14 && ASSIPLAY == 0 && TALENT:MASTER:64 == 0	; 【MASTER:[汚れ無視]なし / 汚れ:[ヴァギナ] / 調教者:[主人]】
 	RETURN 0
 ;性器が汚れており、汚臭敏感で従順3以下のASSIの場合クンニはできない（調教者が汚れ無視か愛液、母乳のよごれならＯＫ）
-IF STAIN:3 & 14 && ASSIPLAY
-	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0
+IF STAIN:3 & 14 && ASSIPLAY	; 【汚れ:[ヴァギナ] / 調教者:[助手]】
+	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0	; 【ASSI:[汚臭敏感] / ASSI:[汚れ無視]なし / ASSI:[親密]Lv<=3】
 		RETURN 0
 ENDIF
 ;調教者が猫舌だとできない
-SIF TALENT:PLAYER:54
+SIF TALENT:PLAYER:54	; 【PLAYER:[猫舌]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -135,11 +144,11 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合アナル愛撫はできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -151,21 +160,21 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && TEQUIP:53
+SIF ((FLAG:61 & 1) == 0) && TEQUIP:53	; 【[撮影中]使用中】
 	RETURN 0
 ;従順3以下・レズっ気3以下のASSIの場合自慰はできない（小悪魔ならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0	; 【ASSI:[小悪魔]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -176,30 +185,30 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;性器が汚れているとMASTERの場合フェラするはできない（調教者が汚れ無視か愛液、Ｐ、母乳のよごれならＯＫ）
-SIF STAIN:2 & 12 && ASSIPLAY == 0 && TALENT:MASTER:64 == 0
+SIF STAIN:2 & 12 && ASSIPLAY == 0 && TALENT:MASTER:64 == 0	; 【MASTER:[汚れ無視]なし / 汚れ:[ペニス] / 調教者:[主人]】
 	RETURN 0
 ;性器が汚れており、汚臭敏感で従順3以下のASSIの場合フェラはできない（調教者が汚れ無視か愛液、Ｐ、母乳のよごれならＯＫ）
-IF STAIN:2 & 12 && ASSIPLAY
-	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0
+IF STAIN:2 & 12 && ASSIPLAY	; 【汚れ:[ペニス] / 調教者:[助手]】
+	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0	; 【ASSI:[汚臭敏感] / ASSI:[汚れ無視]なし / ASSI:[親密]Lv<=3】
 		RETURN 0
 ENDIF
 ;調教者が猫舌だとできない
-SIF TALENT:PLAYER:54
+SIF TALENT:PLAYER:54	; 【PLAYER:[猫舌]】
 	RETURN 0
 ;オトコかふたなりじゃないとダメ
-SIF TALENT:121 == 0 && TALENT:122 == 0
+SIF TALENT:121 == 0 && TALENT:122 == 0	; 【[ふたなり]なし / [オトコ]なし】
 	RETURN 0
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;オナホール使用中はダメ
-SIF TEQUIP:17
+SIF TEQUIP:17	; 【[オナホール]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -210,10 +219,10 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 RETURN 1
 
@@ -224,22 +233,22 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;口が汚れているとダメ（調教者が汚れ無視か愛液、母乳のよごれならＯＫ）
-SIF STAIN:0 & 14 && TALENT:PLAYER:64 == 0
+SIF STAIN:0 & 14 && TALENT:PLAYER:64 == 0	; 【PLAYER:[汚れ無視]なし / 汚れ:[口]】
 	RETURN 0
 ;対象か調教者が猫舌だとできない
-SIF  TALENT:54 || TALENT:PLAYER:54
+SIF  TALENT:54 || TALENT:PLAYER:54	; 【[猫舌] / PLAYER:[猫舌]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -250,7 +259,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 RETURN 1
 
@@ -261,18 +270,18 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合指挿入れはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -283,45 +292,45 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルが汚れており、汚臭敏感で従順3以下のASSIの場合クンニはできない（調教者が汚れ無視か愛液、母乳のよごれならＯＫ）
-IF STAIN:4 & 14 && ASSIPLAY
-	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0
+IF STAIN:4 & 14 && ASSIPLAY	; 【汚れ:[アナル] / 調教者:[助手]】
+	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0	; 【ASSI:[汚臭敏感] / ASSI:[汚れ無視]なし / ASSI:[親密]Lv<=3】
 		RETURN 0
 ENDIF
 ;調教者が猫舌だとできない
-SIF TALENT:PLAYER:54
+SIF TALENT:PLAYER:54	; 【PLAYER:[猫舌]】
 	RETURN 0
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;氷柱挿入中は不可
-SIF TEQUIP:79
+SIF TEQUIP:79	; 【[氷柱]使用中】
 	RETURN 0
 RETURN 1
 
@@ -332,13 +341,13 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:0 == 0 && NOITEM == 0
+SIF ITEM:0 == 0 && NOITEM == 0	; 【アイテム:[ローター]==0】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -349,40 +358,40 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1)
+SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1)	; 【[Ｖ経験]<EXPLV:1】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 1
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;調教対象が子供体型の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)
+SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:1 == 0 && NOITEM == 0
+SIF ITEM:1 == 0 && NOITEM == 0	; 【アイテム:[バイブ]==0】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合バイブはできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合バイブはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -394,21 +403,21 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:2 == 0 && NOITEM == 0
 	RETURN 0
 ;ASSIの場合、技巧3以上かサドじゃないと使えない。
-IF ASSIPLAY
-	SIF ABL:ASSI:2 < 3 && TALENT:ASSI:83 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 < 3 && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[技巧]Lv<3】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 RETURN 1
 
@@ -419,46 +428,46 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 1
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:3 == 0 && NOITEM == 0
+SIF ITEM:3 == 0 && NOITEM == 0	; 【アイテム:[アナルバイブ]==0】
 	RETURN 0
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合アナルバイブはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;浣腸＋アナルプラグ使用中はダメ
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 RETURN 1
 
@@ -469,31 +478,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:14
+SIF TEQUIP:14	; 【[クリキャップ]使用中】
 	RETURN 1
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:7 == 0 && NOITEM == 0
 	RETURN 0
 ;オトコやふたなりはダメ
-SIF TALENT:121 == 1 || TALENT:122 == 1
+SIF TALENT:121 == 1 || TALENT:122 == 1	; 【[ふたなり] / [オトコ]】
 	RETURN 0
 ;ASSIの場合、技巧3以上じゃないと使えない。
-IF ASSIPLAY
-	SIF ABL:ASSI:2 < 3
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 < 3	; 【ASSI:[技巧]Lv<3】
 		RETURN 0
 ENDIF
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 RETURN 1
 
@@ -504,30 +513,30 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:8 == 0 && NOITEM == 0
 	RETURN 0
 ;搾乳器使用中は不可
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 0
 ;サラシ装着中はダメ
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	RETURN 0
 ;ASSIの場合、技巧3以上じゃないと使えない。
-IF ASSIPLAY
-	SIF ABL:ASSI:2 < 3
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 < 3	; 【ASSI:[技巧]Lv<3】
 		RETURN 0
 ENDIF
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 RETURN 1
 
@@ -538,46 +547,46 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 1
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:17 == 0 && NOITEM == 0
 	RETURN 0
 ;母乳体質でないと使えない
-SIF TALENT:130 == 0
+SIF TALENT:130 == 0	; 【[母乳体質]なし】
 	RETURN 0
 ;クリップローター使用中は不可
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 0
 ;サラシ装着中はダメ
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	RETURN 0
 ;Ｂ感度2以下はダメ
-SIF ABL:TARGET:14 <= 2 
+SIF ABL:TARGET:14 <= 2	; 【TARGET:[Ｂ感覚]Lv<=2】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;ASSIの場合、技巧3以上じゃないと使えない。
-IF ASSIPLAY
-	SIF ABL:ASSI:2 < 3
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 < 3	; 【ASSI:[技巧]Lv<3】
 		RETURN 0
 ENDIF
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -588,31 +597,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:17
+SIF TEQUIP:17	; 【[オナホール]使用中】
 	RETURN 1
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:12 == 0 && NOITEM == 0
+SIF ITEM:12 == 0 && NOITEM == 0	; 【アイテム:[オナホール]==0】
 	RETURN 0
 ;オトコやふたなりじゃないとダメ
-SIF TALENT:121 == 0 && TALENT:122 == 0
+SIF TALENT:121 == 0 && TALENT:122 == 0	; 【[ふたなり]なし / [オトコ]なし】
 	RETURN 0
 ;ASSIの場合、技巧3以上じゃないと使えない。
-IF ASSIPLAY
-	SIF ABL:ASSI:2 < 3
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 < 3	; 【ASSI:[技巧]Lv<3】
 		RETURN 0
 ENDIF
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -623,26 +632,26 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 1
 ;お風呂中じゃないとダメ
-SIF TEQUIP:58 == 0
+SIF TEQUIP:58 == 0	; 【無[お風呂場プレイ中]】
 	RETURN 0
 ;クリキャップ使用中は不可
-SIF TEQUIP:14
+SIF TEQUIP:14	; 【[クリキャップ]使用中】
 	RETURN 0
 ;クリップローター使用中は不可
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 0
 ;搾乳器使用中は不可
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 0
 ;吸血鬼や動物耳には従順10がないと使用不可（サドならＯＫ）
-IF TALENT:114 || TALENT:124
-SIF ABL:0 < 10 && TALENT:PLAYER:83 == 0
+IF TALENT:114 || TALENT:124	; 【[吸血鬼] / [動物耳]】
+SIF ABL:0 < 10 && TALENT:PLAYER:83 == 0	; 【PLAYER:[サド]なし / [親密]Lv<10】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -654,44 +663,44 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 1
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:20 == 0 && NOITEM == 0
+SIF ITEM:20 == 0 && NOITEM == 0	; 【アイテム:[アナルビーズ]==0】
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -702,46 +711,46 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))
+SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))	; 【PLAYER:[オトコ]なし / [Ｖ経験]<EXPLV:1 / 調教者:[助手]】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合正常位はできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合正常位はできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -753,46 +762,46 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))
+SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))	; 【PLAYER:[オトコ]なし / [Ｖ経験]<EXPLV:1 / 調教者:[助手]】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合後背位はできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合後背位はできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -804,54 +813,54 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルバイブ挿入中はダメ
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;浣腸＋アナルプラグ使用中はダメ
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;潤滑不足で、従順4以下・レズっ気4以下のASSIの場合アナルセックスはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;一定のＡ経験が必要
-SIF EXP:1 < EXPLV:3
+SIF EXP:1 < EXPLV:3	; 【[Ａ経験]<EXPLV:3】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -862,30 +871,30 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && (TALENT:PLAYER:0 == 1)
+SIF ((FLAG:61 & 1) == 0) && (TALENT:PLAYER:0 == 1)	; 【PLAYER:[処女]】
 	RETURN 0
 ;調教者がオトコだとダメ
-SIF TALENT:PLAYER:122
+SIF TALENT:PLAYER:122	; 【PLAYER:[オトコ]】
 	RETURN 0
 ;調教対象が子供体型の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)
+SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし】
 	RETURN 0
 ;オトコ、半人半妖、ふたなりでないとダメ
-SIF TALENT:119 == 0 && TALENT:121 == 0 && TALENT:122 == 0
+SIF TALENT:119 == 0 && TALENT:121 == 0 && TALENT:122 == 0	; 【[半人半妖]なし / [ふたなり]なし / [オトコ]なし】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -896,46 +905,46 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))
+SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))	; 【PLAYER:[オトコ]なし / [Ｖ経験]<EXPLV:1 / 調教者:[助手]】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合対面座位はできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合対面座位はできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -947,46 +956,46 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))
+SIF ((FLAG:61 & 1) == 0) && (EXP:0 < EXPLV:1) && (ASSIPLAY && (TALENT:PLAYER:122 == 0))	; 【PLAYER:[オトコ]なし / [Ｖ経験]<EXPLV:1 / 調教者:[助手]】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合背面座位はできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合背面座位はできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -998,61 +1007,61 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルバイブ挿入中はダメ
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;一定のＡ経験が必要
-SIF EXP:1 < EXPLV:3
+SIF EXP:1 < EXPLV:3	; 【[Ａ経験]<EXPLV:3】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合正常位アナルはできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合正常位アナルはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -1064,61 +1073,61 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルバイブ挿入中はダメ
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;一定のＡ経験が必要
-SIF EXP:1 < EXPLV:3
+SIF EXP:1 < EXPLV:3	; 【[Ａ経験]<EXPLV:3】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合後背位アナルはできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合後背位アナルはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -1130,61 +1139,61 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルバイブ挿入中はダメ
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;一定のＡ経験が必要
-SIF EXP:1 < EXPLV:3
+SIF EXP:1 < EXPLV:3	; 【[Ａ経験]<EXPLV:3】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合対面座位アナルはできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合対面座位アナルはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -1196,61 +1205,61 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルバイブ挿入中はダメ
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;一定のＡ経験が必要
-SIF EXP:1 < EXPLV:3
+SIF EXP:1 < EXPLV:3	; 【[Ａ経験]<EXPLV:3】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合背面座位アナルはできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合背面座位アナルはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -1262,16 +1271,16 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;調教者がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1282,22 +1291,22 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;調教者がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;[猫舌]だとダメ
-SIF TALENT:54
+SIF TALENT:54	; 【[猫舌]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1308,25 +1317,25 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;[巨乳/爆乳/超乳]でなければ技巧7以上、[貧乳]だと技巧10以上必要
-SIF ((TALENT:110 == 0 && TALENT:141 == 0 && TALENT:143 == 0) && ABL:2 < 7) || (TALENT:109 && ABL:2 < 10)
+SIF ((TALENT:110 == 0 && TALENT:141 == 0 && TALENT:143 == 0) && ABL:2 < 7) || (TALENT:109 && ABL:2 < 10)	; 【[巨乳]なし / [爆乳]なし / [超乳]なし / [貧乳] / [技巧]Lv<7 / [技巧]Lv<10】
 	RETURN 0
 ;調教者がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;サラシ装着中はダメ
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1337,32 +1346,32 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;潤滑が高くないとダメ
-SIF PALAM:3 < 2000
+SIF PALAM:3 < 2000	; 【[潤滑]<2000】
 	RETURN 0
 ;調教者がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -1374,36 +1383,36 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -1415,71 +1424,71 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;お風呂場プレイ中でプレイマットが無いとダメ
-SIF TEQUIP:58 == 0
+SIF TEQUIP:58 == 0	; 【無[お風呂場プレイ中]】
 	RETURN 0
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;アナルバイブ挿入中はダメ
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;クリキャップ使用中は不可
-SIF TEQUIP:14
+SIF TEQUIP:14	; 【[クリキャップ]使用中】
 	RETURN 0
 ;クリップローター使用中は不可
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 0
 ;搾乳器使用中は不可
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 0
 ;サラシ装着中はダメ
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	RETURN 0
 ;オナホール使用中はダメ
-SIF TEQUIP:17
+SIF TEQUIP:17	; 【[オナホール]使用中】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:43
+SIF TEQUIP:43	; 【[アイマスク]使用中】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;アイマスク使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1490,54 +1499,54 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルバイブ挿入中はダメ
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;一定のＡ経験が必要
-SIF EXP:1 < EXPLV:3
+SIF EXP:1 < EXPLV:3	; 【[Ａ経験]<EXPLV:3】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;調教者がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -1549,15 +1558,15 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;従順4以下・レズっ気4以下のASSIの場合スパンキングはできない（サドならＯＫ）
-IF ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1568,27 +1577,27 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:10 == 0 && NOITEM == 0
+SIF ITEM:10 == 0 && NOITEM == 0	; 【アイテム:[鞭]==0】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;従順4以下・レズっ気4以下のASSIの場合鞭はできない（サドならＯＫ）
-IF ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1599,27 +1608,27 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:11 == 0 && NOITEM == 0
+SIF ITEM:11 == 0 && NOITEM == 0	; 【アイテム:[針]==0】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;従順5・レズっ気5・サドでないとダメ（針さばきならＯＫ）
-IF ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4 || TALENT:ASSI:83 == 0) && TALENT:ASSI:53 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4 || TALENT:ASSI:83 == 0) && TALENT:ASSI:53 == 0	; 【ASSI:[サド]なし / ASSI:[針さばき]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1630,16 +1639,16 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:43
+SIF TEQUIP:43	; 【[アイマスク]使用中】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:5 == 0 && NOITEM == 0
+SIF ITEM:5 == 0 && NOITEM == 0	; 【アイテム:[アイマスク]==0】
 	RETURN 0
 ;主導権が主人にないとダメ
-SIF TFLAG:45
+SIF TFLAG:45	; 【[主導権]】
 	RETURN 0
 RETURN 1
 
@@ -1650,36 +1659,36 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;鰻風呂入浴中、蟲風呂入浴中、荊で緊縛中、蜘蛛の糸で緊縛中はダメ
-SIF TEQUIP:72 || TEQUIP:73 || TEQUIP:78 || TEQUIP:92
+SIF TEQUIP:72 || TEQUIP:73 || TEQUIP:78 || TEQUIP:92	; 【[荊縛り]使用中 / [蜘蛛の糸縛り]使用中 / [鰻風呂プレイ]使用中 / [蟲風呂プレイ]使用中】
 	RETURN 0
 ;解除は女体盛り中以外ならいつでも可能
-SIF TEQUIP:44 && TEQUIP:69 == 0
+SIF TEQUIP:44 && TEQUIP:69 == 0	; 【[縄で緊縛]使用中 / 無[女体盛りプレイ中]】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定で無いとダメ
-SIF ITEM:14 == 0 && NOITEM == 0
+SIF ITEM:14 == 0 && NOITEM == 0	; 【アイテム:[縄]==0】
 	RETURN 0
 ;調教者の技巧が3無いとできない
-SIF ABL:PLAYER:2 <= 2
+SIF ABL:PLAYER:2 <= 2	; 【PLAYER:[技巧]Lv<=2】
 	RETURN 0
 ;助手は技巧5でないとダメ
-IF ASSIPLAY
-	SIF ABL:ASSI:2 <= 4
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 <= 4	; 【ASSI:[技巧]Lv<=4】
 		RETURN 0
 ENDIF
 ;お医者プレイ中はダメ
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	RETURN 0
 ;主導権が主人にないとダメ
-SIF TFLAG:45
+SIF TFLAG:45	; 【[主導権]】
 	RETURN 0
 RETURN 1
 
@@ -1690,30 +1699,30 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手口辱中だとダメ
-SIF TEQUIP:98
+SIF TEQUIP:98	; 【[触手口辱]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 1
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:9 == 0 && NOITEM == 0
+SIF ITEM:9 == 0 && NOITEM == 0	; 【アイテム:[ボールギャグ]==0】
 	RETURN 0
 ;ASSIの場合、技巧3以上じゃないと使えない。
-IF ASSIPLAY
-	SIF ABL:ASSI:2 < 3
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 < 3	; 【ASSI:[技巧]Lv<3】
 		RETURN 0
 ENDIF
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;主導権が主人にないとダメ
-SIF TFLAG:45
+SIF TFLAG:45	; 【[主導権]】
 	RETURN 0
 RETURN 1
 
@@ -1724,50 +1733,50 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 1
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:15 == 0 && NOITEM == 0
+SIF ITEM:15 == 0 && NOITEM == 0	; 【アイテム:[浣腸器具一式]==0】
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;Ａ経験が100未満じゃできない
-SIF EXP:1 < 100 
+SIF EXP:1 < 100	; 【[Ａ経験]<100】
 	RETURN 0
 ;露出癖、欲望、従順の合計が10ないとできない
-SIF ABL:0 + ABL:1 + ABL:7 < 10 
+SIF ABL:0 + ABL:1 + ABL:7 < 10	; 【[親密] / [欲望] / [露出癖]Lv<10】
 	RETURN 0
 RETURN 1
 
@@ -1778,50 +1787,50 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 1
 ;異常経験フィルタ(まとめのみの条件。Jオリジナルでは封印コマンド＆異常経験つかないのでこの条件なし)
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:21 == 0 && NOITEM == 0
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;Ａ経験が50未満じゃできない
-SIF EXP:1 < 50
+SIF EXP:1 < 50	; 【[Ａ経験]<50】
 	RETURN 0
 ;露出癖、欲望、従順の合計が10ないとできない
-SIF ABL:0 + ABL:1 + ABL:7 < 10
+SIF ABL:0 + ABL:1 + ABL:7 < 10	; 【[親密] / [欲望] / [露出癖]Lv<10】
 	RETURN 0
 RETURN 1
 
@@ -1832,44 +1841,44 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 1
 ;異常経験フィルタ(もっと条件細かくなるけど、封印コマンドだし良いよね？)
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:22 == 0 && NOITEM == 0
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1880,44 +1889,44 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 1
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:23 == 0 && NOITEM == 0
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1928,16 +1937,16 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:25 == 0 && NOITEM == 0
+SIF ITEM:25 == 0 && NOITEM == 0	; 【アイテム:[ローション]==0】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1948,16 +1957,16 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定か触手調教中でないとダメ
-SIF ITEM:26 == 0 && NOITEM == 0 && TEQUIP:90 == 0
+SIF ITEM:26 == 0 && NOITEM == 0 && TEQUIP:90 == 0	; 【無[触手プレイ] / アイテム:[媚薬]==0】
 	RETURN 0
 ;薬毒耐性だとダメ
-SIF TALENT:56
+SIF TALENT:56	; 【[薬毒耐性]】
 	RETURN 0
 RETURN 1
 
@@ -1968,16 +1977,16 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定か触手調教中でないとダメ
-SIF ITEM:27 == 0 && NOITEM == 0 && TEQUIP:90 == 0
+SIF ITEM:27 == 0 && NOITEM == 0 && TEQUIP:90 == 0	; 【無[触手プレイ] / アイテム:[利尿剤]==0】
 	RETURN 0
 ;薬毒耐性の場合、直接注入以外ダメ
-SIF TALENT:56 && TEQUIP:90 == 0
+SIF TALENT:56 && TEQUIP:90 == 0	; 【[薬毒耐性] / 無[触手プレイ]】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -1988,16 +1997,19 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:53
+SIF TEQUIP:53	; 【[撮影中]使用中】
 	RETURN 1
+;同一調教中にすでに撮影終了している場合は再撮影不可
+SIF TEQUIP:53 == 0 && TFLAG:70 > 0	; 【無[撮影中] / [ビデオ撮影カウンタ]>0】
+	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;カメラとテープのアイテムを持っているか、アイテムなし設定でないとダメ
-SIF ( ITEM:6 == 0 || ITEM:28 == 0 ) && NOITEM == 0
+SIF ( ITEM:6 == 0 || ITEM:28 == 0 ) && NOITEM == 0	; 【アイテム:[ビデオカメラ]==0 / アイテム:[ビデオテープ]==0】
 	RETURN 0
 RETURN 1
 
@@ -2008,41 +2020,41 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;女体盛りプレイ中でなければ解除はいつでも可能
-SIF TEQUIP:54 && TEQUIP:69 == 0
+SIF TEQUIP:54 && TEQUIP:69 == 0	; 【[野外プレイ中]使用中 / 無[女体盛りプレイ中]】
 	RETURN 1
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;アイテム｢首輪｣を持っているか、アイテムなし設定でないとダメ
-SIF ITEM:18 == 0 && NOITEM == 0
+SIF ITEM:18 == 0 && NOITEM == 0	; 【アイテム:[首輪]==0】
 	RETURN 0
 ;従順10かマゾっ気が3以上ないとダメ
-SIF ABL:0 < 10 && ABL:8 <= 2
+SIF ABL:0 < 10 && ABL:8 <= 2	; 【[親密]Lv<10 / [マゾっ気]Lv<=2】
 	RETURN 0
 ;対象か助手か主人が吸血鬼で、時間が昼かつ曇りでないだとダメ
-SIF (TALENT:114 || TALENT:MASTER:114) && TIME == 0 && TIME:5 != 2
+SIF (TALENT:114 || TALENT:MASTER:114) && TIME == 0 && TIME:5 != 2	; 【[吸血鬼] / MASTER:[吸血鬼]】
 	RETURN 0
 IF ASSI > 0
-	SIF TALENT:ASSI:114 && TIME == 0 && TIME:5 != 2
+	SIF TALENT:ASSI:114 && TIME == 0 && TIME:5 != 2	; 【ASSI:[吸血鬼]】
 		RETURN 0
 ENDIF
 ;大雨、吹雪だとダメ
 SIF TIME:5 == 4 || TIME:5 == 6
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;女体盛りプレイ中はダメ
-SIF TEQUIP:69
+SIF TEQUIP:69	; 【[女体盛りプレイ中]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2053,43 +2065,43 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手がいないとダメ
 SIF ASSI < 1
 	RETURN 0
 ;主人じゃないとダメ
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
 	RETURN 0
 ;助手がオトコだとダメ
-SIF TALENT:ASSI:122
+SIF TALENT:ASSI:122	; 【ASSI:[オトコ]】
 	RETURN 0
 ;異常経験フィルタ
-SIF ((FLAG:61 & 1) == 0) && (TALENT:ASSI:0 == 1)
+SIF ((FLAG:61 & 1) == 0) && (TALENT:ASSI:0 == 1)	; 【ASSI:[処女]】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;主人がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0 && ITEM:PBAND == 0	; 【MASTER:[半人半妖]なし / MASTER:[ふたなり]なし / MASTER:[オトコ]なし】
 	RETURN 0
 ;縄使用中か従順が10以上ないとダメ
-SIF TEQUIP:44 == 0 && ABL:0 < 10
+SIF TEQUIP:44 == 0 && ABL:0 < 10	; 【[親密]Lv<10 / 無[縄で緊縛]】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-	SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+	SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 		RETURN 0
 ENDIF
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;対象と助手の相性が良くないとダメ
 R = NO:ASSI
@@ -2104,31 +2116,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:57
+SIF TEQUIP:57	; 【[羞恥（大鏡）プレイ中]使用中】
 	RETURN 1
 ;アイテム｢大鏡｣を持っているか、アイテムなし設定でないとダメ
-SIF ITEM:16 == 0 && NOITEM == 0
+SIF ITEM:16 == 0 && NOITEM == 0	; 【アイテム:[大鏡]==0】
 	RETURN 0
 ;従順が5以上ないとダメ
-SIF ABL:0 < 5
+SIF ABL:0 < 5	; 【[親密]Lv<5】
 	RETURN 0
 ;野外プレイ中はダメ
-SIF TEQUIP:54
+SIF TEQUIP:54	; 【[野外プレイ中]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;お医者プレイ中はダメ
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2139,32 +2151,32 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 1
 ;従順が5以上ないとダメ
-SIF ABL:0 < 5
+SIF ABL:0 < 5	; 【[親密]Lv<5】
 	RETURN 0
 ;対象か助手が動物耳で、従順が9以下だとダメ
-SIF TALENT:124 && ABL:0 < 10
+SIF TALENT:124 && ABL:0 < 10	; 【[動物耳] / [親密]Lv<10】
 	RETURN 0
 IF ASSI >= 0
-	SIF TALENT:ASSI:124 && ABL:0 < 10
+	SIF TALENT:ASSI:124 && ABL:0 < 10	; 【ASSI:[動物耳] / [親密]Lv<10】
 		RETURN 0
 ENDIF
 ;野外プレイ中はダメ
-SIF TEQUIP:54
+SIF TEQUIP:54	; 【[野外プレイ中]使用中】
 	RETURN 0
 ;羞恥プレイ中はダメ
-SIF TEQUIP:57
+SIF TEQUIP:57	; 【[羞恥（大鏡）プレイ中]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2175,34 +2187,34 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 1
 ;アイテム｢エプロン｣を持っているか、アイテムなし設定でないとダメ
-SIF ITEM:19 == 0 && NOITEM == 0
+SIF ITEM:19 == 0 && NOITEM == 0	; 【アイテム:[エプロン]==0】
 	RETURN 0
 ;助手じゃダメ
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
 	RETURN 0
 ;従順が10以上ないとダメ
-SIF ABL:0 < 10
+SIF ABL:0 < 10	; 【[親密]Lv<10】
 	RETURN 0
 ;野外プレイ中はダメ
-SIF TEQUIP:54
+SIF TEQUIP:54	; 【[野外プレイ中]使用中】
 	RETURN 0
 ;羞恥プレイ中はダメ
-SIF TEQUIP:57
+SIF TEQUIP:57	; 【[羞恥（大鏡）プレイ中]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;お医者プレイ中はダメ
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2213,22 +2225,22 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手じゃないとダメ
 SIF PLAYER != ASSI
 	RETURN 0
 ;対象か調教者が猫舌だとできない
-SIF TALENT:54 || TALENT:PLAYER:54
+SIF TALENT:54 || TALENT:PLAYER:54	; 【[猫舌] / PLAYER:[猫舌]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2239,19 +2251,19 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;調教者がオトコだとダメ
-SIF TALENT:PLAYER:122
+SIF TALENT:PLAYER:122	; 【PLAYER:[オトコ]】
 	RETURN 0
 ;[猫舌]だとダメ
-SIF TALENT:54
+SIF TALENT:54	; 【[猫舌]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2262,32 +2274,32 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手がいないとダメ
 SIF ASSI < 1
 	RETURN 0
 ;主人がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0
+SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0	; 【MASTER:[半人半妖]なし / MASTER:[ふたなり]なし / MASTER:[オトコ]なし】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -2299,36 +2311,36 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;オトコかふたなりだとダメ
-SIF TALENT:121 || TALENT:122
+SIF TALENT:121 || TALENT:122	; 【[ふたなり] / [オトコ]】
 	RETURN 0
 ;調教者がオトコかふたなりだとダメ
-SIF TALENT:PLAYER:121 || TALENT:PLAYER:122
+SIF TALENT:PLAYER:121 || TALENT:PLAYER:122	; 【PLAYER:[ふたなり] / PLAYER:[オトコ]】
 	RETURN 0
 ;欲望3以下の場合貝あわせはできない（小悪魔、相性良好ならＯＫ）
 R = NO:PLAYER
-IF ASSIPLAY
-	SIF ABL:ASSI:1 <= 3 && TALENT:ASSI:87 == 0 && RELATION:R < 150
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:1 <= 3 && TALENT:ASSI:87 == 0 && RELATION:R < 150	; 【ASSI:[小悪魔]なし / ASSI:[欲望]Lv<=3】
 		RETURN 0
 ENDIF
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -2340,7 +2352,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手がいないとダメ
 SIF ASSI < 1
@@ -2349,72 +2361,72 @@ SIF ASSI < 1
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;バイブ装着中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;氷柱挿入中は不可
-SIF TEQUIP:79
+SIF TEQUIP:79	; 【[氷柱]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 A = 0
 ;MASTERがオトコ、半人半妖、ふたなり
-SIF TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122
+SIF TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ]】
 	A += 1
 ;ASSIがオトコ、半人半妖、ふたなり
-SIF TALENT:ASSI:119 || TALENT:ASSI:121 || TALENT:ASSI:122
+SIF TALENT:ASSI:119 || TALENT:ASSI:121 || TALENT:ASSI:122	; 【ASSI:[半人半妖] / ASSI:[ふたなり] / ASSI:[オトコ]】
 	A += 1
 ;ペニスバンドとあわせて二本ないとだめ
 SIF A + ITEM:PBAND < 2
 	RETURN 0
 ;処女で、従順4以下・レズっ気4以下のASSIの場合二本刺しはできない（サドならＯＫ）
-IF EXP:0 == 0 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0 && ASSIPLAY	; 【[Ｖ経験]==0 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;主人、対象、助手のいずれかに子供体型持ちがいる場合、主人が禁断の知識を持っていないとダメ
-SIF (TALENT:MASTER:149 || TALENT:TARGET:149 || TALENT:ASSI:149) && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)
+SIF (TALENT:MASTER:149 || TALENT:TARGET:149 || TALENT:ASSI:149) && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)	; 【MASTER:[子供体型] / TARGET:[子供体型] / ASSI:[子供体型] / MASTER:[禁断の知識]なし】
 	RETURN 0
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合二本刺しはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;一定のＡ経験が必要
-SIF EXP:1 < EXPLV:3
+SIF EXP:1 < EXPLV:3	; 【[Ａ経験]<EXPLV:3】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2425,7 +2437,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手がいないとダメ
 SIF ASSI < 1
@@ -2434,24 +2446,24 @@ SIF ASSI < 1
 SIF ((FLAG:61 & 1) == 0)
 	RETURN 0
 ;助手がオトコだとダメ
-SIF TALENT:ASSI:122
+SIF TALENT:ASSI:122	; 【ASSI:[オトコ]】
 	RETURN 0
 ;助手が子供体型の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:ASSI:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)
+SIF TALENT:ASSI:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)	; 【ASSI:[子供体型] / MASTER:[禁断の知識]なし】
 	RETURN 0
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:ASSI:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:ASSI:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / ASSI:[子供体型]なし】
 	RETURN 0
 ;オトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:119 == 0 && TALENT:121 == 0 && TALENT:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:119 == 0 && TALENT:121 == 0 && TALENT:122 == 0 && ITEM:PBAND == 0	; 【[半人半妖]なし / [ふたなり]なし / [オトコ]なし】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-	SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+	SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -2464,31 +2476,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手がいないとダメ
 SIF ASSI < 1
 	RETURN 0
 ;主人がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0
+SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0	; 【MASTER:[半人半妖]なし / MASTER:[ふたなり]なし / MASTER:[オトコ]なし】
 	RETURN 0
 ;助手がオトコかふたなりじゃないとダメ
-SIF TALENT:ASSI:119 == 0 && TALENT:ASSI:121 == 0 && TALENT:ASSI:122 == 0
+SIF TALENT:ASSI:119 == 0 && TALENT:ASSI:121 == 0 && TALENT:ASSI:122 == 0	; 【ASSI:[半人半妖]なし / ASSI:[ふたなり]なし / ASSI:[オトコ]なし】
 	RETURN 0
 ;主人が【魅惑】か【謎の魅力】じゃないとダメ
-SIF TALENT:MASTER:91 == 0 && TALENT:MASTER:92 == 0
+SIF TALENT:MASTER:91 == 0 && TALENT:MASTER:92 == 0	; 【MASTER:[魅惑]なし / MASTER:[謎の魅力]なし】
 	RETURN 0
 ;[猫舌]だとダメ
-SIF TALENT:54
+SIF TALENT:54	; 【[猫舌]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2499,13 +2511,13 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;オトコかふたなりじゃないとダメ
-SIF TALENT:121 == 0 && TALENT:122 == 0
+SIF TALENT:121 == 0 && TALENT:122 == 0	; 【[ふたなり]なし / [オトコ]なし】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2517,31 +2529,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手がいないとダメ
 SIF ASSI < 1
 	RETURN 0
 ;主人がオトコか半人半妖かふたなりじゃないとダメ
-SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0
+SIF TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0	; 【MASTER:[半人半妖]なし / MASTER:[ふたなり]なし / MASTER:[オトコ]なし】
 	RETURN 0
 ;主人が【魅惑】か【謎の魅力】じゃないとダメ
-SIF TALENT:MASTER:91 == 0 && TALENT:MASTER:92 == 0
+SIF TALENT:MASTER:91 == 0 && TALENT:MASTER:92 == 0	; 【MASTER:[魅惑]なし / MASTER:[謎の魅力]なし】
 	RETURN 0
 ;助手が奉仕精神ＬＶ３以上、技巧ＬＶ３以上じゃないとダメ
-SIF ABL:ASSI:2 < 3 || ABL:ASSI:6 < 3
+SIF ABL:ASSI:2 < 3 || ABL:ASSI:6 < 3	; 【ASSI:[技巧]Lv<3 / ASSI:[奉仕精神]Lv<3】
 	RETURN 0
 ;対象か助手が猫舌だとできない
-SIF  TALENT:54 || TALENT:ASSI:54
+SIF  TALENT:54 || TALENT:ASSI:54	; 【[猫舌] / ASSI:[猫舌]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2552,48 +2564,48 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;欲望3以下・レズっ気3以下のASSIの場合シックスナインはできない（小悪魔、相性良好ならＯＫ）
 R = NO:PLAYER
-IF ASSIPLAY
-	SIF (ABL:ASSI:1 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0 && RELATION:R < 150
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF (ABL:ASSI:1 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0 && RELATION:R < 150	; 【ASSI:[小悪魔]なし / ASSI:[欲望]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;子供体型持ちは、双方が調教者と調教対象ならOK
 ;それ以外の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)
+SIF TALENT:149 && ((TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0) && TALENT:PLAYER:149 == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし / PLAYER:[子供体型]なし】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;前回コマンドがクンニ・フェラする・フェラチオ・クンニ強制・シックスナインでないとダメ
-SIF PREVCOM != 1 && PREVCOM != 4 && PREVCOM != 31 && PREVCOM != 61 && PREVCOM != 69
+SIF PREVCOM != 1 && PREVCOM != 4 && PREVCOM != 31 && PREVCOM != 61 && PREVCOM != 69	; 【前コマンド:[クンニ]以外 / 前コマンド:[フェラする]以外 / 前コマンド:[フェラチオ]以外 / 前コマンド:[クンニ強制]以外 / 前コマンド:[シックスナイン]以外】
 	RETURN 0
 ;ABL条件（COMABLE_69と同等）
 R = NO:PLAYER
-IF ASSIPLAY
-	SIF (ABL:ASSI:1 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0 && RELATION:R < 150
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF (ABL:ASSI:1 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0 && RELATION:R < 150	; 【ASSI:[小悪魔]なし / ASSI:[欲望]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ELSE
-	SIF ABL:0 < 3 || ABL:6 < 3
+	SIF ABL:0 < 3 || ABL:6 < 3	; 【[親密]Lv<3 / [奉仕精神]Lv<3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -2605,24 +2617,24 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;NORMALモードでは主人公か助手のどちらかがサド持ちじゃないとダメ
 ;EXTRAモードでは調教者がサド持ちじゃないとダメ
 IF FLAG:5 == 9
-	SIF TALENT:PLAYER:83 == 0
+	SIF TALENT:PLAYER:83 == 0	; 【PLAYER:[サド]なし】
 		RETURN 0
 ELSE
 	IF ASSI > 0
-		SIF TALENT:MASTER:83 == 0 && TALENT:ASSI:83 == 0
+		SIF TALENT:MASTER:83 == 0 && TALENT:ASSI:83 == 0	; 【MASTER:[サド]なし / ASSI:[サド]なし】
 			RETURN 0
 	ELSE
-		SIF TALENT:MASTER:83 == 0
+		SIF TALENT:MASTER:83 == 0	; 【MASTER:[サド]なし】
 			RETURN 0
 	ENDIF
 ENDIF
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2633,36 +2645,36 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;従順が6未満だとダメ
-SIF ABL:0 < 6
+SIF ABL:0 < 6	; 【[親密]Lv<6】
 	RETURN 0
 ;処女の場合、従順10以上または露出癖3以上または淫乱がないとダメ
-SIF TALENT:0 && ABL:0 < 10 && ABL:7 < 3 && TALENT:76 == 0
+SIF TALENT:0 && ABL:0 < 10 && ABL:7 < 3 && TALENT:76 == 0	; 【[処女] / [淫乱]なし / [親密]Lv<10 / [露出癖]Lv<3】
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋挿入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2673,33 +2685,33 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;ニプルキャップ装着中はダメ
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 0
 ;搾乳機装着中はダメ
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 0
 ;解除は女体盛り中以外ならいつでも可能
-SIF TEQUIP:76 && TEQUIP:69 == 0
+SIF TEQUIP:76 && TEQUIP:69 == 0	; 【[サラシ]使用中 / 無[女体盛りプレイ中]】
 	RETURN 1
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;緊縛中はダメ
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;技巧3以下のASSIの場合、うまくサラシを巻けない
-IF ASSIPLAY
-	SIF ABL:ASSI:2 <= 3
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 <= 3	; 【ASSI:[技巧]Lv<=3】
 		RETURN 0
 ENDIF
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:43 == 0 && NOITEM == 0
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2710,54 +2722,54 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除は女体盛り中以外ならいつでも可能
-SIF TEQUIP:60 && TEQUIP:69 == 0
+SIF TEQUIP:60 && TEQUIP:69 == 0	; 【[スク水]使用中 / 無[女体盛りプレイ中]】
 	RETURN 1
 ;アイテム｢スクール水着｣を持っているか、アイテムなし設定でないとダメ
 SIF ITEM:44 == 0 && NOITEM == 0
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;従順が10以上ないとダメ
-SIF ABL:0 < 10
+SIF ABL:0 < 10	; 【[親密]Lv<10】
 	RETURN 0
 ;ニプルキャップ装着中はダメ
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 0
 ;搾乳機装着中はダメ
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 0
 ;サラシ装着中はダメ
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	RETURN 0
 ;アイマスク装着中はダメ
-SIF TEQUIP:43
+SIF TEQUIP:43	; 【[アイマスク]使用中】
 	RETURN 0
 ;緊縛中はダメ
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-	SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+	SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 		RETURN 0
 ENDIF
 ;鰻風呂入浴中はダメ
-SIF TEQUIP:78
+SIF TEQUIP:78	; 【[鰻風呂プレイ]使用中】
 	RETURN 0
 ;蟲風呂入浴中はダメ
-SIF TEQUIP:92
+SIF TEQUIP:92	; 【[蟲風呂プレイ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2768,69 +2780,69 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
-;歌唱素質が3以上ない場合は歌唱技能が2以上ないとダメ
-IF ABL:52 < 3
-	SIF ABL:92 < 2
+;歌唱素質が3以上ない場合は表現技能が2以上ないとダメ
+IF ABL:55 < 3
+	SIF ABL:94 < 2	; 【[表現技能]Lv<2】
 		RETURN 0
 ENDIF
 ;露出癖が2以下だとダメ。ただし持っている素質によって値が変動
 A = 3
 ;臆病
-SIF TALENT:10
+SIF TALENT:10	; 【[臆病]】
 	A += 1
 ;目立ちたがり
-SIF TALENT:28
+SIF TALENT:28	; 【[目立ちたがり]】
 	A -= 1
 ;抑圧
-SIF TALENT:32
+SIF TALENT:32	; 【[抑圧]】
 	A += 1
 ;解放
-SIF TALENT:33
+SIF TALENT:33	; 【[解放]】
 	A -= 1
 ;恥じらい
-SIF TALENT:35
+SIF TALENT:35	; 【[恥じらい]】
 	A += 1
 ;恥薄い
-SIF TALENT:36
+SIF TALENT:36	; 【[恥薄い]】
 	A -= 1
 ;求められる露出癖が0～5となるように
 SIF A < 0
 	A = 0
 SIF A > 5
 	A = 5
-SIF ABL:7 < A
+SIF ABL:7 < A	; 【[露出癖]】
 	RETURN 0
 ;恋慕を持っていないまたは従順が5未満だとダメ
-SIF ABL:7 < 5 && TALENT:85 == 0
+SIF ABL:7 < 5 && TALENT:85 == 0	; 【[恋慕]なし / [露出癖]Lv<5】
 	RETURN 0
 ;アイテム｢マイク｣を持っているか、アイテムなし設定でないとダメ
-SIF ITEM:45 == 0 && NOITEM == 0
+SIF ITEM:45 == 0 && NOITEM == 0	; 【アイテム:[マイク]==0】
 	RETURN 0
 ;一度公開野外ライブを実行しているとダメ
-SIF TFLAG:79
+SIF TFLAG:79	; 【[野外ライブ実行済み]】
 	RETURN 0
 ;野外プレイ中でないとダメ
-SIF TEQUIP:54 == 0
+SIF TEQUIP:54 == 0	; 【無[野外プレイ中]】
 	RETURN 0
 ;緊縛しているとダメ
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;猿轡しているとダメ
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;クスコ着けているとダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;お医者さんプレイ中はダメ
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	RETURN 0
 ;女体盛り中はダメ
-SIF TEQUIP:69
+SIF TEQUIP:69	; 【[女体盛りプレイ中]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2842,24 +2854,24 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;気力が残ってないと無理
-SIF BASE:1 <= 0
+SIF BASE:1 <= 0	; 【[気力]<=0】
 	RETURN 0
 ;相手を責める場合
-IF CFLAG:15 == 0 || CFLAG:15 == 1
+IF CFLAG:15 == 0 || CFLAG:15 == 1	; 【[主導権設定]==0 / [主導権設定]==1】
 	;こっちがサド持ちかサドっ気3以上、もしくは相手がマゾっ気3以上が必要
-	SIF TALENT:PLAYER:83 || ABL:PLAYER:15 >= 3 || ABL:8 >= 3
+	SIF TALENT:PLAYER:83 || ABL:PLAYER:15 >= 3 || ABL:8 >= 3	; 【PLAYER:[サド] / PLAYER:[サドっ気]Lv>=3 / [マゾっ気]Lv>=3】
 		RETURN 1
 ENDIF
 ;こっちを責める場合
-IF CFLAG:15 == 0 || CFLAG:15 == 2
+IF CFLAG:15 == 0 || CFLAG:15 == 2	; 【[主導権設定]==0 / [主導権設定]==2】
 	;相手側がサド持ちかサドっ気3以上、もしくはこっちがマゾっ気3以上が必要
-	SIF TALENT:83 || ABL:15 >= 3 || ABL:PLAYER:8 >= 3
+	SIF TALENT:83 || ABL:15 >= 3 || ABL:PLAYER:8 >= 3	; 【[サド] / [サドっ気]Lv>=3 / PLAYER:[マゾっ気]Lv>=3】
 		RETURN 1
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ENDIF
 RETURN 0
@@ -2871,13 +2883,13 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;ビデオ鑑賞中はダメ
 ;SIF TEQUIP:52
 ;	RETURN 0
 ;ビデオ撮影中はだめ
-SIF TEQUIP:53
+SIF TEQUIP:53	; 【[撮影中]使用中】
 	RETURN 0
 ;録画ビデオを持っていないとだめ
 SIF FLAG:41 != 1
@@ -2891,28 +2903,28 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;調教者がオトコかふたなりじゃないとダメ
-SIF TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0
+SIF TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0	; 【PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;[猫舌]だとダメ
-SIF TALENT:54
+SIF TALENT:54	; 【[猫舌]】
 	RETURN 0
 ;従順、欲望の合計が18以上ないとダメ
-SIF ABL:0 + ABL:1 < 18
+SIF ABL:0 + ABL:1 < 18	; 【[親密] / [欲望]Lv<18】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;お医者プレイ中はダメ
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2923,49 +2935,49 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;一定のＶ経験が必要
-SIF EXP:0 < 150
+SIF EXP:0 < 150	; 【[Ｖ経験]<150】
 	RETURN 0
 ;バイブ使用中は不可
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;クスコ着けているとダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;ASSIの場合、従順4以上かサドじゃないとできない。
-IF ASSIPLAY
-	SIF ABL:ASSI:0 < 4 && TALENT:ASSI:83 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:0 < 4 && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<4】
 	RETURN 0
 	ENDIF
 ;小柄体型なら従順が12以上かつマゾっ気が4以上じゃないと実行できない
-IF TALENT:100 || TALENT:149
-	SIF ABL:0 <= 11 || ABL:8 <= 3
+IF TALENT:100 || TALENT:149	; 【[小柄体型] / [子供体型]】
+	SIF ABL:0 <= 11 || ABL:8 <= 3	; 【[親密]Lv<=11 / [マゾっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;調教対象が子供体型の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)
+SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -2976,67 +2988,67 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;クスコ着けているとダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;一定のＡ経験が必要
-SIF EXP:1 < 150
+SIF EXP:1 < 150	; 【[Ａ経験]<150】
 	RETURN 0
 ;浣腸＋アナルプラグ使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;ASSIの場合、従順3以上かサドじゃないとできない。
-IF ASSIPLAY
-	SIF ABL:ASSI:0 < 4 && TALENT:ASSI:83 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:0 < 4 && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<4】
 	RETURN 0
 	ENDIF
 ;小柄体型なら従順が12以上かつマゾっ気が4以上じゃないと実行できない
-IF TALENT:100 || TALENT:149
-	SIF ABL:0 <= 11 || ABL:8 <= 3
+IF TALENT:100 || TALENT:149	; 【[小柄体型] / [子供体型]】
+	SIF ABL:0 <= 11 || ABL:8 <= 3	; 【[親密]Lv<=11 / [マゾっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;調教対象が子供体型の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)
+SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;氷柱挿入中は不可
-SIF TEQUIP:79
+SIF TEQUIP:79	; 【[氷柱]使用中】
 	RETURN 0
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3047,77 +3059,77 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;異常経験フィルタ
 SIF (FLAG:61 & 1) == 0
 	RETURN 0
 ;バイブ使用中は不可
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;浣腸＋アナルプラグ使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;クスコ着けているとダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;氷柱挿入中は不可
-SIF TEQUIP:79
+SIF TEQUIP:79	; 【[氷柱]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0	
 ;一定のＶ・Ａ経験が必要
-IF EXP:0 < 300 || EXP:1 < 300
+IF EXP:0 < 300 || EXP:1 < 300	; 【[Ｖ経験]<300 / [Ａ経験]<300】
 	RETURN 0
 	ENDIF
 ;ASSIの場合、従順4以上かサドじゃないとできない。
-IF ASSIPLAY
-	SIF ABL:ASSI:0 < 4 && TALENT:ASSI:83 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:0 < 4 && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<4】
 		RETURN 0
 ENDIF
 ;小柄体型なら従順が12以上かつマゾっ気が4以上かつ拡張経験10以上じゃないと実行できない
-IF TALENT:100 || TALENT:149
-	SIF ABL:0 <= 11 || ABL:8 <= 3 || EXP:53 < 10
+IF TALENT:100 || TALENT:149	; 【[小柄体型] / [子供体型]】
+	SIF ABL:0 <= 11 || ABL:8 <= 3 || EXP:53 < 10	; 【[親密]Lv<=11 / [マゾっ気]Lv<=3 / [Ａ拡張経験]<10】
 		RETURN 0
 ENDIF
 ;調教対象が子供体型の場合は主人が禁断の知識持ちじゃないとダメ
-SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)
+SIF TALENT:149 && (TALENT:MASTER:125 == 0 && ISASSI:PLAYER == 0)	; 【[子供体型] / MASTER:[禁断の知識]なし】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;シャワー中はダメ
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	RETURN 0
 ;お風呂場プレイ中はプレイマットが無いとダメ
-IF TEQUIP:58
-SIF ITEM:13 == 0 && NOITEM == 0
+IF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
+SIF ITEM:13 == 0 && NOITEM == 0	; 【アイテム:[プレイマット]==0】
 	RETURN 0
 ENDIF
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3128,27 +3140,24 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合指挿入れはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;主人の技巧が3以下はだめ
-SIF ABL:PLAYER:2 < 3
-	RETURN 0
-;乗馬中はダメ
-SIF TEQUIP:41
+SIF ABL:PLAYER:2 < 3	; 【PLAYER:[技巧]Lv<3】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;前回コマンドが指挿入れ(8)・着衣指挿入(196)・Gスポット刺激(84)でないとダメ
-SIF PREVCOM != 8 && PREVCOM != 84 && PREVCOM != 196
+SIF PREVCOM != 8 && PREVCOM != 84 && PREVCOM != 196	; 【前コマンド:[指挿入れ]以外 / 前コマンド:[Ｇスポット刺激]以外 / 前コマンド:[ペニバン挿入]以外】
 	RETURN 0
 RETURN 1
 
@@ -3159,14 +3168,14 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;利尿剤使用中かおもらし癖ありでないとダメ
-SIF TEQUIP:22 == 0 && TALENT:57 == 0
+SIF TEQUIP:22 == 0 && TALENT:57 == 0	; 【[おもらし癖]なし / 無[利尿剤効果発揮中]】
 	RETURN 0
 ;従順10以上でないとダメ（お風呂場ならＯＫ）
-IF TEQUIP:58 == 0
-SIF ABL:0 < 10
+IF TEQUIP:58 == 0	; 【無[お風呂場プレイ中]】
+SIF ABL:0 < 10	; 【[親密]Lv<10】
 	RETURN 0
 ENDIF
 RETURN 1
@@ -3178,18 +3187,18 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;利尿剤使用中かおもらし癖ありでないとダメ
-SIF TEQUIP:22 == 0 && TALENT:57 == 0
+SIF TEQUIP:22 == 0 && TALENT:57 == 0	; 【[おもらし癖]なし / 無[利尿剤効果発揮中]】
 	RETURN 0
 ;従順10以上でないとダメ（お風呂場ならＯＫ）
-IF TEQUIP:58 == 0
-SIF ABL:0 < 10
+IF TEQUIP:58 == 0	; 【無[お風呂場プレイ中]】
+SIF ABL:0 < 10	; 【[親密]Lv<10】
 	RETURN 0
 ENDIF
 ;おもらし癖ありで利尿剤が無いまたはおもらし癖なしかつ従順４以上欲望３以上マゾっ気３以上でないとダメ
-SIF (TALENT:57 == 0 && (ABL:0 <= 3 || ABL:1 <= 2 || ABL:8 <= 2)) || (TALENT:57 && TEQUIP:22 == 1)
+SIF (TALENT:57 == 0 && (ABL:0 <= 3 || ABL:1 <= 2 || ABL:8 <= 2)) || (TALENT:57 && TEQUIP:22 == 1)	; 【[おもらし癖]なし / [おもらし癖] / [親密]Lv<=3 / [欲望]Lv<=2 / [マゾっ気]Lv<=2 / [利尿剤効果発揮中]==1】
 	RETURN 0
 RETURN 1
 
@@ -3200,36 +3209,33 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;羞恥プレイ中じゃないとダメ
-SIF TEQUIP:57 == 0
+SIF TEQUIP:57 == 0	; 【無[羞恥（大鏡）プレイ中]】
 	RETURN 0
 ;性器が汚れているとMASTERの場合クンニはできない（調教者が汚れ無視か愛液、母乳のよごれならＯＫ）
-SIF STAIN:3 >= 2 && (STAIN:3 != 16 && STAIN:3 != 17) && ASSIPLAY == 0 && TALENT:MASTER:64 == 0
+SIF STAIN:3 >= 2 && (STAIN:3 != 16 && STAIN:3 != 17) && ASSIPLAY == 0 && TALENT:MASTER:64 == 0	; 【MASTER:[汚れ無視]なし / 汚れ:[ヴァギナ] / 調教者:[主人]】
 	RETURN 0
 ;性器が汚れており、汚臭敏感で従順3以下のASSIの場合クンニはできない（調教者が汚れ無視か愛液、母乳のよごれならＯＫ）
-IF STAIN:3 >= 2 && (STAIN:3 != 16 && STAIN:3 != 17) && ASSIPLAY
-	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0
+IF STAIN:3 >= 2 && (STAIN:3 != 16 && STAIN:3 != 17) && ASSIPLAY	; 【汚れ:[ヴァギナ] / 調教者:[助手]】
+	SIF ABL:ASSI:0 <= 3 && TALENT:ASSI:62 && TALENT:ASSI:64 == 0	; 【ASSI:[汚臭敏感] / ASSI:[汚れ無視]なし / ASSI:[親密]Lv<=3】
 		RETURN 0
 ENDIF
 ;調教者が猫舌だとできない
-SIF TALENT:PLAYER:54
+SIF TALENT:PLAYER:54	; 【PLAYER:[猫舌]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
-	RETURN 0
-;乗馬中はダメ
-SIF TEQUIP:41
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;女体盛り中はダメ
-SIF TEQUIP:69
+SIF TEQUIP:69	; 【[女体盛りプレイ中]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;調教者がボールギャグ中だとダメ
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3240,36 +3246,33 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;羞恥プレイ中じゃないとダメ
-SIF TEQUIP:57 == 0
+SIF TEQUIP:57 == 0	; 【無[羞恥（大鏡）プレイ中]】
 	RETURN 0
 ;処女はダメ
-SIF EXP:0 == 0
+SIF EXP:0 == 0	; 【[Ｖ経験]==0】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;調教者がオトコ、半人半妖、ふたなり、もしくはペニスバンドがないとダメ
-SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0
+SIF TALENT:PLAYER:119 == 0 && TALENT:PLAYER:121 == 0 && TALENT:PLAYER:122 == 0 && ITEM:PBAND == 0	; 【PLAYER:[半人半妖]なし / PLAYER:[ふたなり]なし / PLAYER:[オトコ]なし】
 	RETURN 0
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合乱れ牡丹はできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
-	RETURN 0
-;乗馬中はダメ
-SIF TEQUIP:41
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;女体盛り中はダメ
-SIF TEQUIP:69
+SIF TEQUIP:69	; 【[女体盛りプレイ中]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3280,31 +3283,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;助手がいないとダメ
 SIF ASSI < 1
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:69
+SIF TEQUIP:69	; 【[女体盛りプレイ中]使用中】
 	RETURN 1
 ;アイテム｢具材セット｣を持っているか、アイテムなし設定でないとダメ
 SIF ITEM:30 == 0 && NOITEM == 0
 	RETURN 0
 ;従順が10以上ないとダメ
-SIF ABL:0 < 10
+SIF ABL:0 < 10	; 【[親密]Lv<10】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;クスコ着けているとダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;酒恥肉倫を発生させた場合はダメ
-SIF TFLAG:77 == 3
+SIF TFLAG:77 == 3	; 【[女体盛りする食材フラグ]==3】
 	RETURN 0
 RETURN 1
 
@@ -3315,37 +3318,37 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;[猫舌]だとダメ
-SIF TALENT:54
+SIF TALENT:54	; 【[猫舌]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3356,12 +3359,12 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 RETURN 1
 
@@ -3372,12 +3375,12 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;触手浣腸中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3387,12 +3390,12 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 RETURN 1
 
@@ -3402,12 +3405,12 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;触手搾乳中は不可
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3417,15 +3420,15 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;触手乳首責め中は不可
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 RETURN 1
 
@@ -3435,9 +3438,9 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 RETURN 1
 
@@ -3447,12 +3450,12 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;アナル触手中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3462,12 +3465,12 @@ SIF RESULT == 0
 	RETURN 0
 ;触手イラマチオ
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3477,12 +3480,12 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
-SIF TEQUIP:90 == 0
+SIF TEQUIP:90 == 0	; 【無[触手プレイ]】
 	RETURN 0
 ;オトコかふたなりじゃないとダメ
-SIF TALENT:121 == 0 && TALENT:122 == 0
+SIF TALENT:121 == 0 && TALENT:122 == 0	; 【[ふたなり]なし / [オトコ]なし】
 	RETURN 0
 RETURN 1
 
@@ -3493,37 +3496,37 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 1
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:40 == 0 && NOITEM == 0
+SIF ITEM:40 == 0 && NOITEM == 0	; 【アイテム:[クスコ]==0】
 	RETURN 0
 ;処女だとダメ
-SIF EXP:0 == 0
+SIF EXP:0 == 0	; 【[Ｖ経験]==0】
 	RETURN 0
 ;従順4以下・レズっ気4以下のASSIの場合クスコはできない（サドならＯＫ）
-IF ASSIPLAY
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ENDIF
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合クスコはできない（サドならＯＫ）
-IF PALAM:3 < PALAMLV:2 && ASSIPLAY
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+IF PALAM:3 < PALAMLV:2 && ASSIPLAY	; 【[潤滑]<PALAMLV:2 / 調教者:[助手]】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -3535,30 +3538,30 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;クリキャップ装着中だとダメ
-SIF TEQUIP:14
+SIF TEQUIP:14	; 【[クリキャップ]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;薬毒耐性だとダメ
-SIF TALENT:56
+SIF TALENT:56	; 【[薬毒耐性]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;技巧3以下のASSIの場合注射できない（針さばきならＯＫ）
-IF ASSIPLAY
-	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0	; 【ASSI:[針さばき]なし / ASSI:[技巧]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手だと可
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:26 == 0 && NOITEM == 0
+SIF ITEM:26 == 0 && NOITEM == 0	; 【アイテム:[媚薬]==0】
 	RETURN 0
 SIF ITEM:41 == 0 && NOITEM == 0
 	RETURN 0
@@ -3571,34 +3574,34 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 ;バイブ挿入中はダメ
-SIF TEQUIP:11
+SIF TEQUIP:11	; 【[バイブ]使用中】
 	RETURN 0
 ;焼芋入中は不可
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;薬毒耐性だとダメ
-SIF TALENT:56
+SIF TALENT:56	; 【[薬毒耐性]】
 	RETURN 0
 ;オトコだとダメ
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN 0
 ;技巧3以下のASSIの場合注射できない（針さばきならＯＫ）
-IF ASSIPLAY
-	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0	; 【ASSI:[針さばき]なし / ASSI:[技巧]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手だと可
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:26 == 0 && NOITEM == 0
+SIF ITEM:26 == 0 && NOITEM == 0	; 【アイテム:[媚薬]==0】
 	RETURN 0
 SIF ITEM:41 == 0 && NOITEM == 0
 	RETURN 0
@@ -3611,49 +3614,49 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 ;アナルバイブ使用中は不可
-SIF TEQUIP:13
+SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 	RETURN 0
 ;アナルビーズ使用中は不可
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	RETURN 0
 ;普通の浣腸使用中は不可
-SIF TEQUIP:46
+SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 	RETURN 0
 ;空気浣腸使用中は不可
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	RETURN 0
 ;バルーン使用中は不可
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	RETURN 0
 ;電極使用中は不可
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	RETURN 0
 ;巨峰挿入中は不可
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	RETURN 0
 ;氷柱挿入中は不可
-SIF TEQUIP:79
+SIF TEQUIP:79	; 【[氷柱]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;薬毒耐性だとダメ
-SIF TALENT:56
+SIF TALENT:56	; 【[薬毒耐性]】
 	RETURN 0
 ;技巧3以下のASSIの場合注射できない（針さばきならＯＫ）
-IF ASSIPLAY
-	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0	; 【ASSI:[針さばき]なし / ASSI:[技巧]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手だと可
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:26 == 0 && NOITEM == 0
+SIF ITEM:26 == 0 && NOITEM == 0	; 【アイテム:[媚薬]==0】
 	RETURN 0
 SIF ITEM:41 == 0 && NOITEM == 0
 	RETURN 0
@@ -3666,33 +3669,33 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;ニプルキャップ装着中はダメ
-SIF TEQUIP:15
+SIF TEQUIP:15	; 【[クリップローター]使用中】
 	RETURN 0
 ;搾乳機装着中はダメ
-SIF TEQUIP:16
+SIF TEQUIP:16	; 【[搾乳機]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;サラシ装着中はダメ
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	RETURN 0
 ;薬毒耐性だとダメ
-SIF TALENT:56
+SIF TALENT:56	; 【[薬毒耐性]】
 	RETURN 0
 ;技巧3以下のASSIの場合注射できない（針さばきならＯＫ）
-IF ASSIPLAY
-	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF ABL:ASSI:2 <= 3 && TALENT:ASSI:53 == 0	; 【ASSI:[針さばき]なし / ASSI:[技巧]Lv<=3】
 		RETURN 0
 ENDIF
 ;触手だと可
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:26 == 0 && NOITEM == 0
+SIF ITEM:26 == 0 && NOITEM == 0	; 【アイテム:[媚薬]==0】
 	RETURN 0
 SIF ITEM:41 == 0 && NOITEM == 0
 	RETURN 0
@@ -3706,31 +3709,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;解除はいつでも可
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	RETURN 1
 ;アイテムを持っているか、アイテムなし設定でないとダメ
 SIF ITEM:42 == 0 && NOITEM == 0
 	RETURN 0
 ;縄使用中は不可
-SIF TEQUIP:44
+SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 	RETURN 0
 ;ボールギャグ使用中は不可
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	RETURN 0
 ;野外プレイ中はダメ
-SIF TEQUIP:54
+SIF TEQUIP:54	; 【[野外プレイ中]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;新妻プレイ中はダメ
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -3744,7 +3747,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;デート中でも可能ということで
 RETURN 1
@@ -3756,7 +3759,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 RETURN 1
 @COM_ABLE302
@@ -3766,7 +3769,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 RETURN 1
 
@@ -3776,8 +3779,11 @@ RETURN 1
 CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
+;1回の調教につき1回のみ
+SIF TFLAG:学食実行済み
+	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;資金3000以上持ってないと無理
 SIF MONEY < 3000
@@ -3792,7 +3798,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 RETURN 1
 
@@ -3802,11 +3808,14 @@ RETURN 1
 CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
+;1回の調教につき1回のみ
+SIF TFLAG:遊びに行く実行済み
+	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;デート中は無理
-SIF TEQUIP:2
+SIF TEQUIP:2	; 【[デート中]使用中】
 	RETURN 0
 ;大雨、吹雪だとダメ
 SIF TIME:5 == 4 || TIME:5 == 6
@@ -3823,10 +3832,10 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;終わるのはいつでもOK
-SIF TEQUIP:2
+SIF TEQUIP:2	; 【[デート中]使用中】
 	RETURN 1
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;資金5000以上持ってないと無理
 SIF MONEY < 5000
@@ -3843,10 +3852,10 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;従順3以上or好感度300以上or恋人が必要(遊んでないでさっさと解決しろ！って言われる)
-SIF ABL:0 < 3 && CFLAG:2 < 300 && TALENT:153 == 0
+SIF ABL:0 < 3 && CFLAG:2 < 300 && TALENT:153 == 0	; 【[恋人]なし / [親密]Lv<3 / [好感度]<300】
 	RETURN 0
 RETURN 1
 
@@ -3857,13 +3866,13 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;デート中は無理
-SIF TEQUIP:2
+SIF TEQUIP:2	; 【[デート中]使用中】
 	RETURN 0
 ;従順4以上or好感度400以上or恋人が必要(何でそんな事しないといけないの！って言われる)
-SIF ABL:0 < 4 && CFLAG:2 < 400 && TALENT:153 == 0
+SIF ABL:0 < 4 && CFLAG:2 < 400 && TALENT:153 == 0	; 【[恋人]なし / [親密]Lv<4 / [好感度]<400】
 	RETURN 0
 RETURN 1
 
@@ -3874,10 +3883,10 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;従順4以上or好感度400以上or恋人が必要
-SIF ABL:0 < 4 && CFLAG:2 < 400 && TALENT:153 == 0
+SIF ABL:0 < 4 && CFLAG:2 < 400 && TALENT:153 == 0	; 【[恋人]なし / [親密]Lv<4 / [好感度]<400】
 	RETURN 0
 RETURN 1
 
@@ -3888,10 +3897,10 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;従順5以上or好感度500以上or恋人が必要
-SIF ABL:0 < 5 && CFLAG:2 < 500 && TALENT:153 == 0
+SIF ABL:0 < 5 && CFLAG:2 < 500 && TALENT:153 == 0	; 【[恋人]なし / [親密]Lv<5 / [好感度]<500】
 	RETURN 0
 RETURN 1
 
@@ -3902,16 +3911,16 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;調教者が猫舌だとできない
-SIF TALENT:PLAYER:54
+SIF TALENT:PLAYER:54	; 【PLAYER:[猫舌]】
 	RETURN 0
 ;相手が猫舌だとできない
-SIF TALENT:54
+SIF TALENT:54	; 【[猫舌]】
 	RETURN 0
 ;欲望3以上かつ、従順6以上or好感度600以上or恋人が必要
-SIF ABL:1 < 3 || (ABL:0 < 6 && CFLAG:2 < 600 && TALENT:153 == 0)
+SIF ABL:1 < 3 || (ABL:0 < 6 && CFLAG:2 < 600 && TALENT:153 == 0)	; 【[恋人]なし / [欲望]Lv<3 / [親密]Lv<6 / [好感度]<600】
 	RETURN 0
 RETURN 1
 
@@ -3922,13 +3931,13 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;デート中は淫乱じゃないと無理
-SIF TEQUIP:2 && TALENT:76 == 0
+SIF TEQUIP:2 && TALENT:76 == 0	; 【[淫乱]なし / [デート中]使用中】
 	RETURN 0
 ;欲望3以上かつ、従順6以上or好感度600以上or恋人が必要
-SIF ABL:1 < 3 || (ABL:0 < 6 && CFLAG:2 < 600 && TALENT:153 == 0)
+SIF ABL:1 < 3 || (ABL:0 < 6 && CFLAG:2 < 600 && TALENT:153 == 0)	; 【[恋人]なし / [欲望]Lv<3 / [親密]Lv<6 / [好感度]<600】
 	RETURN 0
 RETURN 1
 
@@ -3939,13 +3948,13 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;デート中は淫乱じゃないと無理
-SIF TEQUIP:2 && TALENT:76 == 0
+SIF TEQUIP:2 && TALENT:76 == 0	; 【[淫乱]なし / [デート中]使用中】
 	RETURN 0
 ;欲望5以上かつ、従順7以上or好感度700以上or恋人が必要
-SIF ABL:1 < 5 || (ABL:0 < 7 && CFLAG:2 < 700 && TALENT:153 == 0)
+SIF ABL:1 < 5 || (ABL:0 < 7 && CFLAG:2 < 700 && TALENT:153 == 0)	; 【[恋人]なし / [欲望]Lv<5 / [親密]Lv<7 / [好感度]<700】
 	RETURN 0
 RETURN 1
 
@@ -3956,13 +3965,13 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;心苦しいけど助手では無理
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
 	RETURN 0
 ;もう恋人だと無理
-SIF TALENT:153
+SIF TALENT:153	; 【[恋人]】
 	RETURN 0
 RETURN 1
 ;------------------------------------------------------------
@@ -3984,3 +3993,32 @@ REPEAT CHARANUM
 		ENDIF
 	NEXT
 REND
+
+;-------------------------------------------------
+;気絶時実行可能コマンド判定（ウフフ中のみ、物理的現実性を考慮した判定）
+;ARG = コマンド番号
+;戻り値: 1 = 実行可能, 0 = 実行不可
+;-------------------------------------------------
+@COM_ABLE_FAINT_CHECK, ARG
+;ウフフ中以外は不可
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
+	RETURN 0
+
+;一方的愛撫・接触系（脱力した相手に対して可能）
+;0:愛撫, 1:クンニ, 2:アナル愛撫, 5:胸愛撫, 6:キスする, 7:何もしない, 8:指挿入れ, 9:アナル舐め, 71:秘貝開帳, 78:母乳飲み, 79:乳搾り, 360:胸愛撫, 361:愛撫, 362:指挿入れ, 372:尻愛撫
+IF ARG == 0 || ARG == 1 || ARG == 2 || ARG == 5 || ARG == 6 || ARG == 7 || ARG == 8 || ARG == 9 || ARG == 71 || ARG == 78 || ARG == 79 || ARG == 360 || ARG == 361 || ARG == 362 || ARG == 372
+	RETURN 1
+;道具装着・使用系（寝かせたまま装着・使用可能）
+;10:ローター, 11:バイブ, 13:アナルバイブ, 14:クリキャップ, 15:二プルキャップ, 16:搾乳機, 17:オナホール, 18:シャワー, 19:アナルビーズ, 43:アイマスク, 44:縄, 45:ボールギャグ, 46:浣腸器＋プラグ, 76:双頭バイブ, 110:クスコ, 367:着衣ローター, 371:オムツ
+ELSEIF ARG == 10 || ARG == 11 || ARG == 13 || ARG == 14 || ARG == 15 || ARG == 16 || ARG == 17 || ARG == 18 || ARG == 19 || ARG == 43 || ARG == 44 || ARG == 45 || ARG == 46 || ARG == 76 || ARG == 110 || ARG == 367 || ARG == 371
+	RETURN 1
+;挿入・性交系（仰向け正常位・うつ伏せ後背位など、横たわった姿勢のみ可能。座位・立位・騎乗位は姿勢維持不可のため除外）
+;20:正常位, 21:後背位, 22:アナルセックス, 26:正常位アナル, 27:後背位アナル, 120:キス正常位, 121:キス後背位, 255:挿入Ｇスポ責め, 256:挿入子宮口責め, 363:着衣挿入, 364:着衣Ｇスポット刺激, 365:着衣後背位
+ELSEIF ARG == 20 || ARG == 21 || ARG == 22 || ARG == 26 || ARG == 27 || ARG == 120 || ARG == 121 || ARG == 255 || ARG == 256 || ARG == 363 || ARG == 364 || ARG == 365
+	RETURN 1
+;外用・嗜虐・その他一方的行為（意識消失中の誤嚥・窒息リスクを考慮し、経口薬である51:媚薬, 52:利尿剤, 186:排卵誘発剤, 187:緊急避妊薬は不可）
+;40:スパンキング, 41:鞭, 42:針, 50:ローション, 53:ビデオカメラ, 57:羞恥プレイ, 80:イラマチオ, 85:放尿, 86:強制放尿, 181:コンドーム, 196:ペニバン挿入, 257:剃毛プレイ, 392:衣装破り, 399:終了系
+ELSEIF ARG == 40 || ARG == 41 || ARG == 42 || ARG == 50 || ARG == 53 || ARG == 57 || ARG == 80 || ARG == 85 || ARG == 86 || ARG == 181 || ARG == 196 || ARG == 257 || ARG == 392 || ARG == 399
+	RETURN 1
+ENDIF
+RETURN 0

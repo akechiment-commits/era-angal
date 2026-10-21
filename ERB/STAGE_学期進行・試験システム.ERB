@@ -343,7 +343,7 @@ PRINTFORML 【%CALLNAME:TARGET%との思い出】
 PRINTL
 
 ;好感度で分岐
-IF CFLAG:TARGET:2 >= 500
+IF CFLAG:TARGET:2 >= 500	; 【TARGET:[好感度]>=500】
 	PRINTFORML %CALLNAME:TARGET%と過ごした日々が走馬灯のように蘇る。
 	PRINTFORML 最初はこんなに仲良くなるとは思わなかった。
 	IF CSTR:TARGET:25 != ""
@@ -352,7 +352,7 @@ IF CFLAG:TARGET:2 >= 500
 	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%にとって、かけがえのない存在になっていた。
 	CFLAG:TARGET:2 += 3
 	PRINTFORMW 好感度 +3
-ELSEIF CFLAG:TARGET:2 >= 200
+ELSEIF CFLAG:TARGET:2 >= 200	; 【TARGET:[好感度]>=200】
 	PRINTFORML 最近の%CALLNAME:TARGET%とのやりとりが頭に浮かぶ。
 	IF CSTR:TARGET:25 != ""
 		PRINTFORML %CSTR:TARGET:25%での姿、授業中のふとした表情。
@@ -360,7 +360,7 @@ ELSEIF CFLAG:TARGET:2 >= 200
 	PRINTFORML 一緒にいると自然と笑顔になれる。そういう相手だった。
 	CFLAG:TARGET:2 += 2
 	PRINTFORMW 好感度 +2
-ELSEIF CFLAG:TARGET:2 >= 50
+ELSEIF CFLAG:TARGET:2 >= 50	; 【TARGET:[好感度]>=50】
 	PRINTFORML %CALLNAME:TARGET%とのやりとりを振り返ってみる。
 	PRINTFORML まだ知らないことがたくさんある。もっと話してみたいと思った。
 	CFLAG:TARGET:2 += 1
@@ -385,13 +385,13 @@ IF TARGET >= 0
 	PRINTFORML （%CALLNAME:TARGET%）  学力：{ABL:88}  学習素質：{ABL:98}  学習経験：{EXP:TARGET:95}
 	PRINT 体力
 	A = BASE:0
-	SIF BASE:0 < 0
+	SIF BASE:0 < 0	; 【[体力]<0】
 		A = 0
 	CALL PRINT_BAR_0, A, MAXBASE:0, 32
 	PRINTFORML ({A}/{MAXBASE:0})
 	PRINT 気力
 	A = BASE:1
-	SIF BASE:1 < 0
+	SIF BASE:1 < 0	; 【[気力]<0】
 		A = 0
 	CALL PRINT_BAR, A, MAXBASE:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
 	PRINTFORML ({A}/{MAXBASE:1})
@@ -400,13 +400,13 @@ ENDIF
 PRINTFORML （%CALLNAME:MASTER%）  学力：{ABL:MASTER:88}  学習素質：{ABL:MASTER:98}  学習経験：{EXP:MASTER:95}
 PRINT 体力
 A = BASE:MASTER:0
-SIF BASE:MASTER:0 < 0
+SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 	A = 0
 CALL PRINT_BAR_0, A, MAXBASE:MASTER:0, 32
 PRINTFORML ({A}/{MAXBASE:MASTER:0})
 PRINT 気力
 A = BASE:MASTER:1
-SIF BASE:MASTER:1 < 0
+SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
 	A = 0
 CALL PRINT_BAR, A, MAXBASE:MASTER:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
 PRINTFORML ({A}/{MAXBASE:MASTER:1})
@@ -415,122 +415,10 @@ DRAWLINE
 RETURN 1
 
 ;---------------------------------------------------------
-;授業・自習セッション（旧BATTLE_NORMAL）
-;---------------------------------------------------------
-@STUDY_SESSION
-PRINTL 
-
-;授業の種類をランダム決定
-A = RAND:100
-IF A <= 20
-	STR:0 = 国語
-ELSEIF A <= 40
-	STR:0 = 数学
-ELSEIF A <= 55
-	STR:0 = 英語
-ELSEIF A <= 70
-	STR:0 = 理科
-ELSEIF A <= 85
-	STR:0 = 社会
-ELSEIF A <= 92
-	STR:0 = 体育
-ELSEIF A <= 96
-	STR:0 = 音楽
-ELSE
-	STR:0 = 家庭科
-ENDIF
-
-;成否判定
-CALL GET_EXAM_SCORE
-B = 70 + P / 50
-SIF B > 99
-	B = 99
-A = RAND:100
-IF A <= 10
-	;10%で大成功（よく理解できた）
-	TFLAG:18 = 1
-ELSEIF A >= B
-	;失敗（ついていけなかった）
-	TFLAG:18 = -1
-ELSE
-	;通常
-	TFLAG:18 = 0
-ENDIF
-
-;メッセージ表示
-IF TARGET >= 0
-	PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:TARGET%と一緒に%STR:0%の授業を受けた
-ELSE
-	PRINTFORMW %CALLNAME:MASTER%は%STR:0%の授業を受けた
-ENDIF
-
-IF TFLAG:18 == 1
-	PRINTFORML 今日の授業はとてもよく理解できた！
-ELSEIF TFLAG:18 == -1
-	PRINTFORML ……しかし、内容が難しくてあまり理解できなかった
-ENDIF
-
-;体力・気力消費
-BASE:MASTER:4 -= 30
-BASE:MASTER:1 -= 50
-
-;学習経験の獲得
-A = RAND:10
-IF A <= 5
-	B = 1
-ELSEIF A <= 8
-	B = 2
-ELSE
-	B = 3
-ENDIF
-
-IF TFLAG:18 == -1
-	B -= 1
-	SIF B < 0
-		B = 0
-ELSEIF TFLAG:18 == 1
-	B += 1
-ENDIF
-
-IF B > 0
-	;今学期の勉強量（試験の主成分）と長期の学習経験を両方加算
-	FLAG:210 += B
-	EXP:MASTER:95 += B
-	PRINTFORML %EXPNAME:95%+{B}（%CALLNAME:MASTER%）／今学期の勉強+{B}
-	IF TARGET >= 0
-		EXP:TARGET:95 += B
-		PRINTFORML %EXPNAME:95%+{B}（%CALLNAME:TARGET%）
-	ENDIF
-ENDIF
-
-;好感度変動（パートナーと一緒の場合）
-IF TARGET >= 0
-	A = RAND:5 - 1
-	IF TFLAG:18 == 1
-		A += 2
-	ELSEIF TFLAG:18 == -1
-		A -= 1
-	ENDIF
-	TFLAG:30 += A
-
-ENDIF
-
-;ソース（好感度ポイント）
-SOURCE:18 = 50
-IF TFLAG:18 == 1
-	TIMES SOURCE:18 , 2.00
-ELSEIF TFLAG:18 == -1
-	TIMES SOURCE:18 , 0.50
-ENDIF
-
-;（旧「学習進度」によるFLAG:27加算は廃止。FLAG:27は試験ビットマスク専用に戻した）
-
-RETURN 1
-
-;---------------------------------------------------------
-;試験を受ける（旧BATTLE_BOSS）
+;学期試験処理
 ;---------------------------------------------------------
 @TAKE_EXAM
+; RETURN 1=中間試験合格、2=期末試験合格、3=不合格（追試へ）
 PRINTL 
 
 ;試験名決定（TFLAG:83 0=中間 1=期末）
@@ -562,11 +450,11 @@ IF TARGET >= 0
 	CALL CALC_ACADEMIC_LEVEL, TARGET
 	LOCAL:3 = ABL:TARGET:88 / 20
 	;好感度でさらに補正
-	IF CFLAG:2 >= 500
+	IF CFLAG:2 >= 500	; 【[好感度]>=500】
 		LOCAL:3 += 10
-	ELSEIF CFLAG:2 >= 200
+	ELSEIF CFLAG:2 >= 200	; 【[好感度]>=200】
 		LOCAL:3 += 5
-	ELSEIF CFLAG:2 >= 50
+	ELSEIF CFLAG:2 >= 50	; 【[好感度]>=50】
 		LOCAL:3 += 2
 	ENDIF
 	P += LOCAL:3
@@ -580,6 +468,12 @@ SIF P > 100
 
 ;結果表示
 PRINTFORML あなたの得点：{P}点（合格ライン：{LOCAL:5}点）
+	;パートナーとの試験結果記録
+	IF TARGET >= 1 && TARGET < CHARANUM
+		CFLAG:TARGET:1272 = P
+		SIF P > CFLAG:TARGET:1271	; 【TARGET:[最高試験得点]】
+			CFLAG:TARGET:1271 = P
+	ENDIF
 PRINTL 
 
 ;気力消費（試験は疲れる）
@@ -588,7 +482,7 @@ BASE:MASTER:1 -= 100
 ;--- 学期の区切り：長期学習経験の忘却(減衰)＋今学期勉強量のリセット ---
 ;過去の貯金だけで合格できないよう、試験のたびに学習経験を約1割忘れ、今学期分は0に戻す
 EXP:MASTER:95 -= EXP:MASTER:95 / 10
-SIF EXP:MASTER:95 < 0
+SIF EXP:MASTER:95 < 0	; 【MASTER:[学習経験]<0】
 	EXP:MASTER:95 = 0
 FLAG:210 = 0
 
@@ -633,7 +527,7 @@ IF P >= LOCAL:5
 	IF TFLAG:83 == 0
 		;中間試験合格
 		FLAG:27 |= TFLAG:84
-		IF TARGET >= 0
+		IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
 			LOCAL:7 = 1
 			SIF P >= LOCAL:5 + 30
 				LOCAL:7 = 2
@@ -646,7 +540,7 @@ IF P >= LOCAL:5
 		FLAG:27 |= TFLAG:84
 		CALL SEMESTER_DECK_RESULT
 		CALL GET_SEMESTER_NAME
-		IF TARGET >= 0
+		IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
 			LOCAL:7 = 1
 			SIF P >= LOCAL:5 + 30
 				LOCAL:7 = 2
@@ -663,7 +557,7 @@ ELSE
 	ELSE
 		PRINTFORML もう少しで合格でした。次は頑張りましょう
 	ENDIF
-	IF TARGET >= 0
+	IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
 		TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(0)
 	ENDIF
 	SOURCE:18 = 30
@@ -687,7 +581,7 @@ ENDIF
 
 PRINTW 
 
-RETURN 1
+RETURN 3
 
 ;---------------------------------------------------------
 ;試験スコア計算
@@ -728,6 +622,8 @@ RETURN 1
 @CALC_ACADEMIC_LEVEL(ARG)
 LOCAL:0 = TARGET
 TARGET = ARG:0
+;学力は学習素質と学習経験だけで算出する（学力購入は廃止）
+CFLAG:TARGET:88 = 0
 ABL:TARGET:88 = ABL:TARGET:98 + EXP:TARGET:95 * ABL:TARGET:98 / 500
 TARGET = LOCAL:0
 RETURN 1
@@ -740,8 +636,8 @@ RETURN 1
 ;---------------------------------------------------------
 ;学期末試験 自動発動版
 ;ENDING_CHECK(日数切れ)から呼ばれる
-;合格 → 次の学期へ（RETURN 1）
-;不合格 → バッドエンド処理
+; TAKE_EXAMの結果に応じて処理
+;不合格 → 追試ルートへ
 ;---------------------------------------------------------
 @SEMESTER_EXAM_AUTO
 ;TFLAG:83: 0=中間試験 1=期末試験
@@ -759,7 +655,11 @@ ENDIF
 WAIT
 
 IF TARGET >= 0
-	TRYCALLFORM CHAR_EXAM_BEFORE_{NO:TARGET}
+	IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+		PRINTFORML 保健室で静かに療養している%CALLNAME:TARGET%のことを気にかけつつ、試験会場へと向かった……
+	ELSE
+		TRYCALLFORM CHAR_EXAM_BEFORE_{NO:TARGET}
+	ENDIF
 ENDIF
 CALL TAKE_EXAM
 
@@ -769,8 +669,11 @@ IF RESULT == 2
 ELSEIF RESULT == 1
 	;中間合格 → 後半へ（FLAG:27=1はTAKE_EXAM内で設定済み）
 	RETURN 1
+ELSEIF RESULT == 3
+	; 不合格は追試ルートへ進める
+	RETURN 1
 ELSE
-	;不合格 → バッドエンド
+	; 想定外の戻り値 → バッドエンド
 	PRINTFORML
 	IF TFLAG:83 == 0
 		PRINTFORML 中間試験に合格できなかった。
@@ -791,7 +694,7 @@ ELSE
 	IF RESULT == 0
 		PRINTFORMW それでは1日目、1年生の4月に戻ります。
 		REPEAT CHARANUM
-			SIF TALENT:COUNT:134 || MARK:COUNT:90
+			SIF TALENT:COUNT:134 || MARK:COUNT:90	; 【COUNT:[妊娠]】
 				CFLAG:COUNT:110 -= DAY
 		REND
 		DAY = 0

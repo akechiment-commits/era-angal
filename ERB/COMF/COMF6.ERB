@@ -25,7 +25,7 @@ CALL TRAIN_MESSAGE_B
 ;-------------------------------------------------
 ;射精ゲージチェック（ふたなり・オトコの場合）
 ;-------------------------------------------------
-SIF TALENT:PLAYER:119 || TALENT:PLAYER:122  || TALENT:PLAYER:121
+SIF TALENT:PLAYER:119 || TALENT:PLAYER:122  || TALENT:PLAYER:121	; 【PLAYER:[半人半妖] / PLAYER:[オトコ] / PLAYER:[ふたなり]】
 	BASE:PLAYER:2 += CALC_EJAC(SELECTCOM, PLAYER)
 
 ;-------------------------------------------------
@@ -34,9 +34,9 @@ SIF TALENT:PLAYER:119 || TALENT:PLAYER:122  || TALENT:PLAYER:121
 LOSEBASE:0 += 5
 
 ;キス経験で気力消費軽減（何度もキスしたがる、の再現だとでも脳内補完）
-IF EXP:96 < 100
+IF EXP:96 < 100	; 【[キス経験]<100】
 	LOSEBASE:1 += 50
-ELSEIF EXP:96 < 500
+ELSEIF EXP:96 < 500	; 【[キス経験]<500】
 	LOSEBASE:1 += 40
 ELSE
 	LOSEBASE:1 += 25
@@ -50,23 +50,23 @@ SIF FLAG:62 & 4194304
 	CALL SOURCE_M_COM6
 
 ;ABL:奉仕精神をみる
-IF ABL:6 == 0
+IF ABL:6 == 0	; 【[奉仕精神]Lv==0】
 	SOURCE:4 = 50
 	SOURCE:5 = 10
 	TIMES SOURCE:8 , 4.00
-ELSEIF ABL:6 == 1
+ELSEIF ABL:6 == 1	; 【[奉仕精神]Lv==1】
 	SOURCE:4 = 150
 	SOURCE:5 = 50
 	TIMES SOURCE:8 , 2.50
-ELSEIF ABL:6 == 2
+ELSEIF ABL:6 == 2	; 【[奉仕精神]Lv==2】
 	SOURCE:4 = 200
 	SOURCE:5 = 100
 	TIMES SOURCE:8 , 1.50
-ELSEIF ABL:6 == 3
+ELSEIF ABL:6 == 3	; 【[奉仕精神]Lv==3】
 	SOURCE:4 = 250
 	SOURCE:5 = 180
 	TIMES SOURCE:8 , 1.00
-ELSEIF ABL:6 == 4
+ELSEIF ABL:6 == 4	; 【[奉仕精神]Lv==4】
 	SOURCE:4 = 300
 	SOURCE:5 = 300
 	TIMES SOURCE:8 , 0.50
@@ -77,19 +77,19 @@ ELSE
 ENDIF
 
 ;ABL:技巧をみる
-IF ABL:2 == 0
+IF ABL:2 == 0	; 【[技巧]Lv==0】
 	TIMES SOURCE:4 , 0.50
 	TIMES SOURCE:5 , 0.50
-ELSEIF ABL:2 == 1
+ELSEIF ABL:2 == 1	; 【[技巧]Lv==1】
 	TIMES SOURCE:4 , 0.80
 	TIMES SOURCE:5 , 0.80
-ELSEIF ABL:2 == 2
+ELSEIF ABL:2 == 2	; 【[技巧]Lv==2】
 	TIMES SOURCE:4 , 1.00
 	TIMES SOURCE:5 , 1.00
-ELSEIF ABL:2 == 3
+ELSEIF ABL:2 == 3	; 【[技巧]Lv==3】
 	TIMES SOURCE:4 , 1.50
 	TIMES SOURCE:5 , 1.50
-ELSEIF ABL:2 == 4
+ELSEIF ABL:2 == 4	; 【[技巧]Lv==4】
 	TIMES SOURCE:4 , 2.50
 	TIMES SOURCE:5 , 2.50
 ELSE
@@ -98,19 +98,19 @@ ELSE
 ENDIF
 
 ;プレイヤーのABL:技巧をみる
-IF ABL:MASTER:2 == 0
+IF ABL:MASTER:2 == 0	; 【MASTER:[技巧]Lv==0】
 	SOURCE:3 = 100
 	SOURCE:10 = 0
-ELSEIF ABL:MASTER:2 == 1
+ELSEIF ABL:MASTER:2 == 1	; 【MASTER:[技巧]Lv==1】
 	SOURCE:3 = 150
 	SOURCE:10 = 0
-ELSEIF ABL:MASTER:2 == 2
+ELSEIF ABL:MASTER:2 == 2	; 【MASTER:[技巧]Lv==2】
 	SOURCE:3 = 200
 	SOURCE:10 = 0
-ELSEIF ABL:MASTER:2 == 3
+ELSEIF ABL:MASTER:2 == 3	; 【MASTER:[技巧]Lv==3】
 	SOURCE:3 = 300
 	SOURCE:10 = 50
-ELSEIF ABL:MASTER:2 == 4
+ELSEIF ABL:MASTER:2 == 4	; 【MASTER:[技巧]Lv==4】
 	SOURCE:3 = 500
 	SOURCE:10 = 100
 ELSE
@@ -119,40 +119,42 @@ ELSE
 ENDIF
 
 ;TALENT:恋慕をみる
-SIF TALENT:85
+SIF TALENT:85	; 【[恋慕]】
 	TIMES SOURCE:3 , 2.00
 
 PRINTFORML %EXPNAME:96%＋１
 EXP:96 += 1
 EXP:PLAYER:96 += 1
-IF TALENT:PLAYER:151
+IF TALENT:PLAYER:151	; 【PLAYER:[キス未経験]】
 	PRINTFORMW %CALLNAME:PLAYER%は【キス未経験】を失いました
 	TALENT:PLAYER:151 = 0
 ENDIF
 
-IF TALENT:151
+IF TALENT:151	; 【[キス未経験]】
 	TFLAG:600 = 1
-	CALL KOJO_JUN
+	SIF TFLAG:899 == 0 && BASE:TARGET:0 > 0	; 【無[気絶継続中] / TARGET:[体力]>0】
+		CALL KOJO_JUN
 	TALENT:151 = 0
-	TRYCALLFORM CHAR_FIRST_KISS_{NO:TARGET}
+	SIF TFLAG:899 == 0 && BASE:TARGET:0 > 0	; 【無[気絶継続中] / TARGET:[体力]>0】
+		TRYCALLFORM CHAR_FIRST_KISS_{NO:TARGET}
 	PRINTFORMW %CALLNAME:TARGET%は【キス未経験】を失いました
 	TFLAG:38 = 1
 ENDIF
 
 
 ;主導権をチェック
-IF TFLAG:45 == 0
+IF TFLAG:45 == 0	; 【無[主導権]】
 	;主導権が主人公側
 	;ABL:従順をみる
-	IF ABL:0 <= 1
+	IF ABL:0 <= 1	; 【[親密]Lv<=1】
 		SOURCE:21 += 300 + (ABL:0 * 50)
-	ELSEIF ABL:0 <= 3
+	ELSEIF ABL:0 <= 3	; 【[親密]Lv<=3】
 		SOURCE:21 += 600 + (ABL:0 * 100)
-	ELSEIF ABL:0 <= 5
+	ELSEIF ABL:0 <= 5	; 【[親密]Lv<=5】
 		SOURCE:21 += 800 + (ABL:0 * 120)
-	ELSEIF ABL:0 <= 8
+	ELSEIF ABL:0 <= 8	; 【[親密]Lv<=8】
 		SOURCE:21 += 1000 + (ABL:0 * 140)
-	ELSEIF ABL:0 <= 11
+	ELSEIF ABL:0 <= 11	; 【[親密]Lv<=11】
 		SOURCE:21 += 1200 + (ABL:0 * 160)
 	ELSE
 		SOURCE:21 += 1500 + (ABL:0 * 180)
@@ -160,15 +162,15 @@ IF TFLAG:45 == 0
 ELSE
 	;主導権が相手側
 	;ABL:サドっ気をみる
-	IF ABL:15 == 0
+	IF ABL:15 == 0	; 【[サドっ気]Lv==0】
 		SOURCE:20 = 600
-	ELSEIF ABL:15 == 1
+	ELSEIF ABL:15 == 1	; 【[サドっ気]Lv==1】
 		SOURCE:20 = 900
-	ELSEIF ABL:15 == 2
+	ELSEIF ABL:15 == 2	; 【[サドっ気]Lv==2】
 		SOURCE:20 = 1200
-	ELSEIF ABL:15 == 3
+	ELSEIF ABL:15 == 3	; 【[サドっ気]Lv==3】
 		SOURCE:20 = 1600
-	ELSEIF ABL:15 == 4
+	ELSEIF ABL:15 == 4	; 【[サドっ気]Lv==4】
 		SOURCE:20 = 2000
 	ELSE
 		SOURCE:20 = 1000 + (ABL:15 * 300)
@@ -178,7 +180,7 @@ ENDIF
 ;好感度ランダム変化
 A = RAND:10 + 5
 ;合意がないと好感度が下がる
-IF TALENT:152 == 0 && TFLAG:48 == 0
+IF TALENT:152 == 0 && TFLAG:48 == 0	; 【[合意]なし / 無[よっぱウフフ]】
 	A -= 3
 	SOURCE:15 += 100
 ENDIF
@@ -207,23 +209,23 @@ IF E
 	TIMES SOURCE:4 , 3.00
 
 	;ABL:精液中毒をみる
-	IF ABL:11 == 0
+	IF ABL:11 == 0	; 【[精液中毒]Lv==0】
 		SOURCE:7 = 0
 		TIMES SOURCE:5 , 2.00
 		TIMES SOURCE:13, 2.00
-	ELSEIF ABL:11 == 1
+	ELSEIF ABL:11 == 1	; 【[精液中毒]Lv==1】
 		SOURCE:7 = 100
 		TIMES SOURCE:5 , 2.50
 		TIMES SOURCE:13, 1.60
-	ELSEIF ABL:11 == 2
+	ELSEIF ABL:11 == 2	; 【[精液中毒]Lv==2】
 		SOURCE:7 = 300
 		TIMES SOURCE:5 , 3.00
 		TIMES SOURCE:13, 1.00
-	ELSEIF ABL:11 == 3
+	ELSEIF ABL:11 == 3	; 【[精液中毒]Lv==3】
 		SOURCE:7 = 700
 		TIMES SOURCE:5 , 4.00
 		TIMES SOURCE:13, 0.70
-	ELSEIF ABL:11 == 4
+	ELSEIF ABL:11 == 4	; 【[精液中毒]Lv==4】
 		SOURCE:7 = 1500
 		TIMES SOURCE:5 , 5.00
 		TIMES SOURCE:13, 0.40
@@ -279,19 +281,19 @@ ENDIF
 STAIN:0 |= STAIN:MASTER:0
 STAIN:MASTER:0 |= STAIN:0
 
-IF TALENT:122 == 0 && TALENT:MASTER:122 == 0
+IF TALENT:122 == 0 && TALENT:MASTER:122 == 0	; 【[オトコ]なし / MASTER:[オトコ]なし】
 	PRINTS EXPNAME:40
 	PRINTL +3
 	EXP:40 += 3
 	EXP:PLAYER:40 += 3
-ELSEIF TALENT:122 == 1 && TALENT:MASTER:122 == 1
+ELSEIF TALENT:122 == 1 && TALENT:MASTER:122 == 1	; 【[オトコ] / MASTER:[オトコ]】
 	PRINTS EXPNAME:41
 	PRINTL +3
 	EXP:41 += 3
 	EXP:PLAYER:41 += 3
 ENDIF
 
-SIF ASSIPLAY == 0
+SIF ASSIPLAY == 0	; 【調教者:[主人]】
 	TFLAG:30 += 1
 
 RETURN 1
@@ -305,41 +307,41 @@ LOCAL:13 += 100
 LOCAL:14 += 10
 
 ;ABL:Ｍ感覚をみる
-IF ABL:17 == 0
+IF ABL:17 == 0	; 【[Ｍ感覚]Lv==0】
 	LOCAL:24 += 10
-ELSEIF ABL:17 == 1
+ELSEIF ABL:17 == 1	; 【[Ｍ感覚]Lv==1】
 	LOCAL:24 += 50
-ELSEIF ABL:17 == 2
+ELSEIF ABL:17 == 2	; 【[Ｍ感覚]Lv==2】
 	LOCAL:24 += 200
-ELSEIF ABL:17 == 3
+ELSEIF ABL:17 == 3	; 【[Ｍ感覚]Lv==3】
 	LOCAL:24 += 600
-ELSEIF ABL:17 == 4
+ELSEIF ABL:17 == 4	; 【[Ｍ感覚]Lv==4】
 	LOCAL:24 += 1000
 ELSE
 	LOCAL:24 += 400 + (ABL:17 * 200)
 ENDIF
 
 ;PLAYERの技巧を見る
-SIF ABL:PLAYER:2 >= 2
+SIF ABL:PLAYER:2 >= 2	; 【PLAYER:[技巧]Lv>=2】
 	LOCAL:24 = LOCAL:24 * (100 + (ABL:PLAYER:2 / 2)) / 100
 
 ;技巧を見る
-SIF ABL:TARGET:2 >= 2
+SIF ABL:TARGET:2 >= 2	; 【TARGET:[技巧]Lv>=2】
 	LOCAL:24 = LOCAL:24 * (100 + (ABL:TARGET:2 / 2)) / 100
 
 ;EXP:キス経験をみる
-IF EXP:96 < EXPLV:1
+IF EXP:96 < EXPLV:1	; 【[キス経験]<EXPLV:1】
 	TIMES LOCAL:24 , 1.00
-ELSEIF EXP:96 < EXPLV:2
+ELSEIF EXP:96 < EXPLV:2	; 【[キス経験]<EXPLV:2】
 	TIMES LOCAL:14 , 0.95
 	TIMES LOCAL:24 , 1.05
-ELSEIF EXP:96 < EXPLV:3
+ELSEIF EXP:96 < EXPLV:3	; 【[キス経験]<EXPLV:3】
 	TIMES LOCAL:14 , 0.90
 	TIMES LOCAL:24 , 1.10
-ELSEIF EXP:96 < EXPLV:4
+ELSEIF EXP:96 < EXPLV:4	; 【[キス経験]<EXPLV:4】
 	TIMES LOCAL:14 , 0.85
 	TIMES LOCAL:24 , 1.15
-ELSEIF EXP:96 < EXPLV:5
+ELSEIF EXP:96 < EXPLV:5	; 【[キス経験]<EXPLV:5】
 	TIMES LOCAL:14 , 0.80
 	TIMES LOCAL:24 , 1.20
 ELSE
@@ -348,26 +350,26 @@ ELSE
 ENDIF
 
 ;TALENT:恋慕をみる
-SIF TALENT:85
+SIF TALENT:85	; 【[恋慕]】
 	TIMES LOCAL:24 , 1.50
 ;TALENT:恋人をみる
-SIF TALENT:153
+SIF TALENT:153	; 【[恋人]】
 	TIMES LOCAL:24 , 1.50
 ;TALENT:親愛をみる
-SIF TALENT:88
+SIF TALENT:88	; 【[親愛]】
 	TIMES LOCAL:24 , 2.00
 ;TALENT:相愛をみる
-SIF TALENT:89
+SIF TALENT:89	; 【[相愛]】
 	TIMES LOCAL:24 , 2.00
 
 ;反発感情をみる
-IF MARK:3 == 1
+IF MARK:3 == 1	; 【[反発感情]Lv==1】
 	TIMES LOCAL:24 , 0.50
 	TIMES LOCAL:13 , 1.15
-ELSEIF MARK:3 == 2
+ELSEIF MARK:3 == 2	; 【[反発感情]Lv==2】
 	TIMES LOCAL:24 , 0.25
 	TIMES LOCAL:13 , 1.45
-ELSEIF MARK:3 == 3
+ELSEIF MARK:3 == 3	; 【[反発感情]Lv==3】
 	TIMES LOCAL:24 , 0.10
 	TIMES LOCAL:13 , 1.90
 ENDIF
@@ -390,34 +392,34 @@ V = 60
 CALL COM_ORDER
 
 ;男嫌い
-IF TALENT:82 && TALENT:PLAYER:122
+IF TALENT:82 && TALENT:PLAYER:122	; 【[男嫌い] / PLAYER:[オトコ]】
 	A -= 7
 ENDIF
 
 ;ABL:欲望
-IF ABL:1
+IF ABL:1	; 【[欲望]】
 	A += ABL:1 * 1
 ENDIF
 ;ABL:奉仕精神
-IF ABL:6
+IF ABL:6	; 【[奉仕精神]】
 	A += ABL:6 * 4
 ENDIF
 
-IF MARK:1
+IF MARK:1	; 【[快楽依存]】
 	A += MARK:1 * 2
 ENDIF
 
 
 ;PALAM:欲情
-IF PALAM:5 < PALAMLV:1
+IF PALAM:5 < PALAMLV:1	; 【[欲情]<PALAMLV:1】
 	L = 0
-ELSEIF PALAM:5 < PALAMLV:2
+ELSEIF PALAM:5 < PALAMLV:2	; 【[欲情]<PALAMLV:2】
 	L = 1
-ELSEIF PALAM:5 < PALAMLV:3
+ELSEIF PALAM:5 < PALAMLV:3	; 【[欲情]<PALAMLV:3】
 	L = 2
-ELSEIF PALAM:5 < PALAMLV:4
+ELSEIF PALAM:5 < PALAMLV:4	; 【[欲情]<PALAMLV:4】
 	L = 3
-ELSEIF PALAM:5 < PALAMLV:5
+ELSEIF PALAM:5 < PALAMLV:5	; 【[欲情]<PALAMLV:5】
 	L = 4
 ELSE
 	L = 5
@@ -427,47 +429,47 @@ IF L
 ENDIF
 
 ;恥じらい
-IF TALENT:35
+IF TALENT:35	; 【[恥じらい]】
 	A -= 5
 ENDIF
 ;汚臭鈍感
-IF TALENT:61
+IF TALENT:61	; 【[汚臭鈍感]】
 	A += 1
 ENDIF
 ;汚臭敏感
-IF TALENT:62
+IF TALENT:62	; 【[汚臭敏感]】
 	A -= 1
 ENDIF
 ;献身的
-IF TALENT:63
+IF TALENT:63	; 【[献身的]】
 	A += 6
 ENDIF
 ;快感の否定
-IF TALENT:71 == 1
+IF TALENT:71 == 1	; 【[快感の否定]】
 	A -= 1
 ENDIF
 ;恋慕
-IF TALENT:85 && ASSIPLAY == 0
+IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
 	A += 5
 	S = 5
 ENDIF
 
 Y = 0
 ;愛液の汚れ
-SIF STAIN:MASTER:0 & 1
+SIF STAIN:MASTER:0 & 1	; 【汚れ:[口]】
 	Y += 1
 ;精液の汚れ
-SIF STAIN:MASTER:0 & 4
+SIF STAIN:MASTER:0 & 4	; 【汚れ:[口]】
 	Y += 3
 ;アナルの汚れ
-SIF STAIN:MASTER:0 & 8
+SIF STAIN:MASTER:0 & 8	; 【汚れ:[口]】
 	Y += 7
-SIF STAIN:MASTER:0 & 16
+SIF STAIN:MASTER:0 & 16	; 【汚れ:[口]】
 	Y += 15
 
-SIF TALENT:61
+SIF TALENT:61	; 【[汚臭鈍感]】
 	Y /= 3
-SIF TALENT:62
+SIF TALENT:62	; 【[汚臭敏感]】
 	Y *= 2
 
 ;キスでは汚れがそれほど影響しない
@@ -477,8 +479,8 @@ Y /= 2
 IF Y
 	A -= Y
 	;汚臭鈍感
-	IF TALENT:61
-	ELSEIF TALENT:62
+	IF TALENT:61	; 【[汚臭鈍感]】
+	ELSEIF TALENT:62	; 【[汚臭敏感]】
 	ELSE
 	ENDIF
 ENDIF
@@ -486,37 +488,37 @@ ENDIF
 
 
 ;キス未経験
-IF TALENT:151
+IF TALENT:151	; 【[キス未経験]】
 	A -= 30
 ENDIF
 
 ;一線越えない（キス未経験時のみ）
-IF TALENT:151 && TALENT:27
+IF TALENT:151 && TALENT:27	; 【[キス未経験] / [一線越えない]】
 	A -= 15
 ENDIF
 
 
 ;合意
-IF TALENT:152 == 0
+IF TALENT:152 == 0	; 【[合意]なし】
 	A -= 10
 ENDIF
 
 ;デート中
-IF TEQUIP:2
+IF TEQUIP:2	; 【[デート中]使用中】
 	A += 3
 ENDIF
 
 ;ムードボーナス
 B = 0
-IF TFLAG:37 < 10
+IF TFLAG:37 < 10	; 【[ムード]<10】
 	B -= 10
-ELSEIF TFLAG:37 < 30
+ELSEIF TFLAG:37 < 30	; 【[ムード]<30】
 	B -= 1
-ELSEIF TFLAG:37 < 50
+ELSEIF TFLAG:37 < 50	; 【[ムード]<50】
 	B += 1
-ELSEIF TFLAG:37 < 100
+ELSEIF TFLAG:37 < 100	; 【[ムード]<100】
 	B += TFLAG:37 / 10
-ELSEIF TFLAG:37 < 300
+ELSEIF TFLAG:37 < 300	; 【[ムード]<300】
 	B += TFLAG:37 / 5
 ELSE
 	B += TFLAG:37 / 4
@@ -529,11 +531,11 @@ ENDIF
 
 
 ;好感度
-IF CFLAG:2 < 500
+IF CFLAG:2 < 500	; 【[好感度]<500】
 	B = 0
-	IF CFLAG:2 < 100
+	IF CFLAG:2 < 100	; 【[好感度]<100】
 		B = 20
-	ELSEIF CFLAG:2 < 300
+	ELSEIF CFLAG:2 < 300	; 【[好感度]<300】
 		B = 10
 	ELSE
 		B = 5
@@ -542,7 +544,7 @@ IF CFLAG:2 < 500
 ENDIF
 
 ;好感度
-IF CFLAG:2 >= 700
+IF CFLAG:2 >= 700	; 【[好感度]>=700】
 	B = 0
 	B = CFLAG:2 / 80
 	A += B
@@ -550,7 +552,7 @@ ENDIF
 
 IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	;男嫌い
-	IF TALENT:82 && TALENT:PLAYER:122
+	IF TALENT:82 && TALENT:PLAYER:122	; 【[男嫌い] / PLAYER:[オトコ]】
 		PRINT  - 
 		PRINTS TALENTNAME:82
 		PRINTV '(,7,')
@@ -558,7 +560,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;ABL:欲望
-	IF ABL:1
+	IF ABL:1	; 【[欲望]】
 		SIF S
 			PRINT  + 
 		PRINTS ABLNAME:1
@@ -566,7 +568,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;ABL:奉仕精神
-	IF ABL:6
+	IF ABL:6	; 【[奉仕精神]】
 		SIF S
 			PRINT  + 
 		PRINTS ABLNAME:6
@@ -574,7 +576,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 
-	IF MARK:1
+	IF MARK:1	; 【[快楽依存]】
 		SIF S
 			PRINT  + 
 		PRINTS MARKNAME:1
@@ -584,15 +586,15 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 
 	;PALAM:欲情
-	IF PALAM:5 < PALAMLV:1
+	IF PALAM:5 < PALAMLV:1	; 【[欲情]<PALAMLV:1】
 		L = 0
-	ELSEIF PALAM:5 < PALAMLV:2
+	ELSEIF PALAM:5 < PALAMLV:2	; 【[欲情]<PALAMLV:2】
 		L = 1
-	ELSEIF PALAM:5 < PALAMLV:3
+	ELSEIF PALAM:5 < PALAMLV:3	; 【[欲情]<PALAMLV:3】
 		L = 2
-	ELSEIF PALAM:5 < PALAMLV:4
+	ELSEIF PALAM:5 < PALAMLV:4	; 【[欲情]<PALAMLV:4】
 		L = 3
-	ELSEIF PALAM:5 < PALAMLV:5
+	ELSEIF PALAM:5 < PALAMLV:5	; 【[欲情]<PALAMLV:5】
 		L = 4
 	ELSE
 		L = 5
@@ -606,14 +608,14 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;恥じらい
-	IF TALENT:35
+	IF TALENT:35	; 【[恥じらい]】
 		PRINT  - 
 		PRINTS TALENTNAME:35
 		PRINTV '(,5,')
 		S = 1
 	ENDIF
 	;汚臭鈍感
-	IF TALENT:61
+	IF TALENT:61	; 【[汚臭鈍感]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:61
@@ -621,14 +623,14 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;汚臭敏感
-	IF TALENT:62
+	IF TALENT:62	; 【[汚臭敏感]】
 		PRINT  - 
 		PRINTS TALENTNAME:62
 		PRINTV '(,1,')
 		S = 1
 	ENDIF
 	;献身的
-	IF TALENT:63
+	IF TALENT:63	; 【[献身的]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:63
@@ -636,14 +638,14 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;快感の否定
-	IF TALENT:71
+	IF TALENT:71	; 【[快感の否定]】
 		PRINT  - 
 		PRINTS TALENTNAME:71
 		PRINTV '(,1,')
 		S = 1
 	ENDIF
 	;恋慕
-	IF TALENT:85 && ASSIPLAY == 0
+	IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:85
@@ -653,20 +655,20 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 	Y = 0
 	;愛液の汚れ
-	SIF STAIN:MASTER:0 & 1
+	SIF STAIN:MASTER:0 & 1	; 【汚れ:[口]】
 		Y += 1
 	;精液の汚れ
-	SIF STAIN:MASTER:0 & 4
+	SIF STAIN:MASTER:0 & 4	; 【汚れ:[口]】
 		Y += 3
 	;アナルの汚れ
-	SIF STAIN:MASTER:0 & 8
+	SIF STAIN:MASTER:0 & 8	; 【汚れ:[口]】
 		Y += 7
-	SIF STAIN:MASTER:0 & 16
+	SIF STAIN:MASTER:0 & 16	; 【汚れ:[口]】
 		Y += 15
 
-	SIF TALENT:61
+	SIF TALENT:61	; 【[汚臭鈍感]】
 		Y /= 3
-	SIF TALENT:62
+	SIF TALENT:62	; 【[汚臭敏感]】
 		Y *= 2
 
 	;キスでは汚れがそれほど影響しない
@@ -676,10 +678,10 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	IF Y
 		PRINT  - 
 		;汚臭鈍感
-		IF TALENT:61
+		IF TALENT:61	; 【[汚臭鈍感]】
 			PRINT 汚れあり、
 			PRINTS TALENTNAME:61
-		ELSEIF TALENT:62
+		ELSEIF TALENT:62	; 【[汚臭敏感]】
 			PRINT 汚れあり、
 			PRINTS TALENTNAME:62
 		ELSE
@@ -692,7 +694,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 
 	;キス未経験
-	IF TALENT:151
+	IF TALENT:151	; 【[キス未経験]】
 		PRINT  - 
 		PRINTS TALENTNAME:151
 		PRINTV '(,30,')
@@ -700,7 +702,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;一線越えない（キス未経験時のみ）
-	IF TALENT:151 && TALENT:27
+	IF TALENT:151 && TALENT:27	; 【[キス未経験] / [一線越えない]】
 		PRINT  - 
 		PRINTS TALENTNAME:27
 		PRINTV '(,15,')
@@ -709,7 +711,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 
 	;合意
-	IF TALENT:152 == 0
+	IF TALENT:152 == 0	; 【[合意]なし】
 		PRINT  - 
 		PRINTFORM %TALENTNAME:152%無し
 		PRINTV '(,10,')
@@ -717,7 +719,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;デート中
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		PRINT  + 
 		PRINT デート中
 		PRINTV '(,5,')
@@ -726,15 +728,15 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 	;ムードボーナス
 	B = 0
-	IF TFLAG:37 < 10
+	IF TFLAG:37 < 10	; 【[ムード]<10】
 		B -= 10
-	ELSEIF TFLAG:37 < 30
+	ELSEIF TFLAG:37 < 30	; 【[ムード]<30】
 		B -= 1
-	ELSEIF TFLAG:37 < 50
+	ELSEIF TFLAG:37 < 50	; 【[ムード]<50】
 		B += 1
-	ELSEIF TFLAG:37 < 100
+	ELSEIF TFLAG:37 < 100	; 【[ムード]<100】
 		B += TFLAG:37 / 10
-	ELSEIF TFLAG:37 < 300
+	ELSEIF TFLAG:37 < 300	; 【[ムード]<300】
 		B += TFLAG:37 / 5
 	ELSE
 		B += TFLAG:37 / 4
@@ -754,12 +756,12 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 
 	;好感度
-	IF CFLAG:2 < 500
+	IF CFLAG:2 < 500	; 【[好感度]<500】
 		B = 0
 		PRINT  - 
-		IF CFLAG:2 < 100
+		IF CFLAG:2 < 100	; 【[好感度]<100】
 			B = 20
-		ELSEIF CFLAG:2 < 300
+		ELSEIF CFLAG:2 < 300	; 【[好感度]<300】
 			B = 10
 		ELSE
 			B = 5
@@ -770,7 +772,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;好感度
-	IF CFLAG:2 >= 700
+	IF CFLAG:2 >= 700	; 【[好感度]>=700】
 		B = 0
 		SIF S
 			PRINT  + 

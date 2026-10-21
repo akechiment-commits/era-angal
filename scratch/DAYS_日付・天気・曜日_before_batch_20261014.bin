@@ -1,0 +1,548 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+;-----------------------------------------------------------------
+;年月日曜日表示パッチ
+;下1行をコピペしてその上の行にCALL YOUBIを書き足せば年月日＆曜日を任意の場所で表示できます
+;{DAY:3}年 %STR:2%月 {DAY:1}日 (%STR:1%曜日) 天気:%STR:3% 
+
+;DAY:0(単にDAYだとこれ)は何日目かです（DAY = 0で1日目）
+;DAY:1は月内の日にちです(1～10) ← 1ゲーム日=3実日、10日/月、120日/年
+;DAY:2は季節です　0が春　　1が夏　　2が秋　　3が冬
+;DAY:3は年です　ゲーム開始時の年+DAY/120(120日で1年)
+;DAY:4はゲーム開始時の年です
+;DAY:5は曜日です　0が月曜　1が火曜　2が水曜　3が木曜　4が金曜　5がサタデー　6が日曜
+;DAY:6は予備変数（旧:季節ずれ、現在未使用）
+;DAY:8は現在の実月（4～12月、1～3月）
+;-----------------------------------------------------------------
+
+@EVENTSHOP
+;年月日を入れる 0は割れないので分ける　%は右の数字で割った時のあまりを返す
+IF DAY == 0
+	DAY:1 = 1
+	DAY:4 = 2015
+ENDIF
+;DAY:1 月内日にち(1～10)、DAY:2 季節(0～3)、DAY:3 年、DAY:5 曜日(0～6)、DAY:8 月(4～12,1～3)
+LOCAL:9 = DAY / 10 % 12
+SIF DAY != 0
+	DAY:1 = DAY % 10 * 3 + 1
+DAY:2 = LOCAL:9 / 3
+DAY:8 = (LOCAL:9 + 3) % 12 + 1
+DAY:3 = DAY / 120 + DAY:4
+DAY:5 = DAY % 7
+SIF NO:MASTER == 0 && TIME:2 == 0
+	CALL BIRTHDAY
+CALL FESTIVAL
+CALL WEATHER
+
+@YOUBI
+SIF DAY == 0
+	DAY:1 = 1
+;DAY:1 月内日にち(1～10)、DAY:2 季節(0～3)、DAY:3 年、DAY:5 曜日(0～6)、DAY:8 月(4～12,1～3)
+LOCAL:9 = DAY / 10 % 12
+SIF DAY != 0
+	DAY:1 = DAY % 10 * 3 + 1
+DAY:2 = LOCAL:9 / 3
+DAY:8 = (LOCAL:9 + 3) % 12 + 1
+DAY:3 = DAY / 120 + DAY:4
+DAY:5 = DAY % 7
+SIF NO:MASTER == 0 && TIME:2 == 0
+	CALL BIRTHDAY
+CALL FESTIVAL
+CALL WEATHER
+
+IF DAY:5 == 0
+	STR:1 = 月
+ELSEIF DAY:5 == 1
+	STR:1 = 火
+ELSEIF DAY:5 == 2
+	STR:1 = 水
+ELSEIF DAY:5 == 3
+	STR:1 = 木
+ELSEIF DAY:5 == 4
+	STR:1 = 金
+ELSEIF DAY:5 == 5
+	STR:1 = 土
+ELSEIF DAY:5 == 6
+	STR:1 = 日
+ENDIF
+
+; 月番号を文字列にセット（表示例: "4月"）
+STR:2 = {DAY:8}
+
+IF TIME:5 == 0
+	STR:3 = 晴れ
+ELSEIF TIME:5 == 1
+	STR:3 = 快晴
+ELSEIF TIME:5 == 2
+	STR:3 = 曇り
+ELSEIF TIME:5 == 3
+	STR:3 = 雨
+ELSEIF TIME:5 == 4
+	STR:3 = 大雨
+ELSEIF TIME:5 == 5
+	STR:3 = 雪
+ELSEIF TIME:5 == 6
+	STR:3 = 吹雪
+ELSEIF TIME:5 == 7
+	STR:3 = 狐の嫁入り
+ELSEIF TIME:5 == 8
+	STR:3 = 細氷
+ENDIF
+
+SIF TIME:8 == 1 && TIME:5 != 7
+	STR:3 = %STR:3% + 虹
+SIF TIME:11 == 1
+	STR:3 = %STR:3% + 流れ星
+SIF TIME:11 == 2
+	STR:3 = %STR:3% + 流星群
+
+;平日(月～金)は授業時間→放課後、土日は自由時間
+IF DAY:5 <= 4
+	IF TIME == 0
+		STR:4 = 授業時間
+	ELSE
+		STR:4 = 放課後
+	ENDIF
+ELSE
+	IF TIME == 0
+		STR:4 = 自由時間
+	ELSE
+		STR:4 = 自由時間
+	ENDIF
+ENDIF
+
+@BIRTHDAY
+;TIME:3はあなたの誕生月、DAY:9はあなたの誕生日
+PRINTL あなたの誕生日を設定します。
+PRINTL 誕生月を選んでください。
+PRINTL [1] 1月  [2] 2月  [3] 3月  [4] 4月  [5] 5月  [6] 6月
+PRINTL [7] 7月  [8] 8月  [9] 9月  [10] 10月  [11] 11月  [12] 12月
+$INPUT_LOOP_BIRTHDAY_MONTH
+INPUT
+SIF RESULT < 1 || RESULT > 12
+    GOTO INPUT_LOOP_BIRTHDAY_MONTH
+TIME:3 = RESULT
+
+PRINTL 誕生日の日を選んでください。
+PRINTL [1] 1日  [2] 2日  [3] 3日  [4] 4日  [5] 5日  [6] 6日  [7] 7日  [8] 8日
+PRINTL [9] 9日  [10] 10日  [11] 11日  [12] 12日  [13] 13日  [14] 14日  [15] 15日  [16] 16日
+PRINTL [17] 17日  [18] 18日  [19] 19日  [20] 20日  [21] 21日  [22] 22日  [23] 23日  [24] 24日
+PRINTL [25] 25日  [26] 26日  [27] 27日  [28] 28日  [29] 29日  [30] 30日  [31] 31日
+$INPUT_LOOP_BIRTHDAY_DAY
+INPUT
+SIF RESULT < 1 || RESULT > 31
+    GOTO INPUT_LOOP_BIRTHDAY_DAY
+DAY:9 = RESULT
+TIME:2 = 1
+
+@FESTIVAL
+;TIME:1は今が何のイベントかを記録している
+;TIME:4が記念日かを判定
+TIME:1 = 0
+TIME:4 = 0
+;誕生日判定（誕生月と現在月が一致）
+SIF DAY:8 == TIME:3 && TIME:3 > 0 && (DAY:9 == 0 || (DAY:9 >= DAY:1 && DAY:9 <= DAY:1 + 2) || (DAY:1 == 28 && DAY:9 == 31))
+	TIME:4 |= 1
+;結婚記念日判定（月・日が一致）
+SIF DAY:8 == TIME:10 && DAY:1 == TIME:9 && TIME:9 > 0
+	TIME:4 |= 2
+;サタデーナイトフィーバー
+SIF DAY:5 == 5 && TIME == 1
+	TIME:1 = 1
+;春ですよー
+IF DAY:2 == 0
+	;元日
+	SIF DAY:1 == 1
+		TIME:1 = 11
+	;雛祭り
+	SIF DAY:1 == 3
+		TIME:1 = 12
+	;みどりの日
+	SIF DAY:1 == 4
+		TIME:1 = 13
+	;こどもの日
+	SIF DAY:1 == 5
+		TIME:1 = 14
+	;春分
+	SIF DAY:1 == 7
+		TIME:1 = 15
+	;母の日
+	SIF DAY:1 == 11
+		TIME:1 = 16
+	;ホワイトデー
+	SIF DAY:1 == 14
+		TIME:1 = 17
+	;春彼岸
+	SIF DAY:1 == 19
+		TIME:1 = 18
+	;学園祭
+	SIF DAY:1 == 25 && TIME == 0
+		TIME:1 = 19
+	;
+;	SIF DAY:1 == 
+;		TIME:1 = 20
+
+;夏
+ELSEIF DAY:2 == 1
+	;梅雨
+	SIF DAY:1 >= 1 && DAY:1 <= 6
+		TIME:1 = 21
+	;七夕
+	SIF DAY:1 == 7 && TIME == 1
+		TIME:1 = 22
+	;夏至
+	SIF DAY:1 == 8
+		TIME:1 = 23
+	;お盆
+	SIF DAY:1 == 14
+		TIME:1 = 24
+	;海の日
+	SIF DAY:1 == 20
+		TIME:1 = 25
+	;土用の丑の日
+	SIF DAY:1 == 24
+		TIME:1 = 26
+	;学力コンテスト（夏7月 Day10、TIME:1=63）
+	IF DAY:1 == 10 && DAY:8 == 7
+		TIME:1 = 63
+	ENDIF
+	;ラジオ体操
+	SIF DAY:1 >= 25 && TIME == 0
+		TIME:1 = 27
+	;
+;	SIF DAY:1 == 
+;		TIME:1 = 28
+	;
+;	SIF DAY:1 == 
+;		TIME:1 = 29
+
+;秋
+ELSEIF DAY:2 == 2
+	;風神「二百十日」
+	SIF DAY:1 == 1
+		TIME:1 = 31
+	;文化の日
+	SIF DAY:1 == 3
+		TIME:1 = 32
+	;秋分
+	SIF DAY:1 == 7
+		TIME:1 = 33
+	;体育の日
+	SIF DAY:1 == 10
+		TIME:1 = 34
+	;体育祭（Day12-13の2日間）
+	IF DAY:1 >= 12 && DAY:1 <= 13
+		TIME:1 = 60
+	ENDIF
+	;文化祭（Day21-22の2日間）
+	IF DAY:1 >= 21 && DAY:1 <= 22
+		TIME:1 = 61
+	ENDIF
+	;七五三
+	SIF DAY:1 == 15 && TIME == 0
+		TIME:1 = 35
+	;十五夜
+	SIF DAY:1 == 15 && TIME == 1
+		TIME:1 = 36
+	;敬老の日
+	SIF DAY:1 == 17
+		TIME:1 = 37
+	;彼岸入り
+	SIF DAY:1 == 20
+		TIME:1 = 38
+	;勤労感謝
+	SIF DAY:1 == 23
+		TIME:1 = 39
+	;一番少ない夏からフラグ借りてきた
+	;忘れてた…ごめんね秋姉妹
+	;ハーヴェスト
+	SIF DAY:1 == 27 && TIME == 1
+		TIME:1 = 30
+	;ハロウィン
+	SIF DAY:1 == 31
+		TIME:1 = 40
+
+;冬
+ELSEIF DAY:2 == 3
+	;兎の餅つき
+	SIF DAY:1 == 1 && TIME == 0
+		TIME:1 = 41
+	;節分
+	SIF DAY:1 == 3
+		TIME:1 = 42
+	;冬至
+	SIF DAY:1 == 8
+		TIME:1 = 43
+	;クイズ選手権（1月 Day10、TIME:1=62）
+	IF DAY:1 == 10 && DAY:8 == 1
+		TIME:1 = 62
+	ENDIF
+	;バレンタインデー
+	SIF DAY:1 == 14
+		TIME:1 = 44
+	;大寒
+	SIF DAY:1 == 19
+		TIME:1 = 45
+	;天皇誕生日
+	SIF DAY:1 == 23
+		TIME:1 = 46
+	;クリスマスイブ
+	SIF DAY:1 == 24
+		TIME:1 = 47
+	;クリスマス
+	SIF DAY:1 == 25
+		TIME:1 = 48
+	;大晦日
+	SIF DAY:1 == 31 && TIME == 1
+		TIME:1 = 49
+	;
+;	SIF DAY:1 == 
+;		TIME:1 = 50
+
+ENDIF
+
+@WEATHER
+;TIME:5が天気(0=晴1=快晴2=曇り3=雨4=大雨5=雪6=大雪)
+;TIME:6はひとつ前の時間
+;TIME:7はひとつ前の天気
+SIF TIME == TIME:6
+	RETURN 0
+TIME:6 = TIME
+TIME:7 = TIME:5
+TIME:5 = 0
+TIME:8 = 0
+TIME:11 = 0
+A = RAND:100
+;春ですよー
+IF DAY:2 == 0
+;TIME:5が天気(0=晴1=快晴2=曇り3=雨4=大雨5=雪6=大雪)
+	IF A < 30
+		TIME:5 = 0
+	ELSEIF A < 38 || (TIME == 1 && A < 40)
+		TIME:5 = 1
+	ELSEIF A < 68 || (TIME == 1 && A < 70)
+		TIME:5 = 2
+	ELSEIF A < 98 || TIME == 1
+		TIME:5 = 3
+	ELSE
+		TIME:5 = 7
+	ENDIF
+	SIF (TIME:1 == 12 || TIME:1 == 13 || TIME:1 == 14 || TIME:1 == 15) && TIME:5 != 1 && TIME:5 != 7
+		TIME:5 = 0
+
+;夏
+ELSEIF DAY:2 == 1
+;TIME:5が天気(0=晴1=快晴2=曇り3=雨4=大雨5=雪6=大雪)
+	IF TIME:1 == 21 || TIME:1 == 22
+		IF A < 10
+			TIME:5 = 0
+		ELSEIF A < 20
+			TIME:5 = 1
+		ELSEIF A < 50
+			TIME:5 = 2
+		ELSEIF A < 90
+			TIME:5 = 3
+		ELSE
+			TIME:5 = 4
+		ENDIF
+	ELSEIF TIME == 0
+		IF A < 40
+			TIME:5 = 0
+		ELSEIF A < 60
+			TIME:5 = 1
+		ELSEIF A < 90
+			TIME:5 = 2
+		ELSE
+			TIME:5 = 3
+		ENDIF
+	ELSE
+		IF A < 30
+			TIME:5 = 0
+		ELSEIF A < 50
+			TIME:5 = 1
+		ELSEIF A < 80
+			TIME:5 = 2
+		ELSE
+			TIME:5 = 4
+		ENDIF
+	ENDIF
+	SIF (TIME:1 == 23 || TIME:1 == 24 || TIME:1 == 25 || TIME:1 == 27) && TIME:5 != 1
+		TIME:5 = 0
+
+;秋
+ELSEIF DAY:2 == 2
+;TIME:5が天気(0=晴1=快晴2=曇り3=雨4=大雨5=雪6=大雪)
+	IF DAY:1 >= 15
+		IF A < 40
+			TIME:5 = 0
+		ELSEIF A < 50
+			TIME:5 = 1
+		ELSEIF A < 90
+			TIME:5 = 2
+		ELSE
+			TIME:5 = 3
+		ENDIF
+	ELSEIF TIME == 0
+		IF A < 30
+			TIME:5 = 0
+		ELSEIF A < 40
+			TIME:5 = 1
+		ELSEIF A < 70
+			TIME:5 = 2
+		ELSE
+			TIME:5 = 3
+		ENDIF
+	ELSE
+		IF A < 20
+			TIME:5 = 0
+		ELSEIF A < 30
+			TIME:5 = 1
+		ELSEIF A < 40
+			TIME:5 = 2
+		ELSEIF A < 60
+			TIME:5 = 3
+		ELSE
+			TIME:5 = 4
+		ENDIF
+	ENDIF
+	SIF (TIME:1 == 33 || TIME:1 == 34 || TIME:1 == 35 || TIME:1 == 36 || TIME:1 == 30 || TIME:1 == 40) && TIME:5 != 1
+		TIME:5 = 0
+	SIF TIME:1 == 31
+		TIME:5 = 4
+
+;冬
+;TIME:5が天気(0=晴1=快晴2=曇り3=雨4=大雨5=雪6=大雪)
+ELSEIF DAY:2 == 3
+	IF (TIME:1 == 47 && TIME == 1) || (TIME:1 == 48 && TIME == 0)
+		IF A < 38
+			TIME:5 = 0
+		ELSEIF A < 47
+			TIME:5 = 1
+		ELSEIF A < 95
+			TIME:5 = 5
+		ELSE
+			TIME:5 = 8
+		ENDIF
+	ELSEIF TIME:1 == 47 || TIME:1 == 48 || TIME:1 == 49
+		IF A < 40
+			TIME:5 = 0
+		ELSEIF A < 50
+			TIME:5 = 1
+		ELSE
+			TIME:5 = 5
+		ENDIF
+	ELSE
+		IF A < 30
+			TIME:5 = 0
+		ELSEIF A < 40
+			TIME:5 = 1
+		ELSEIF A < 60
+			TIME:5 = 2
+		ELSEIF A < 95
+			TIME:5 = 5
+		ELSE
+			TIME:5 = 6
+		ENDIF
+	ENDIF
+	SIF (TIME:1 == 42 || TIME:1 == 43) && TIME:5 != 1
+		TIME:5 = 0
+	SIF TIME:1 == 45
+		TIME:5 = 6
+
+ENDIF
+
+;星は流れているか？
+;TIME:11で管理
+IF TIME:5 <= 1 && TIME == 1
+	;流星群
+	IF RAND:30 == 0
+		TIME:11 = 2
+	;流れ星
+	ELSEIF RAND:3 == 0
+		TIME:11 = 1
+	ENDIF
+ENDIF
+
+SIF TIME == 1
+	RETURN 0
+
+;虹を判定する
+;TIME:7はひとつ前の天気
+;TIME:8は虹が出ているか判定
+IF (TIME:7 == 3 || TIME:7 == 4) && TIME:5 == 0
+	SIF RAND:12 == 0
+		TIME:8 = 1
+ELSEIF (TIME:7 == 3 || TIME:7 == 4) && TIME:5 == 1
+	SIF RAND:6 == 0
+		TIME:8 = 1
+ELSEIF TIME:5 == 7
+	TIME:8 = 1
+ENDIF
+
+@EVENTCOMEND
+;ウフフ中、勝手にムードアップする
+IF TFLAG:44 == 1	; 【[ウフフ中]==1】
+	SIF TIME:5 == 3
+		TFLAG:37 += RAND:3
+	SIF TIME:5 == 7
+		TFLAG:37 += RAND:4
+	SIF TIME:5 == 8
+		TFLAG:37 += 4
+ENDIF
+;ウフフ中でなくてもムードアップする
+SIF TIME:8 == 1
+	TFLAG:37 += RAND:4
+SIF TIME:11 == 1
+	TFLAG:37 += RAND:6+1
+SIF TIME:11 == 2
+	TFLAG:37 += RAND:3+1
+
+;-----------------------------------------------------------------
+; 記念日・日付管理用ヘルパー関数
+;-----------------------------------------------------------------
+@GET_CURRENT_DATE_INT
+#FUNCTION
+#DIM D_YEAR
+#DIM D_MONTH
+#DIM D_DAY
+D_YEAR = DAY / 120 + (DAY:4 ? DAY:4 # 2015)
+D_MONTH = (DAY / 10 % 12 + 3) % 12 + 1
+D_DAY = (DAY == 0) ? 1 # (DAY % 10 * 3 + 1)
+RETURNF D_YEAR * 10000 + D_MONTH * 100 + D_DAY
+
+@CONVERT_DAY_INT_TO_DATE_INT(ARG)
+#FUNCTION
+#DIM D_VAL
+#DIM D_YEAR
+#DIM D_MONTH
+#DIM D_DAY
+SIF ARG <= 0
+	RETURNF 0
+IF ARG >= 10000
+	RETURNF ARG
+ENDIF
+D_VAL = MAX(0, ARG - 1)
+D_YEAR = D_VAL / 120 + (DAY:4 ? DAY:4 # 2015)
+D_MONTH = (D_VAL / 10 % 12 + 3) % 12 + 1
+D_DAY = (D_VAL == 0) ? 1 # (D_VAL % 10 * 3 + 1)
+RETURNF D_YEAR * 10000 + D_MONTH * 100 + D_DAY
+
+@FORMAT_DATE_STR(ARG)
+#FUNCTIONS
+#DIM D_VAL
+#DIM D_YEAR
+#DIM D_MONTH
+#DIM D_DAY
+SIF ARG <= 0
+	RETURNF ""
+IF ARG < 10000
+	D_VAL = CONVERT_DAY_INT_TO_DATE_INT(ARG)
+ELSE
+	D_VAL = ARG
+ENDIF
+D_YEAR = D_VAL / 10000
+D_MONTH = (D_VAL % 10000) / 100
+D_DAY = D_VAL % 100
+RETURNF @"{D_YEAR}年 {D_MONTH}月 {D_DAY}日"

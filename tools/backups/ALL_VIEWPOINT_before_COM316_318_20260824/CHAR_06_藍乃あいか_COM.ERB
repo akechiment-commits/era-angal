@@ -1,0 +1,4802 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+;==============================================================
+; キャラ別コマンド反応テンプレート  @KOJO_MESSAGE_COM_6
+;
+; 【分岐構造】
+;   3tier+SF: 初回 / 失敗(恋人/通常) / 成功(恋人×3, 親密×3, 通常×3)
+;   3tier:    初回 / 恋人×3 / 親密×3 / 通常×3
+;   2tier+SF: 初回 / 失敗(恋人/通常) / 成功(恋人×3, 通常×3)
+;   2tier:    初回 / 恋人×3 / 通常×3
+;   ecchi2t:  恋人×3 / 通常×3
+;   other:    恋人1行 / 通常1行
+;
+; 【成功/失敗: TFLAG:18】  -1=失敗  0=通常  1=大成功
+; 【関係: TALENT:TARGET:153=恋人  ABL:TARGET:0>=6=親密】
+;
+; 【CFLAG:TARGET初回フラグ】
+;   210=勉強 211=会話 212=プレゼント 213=スキンシップ 214=まったり
+;   215=掃除 216=髪梳き 217=デート系 218=初詣 219=炬燵 220=散歩
+;   221=学食 222=遊び・ライブ 223=素材 224=調合 225=縁側 229=キス
+;   230-248: ウフフ系各コマンド
+;==============================================================
+@KOJO_MESSAGE_COM_6
+SIF TEQUIP:45 && SELECTCOM != 45
+	RETURN 0
+; ▼ 相手呼称システム（女性同士COMで相手を原作準拠の呼び方に。%LOCALS%で展開・アンカー1回方式）
+CALL AITE_YOBI, 6, PLAYER
+LOCALS '= @"%RESULTS%"
+
+;==============================================================
+; 純愛コミュニケーション系（COM300-325）
+;==============================================================
+;--- COM300 一緒に勉強する ---
+IF SELECTCOM == 300
+	IF CFLAG:TARGET:210 == 0
+		CFLAG:TARGET:210 = 1
+		;初回
+		PRINTFORMW 「えっ、わたしと勉強……? あ、あの、いいですよ。わたしも、ちょうどわからないところがあったので……えへへ」
+	ELSE
+		A = RAND:3
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「ごめんなさい、先輩……。わたし、本のこと考えてたら、ぜんぜん集中できなくて……。だめ、ですよね……」
+			ELSE
+				;失敗
+				PRINTFORMW 「あう……ごめんなさい、今日は頭に入ってこなくて……。体も、ちょっとだるくて……。また、今度教えてください……」
+			ENDIF
+		;--- 成功 ---
+		ELSE
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩と一緒だと、はかどりますね♪ ちゃんと褒めてくれるから、頑張れちゃう」
+			ELSEIF A == 1
+				PRINTFORMW 「（%CALLNAME:PLAYER%先輩の横顔、真剣……）……あ、ご、ごめんなさい。見惚れてました」
+			ELSE
+				PRINTFORMW 「えへへ、ここのところ。先輩、わかります? わたしも、さっきまでわかってなかったんですよ」
+			ENDIF
+		;--- 親密（ABL6以上） ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「転校生さん、ここの問題ってどう解くんですか? あう、わたしだけわかってないみたい……」
+			ELSEIF A == 1
+				PRINTFORMW 「えへへ、転校生さんと勉強してると不思議とはかどります。お礼に、お茶でもいかがですか?」
+			ELSE
+				PRINTFORMW 「うう、わたし要領が悪くて、すみません。何度も同じところでつまずいちゃって……」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「転校生の先輩、ここを教えてもらえますか? あの、ご迷惑じゃないなら、ですけど……」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぁ……ねむい。ご、ごめんなさい、転校生の先輩。ちゃんとやります」
+			ELSE
+				PRINTFORMW 「（また転校生の先輩のお世話に……）あ、ありがとうございます、教えてくれて」
+			ENDIF
+		ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM301 会話 ---
+IF SELECTCOM == 301
+	IF CFLAG:TARGET:211 == 0
+		CFLAG:TARGET:211 = 1
+		;初回
+		PRINTFORMW 「えっ、わたしとお話、ですか? あう、何を喋ったらいいんだろう……。あの、本のお話、とか……?」
+	ELSE
+		A = RAND:10
+		;--- 失敗 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あう……ご、ごめんなさい先輩、うまく話せなくて……。ま、また今度、ね？」
+			ELSE
+				;失敗
+				PRINTFORMW 「うう……わたし、人見知りで……。ご、ごめんなさい、出直してきます……」
+			ENDIF
+		;--- 成功 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「ねぇ%CALLNAME:PLAYER%先輩、聞いてくれます? このあいだ読んだロマンス小説、すっごく素敵で……♪」
+				ELSEIF A == 1
+					PRINTFORMW 「（%CALLNAME:PLAYER%先輩、楽しそう……）えへへ、わたしも楽しい。先輩と話してる時間がいちばん好きかも」
+				ELSEIF A == 2
+					PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩って聞き上手ですね。わたし、ついつい喋りすぎちゃう」
+				ELSEIF A == 3
+					PRINTFORMW 「昨日見た夢の話、してもいいですか? 先輩がドラゴンに乗ってわたしを助けにくる夢で……えへへ、ロマンチック♪」
+				ELSEIF A == 4
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ってば。わたしの話、ちゃんと聞いてますか? ……えへへ、聞いてくれてるならいいんです」
+				ELSEIF A == 5
+					PRINTFORMW 「わたしの書いた新作、%CALLNAME:PLAYER%先輩にいちばんに読んでほしいな……えへへ♪」
+				ELSEIF A == 6
+					PRINTFORMW 「（先輩がヒーローだったら、どんな物語になるかな……）……あっ、ひとりごとです！」
+				ELSEIF A == 7
+					PRINTFORMW 「先輩とお話してると、ロマンス小説より胸がどきどきしちゃう……♪」
+				ELSEIF A == 8
+					PRINTFORMW 「いつか、あなたをモデルにした物語、書いてみたいな……えへへ♪」
+				ELSE
+					PRINTFORMW 「ふふ、先輩となら、どんなお話も書ける気がします……一緒だから♪」
+				ENDIF
+			;--- 親密（ABL6以上） ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「あ、転校生さん。ちょっとお話、いいですか? このあいだの続きを書いてて、感想を聞きたいんですけど……」
+				ELSEIF A == 1
+					PRINTFORMW 「（転校生さんとお話するの、楽しい……）えへへ、最近、緊張せずに喋れるようになってきました」
+				ELSEIF A == 2
+					PRINTFORMW 「ふふ、転校生さん。お話してると時間を忘れちゃいますね。気をつけないと、夜更かしになっちゃう」
+				ELSEIF A == 3
+					PRINTFORMW 「あの、転校生さん。北川さんと一緒にゲームしてたって、ほんとですか? わたしもちょっと興味あって……」
+				ELSEIF A == 4
+					PRINTFORMW 「転校生さんって、いろんなお話を知ってますね。聞いてて飽きないです……えへへ」
+				ELSEIF A == 5
+					PRINTFORMW 「あの、転校生さん。この主人公、ちょっと先輩に似てるんです……えへへ」
+				ELSEIF A == 6
+					PRINTFORMW 「最近ね、緊張せずに先輩と喋れるようになってきたんです。うれしいな……♪」
+				ELSEIF A == 7
+					PRINTFORMW 「夜更かしして執筆しちゃって……あっ、先輩は早く寝てくださいね？」
+				ELSEIF A == 8
+					PRINTFORMW 「北川さんと一緒にゲーム……わたしも、まぜてほしいなって、えへへ」
+				ELSE
+					PRINTFORMW 「転校生さんのお話、聞いてて飽きないです。続き、聞かせてください♪」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「えっと、転校生の先輩。ご用件は何ですか? わたし、ちょっと執筆中だったんですけど……」
+				ELSEIF A == 1
+					PRINTFORMW 「ふぇ、お話、ですか? え、えっと、何の話、しましょう……?」
+				ELSEIF A == 2
+					PRINTFORMW 「あの、転校生の先輩。さっきの話の続きなんですけど。途中になっちゃってたから、気になって……」
+				ELSEIF A == 3
+					PRINTFORMW 「（ま、まだ慣れないなぁ、転校生の先輩と喋るの……）え、えっと、はい。何でしょう?」
+				ELSEIF A == 4
+					PRINTFORMW 「あ、あの……もし良かったら、たまにあなたも来てください。猫さんも喜ぶから……」
+				ELSEIF A == 5
+					PRINTFORMW 「ふぇ、お話、ですか……？　え、えっと、何を話しましょう……？」
+				ELSEIF A == 6
+					PRINTFORMW 「あの、転校生の先輩。この本、読み終わったら感想、聞かせてほしいんです♪」
+				ELSEIF A == 7
+					PRINTFORMW 「（ま、まだ慣れないなぁ……）え、えっと、はい、何でしょう？」
+				ELSEIF A == 8
+					PRINTFORMW 「うう、ご、ごめんなさい。人見知りで、お話苦手で……」
+				ELSE
+					PRINTFORMW 「同じ作家さんの本たくさん持ってるよ、こんど貸そうか？」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+;--- COM302 プレゼント ---
+IF SELECTCOM == 302
+	IF CFLAG:TARGET:212 == 0
+		CFLAG:TARGET:212 = 1
+		;初回
+		PRINTFORML 「え、わたしに……? ふぁ、開けてもいいんですか? （ど、どうしよう、お返ししないと……!）
+		PRINTFORMW ありがとうございます、転校生の先輩……!」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。お気持ちは嬉しいんですけど、これは……ちょっとわたしには合わないかも、です」
+			ELSE
+				;失敗
+				PRINTFORMW 「えっと、転校生の先輩。お気持ちは嬉しいんですけど……。あの、ごめんなさい、受け取れません」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「うわぁ、%CALLNAME:PLAYER%先輩……! これ、ずっと欲しかった本……! どうして知ってるんですか? えへへ、夢みたい♪」
+				ELSEIF A == 1
+					PRINTFORMW 「（先輩、わたしの好み完璧に覚えてくれてる……えへへ）ありがとうございます。大事にしますね」
+				ELSE
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。プレゼントばっかり、こんなにいただいて。お返し、何にしよう……えへへ」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「えっ、転校生さん。これを、わたしに……? あう、ありがとうございます。大切にします」
+				ELSEIF A == 1
+					PRINTFORMW 「（うわぁ、嬉しい……）転校生さん、ほんとに気が利きますね。えへへ」
+				ELSE
+					PRINTFORMW 「こ、こんなにいいものを……。すみません、わたし何もお返しできなくて」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「えっ、わたしに……? あの、お気遣いなく、です。受け取っていいんですか?」
+				ELSEIF A == 1
+					PRINTFORMW 「うう、ありがとうございます、転校生の先輩。あの、お返しは、ちゃんと考えますから……」
+				ELSE
+					PRINTFORMW 「（また転校生の先輩からのプレゼント……気を遣わせちゃってるよね）ご、ごめんなさい。ありがとうございます」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM303 スキンシップ ---
+IF SELECTCOM == 303
+	IF CFLAG:TARGET:213 == 0
+		CFLAG:TARGET:213 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? い、いきなりですか転校生の先輩……! （ど、どうしよう、心臓ばくばく……!）あう、びっくりしました」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「%CALLNAME:PLAYER%先輩。今日は、ちょっと……。気分が乗らないっていうか、ごめんなさい」
+			ELSE
+				;失敗
+				PRINTFORMW 「あう、転校生の先輩。それは、その……。ちょっと、まだ早いかも、です」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩のお手、あったかい……♪ もうちょっと、こうしててもいいですか?」
+				ELSEIF A == 1
+					PRINTFORMW 「（先輩の体温、好き……）……あ、ごめんなさい。ぼうっとしてました」
+				ELSE
+					PRINTFORMW 「もう%CALLNAME:PLAYER%先輩、くすぐったいっ! ふふ、やめてください……えへへ」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「あう、転校生さん。優しくしてくれて、ありがとうです。なんだか、ほっとします」
+				ELSEIF A == 1
+					PRINTFORMW 「（転校生さんに触れられると、安心する……）えへへ、不思議」
+				ELSE
+					PRINTFORMW 「ひゃわわっ、どうして抱きしめるんですかっ!?」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「あはは、そんなところ舐めないで。くすぐったいにゃ！　あははは」
+				ELSEIF A == 1
+					PRINTFORMW 「うう、ふしぎな感じ。転校生の先輩のお手って、あったかいんですね……」
+				ELSE
+					PRINTFORMW 「（か、顔が熱い……）ご、ごめんなさい、転校生の先輩。わたし、慣れてなくて」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM304 まったりする ---
+IF SELECTCOM == 304
+	IF CFLAG:TARGET:214 == 0
+		CFLAG:TARGET:214 = 1
+		;初回
+		PRINTFORMW 「えっと、まったり……? あ、あの、いいですよ。わたしも、ちょっと疲れてたので……えへへ」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩とまったりするの、好き♪ 時間が止まったみたいで……」
+			ELSEIF A == 1
+				PRINTFORMW 「（%CALLNAME:PLAYER%先輩の寝顔、かわいい……えへへ）……あ、ごめんなさい、見てました」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お昼寝しすぎですよ、風邪ひいちゃう……」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「えへへ、転校生さん。こうしてのんびりするの、いいですね」
+			ELSEIF A == 1
+				PRINTFORMW 「転校生さん、ちょっと眠そう……。お疲れなんですね、無理しないでくださいね?」
+			ELSE
+				PRINTFORMW 「うう、転校生さん。あの、近いです、ちょっと……は、はずかしい」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「いいよ。ちょっと人混みと騒音に『ぐったり』しちゃって、すこし休んでるけど。」
+			ELSEIF A == 1
+				PRINTFORMW 「（転校生の先輩、忙しいのかな……）ふぁ、お茶でもいかがですか?」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。あんまりわたしを構わないでください……は、はずかしいから」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM305 掃除当番 ---
+IF SELECTCOM == 305
+	IF CFLAG:TARGET:215 == 0
+		CFLAG:TARGET:215 = 1
+		;初回
+		PRINTFORMW 「えっ、わたしと掃除……? あ、あの、よろしくお願いしますね。わたし、要領悪いんですけど……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。掃除も、一緒だと楽しいですね♪」
+			ELSEIF A == 1
+				PRINTFORMW 「（%CALLNAME:PLAYER%先輩、雑巾がけ早い……）あう、わたしも頑張らなくちゃ」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。そんなところまで埃が……えへへ、几帳面ですね」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あの、転校生の先輩。そっちはわたしがやりますから、こっちをお願いします」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぁ……は、はぁ、つかれちゃった。ご、ごめんなさい、休憩していいですか?」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。わたし、雑巾がけ下手で。ぐすん……ごめんなさい」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM306 髪梳き ---
+IF SELECTCOM == 306
+	IF CFLAG:TARGET:216 == 0
+		CFLAG:TARGET:216 = 1
+		;初回
+		PRINTFORMW 「えっ、髪を梳かす……? あ、あの、わたしの髪、傷んでないですか? 恥ずかしい……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩のお手って、優しい……♪ もうちょっと、こうしててほしい」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の指、髪に触れて……気持ちいい）……ふぁ、ねむくなっちゃう」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。そんなに丁寧に梳いてくれなくても、です。えへへ、ありがとう」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あう、転校生の先輩。ちょっと、くすぐったいです。でも、ありがとうございます」
+			ELSEIF A == 1
+				PRINTFORMW 「ひゃっ! つ、強く梳かないでください、転校生の先輩……。痛いんですけど」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。わたしの髪、ぼさぼさで恥ずかしい……。ちゃんと整えてからにすればよかった」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM307 櫛で梳かす ---
+IF SELECTCOM == 307
+	IF CFLAG:TARGET:217 == 0
+		CFLAG:TARGET:217 = 1
+		;初回
+		PRINTFORMW 「えっ、櫛で……? あ、あの、お願いします。わたし、いつもはブラシなんですけど」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩の梳き方、上手……♪ 美容師さんみたい」
+			ELSEIF A == 1
+				PRINTFORMW 「（櫛が通るたびに、しゅるって音がして……気持ちいい）……ふぁ」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。櫛、貸してください。今度は先輩のを梳かしてあげる、ね♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あう、転校生の先輩。櫛の歯が引っかかると、ちょっと痛い……。お、お手柔らかに」
+			ELSEIF A == 1
+				PRINTFORMW 「ひゃっ! ご、ごめんなさい、転校生の先輩。びっくりしただけ、です」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。櫛で梳かすのって慣れなくて……えへへ、不思議な感覚」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM309 素材探し ---
+IF SELECTCOM == 309
+	IF CFLAG:TARGET:223 == 0
+		CFLAG:TARGET:223 = 1
+		;初回
+		PRINTFORMW 「えっ、わたしと素材探し? あ、あの、何を探すんですか? わたし、何もわからないんですけど……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。これって素材になりそう? ふふ、宝物探しみたい♪」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩、いろんなところに目が届く……すごい）あ、わたしも頑張って探しますね」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。そんな高いところ、危ないですよ……。わたしの分はちっちゃいのでいいので」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あの、転校生の先輩。これ、素材になりますか? わたし、よくわからなくて……」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、ぜんぜん見つからない……。ご、ごめんなさい、転校生の先輩。役立たずで」
+			ELSE
+				PRINTFORMW 「（また転校生の先輩に頼ってばかり……）あ、見つけました、これでいいですか?」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM310 調合 ---
+IF SELECTCOM == 310
+	IF CFLAG:TARGET:224 == 0
+		CFLAG:TARGET:224 = 1
+		;初回
+		PRINTFORMW 「えっ、わたしと調合? あ、あの、わたし不器用なので、ご迷惑になるかも……。が、頑張ります」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩。なんだか、魔法使いみたいですね♪ わたしもお手伝いします」
+			ELSEIF A == 1
+				PRINTFORMW 「（%CALLNAME:PLAYER%先輩、慣れた手つき……）あ、わたしもちゃんと覚えなくちゃ」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。混ぜすぎは、ダメみたいですよ。レシピに書いてある通りに……えへへ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あう、転校生の先輩。手元、気をつけてください。こぼしたら、もったいないですよ」
+			ELSEIF A == 1
+				PRINTFORMW 「ひゃっ! あ、ごめんなさい、転校生の先輩。手が滑っちゃって……」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。わたしが調合すると、いつも失敗しちゃうんです。ぐすん……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM311 甘い言葉 ---
+IF SELECTCOM == 311
+	IF CFLAG:TARGET:216 == 0
+		CFLAG:TARGET:216 = 1
+		;初回
+		PRINTFORMW 「え、わたしに……甘い言葉、ですか? ふぁっ、ど、どうしたんですか急に……! （か、顔が熱いっ……!）」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。今のはちょっと……。えへへ、ごめんなさい、響かなかったみたい」
+			ELSE
+				;失敗
+				PRINTFORMW 「えっと、転校生の先輩。お気持ちはわかるんですけど……あの、ごめんなさい」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。そんな素敵な言葉、ロマンス小説でも読んだことないです……えへへ♪」
+				ELSEIF A == 1
+					PRINTFORMW 「（先輩、ぜったい本とか参考にしてるよね……でも、嬉しい）……あ、ありがとうございます」
+				ELSE
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。そんなに褒めても、何も出ませんよ? ふふ、ちょっとだけ、嬉しい……えへへ」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「あう、転校生さん。そんなふうに言ってくれるんですか……。ありがとう、です」
+				ELSEIF A == 1
+					PRINTFORMW 「（転校生さん、優しい言葉ばっかり……）えへへ、なんだか、夢みたい」
+				ELSE
+					PRINTFORMW 「うう、転校生さん。あんまり褒められると、わたし、調子に乗っちゃいます……」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「えっと、転校生の先輩。それは、その。お世辞でも、ちょっと嬉しいです」
+				ELSEIF A == 1
+					PRINTFORMW 「（うう、こんなことを言われたのは、はじめて……）あ、ありがとうございます」
+				ELSE
+					PRINTFORMW 「ひゃっ! も、もう、転校生の先輩。からかわないでください……は、はずかしいから」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM312 頭を撫でる ---
+IF SELECTCOM == 312
+	IF CFLAG:TARGET:217 == 0
+		CFLAG:TARGET:217 = 1
+		;初回
+		PRINTFORMW 「ふぁっ! あ、頭を撫でないでくださいっ……! 子供あつかいしないで、ね? わたし、これでも年頃なんですから」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。今は、ちょっと。ぼうっとしたくないんです、ね?」
+			ELSE
+				;失敗
+				PRINTFORMW 「うう、転校生の先輩。やめてください、頭撫でるの……。子供みたいで、はずかしいから」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩のお手って、あったかい……♪ もうちょっとだけ、こうしてて」
+				ELSEIF A == 1
+					PRINTFORMW 「（先輩に撫でられると、安心する……）……あ、ねむくなっちゃう」
+				ELSE
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。だから、子供あつかいしないでって言ったのに……えへへ、まぁいいです」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「あう、転校生さん。撫でられるの、ちょっと照れる……でも、嬉しい、です」
+				ELSEIF A == 1
+					PRINTFORMW 「（うう、ちょっとドキドキしちゃった……えへへ）……ありがとうございます」
+				ELSE
+					PRINTFORMW 「うう、転校生さん。やめてください、髪が乱れちゃう……」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ひゃっ! あ、転校生の先輩。撫でないでください、セクハラっぽいですからね?」
+				ELSEIF A == 1
+					PRINTFORMW 「うう、転校生の先輩。子供あつかいしないでって、いつも言ってるのに……」
+				ELSE
+					PRINTFORMW 「（頭、撫でられた……どうしよう、嬉しいかも）……あ、ありがとうございます」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM313 願掛け ---
+IF SELECTCOM == 313
+	IF CFLAG:TARGET:218 == 0
+		CFLAG:TARGET:218 = 1
+		;初回
+		PRINTFORMW 「えっ、願掛け? あ、あの、しおん先輩や足長おじさんが、無事でありますようにって、お祈りしようかな……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩と一緒なら、どんな願いも叶いそうな気がします♪」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩との未来が、ずっと続きますように……）あ、ご、ごめんなさい。声に出ちゃってた」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。願掛けは内緒にしないと、叶わないんですよ?」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あの、転校生の先輩。一緒に手を合わせてくれますか? 効き目が、増えそうな気がして」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。わたしの願いって、欲張りすぎですかね……」
+			ELSE
+				PRINTFORMW 「（足長おじさん……いつもありがとう）転校生の先輩、わたしの願い、聞いてくれてありがとう」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM314 炬燵にあたる ---
+IF SELECTCOM == 314
+	IF CFLAG:TARGET:219 == 0
+		CFLAG:TARGET:219 = 1
+		;初回
+		PRINTFORMW 「えっ、炬燵……? あ、あの、入っていいんですか? わたし、寒がりなので助かります……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩と炬燵で本を読むの、しあわせ♪ ずっとこうしてたい……」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の足、あったかい……えへへ）……あ、ごめんなさい。当たっちゃってました」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。炬燵で寝ちゃダメですよ、風邪ひいちゃう」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あう、転校生の先輩。炬燵、出るのが怖くなりますね……。なんで人間って、こんなものを発明しちゃったんでしょう」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぁ……ねむい。ご、ごめんなさい、転校生の先輩。炬燵が気持ちよすぎて」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。あんまり近寄らないでください……。は、はずかしいから」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM315 お散歩する ---
+IF SELECTCOM == 315
+	IF CFLAG:TARGET:220 == 0
+		CFLAG:TARGET:220 = 1
+		;初回
+		PRINTFORMW 「えっ、お散歩? あ、あの、いいですよ。わたしも、運動不足だったので……えへへ」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩とお散歩、好き♪ 季節の花とか、見つけると嬉しい」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の歩幅に合わせてくれるの、優しい……）えへへ、わたしのペースで歩いてくれるんですね」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。猫がいるからって、急に立ち止まらないでください、ぶつかっちゃう」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「あの、転校生さん。あそこに野良猫が……えへへ、可愛いですよね」
+			ELSEIF A == 1
+				PRINTFORMW 「転校生さん、ゆっくりめに歩いてくれて、ありがとうございます。わたし、体力なくて」
+			ELSE
+				PRINTFORMW 「うう、転校生さん。ちょっと、お水休憩しませんか? ふぁ、はぁっ、つかれちゃった」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぁ、はぁっ……。転校生の先輩、もうちょっとゆっくり歩いてください……」
+			ELSEIF A == 1
+				PRINTFORMW 「（また転校生の先輩のペースに……）あ、ありがとうございます、待ってくれて」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。ご、ごめんなさい、体力なくて。先に帰りますね……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM316 髪を梳いて貰う ---
+IF SELECTCOM == 316
+	IF CFLAG:TARGET:217 == 0
+		CFLAG:TARGET:217 = 1
+		;初回
+		PRINTFORMW 「えっ、髪を梳いてくれるんですか? あ、あの、お願いします。ぼさぼさで恥ずかしいんですけど……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお手って、気持ちいい……♪ ずっと梳いててほしい」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩、優しい手つき……ねむくなっちゃう）……はっ、ご、ごめんなさい」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。下手なくせに、ふふ。でも、嬉しい、です。えへへ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あう、転校生の先輩。痛くはないですけど、ちょっと、くすぐったい、です」
+			ELSEIF A == 1
+				PRINTFORMW 「ひゃっ! つ、強くしないでください、転校生の先輩……。痛いんですけど」
+			ELSE
+				PRINTFORMW 「うう、わたしの髪を梳くなんて、転校生の先輩は変わってますね……でも、ありがとうございます」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM320 学食に行く ---
+IF SELECTCOM == 320
+	IF CFLAG:TARGET:221 == 0
+		CFLAG:TARGET:221 = 1
+		;初回
+		PRINTFORMW 「えっ、学食? あ、あの、いいですよ。何を食べようかな……。わたし、麺類は苦手で」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩。何にします? わたし、先輩と同じものでいいかも♪」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩、たくさん食べる……えへへ、見てるだけで楽しい）あ、わたしも頑張って食べなくちゃ」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。半分こって言ったのに、全部食べないでください」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「あの、転校生さん。ここの定食、量が多くて……。半分こ、しませんか?」
+			ELSEIF A == 1
+				PRINTFORMW 「転校生さん、ありがとうございます。お会計、ちゃんと自分の分は出しますからね?」
+			ELSE
+				PRINTFORMW 「うう、転校生さん。わたし、ちょっと量を間違えました……残しちゃってもいいですか」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「えっと、転校生の先輩。ご一緒、していいですか? ひとりでお昼って、寂しくて……」
+			ELSEIF A == 1
+				PRINTFORMW 「（また転校生の先輩のお世話に……）あ、ありがとうございます、おごってくれて」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。残しちゃってごめんなさい。お腹いっぱいで……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM321 遊びに行く ---
+IF SELECTCOM == 321
+	IF CFLAG:TARGET:222 == 0
+		CFLAG:TARGET:222 = 1
+		;初回
+		PRINTFORMW 「えっ、遊びに行く? あ、あの、どこに行くんですか? わたし、運動はちょっと苦手なので……」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩とお出かけ、わくわくします♪ 何して遊ぼうかな」
+			ELSEIF A == 1
+				PRINTFORMW 「（%CALLNAME:PLAYER%先輩、楽しそう……）えへへ、わたしも楽しくなってきました」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。走らないでください、わたし追いつけないですよ……」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「あ、転校生さん。本屋さんに寄ってもいいですか? ちょっと、見たい本があって」
+			ELSEIF A == 1
+				PRINTFORMW 「転校生さんと遊びに行くの、ちょっと緊張します……。でも、嬉しい、です」
+			ELSE
+				PRINTFORMW 「うう、転校生さん。歩きすぎちゃった……足が、棒みたい」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「えっ、出かける、ですか? あの、わたしでいいんですか?」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぁ、はぁっ……。転校生の先輩、ペース速いです、ちょっと待ってください」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。わたし、すぐ疲れちゃって……ご迷惑かけてばっかりで、ごめんなさい」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM322 ストリートライブ（廃止済み・互換性維持） ---
+IF SELECTCOM == 322
+	IF CFLAG:TARGET:222 == 0
+		CFLAG:TARGET:222 = 1
+		;初回
+		PRINTFORMW 「えっ、ストリートライブ? あ、あの、わたし楽器は弾けないんですけど……。聴く側でいいですか?」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩。かっこいい……♪ こっそりわたしも応援してます」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の演奏、好き……）えへへ、もう一曲、リクエストしてもいいですか?」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。お客さん、増えてきましたよ。ちゃんと演奏してくださいね♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あの、転校生の先輩。わたし、楽譜めくる係でもいいですか? それなら、できそうで」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。人が集まりすぎて、わたし、ちょっと怖い……。後ろに隠れてていいですか」
+			ELSE
+				PRINTFORMW 「（るかちゃんに、音楽教えてもらおうかな……）あ、転校生の先輩。お疲れさまでした」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM323 デート（出発/帰宅で分岐: TEQUIP:2!=0で出発、==0で帰宅） ---
+IF SELECTCOM == 323
+	IF TEQUIP:2
+		;▼ デートに出発（後で記入）
+		IF CFLAG:TARGET:217 == 0
+			CFLAG:TARGET:217 = 1
+			;初回
+			PRINTFORML 「デート……わたしと、ですか……? ふぁ……う、うれしい……。あの、人混みは苦手だけど……
+			PRINTFORMW 先輩となら、本屋さんとか、行きたいな……えへへ」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「ごめんなさい、先輩……今日、ちょっと体調が……。せっかく誘ってくれたのに……。次は、ちゃんと行くから……ね？」
+				ELSE
+					;失敗
+					PRINTFORML 「あう……ごめんなさい、今日はやめておきます……。なんだか、
+					PRINTFORMW 家で本を読んでいたい気分で……。また、誘ってくれると、うれしい……」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「えへへ、先輩とおでかけ……♪　昨日から、楽しみで、本が手につかなかった……なんて。い、行きましょう……」
+					ELSEIF A == 1
+						PRINTFORMW 「て、手……繋いでもいいですか……? はぐれちゃうと、こわいから……（ほんとは、ただ繋ぎたいだけ……）えへへ」
+					ELSE
+						PRINTFORMW 「今日はどこ行きましょう……? あ、猫カフェ、知ってるんです……先輩、猫、好きですか……? えへへ♪」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「おでかけ、うれしいな……。あの、わたし、いい本屋さん知ってるんです……一緒に、どうですか……?」
+					ELSEIF A == 1
+						PRINTFORMW 「ふたりでおでかけ……ど、どきどきしちゃう……。せ、先輩、ゆっくり歩いてくれると、うれしいな……」
+					ELSE
+						PRINTFORMW 「えへへ、いいお天気……。こういう日は、日向ぼっこしながら本を読みたいな……あ、先輩と、一緒に……?」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「デート……ですか……? ふぁ、急、ですね……。でも、先輩となら……うん、行きたい、です……えへへ」
+					ELSEIF A == 1
+						PRINTFORMW 「どこ行くか、決めてくれると、うれしいな……。わたし、出かけるの慣れてなくて……ごめんなさい……」
+					ELSE
+						PRINTFORMW 「おでかけ……あんまり遠くないと、うれしいな……。わたし、体弱いから……でも、先輩となら、がんばれます……っ」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ELSE
+		;▼ デートから帰宅（既存セリフ）
+		IF CFLAG:TARGET:226 == 0
+			CFLAG:TARGET:226 = 1
+			;初回
+			PRINTFORMW 「えっ、デート……? ふぁ、わ、わたしで、いいんですか? （ど、どうしよう、洋服選ばないと……!）えへへ、楽しみです……♪」
+		ELSE
+			A = RAND:3
+			;--- 失敗時 ---
+			IF TFLAG:18 == -1
+				IF TALENT:TARGET:153
+					;恋人・失敗
+					PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。今日は、ちょっと体調が……。あの、また今度、お願いします」
+				ELSE
+					;失敗
+					PRINTFORMW 「うう、転校生の先輩。デートって、なんだか心の準備が……。ご、ごめんなさい、また今度」
+				ENDIF
+			;--- 成功時 ---
+			ELSE
+				;--- 恋人 ---
+				IF TALENT:TARGET:153
+					IF A == 0
+						PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。今日のデート、楽しかった……♪ また連れてってくれますか?」
+					ELSEIF A == 1
+						PRINTFORMW 「（先輩との時間、ずっと続いてほしい……）あ、ごめんなさい、ぼうっとしてました」
+					ELSE
+						PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。手、繋いでくれるんですか? えへへ、はずかしい……」
+					ENDIF
+				;--- 親密 ---
+				ELSEIF ABL:TARGET:0 >= 6
+					IF A == 0
+						PRINTFORMW 「あの、転校生さん。今日は、ありがとうございました。楽しかったです、すごく」
+					ELSEIF A == 1
+						PRINTFORMW 「（転校生さんと並んで歩くの、なんだかロマンス小説みたい……えへへ）えっと、また誘ってください、ね?」
+					ELSE
+						PRINTFORMW 「うう、転校生さん。あの、人通りの少ないところを歩きませんか? わたし、緊張しちゃって」
+					ENDIF
+				;--- 通常 ---
+				ELSE
+					IF A == 0
+						PRINTFORMW 「あの、転校生の先輩。今日は、お付きあいありがとうございました。」
+					ELSEIF A == 1
+						PRINTFORMW 「（また転校生の先輩のお世話に……）えっと、お礼、何かしないと」
+					ELSE
+						PRINTFORMW 「うう、転校生の先輩。デートって、もっとロマンチックなものかと思ってたんですけど……えへへ、ふつうですね」
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM325  ---
+;  ※予約スロット（各キャラ固有コマンド・自由設定）
+IF SELECTCOM == 325
+	IF CFLAG:TARGET:225 == 0
+		CFLAG:TARGET:225 = 1
+		;初回
+		PRINTFORMW 「えっ、わたしが図書室で何を……? あ、あの、何でもないです。本を整理してるだけ、です」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「（このお手紙、ちゃんと届くといいな……）ふふ、%CALLNAME:PLAYER%先輩には、内緒♪」
+			ELSEIF A == 1
+				PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。見ないでください! 個人的な、その……。お手紙、なんです」
+			ELSE
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。わたし、しおん先輩から『図書室の怪人』を受け継いだんです……。今は、わたしが足長おじさんの番♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あの、転校生の先輩。図書室の本に挟まれてた手紙、見ました? あれ、わたしが書いてるんです……」
+			ELSEIF A == 1
+				PRINTFORMW 「えっと、転校生の先輩。これは、ひ、ひみつなんですけど。困ってるひとに、お手紙でお返事してて……」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。あんまり見ないでください。は、はずかしいから……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; キス系（COM340-342）成功/失敗分岐あり
+;==============================================================
+;--- COM340 バードキス ---
+IF SELECTCOM == 340
+	IF CFLAG:TARGET:229 == 0
+		CFLAG:TARGET:229 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? ほ、頬っぺた……? %CALLNAME:PLAYER%先輩、急に何するんですか……! （う、うう、心臓が……）あう、はずかしい」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。今は、ちょっと……。風邪気味だから、ね? また今度、お願いします」
+			ELSE
+				;失敗
+				PRINTFORMW 「うう、転校生の先輩。今のは、ちょっと……。あの、ご、ごめんなさい」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩のほっぺ、あったかい……♪ もうひとつ、してもいいですか?」
+				ELSEIF A == 1
+					PRINTFORMW 「（先輩の唇、ふわって触れて……）……あ、ご、ごめんなさい。ぼうっとしてました」
+				ELSE
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。びっくりさせないでください……えへへ」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ふぁ、転校生の先輩。ほ、頬っぺたに……? あ、ありがとうございます」
+				ELSEIF A == 1
+					PRINTFORMW 「ちゅっ……。ふぇ、び、びっくりしました……。えへへ、でも、嬉しい、かも……♪」
+				ELSE
+					PRINTFORMW 「うう、転校生の先輩。あんまり驚かさないで、ね?」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM341 ソフトキス ---
+IF SELECTCOM == 341
+	IF CFLAG:TARGET:229 == 0
+		CFLAG:TARGET:229 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? い、いま、唇に……! %CALLNAME:PLAYER%先輩……! （う、うそ、本当にキスされちゃった……!）うう～っ、ど、どうしようっ」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。今日は、ちょっと心の準備が……。ごめんなさい、ね?」
+			ELSE
+				;失敗
+				PRINTFORMW 「うう、転校生の先輩。あの、人前ではちょっと……は、はずかしいんですけど」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩のキス、好き……♪ もう一回、いいですか?」
+				ELSEIF A == 1
+					PRINTFORMW 「（先輩の唇、やわらかい……ふぁ、しあわせ）……あ、ぼうっとしてました」
+				ELSE
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。何度もしないでください……えへへ、口紅、取れちゃう」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「ふぁ、転校生の先輩。き、キス、ですか……? あう、はずかしいけど、嬉しい、です」
+				ELSEIF A == 1
+					PRINTFORMW 「ひゃっ! ご、ごめんなさい、転校生の先輩。びっくりして、息止まっちゃって」
+				ELSE
+					PRINTFORMW 「うう、転校生の先輩。心の準備、ちゃんとさせてくださいね……? お願いします」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM342 ディープキス ---
+IF SELECTCOM == 342
+	IF CFLAG:TARGET:229 == 0
+		CFLAG:TARGET:229 = 1
+		;初回
+		PRINTFORML 「ふぁ、ふぁああっ……!? い、いま、%CALLNAME:PLAYER%先輩のしたが……! （う、うう、
+		PRINTFORMW 頭がぼうっとして……）うう～っ、こ、これがディープキスっ」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あ、%CALLNAME:PLAYER%先輩。それは、その。ちょっと、まだ早いかも、です」
+			ELSE
+				;失敗
+				PRINTFORMW 「うう、転校生の先輩。それは……ご、ごめんなさい、まだ無理です」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。息ができない、けど……もうちょっと、こうしててほしい」
+				ELSEIF A == 1
+					PRINTFORMW 「（先輩の舌、熱い……頭がとろけちゃう）……ふぁ、ねむい、です」
+				ELSE
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。深すぎ……はぁ、はぁ、唇が痺れちゃった」
+				ENDIF
+			ELSE
+				IF A == 0
+					PRINTFORMW 「うう、転校生の先輩。これって、ディープキスっていうやつ、ですか? 本に書いてあったのと違う……」
+				ELSEIF A == 1
+					PRINTFORMW 「ひゃっ! あ、転校生の先輩。い、息ができないですって……」
+				ELSE
+					PRINTFORMW 「（うう、本に書いてあったのより、すごく濃い……）ふぁ、はぁ。転校生の先輩、休憩してください」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; ウフフ系（COM360-381）
+;==============================================================
+;--- COM360 胸愛撫 ---
+IF SELECTCOM == 360
+	IF CFLAG:TARGET:230 == 0
+		CFLAG:TARGET:230 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? %CALLNAME:PLAYER%先輩……! こ、こんなとこで、お、おっぱい……! は、はずかしいです……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ ちっちゃい胸でも、可愛がってくれるんですね……えへへ」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の指、先っぽに……びりってする）うう、しびれちゃう」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。ちっちゃいって、いつも言ってるのに……えへへ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。む、胸はちっちゃいですから、過剰な期待しないで……」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。わたしの胸、貧弱で……。が、がっかりさせちゃってますよね」
+			ELSE
+				PRINTFORMW 「うぴ……! 見ないでください、転校生の先輩。胸、ちっちゃくて、はずかしい」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM361 愛撫 ---
+IF SELECTCOM == 361
+	IF CFLAG:TARGET:231 == 0
+		CFLAG:TARGET:231 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? いきなり、こんなとこで……! %CALLNAME:PLAYER%先輩……! あう、心臓が、ばくばく……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお手……♪ 体じゅう、ぞくぞくする」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の指、肌をなぞって……勝手にぴくぴく）うう、変な感じ」
+			ELSE
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。お手って、魔法みたい……。わたしの体、ふしぎ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。い、いきなり触らないでくださいっ……! は、はずかしい」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。お、お手が、変なとこ……。本に書いてあったのと違う」
+			ELSE
+				PRINTFORMW 「うぴ……! 見ないで、転校生の先輩。わたし、変な反応しちゃう……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM362 指挿入れ ---
+IF SELECTCOM == 362
+	IF CFLAG:TARGET:232 == 0
+		CFLAG:TARGET:232 = 1
+		;初回
+		PRINTFORMW 「ふぁ、ふぁああっ!? %CALLNAME:PLAYER%先輩の指が、お、奥に……! こ、こんな感じなんですね……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお指……♪ 奥まで届いて、しびれちゃう」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の指、ぴくぴく……勝手に締めつけちゃう）うう、止まらない」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お指、いじわるしすぎ……えへへ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。ゆ、指は、お、お手柔らかに……! 痛い、ですから」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。お指が、変なとこ……。は、はずかしい」
+			ELSE
+				PRINTFORMW 「うぴ……! こ、こんな場所に、お指が入っちゃうなんて……本に書いてなかった」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM363 着衣挿入 ---
+IF SELECTCOM == 363
+	IF CFLAG:TARGET:233 == 0
+		CFLAG:TARGET:233 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? %CALLNAME:PLAYER%先輩……! こ、こんな所で……! こ、こんなのっ、はずかしすぎ……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ こんな所でだと、ふしぎな気分……えへへ」
+			ELSEIF A == 1
+				PRINTFORMW 「こ、こんな所でって、いけない感じ……うう、ぞくぞくする」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。制服、皺になっちゃう……えへへ、変態さん」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。こ、こんな所で、こ、こんなの……! 駄目ですっ」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。せ、制服が汚れちゃう……。お、お洗濯、しないと」
+			ELSE
+				PRINTFORMW 「うぴ……! 服、めくらないで、転校生の先輩。は、はずかしい」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM364 着衣Ｇスポット刺激 ---
+IF SELECTCOM == 364
+	IF CFLAG:TARGET:234 == 0
+		CFLAG:TARGET:234 = 1
+		;初回
+		PRINTFORMW 「ふぁ、ふぁああっ!? そ、そんなとこっ……! %CALLNAME:PLAYER%先輩、知っちゃってる……! うう、こ、こんなの……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ そこ、知ってるんですね……えへへ、上手すぎ」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の指、奥のいい場所に……勝手にぴくっとする）うう、すぐ変になっちゃう」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。そんなとこばっかり、上手すぎ……ふふ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! そ、そんな場所、知らないでくださいっ……! は、はずかしい」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。そ、そこは、ちょっと無理……。すぐ、変になっちゃう」
+			ELSE
+				PRINTFORMW 「うぴ……! 見ないでください、転校生の先輩。わたし、変な顔になってます……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM365 着衣後背位 ---
+IF SELECTCOM == 365
+	IF CFLAG:TARGET:235 == 0
+		CFLAG:TARGET:235 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? こ、こんな所で、後ろから……! %CALLNAME:PLAYER%先輩、こ、こんなのって……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ 後ろから、こんな所で……えへへ、変な気分」
+			ELSEIF A == 1
+				PRINTFORMW 「（後ろから、なんて……ぞくっとする）うう、けものさんみたい」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。スカート、めくらないで……ふふ、見えちゃう」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。後ろから、こ、こんな格好で……! は、はずかしい」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。せ、制服が乱れちゃう……。誰かに見られたら、どうしよう」
+			ELSE
+				PRINTFORMW 「うぴ……! 見ないで、転校生の先輩。お、お尻、見えちゃう……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM366 着衣騎乗位 ---
+IF SELECTCOM == 366
+	IF CFLAG:TARGET:236 == 0
+		CFLAG:TARGET:236 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? わ、わたしが上で、こんな所で……? %CALLNAME:PLAYER%先輩、こ、こんなの初めて……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ わたしが上って、制服姿で、ふしぎ……えへへ」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩を見下ろして、制服姿で動くの……どきどき）うう、なんか、変」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。スカート、はみ出ちゃってます……ふふ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! わ、わたしが上って……? あう、こ、こんな格好で動くの、難しい……!」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。こ、こんな所で、わたしが上って……。は、はずかしい」
+			ELSE
+				PRINTFORMW 「うぴ……! 見ないで、転校生の先輩。下から見上げないでください……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM367 着衣ローター ---
+IF SELECTCOM == 367
+	IF CFLAG:TARGET:237 == 0
+		CFLAG:TARGET:237 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? こ、これ何ですか転校生の先輩……? 振動が、ぶるぶるって……! うう、止めて……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ ローター、ぶるぶるして……えへへ、変な気分」
+			ELSEIF A == 1
+				PRINTFORMW 「（振動が、ずっと続いて……勝手にぴくぴく）うう、止まらない」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。ローターなんて、ずるい……ふふ、止められない」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。こ、これ、外してくださいっ……! こ、こんな所で、ぶるぶる……!」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。お、おもちゃ、すごい……。本に書いてあったのと違う」
+			ELSE
+				PRINTFORMW 「うぴ……! 見ないで、転校生の先輩。わたし、ローターでこんなに……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM368 炬燵かがり ---
+IF SELECTCOM == 368
+	IF CFLAG:TARGET:238 == 0
+		CFLAG:TARGET:238 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? こ、炬燵の中で、こ、こんなこと……! %CALLNAME:PLAYER%先輩、はずかしすぎ……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩……♪ 炬燵の中だと、見えなくて、ふしぎな気分♪」
+			ELSEIF A == 1
+				PRINTFORMW 「（炬燵の温もりの中で、いけないこと……）うう、しあわせ」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。炬燵で、ですか……? えへへ、変態さん」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。こ、炬燵で、こんなのって……! あう、変な気分」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。こ、炬燵が汚れちゃう……。お、お母さんに見られたら困る」
+			ELSE
+				PRINTFORMW 「うぴ……! 見られないように、静かに、ね……? 転校生の先輩」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM370 抱き合う ---
+IF SELECTCOM == 370
+	IF CFLAG:TARGET:239 == 0
+		CFLAG:TARGET:239 = 1
+		;初回
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩……♪ こ、こんなふうに抱き合うの、ロマンス小説みたい……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお胸、あったかい……♪ ずっとこうしていてほしい」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の心臓の音、聞こえる……）うう、しあわせ」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。抱きしめすぎ……ふふ、苦しいけど、好き」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぁ、転校生の先輩。あの、こ、こうやって抱き合うんですね……。は、はずかしい」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。あんまり近すぎると、心臓ばくばくしちゃう……」
+			ELSE
+				PRINTFORMW 「うぴ……! あ、転校生の先輩。胸、押しつけないで……ちっちゃいから、わかっちゃう」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM371 オムツ ---
+IF SELECTCOM == 371
+	IF CFLAG:TARGET:240 == 0
+		CFLAG:TARGET:240 = 1
+		;初回
+		PRINTFORMW 「うぴいっ!? %CALLNAME:PLAYER%先輩……! こ、これ、おむつ、ですか……? なんで……! あう、はずかしすぎ……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「うう、%CALLNAME:PLAYER%先輩のお嬢様あつかい、はずかしい……えへへ、でも、嫌じゃない、かも」
+			ELSEIF A == 1
+				PRINTFORMW 「（おむつ……ロマンス小説にはなかったよね……）うう、変な気分」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。子供あつかいしないで、です……えへへ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。お、おむつなんて、無理ですっ……!」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。わたし、ちっちゃいから、お、お子様あつかい……ぐすん」
+			ELSE
+				PRINTFORMW 「うぴ、見ないで、転校生の先輩……! こ、こんな格好、見られちゃ駄目……!」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM372 尻愛撫 ---
+IF SELECTCOM == 372
+	IF CFLAG:TARGET:241 == 0
+		CFLAG:TARGET:241 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? %CALLNAME:PLAYER%先輩……! お、お尻、撫でないでくださいっ……! は、はずかしいですから……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ お尻、撫でられるの、ふしぎ……えへへ、ぞくぞく」
+			ELSEIF A == 1
+				PRINTFORMW 「（お尻、ぴくっとしちゃう……いけない場所）うう、変」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お尻ばっかり、好きですね……ふふ、変態さん」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! お、お尻はやめてくださいっ……! は、はずかしい」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。お尻、なんて……。本に書いてあったのと違う」
+			ELSE
+				PRINTFORMW 「うぴ、見ないで、転校生の先輩。お尻、見られちゃ駄目……!」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM373 フェラチオ ---
+IF SELECTCOM == 373
+	IF CFLAG:TARGET:242 == 0
+		CFLAG:TARGET:242 = 1
+		;初回
+		PRINTFORMW 「ふぁっ、こ、これ、わたしのお口で……? %CALLNAME:PLAYER%先輩、本気ですか……? あう、初めて、です……」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ お口でするの、不思議な味……えへへ」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩のが、お口の中で熱い……）うう、息ができない」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。下手なくせに、可愛がられて、嬉しい……ふふ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! こ、これ、お口で、ですか……? あう、心の準備が……」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。ご、ごめんなさい、上手にできなくて……ぐすん」
+			ELSE
+				PRINTFORMW 「うぴ、み、見ないでください、転校生の先輩。わたし、変な顔になってますよね……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM380 フェラする（着衣） ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりのキャラのペニスをフェラ（逆フェラ・着衣）。通常フェラCOM31と逆
+;  ※キャラがふたなり/半人半妖/オトコの場合のみ実行可
+;  ※プレイヤーがキャラのペニスをフェラする（逆フェラ・着衣）
+IF SELECTCOM == 380
+	IF CFLAG:TARGET:243 == 0
+		CFLAG:TARGET:243 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? %CALLNAME:PLAYER%先輩……! こ、こんな体になってるわたしを、お、お口で……! は、はずかしすぎですっ!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ わたしの、お口でしてくれて、嬉しい……えへへ」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩のお口の中、熱い……変な感じ）うう、しびれちゃう」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。わたしの、お口で奉仕してくれるなんて……ふふ」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「うぴいっ!? あ、転校生の先輩……! こんなわたしのを、お口でなんて……! 駄目です……!」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。わ、わたしのを、お口で……。は、はずかしすぎ」
+			ELSE
+				PRINTFORMW 「ひゃっ! 転校生の先輩。お、お口、止めて……っ、わたし、止まらなくなっちゃう」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM381 セックスさせる（着衣） ---
+;  ▼【視点】キャラ攻め＝キャラが助手/他の女子の膣に挿入する（着衣・ふたなり/ペニバン）。相手は女性（他の生徒）
+;  ※相手は助手か他の女子。キャラが挿入する側（ふたなり or ペニバン使用）
+;  ※着衣状態でキャラが積極的な役割を取る
+IF SELECTCOM == 381
+	IF CFLAG:TARGET:244 == 0
+		CFLAG:TARGET:244 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? こ、こんな所で、%LOCALS%と……? こ、こんな体で……。だ、誰か来ないですよね……あう、心の準備が……っ」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ……%LOCALS%のなか、あったかい……。ふぁ……えへへ、ふしぎな感じ……♪」
+			ELSEIF A == 1
+				PRINTFORMW 「んっ……腰を進めるたび、%LOCALS%、しがみついて……っ。う、攻める側って、ぞくぞくしちゃう……」
+			ELSE
+				PRINTFORMW 「はぁ……%LOCALS%が、きゅうって締めて……。あ、甘い声まで……えへへ、わたしも夢中……♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「んっ……こんな所で、奥まで……っ。%LOCALS%、びくびくして……こ、怖いけと、止まらない……っ」
+			ELSEIF A == 1
+				PRINTFORMW 「うう……%LOCALS%のなか、ぬるぬるで……。う、動き方、わからなくて……ご、ごめんなさい、下手で……っ」
+			ELSE
+				PRINTFORMW 「ひゃっ……%LOCALS%、甘い声で……。し、深く入れすぎちゃった……ご、ごめんなさい……でも、とろけちゃう……っ」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; 特殊・告白系（COM391-399）
+;==============================================================
+;--- COM391 衣装替え ---
+IF SELECTCOM == 391
+	IF CFLAG:TARGET:245 == 0
+		CFLAG:TARGET:245 = 1
+		;初回
+		PRINTFORMW 「えっ、お、お着替え……? あ、あの、転校生の先輩。み、見ないでくださいね? は、はずかしいから」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふふ、%CALLNAME:PLAYER%先輩のリクエスト、ですか? えへへ、頑張って似合うようにします♪」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩、目がきらきら……えへへ、嬉しそう）これ、似合ってますか?」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お着替え見るの、好きすぎ……ふふ、変態さん」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ふぁ、転校生の先輩。こ、これは、ちょっと派手すぎ……。わたしには似合わない、です」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。お、お着替え、見られるの、はずかしい……」
+			ELSE
+				PRINTFORMW 「うぴ……! 転校生の先輩、見ないで、です。ぐすん、ふつうの服がいい」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM392 衣装破り ---
+IF SELECTCOM == 392
+	IF CFLAG:TARGET:246 == 0
+		CFLAG:TARGET:246 = 1
+		;初回
+		PRINTFORMW 「ふぁっ!? せ、制服、破かないでくださいっ! %CALLNAME:PLAYER%先輩……! こ、こんなのっ……!」
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ 服を破られるなんて、ロマンス小説みたい……えへへ」
+			ELSEIF A == 1
+				PRINTFORMW 「（破られた制服、あとで縫わないと……）うう、でも、ぞくぞくする」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お洋服、もったいない……ふふ、買い直してくださいね?」
+			ENDIF
+		ELSE
+			IF A == 0
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! 服、破らないでくださいっ! ぐすん、お母さんに怒られる」
+			ELSEIF A == 1
+				PRINTFORMW 「うう、転校生の先輩。せ、制服、破かれちゃった……。ど、どうしよう……ぐすん」
+			ELSE
+				PRINTFORMW 「うぴ……! 見ないで、転校生の先輩。は、はずかしいから……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM393 見つめあう ---
+IF SELECTCOM == 393
+	IF CFLAG:TARGET:247 == 0
+		CFLAG:TARGET:247 = 1
+		;初回
+		PRINTFORMW 「えっ、見つめあう……? あ、あの、はずかしいんですけど。先輩の目、まぶしい……」
+	ELSE
+		A = RAND:3
+		;--- 恋人 ---
+		IF TALENT:TARGET:153
+			IF A == 0
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩の目、きれい……♪ ずっと見ていたい、かも」
+			ELSEIF A == 1
+				PRINTFORMW 「（先輩の瞳に、わたしが映ってる……）……あ、ご、ごめんなさい。見すぎでしたね」
+			ELSE
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。瞬きしないでください、目が乾きますよ……ふふ」
+			ENDIF
+		;--- 親密 ---
+		ELSEIF ABL:TARGET:0 >= 6
+			IF A == 0
+				PRINTFORMW 「あう、転校生さん。そんなに見ないでください……は、はずかしいですから」
+			ELSEIF A == 1
+				PRINTFORMW 「（転校生さんの目、優しい……）えへへ、なんだか落ち着く、です」
+			ELSE
+				PRINTFORMW 「うう、転校生さん。あの、瞬きしてもいいですか……? 息が、もたなくて」
+			ENDIF
+		;--- 通常 ---
+		ELSE
+			IF A == 0
+				PRINTFORMW 「あの、転校生の先輩。そ、そんなに見つめないでください。穴があきそう……」
+			ELSEIF A == 1
+				PRINTFORMW 「ふぁ、ご、ごめんなさい転校生の先輩。先に目をそらしちゃって、つい」
+			ELSE
+				PRINTFORMW 「うう、転校生の先輩。は、はずかしいから、もうちょっと離れてくれませんか……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM399 告白する ---
+IF SELECTCOM == 399
+	IF CFLAG:TARGET:248 == 0
+		CFLAG:TARGET:248 = 1
+		;初回
+		PRINTFORML 「えっ、わたしに告白……? ふぁ、ほ、本気で言ってるんですか……? （ど、どうしよう、
+		PRINTFORMW 夢じゃないよね……?）うう、心臓が止まりそう」
+	ELSE
+		A = RAND:3
+		;--- 失敗時 ---
+		IF TFLAG:18 == -1
+			IF TALENT:TARGET:153
+				;恋人・失敗
+				PRINTFORMW 「あう、%CALLNAME:PLAYER%先輩。今のは、ちょっと響かなかったかも……。ふふ、もう一回お願いします、ね?」
+			ELSE
+				;失敗
+				PRINTFORMW 「あの、転校生の先輩。お、お気持ちは嬉しいんですけど……。あ、あの、ごめんなさい」
+			ENDIF
+		;--- 成功時 ---
+		ELSE
+			;--- 恋人 ---
+			IF TALENT:TARGET:153
+				IF A == 0
+					PRINTFORMW 「%CALLNAME:PLAYER%先輩。何度言われても、わたしも、先輩のこと好きですよ……えへへ♪」
+				ELSEIF A == 1
+					PRINTFORMW 「（また、好きって言ってくれた……ふふ、しあわせ）あ、ありがとうございます」
+				ELSE
+					PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。何度も言わなくても、わかってますよ。でも、嬉しい、です」
+				ENDIF
+			;--- 親密 ---
+			ELSEIF ABL:TARGET:0 >= 6
+				IF A == 0
+					PRINTFORMW 「ふぁ、転校生さん。そ、そんなふうに言ってくれるなんて……。あの、わ、わたしも、です」
+				ELSEIF A == 1
+					PRINTFORMW 「（うう、こんなふうに気持ちを伝えてくれるなんて……）えへへ、嬉しい、です」
+				ELSE
+					PRINTFORMW 「うう、転校生さん。か、からかってるんじゃないですよね? 本気で、ですよね……?」
+				ENDIF
+			;--- 通常 ---
+			ELSE
+				IF A == 0
+					PRINTFORMW 「えっ、転校生の先輩……? あの、ほ、本気で、ですか……? わたしなんかで、いいんですか?」
+				ELSEIF A == 1
+					PRINTFORMW 「ふぁ、ご、ごめんなさい。わ、わたし、まだ心の準備が……。もうちょっと、お時間ください」
+				ELSE
+					PRINTFORMW 「（うう、こんなことを言われるのは、はじめて……）あ、あの、ありがとうございます」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; 口上独自ウフフ（COM280-284）/ 口上独自純愛（COM410-414）
+;==============================================================
+;--- COM280-284 独自ウフフ ---
+;  ※ウフフ中の独自カスタムコマンド（各キャラ固有の性的シチュエーション）
+IF SELECTCOM >= 280 && SELECTCOM <= 284
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、ふぁああっ! %CALLNAME:PLAYER%先輩……! こ、こんなところで……! うう、もう、なんでも、いいです、先輩の好きなように……」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩……! こ、こんなのって、本に書いてなかった……! うう、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM410-414 独自純愛 ---
+;  ※純愛系の独自カスタムコマンド（ウフフ外・各キャラ固有のシチュエーション）
+IF SELECTCOM >= 410 && SELECTCOM <= 414
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩……。今日のは、すごく特別、でしたね……♪ また、二人だけの秘密にしましょう?」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。今日のは、その。あの、誰にも言わないでください、ね? は、はずかしいから」
+	ENDIF
+ENDIF
+
+;==============================================================
+; 口上独自ウフフ（COM280-284）/ 口上独自純愛（COM410-414）
+;==============================================================
+;--- COM280-284 独自ウフフ ---
+;  ※ウフフ中の独自カスタムコマンド（各キャラ固有の性的シチュエーション）
+IF SELECTCOM == 280
+	;◆地の文（場面: 本の森の二人）
+	IF TALENT:TARGET:153
+		PRINTFORML 「文芸部の部室、今日は誰も来ません……。古い本の匂いに包まれて、先輩と二人きり。えへ……
+		PRINTFORMW 物語みたいで、ドキドキしちゃいます……んっ♪」
+	ELSE
+		PRINTFORML 「あ、あの、先輩……っ。ぶ、部室には鍵をかけたほうが……。う、うう、
+		PRINTFORMW 本に囲まれてこんなこと、わたしの小説でも書いたことないのに……っ」
+	ENDIF
+ELSEIF SELECTCOM == 281
+	;◆地の文（場面: 書架の陰で）
+	IF TALENT:TARGET:153
+		PRINTFORML 「しーっ……図書室では、お静かに。書架の陰なら、誰にも見えませんよ……？　ふふ、声、
+		PRINTFORMW 我慢できますか……？　わたしは、ちょっと無理かも……んっ♪」
+	ELSE
+		PRINTFORML 「ちょ、こ、ここ図書室ですよ先輩……っ。だ、誰か本を取りに来たら……。あ、あぁ、
+		PRINTFORMW 声が出ちゃう……っ、う、うう、唇、ふさいでてください……っ」
+	ENDIF
+ELSEIF SELECTCOM == 282
+	;◆地の文（場面: 校舎裏の秘密）
+	IF TALENT:TARGET:153
+		PRINTFORML 「猫たちも、もう帰っちゃいましたね……。校舎裏は、誰も来ないから。先輩、もう少しだけ、
+		PRINTFORMW ここに……。ひとりは寂しいけど、先輩がいれば……んっ♪」
+	ELSE
+		PRINTFORML 「あ、あの、誰も見てませんよね……？　こ、校舎裏でこんな……。う、うう、わたし、
+		PRINTFORMW 寂しがりだから……先輩の体温、離したくないんです……っ」
+	ENDIF
+ELSEIF SELECTCOM == 283
+	;◆地の文（場面: 小説の取材）
+	IF TALENT:TARGET:153
+		PRINTFORML 「あの……今度のロマンス小説の、取材なんです。恋人同士が、こうして触れあう場面……。ふふ、
+		PRINTFORMW 先輩で、参考にさせてください……んっ、リアルに、書けそう♪」
+	ELSE
+		PRINTFORML 「し、資料集めです、これは……っ。ろ、ロマンス小説を書くのに、経験が必要で……。あぅ、せ、
+		PRINTFORMW 先輩、そんな本気で触られたら、メモが取れません……っ」
+	ENDIF
+ELSEIF SELECTCOM == 284
+	;◆地の文（場面: カーディガンの中）
+	IF TALENT:TARGET:153
+		PRINTFORML 「わたし、体が冷えやすいから……先輩、あっためてくれますか？　ふふ、カーディガンの中、
+		PRINTFORMW 二人で。……心臓の音、聞こえちゃいますね……んっ♪」
+	ELSE
+		PRINTFORML 「さ、寒くて……先輩にくっついただけ、なのに……っ。あ、あれ、なんだか体が熱い……。う、
+		PRINTFORMW うう、これって、風邪じゃない気がします……っ」
+	ENDIF
+ENDIF
+
+;--- COM410-414 独自純愛 ---
+;  ※純愛系の独自カスタムコマンド（ウフフ外・各キャラ固有のシチュエーション）
+IF SELECTCOM == 410
+	;◆地の文（場面: クリスマスの夜）
+	PRINTFORMW %CALLNAME:PLAYER%は、ずっと寂しかったと打ち明ける%CALLNAME:TARGET%と、聖夜を二人で過ごした
+	IF TALENT:TARGET:153
+		PRINTFORML 「先輩、メリークリスマス……。こういう日に、一緒にいられる相手がいるなんて。わたし、
+		PRINTFORMW ずっと寂しかったから……。えへ、素直に言いますね。先輩が、大好きです♪」
+	ELSE
+		PRINTFORML 「せ、先輩、クリスマス……予定、空いてますか？　べ、別に、一緒にいたいとか……。う、うう、
+		PRINTFORMW 嘘です。ひとりは、寂しいから……先輩と、過ごしたいです……っ」
+	ENDIF
+ELSEIF SELECTCOM == 411
+	;◆地の文（場面: 野良猫に会いに）
+	PRINTFORMW %CALLNAME:PLAYER%は、マロンと名付けた野良猫の世話をする%CALLNAME:TARGET%に誘われ、校舎裏を訪れた
+	IF TALENT:TARGET:153
+		PRINTFORML 「先輩、校舎裏の猫たちに会いに行きましょ。マロンって名前つけたんです、かわいいでしょ？
+		PRINTFORMW ……えへ、先輩と二人で世話するの、なんだか家族みたいですね♪」
+	ELSE
+		PRINTFORML 「先輩、猫、好きですか？　校舎裏にこっそり、面倒みてる子たちがいて……。そ、その、
+		PRINTFORMW 先輩にも紹介したくて。……変、ですか？　ふふ、よかった」
+	ENDIF
+ELSEIF SELECTCOM == 412
+	;◆地の文（場面: 二人で読書）
+	PRINTFORMW %CALLNAME:PLAYER%は、お気に入りの本を抱えた%CALLNAME:TARGET%に肩を寄せられ、同じ物語に目を落とした
+	IF TALENT:TARGET:153
+		PRINTFORML 「先輩、この本、すごく好きなんです。……一緒に読みませんか？　ふふ、肩を寄せて、
+		PRINTFORMW 同じ物語を。好きな場面、声に出して読んであげます……♪」
+	ELSE
+		PRINTFORML 「せ、先輩も本、読むんですか？　じゃ、じゃあこれ、おすすめで……。あ、あの、感想、
+		PRINTFORMW あとで聞かせてくださいね？　一緒に語れたら、嬉しいな……」
+	ENDIF
+ELSEIF SELECTCOM == 413
+	;◆地の文（場面: 一緒に劇作り）
+	PRINTFORMW %CALLNAME:PLAYER%は、ちづるに脚本を頼まれたという%CALLNAME:TARGET%と、ラブロマンスの劇を一緒に書いた
+	IF TALENT:TARGET:153
+		PRINTFORML 「ちづる先輩に、劇の脚本を頼まれてて……。先輩、一緒に作りませんか？
+		PRINTFORMW ラブロマンスは得意なんです。ふふ、主役は、わたしたちのイメージで……♪」
+	ELSE
+		PRINTFORML 「演劇部の脚本、書いてるんですけど……。せ、先輩、ちょっと意見もらえますか？　あ、あの、
+		PRINTFORMW 恋愛シーンが、その……。う、うう、想像で書くの、難しくて……っ」
+	ENDIF
+ELSEIF SELECTCOM == 414
+	;◆地の文（場面: きみの物語）
+	PRINTFORMW %CALLNAME:PLAYER%は、主人公のモデルは先輩だと顔を赤らめる%CALLNAME:TARGET%から、書きためた小説を差し出された
+	IF TALENT:TARGET:153
+		PRINTFORML 「あの、先輩……この小説、読んでもらえますか。主人公のモデル、実は、先輩なんです……。う、
+		PRINTFORMW うう、恥ずかしい。でも、わたしの気持ち、ぜんぶ込めました……♪」
+	ELSE
+		PRINTFORML 「こ、これ、わたしが書いたお話で……。べ、別に、誰かをモデルにしたとか、
+		PRINTFORMW そういうのじゃ……。あぅ、や、やっぱり読まなくていいです、恥ずかしい……っ」
+	ENDIF
+ENDIF
+
+;==============================================================
+; えっち系・よく使うコマンド（恋人/通常 各RAND:3）
+;==============================================================
+;--- COM0 愛撫 ---
+IF SELECTCOM == 0
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お手、優しい……♪ もうちょっと、こうしていてください」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の指、肌をなぞって……ぞくっとする）うう、変な声、出ちゃう」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩のお手って、魔法みたい……。わたしの体、ふしぎな感じ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩。急に触らないで……! は、はずかしいですから」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、ふぁ……。転校生の先輩。なんでこんなに、変な感じになるんでしょう……」
+		ELSE
+			PRINTFORMW 「うぴ……! 見ないでください、転校生の先輩。わたしの体、変だから……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM1 クンニ ---
+IF SELECTCOM == 1
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。そこ、そんなにしないで……えへへ、はずかしい♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の舌が、ぴくっと触れて……腰が、勝手に……）うう、頭ぼうっとしちゃう」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩……上手すぎ、です。わたし、本に書いてあったのより、ずっと」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……! そ、そんなところ、舐めないでください……!」
+		ELSEIF A == 1
+			PRINTFORMW 「ふぁ、はぁっ……。転校生の先輩、わたし、変になっちゃう……」
+		ELSE
+			PRINTFORMW 「うう、見ないで、ぐすん……。転校生の先輩、こ、こんなところ汚いから……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM2 アナル愛撫 ---
+IF SELECTCOM == 2
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。そっちは、ちょっと……えへへ、くすぐったい♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（後ろ、ぴくってしちゃう……いけない場所なのに）うう、変、です」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お尻ばっかり……えへへ、変態さん」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! ち、ちがう転校生の先輩、そっちじゃなくて……! あう、はずかしい」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、お、お尻……? 転校生の先輩、わたしの体、変なんでしょうか……」
+		ELSE
+			PRINTFORMW 「うぴ……! は、はずかしいから、もうやめてください、転校生の先輩」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM5 胸愛撫 ---
+IF SELECTCOM == 5
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。胸、わたし、ちっちゃいのに……えへへ、ありがとうです」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の指、先っぽに……びりっとする）うう、しびれちゃう」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。胸、ちっちゃいって、よくわかったでしょ? ふふ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……! む、胸はちっちゃいから……! は、はずかしい」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。わたし、貧乳なのに……。が、がっかりさせちゃったよね、ぐすん」
+		ELSE
+			PRINTFORMW 「うぴ、見ないで……。転校生の先輩、わたしの胸、こんなので……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM6 キスする ---
+IF SELECTCOM == 6
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ キス、好き。もうちょっと、こうしててほしい」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の唇、やわらかい……息ができなくなりそう）えへへ、しあわせ」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。キスばっかり、です。えへへ、口紅、取れちゃう」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩……。き、キス、ですか……? あう、はずかしい」
+		ELSEIF A == 1
+			PRINTFORMW 「ひゃっ……! 急にキスしないでくださいっ、転校生の先輩。びっくりしちゃう」
+		ELSE
+			PRINTFORMW 「うう、転校生の先輩。あ、あんまり唇に触れないで……。は、はずかしいから」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM20 正常位 ---
+IF SELECTCOM == 20
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。奥まで、届いて……えへへ、しあわせ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩のからだ、わたしの中に……熱い）うう、とろけちゃう」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。深すぎ、です。わたし、ちっちゃいんだから、お、お手柔らかに」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……! い、いきなりは無理ですっ……!」
+		ELSEIF A == 1
+			PRINTFORMW 「ふぁ、はぁっ……。転校生の先輩、ゆっくり、です。わたし、慣れてないから……」
+		ELSE
+			PRINTFORMW 「うう、転校生の先輩。これ、本に書いてあったのと違う……。は、はずかしい」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM21 後背位 ---
+IF SELECTCOM == 21
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろからって、お顔が見えなくて、ちょっと寂しい……」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の腰が、ぱちぱちって……奥まで届く）うう、変な感じ」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。こうしてると、けものさんみたい……ふふ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……! こ、こんな格好、はずかしいです……!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、はぁっ。転校生の先輩、う、後ろからは、ちょっと怖い……」
+		ELSE
+			PRINTFORMW 「うぴ、見ないで、転校生の先輩……! お、お尻、見られちゃう……!」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM22 アナルセックス ---
+IF SELECTCOM == 22
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろは、ちょっと痛いけど……えへへ、先輩のだから、いい」
+		ELSEIF A == 1
+			PRINTFORMW 「（後ろから、ぴくっと……いけない場所、なのに）うう、しびれる」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お尻ばっかり、好きですね……えへへ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……! そ、そっちは無理ですっ、痛いですっ……!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。お、お尻はやめてください……。は、はずかしいから」
+		ELSE
+			PRINTFORMW 「うぴ……! い、いけないところに……! 転校生の先輩、許してくださいっ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM23 逆レイプ ---
+;  ▼【視点】キャラ攻め＝ふたなりのキャラが挿入する側。相手は助手/他女子（女性同士の行為）
+;  ※ふたなりパートナーが膣に挿入するコマンド
+;  ※相手は助手か他の女子（女性）。キャラが挿入する側
+IF SELECTCOM == 23
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。%LOCALS%のなか、わたしので……えへへ、見ててください♪」
+		ELSEIF A == 1
+			PRINTFORMW 「んっ……%LOCALS%のなか、あったかい……あぅ、しびれちゃう♪」
+		ELSE
+			PRINTFORMW 「奥まで、届いてます……？　先輩、わたし、夢中です……っ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ん……っ、%LOCALS%のなか、突いて……。は、はずかしいです……」
+		ELSEIF A == 1
+			PRINTFORMW 「あぅ……%LOCALS%、感じてます……わたしも、変な感じ……」
+		ELSE
+			PRINTFORMW 「奥まで……んっ、もう、出ちゃいそうです……っ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM24 対面座位 ---
+IF SELECTCOM == 24
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ 抱きしめながらだと、安心する。えへへ、好き」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の心臓、どきどきって……わたしと一緒）……ふぁ、しあわせ」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。お顔近い……♪ キス、しちゃいたい」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩。こ、こんな格好で、お顔が近すぎ……! は、はずかしい」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。お顔、見ないで……。わたし、変な顔になってませんか……」
+		ELSE
+			PRINTFORMW 「ひゃっ! い、息、かかっちゃう、転校生の先輩……。あう」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM25 背面座位 ---
+IF SELECTCOM == 25
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。背中、預けてもいいですか? えへへ、あったかい」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の胸に背中があたって……ぞくっとする）うう、変な感じ」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。後ろから抱っこって、ずるい。えへへ、好き♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩。こ、こんなの……あう、見えないけど、わかります」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。後ろから抱っこされると、安心しちゃう……は、はずかしい」
+		ELSE
+			PRINTFORMW 「ひゃっ! 急に動かないでください、転校生の先輩……! 心臓止まりそう……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM30 手淫 ---
+;  ▼【視点】キャラ奉仕＝キャラがプレイヤーのペニスを手淫する（キャラがする側）。手淫されるCOM191・クリ等の受けと混同するな
+IF SELECTCOM == 30
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩のここ、わたしのお手で……。硬くなってきて、ます……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「こ、こうやって、お手を動かして……。先輩、気持ちいい、ですか……？」
+		ELSE
+			PRINTFORMW 「（先輩の、わたしの手の中でぴくぴく……）うう、もっと、優しくしてあげたい、です」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「て、転校生の先輩……。わ、わたしのお手で、こんなこと……。は、はずかしい、です……」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、握り方、合ってます、か……？　本には、書いてなかったので……」
+		ELSE
+			PRINTFORMW 「ひゃっ、こんなに熱くて……。わ、わたしのお手、ぬるぬるに……っ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM31 フェラチオ ---
+;  ▼【視点】キャラ奉仕＝キャラがプレイヤーのペニスをフェラ（通常フェラ）。逆フェラのCOM4・手淫するCOM191と混同するな
+IF SELECTCOM == 31
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。これ、わたしのお口で、いいんですか? が、頑張ります、ね♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の、お口に入れて……息ができない）うう、苦しい、けど、もうちょっと」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。美味しい、わけじゃないですけど……えへへ、好き」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩。これ、お口で、ですか……? あう、心の準備が……」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。これ、ちょっと、無理かも……。ご、ごめんなさい、下手で」
+		ELSE
+			PRINTFORMW 「ひゃっ! ご、ごめんなさい、転校生の先輩。歯、あたっちゃった……ぐすん」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM32 パイズリ ---
+;  ▼【視点】キャラ奉仕＝キャラが胸でプレイヤーを挟む（通常パイズリ）。パイズリするCOM192（キャラ受け）と混同するな
+IF SELECTCOM == 32
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。胸、ちっちゃいから、上手にできないけど……」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩のが、胸の間で熱い……えへへ、不思議）……うう、見ないで」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。胸ちっちゃくて、ごめんね……えへへ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……。む、胸でって、無理ですっ、ちっちゃいから……」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。わたしの胸、こんなで……。ご、ごめんなさい、役立たずで」
+		ELSE
+			PRINTFORMW 「うぴ、見ないでください、転校生の先輩。胸、こんなにちっちゃいなんて……ぐすん」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM33 素股 ---
+IF SELECTCOM == 33
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。太もも、はずかしい……えへへ、でも、先輩なら」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩のが、太ももの間で……変な感じ）うう、ぞくぞくする」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。太ももばっかり、です。ふふ、変態さん」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩。そ、その場所はちょっと……はずかしい」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。太ももで、なんて……。本に書いてあったのと違う」
+		ELSE
+			PRINTFORMW 「うぴ、ふ、太いところを、見ないでください……転校生の先輩。お願い……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM34 騎乗位 ---
+IF SELECTCOM == 34
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。わたしが上って、緊張するけど、好き、です♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩を見下ろして、わたしが動く……ふしぎ）うう、はずかしい、けど」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。下から見上げないで、です。お顔、変になっちゃう」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! わ、わたしが上って……? あう、こ、こんなの、無理かも……」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。動き方、よくわからない……。ご、ごめんなさい、下手で」
+		ELSE
+			PRINTFORMW 「うぴ……! 見ないでください、転校生の先輩。わたし、変な動き方してませんか……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM36 騎乗位アナル ---
+IF SELECTCOM == 36
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろから、わたしが上って……えへへ、ふしぎ」
+		ELSEIF A == 1
+			PRINTFORMW 「（後ろが、ぴくぴく……いけない場所が、勝手に）うう、変な感じ」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お尻好きすぎ、です。ふふ、変態さん」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩。お、お尻でって、無理ですっ……!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。後ろから、わたしが上って、痛い……。お、お手柔らかに」
+		ELSE
+			PRINTFORMW 「うぴ、見ないで……。転校生の先輩、お尻、見られちゃう……ぐすん」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM40 スパンキング ---
+IF SELECTCOM == 40
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ひゃっ! %CALLNAME:PLAYER%先輩……。お、お尻、ぱちんって……えへへ、ちょっと痛い、です」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の手のひら、ひりひり……ぞくっとする）うう、変な感じ」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お尻ばっかり叩いて、です。えへへ、変態さん」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「うぴいっ!? あ、転校生の先輩……! い、いきなり叩かないでくださいっ! 痛いっ!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。わたし、痛いの苦手なんですけど……ぐすん」
+		ELSE
+			PRINTFORMW 「ひゃっ! お、お尻なんて、はずかしいですから、転校生の先輩」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM41 鞭 ---
+IF SELECTCOM == 41
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁっ! %CALLNAME:PLAYER%先輩。む、鞭、ですか……? あう、痛そう、です」
+		ELSEIF A == 1
+			PRINTFORMW 「（鞭が、ぴしっと……肌が、ぴりっとしびれる）うう、なんで、ぞくっとするんだろう」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。鞭なんて、ちょっとマニアックすぎ、ですよ……えへへ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「うぴいっ!? ち、ちょっと、転校生の先輩……! 鞭は、無理ですっ! 痛いっ」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。鞭、ぐすん。わたし、痛いの本当にダメなんです」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、ご、ごめんなさい、転校生の先輩。びっくりして、変な声が……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM44 縄 ---
+IF SELECTCOM == 44
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。縛られちゃった……ど、どうしよう」
+		ELSEIF A == 1
+			PRINTFORMW 「（縄が、肌に食い込んで……ぞくぞくする）うう、不思議な感じ」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。これって、ロマンス小説で読んだやつ……ふふ、ドキドキ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……! こ、こんな格好で縛らないでくださいっ」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。縄、ちょっときついです。ぐすん、ほどいて」
+		ELSE
+			PRINTFORMW 「うぴ……! こ、こんな縛り方、本にも書いてなかった……。転校生の先輩、許してください」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM50 ローション ---
+IF SELECTCOM == 50
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお手、ぬるぬるして……えへへ、変な感じ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（ローション、つるつるすべる……気持ちいい）うう、しびれちゃう」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。べたべたにしないでください、です。ふふ、お風呂入りたい」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! つ、冷たい……! あ、転校生の先輩。これ何ですか……?」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。べたべたで、気持ち悪い……。ぐすん、お洗濯しないと」
+		ELSE
+			PRINTFORMW 「うぴ……! は、はずかしい、転校生の先輩。ぬるぬる、見ないで……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM51 媚薬 ---
+IF SELECTCOM == 51
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。なんだか、体が熱い……。これ、薬の効果、ですか……?」
+		ELSEIF A == 1
+			PRINTFORMW 「（体の中、じんじんしてる……変な感じ）うう、勝手に腰が動いちゃう」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。媚薬なんて、ずるい、です。えへへ、止まらない♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩……! こ、これ、薬ですか……? 体が、熱いんですけど……!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。なんで、こんなに変な気分に……。怖い、です」
+		ELSE
+			PRINTFORMW 「うぴ、転校生の先輩……! お薬、効きすぎ……! は、はずかしい」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM52 利尿剤 ---
+IF SELECTCOM == 52
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お、お腹、ふくらんできた……えへへ、はずかしい」
+		ELSEIF A == 1
+			PRINTFORMW 「（膀胱が、限界近く……我慢できない）うう、漏れちゃう」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。利尿剤なんて、ずるい。お、おもらしさせる気ですか……ぐすん」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩……! お、お腹はいけないですっ……!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。トイレ、行きたいんですけど……ぐすん、漏れちゃう」
+		ELSE
+			PRINTFORMW 「うぴ……! みっ、見ないでください、転校生の先輩。は、はずかしいから……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM120 キス正常位 ---
+IF SELECTCOM == 120
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のキス、奥まで届いてる……えへへ、しあわせ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩の唇と、繋がってる場所……両方で気持ちいい）うう、とろけちゃう」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。キスしながらだと、息ができない、です……ふふ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩……! き、キスしながらは、無理ですっ! 息が……!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。キスしながらって、こんなに大変なんですね……」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、息……! 苦しい、転校生の先輩……。ちょ、ちょっと待ってください」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM121 キス後背位 ---
+IF SELECTCOM == 121
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろから、キス……えへへ、ふしぎな格好」
+		ELSEIF A == 1
+			PRINTFORMW 「（後ろからのキス、振り向く感じ……ぞくっとする）うう、変な姿勢」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。ちょっとアクロバットですね、こ、これ……ふふ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩……! 後ろから、首を曲げて、キス……つ、つらい」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。首、痛い……。ご、ごめんなさい、わたし体硬くて」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩。後ろからって、お顔が遠い……。あう」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM122 キス対面座位 ---
+IF SELECTCOM == 122
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お顔近い、キスも、繋がってるのも、ぜんぶ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩を見上げながら、キス……しあわせ）うう、夢みたい」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。これ、いちばん好き、かも。ぜんぶ近いから」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩……! お顔近すぎ、ですっ! は、はずかしい」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。お顔、見られながらキスって……は、はずかしい」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、目、あけないで、転校生の先輩。お顔、変になってませんか……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM123 キス背面座位 ---
+IF SELECTCOM == 123
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。背中越しにキスって、ふしぎ。えへへ、好き」
+		ELSEIF A == 1
+			PRINTFORMW 「（後ろから抱き締められて、首を回して……キス）うう、姿勢、つらい」
+		ELSE
+			PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。後ろから抱きついて、キスして、欲張りすぎ……ふふ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩……! 後ろから首だけ回すの、つらいですっ」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。後ろから、こ、こんな格好……は、はずかしい」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩。お、お首が……! 痛い、ちょっと待ってください」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM124 キス騎乗位 ---
+IF SELECTCOM == 124
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……♪ わたしが上で、キスしながら……えへへ、しあわせ」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩を見下ろして、キス……主導権、ある感じ）うう、変、です」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。わたしが攻める番、ですよ? ふふ、ちゅっ♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! わ、わたしが上で、キスもですか……? あう、難しい、です」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。動きながらキスって、ぜんぜんできない……ご、ごめんなさい」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、ば、バランス崩しちゃう……! 転校生の先輩。支えてください」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM190 優しくする ---
+;  ※ウフフ中限定 / エッチ中に優しくする・緩める
+IF SELECTCOM == 190
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。優しく、してくれて、ありがとうです。えへへ」
+		ELSEIF A == 1
+			PRINTFORMW 「（先輩のお手、ぜんぶ大事にしてくれてる……）うう、しあわせ」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。ずっと、こうしててほしい……時間、止まればいいのに」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ! あ、転校生の先輩。い、いきなり優しくしないで……は、はずかしいです」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。優しすぎ、なんですけど……。慣れてないから、戸惑っちゃう」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩。優しくされると、わたし、すぐ泣いちゃう……ぐすん」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM191 手淫する ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりのキャラのペニスを手淫する（キャラはされる側）。手淫するCOM30＝キャラ奉仕とは別
+;  ※ウフフ中限定 / キャラがふたなりまたはオトコの場合のみ
+;  ※プレイヤーがキャラのペニスを手淫する
+IF SELECTCOM == 191
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁっ!? わ、わたしの……? %CALLNAME:PLAYER%先輩のお手で、扱かれて……! うう～っ、こ、こんな体、変です……!」
+		ELSEIF A == 1
+			PRINTFORMW 「（わたし、こんな体になってる……先輩のお手が、ぴくぴくさせて）うう、止まらない」
+		ELSE
+			PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。わたしのこれ、見られてはずかしい……でも、嬉しい、かも♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「うぴいっ!? なんで、なんでわたしにこんなものが……! 転校生の先輩、止めてっ……!」
+		ELSEIF A == 1
+			PRINTFORMW 「うう、転校生の先輩。これ、見ないでください……。わたしの体、変だから」
+		ELSE
+			PRINTFORMW 「ひゃっ! あ、転校生の先輩。お、お手、止めて……っ、うう」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM192 パイズリする ---
+;  ▼【視点】キャラ受け＝胸でふたなりのキャラを奉仕する。giver＝助手/他女子（女性同士の行為）
+;  ※ウフフ中限定 / 女性プレイヤーがふたなりパートナーのペニスをパイズリする
+;  ※（奉仕する側＝助手/他の女子）
+;  ※パイズリの相手は助手か他の女子（女性）。キャラ(ふたなり)が受け
+IF SELECTCOM == 192
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。%LOCALS%の胸で、わたしの挟まれて……えへへ、見ててください♪」
+		ELSEIF A == 1
+			PRINTFORMW 「谷間でしごかれるの……やわらかくて、しびれちゃう……♪」
+		ELSE
+			PRINTFORMW 「%LOCALS%の胸あったかい……先輩、わたし、もう……っ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ん……っ。こ、%LOCALS%に挟まれて……。は、はずかしいです……」
+		ELSEIF A == 1
+			PRINTFORMW 「谷間でこすれて……んっ、変な声が……っ」
+		ELSE
+			PRINTFORMW 「そんなにされたら……うう、もう……っ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM193 正常位させる ---
+;  ▼【視点】キャラ攻め＝キャラ(ふたなり/ペニバン)が助手/他の女子の膣に正常位で挿入する。相手は女性（他の生徒）
+;  ※ウフフ中限定 / キャラがふたなりまたはペニバン装備
+;  ※相手は助手か他の女子。キャラが挿入する側
+IF SELECTCOM == 193
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ……%LOCALS%のなか、とろとろで……わたしの、ぜんぶ包まれちゃう……っ。あ、あったかい……えへへ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「んっ……奥まで届くと、%LOCALS%、びくって……。か、かわいい声……わたしまで、しびれちゃう……っ」
+		ELSE
+			PRINTFORMW 「んっ……%LOCALS%のなか、きゅうって締まって……。動くたび、ふぁ……甘い声、こぼれちゃう……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁ……%LOCALS%のなか、熱くて……っ。ぬるって包まれて……は、はずかしいのに、腰、動いちゃう……」
+		ELSEIF A == 1
+			PRINTFORMW 「んっ……奥に当たるたび、%LOCALS%、とろとろ溢れて……っ。へ、変な感じ……でも、夢中になっちゃう……」
+		ELSE
+			PRINTFORMW 「ひゃっ……%LOCALS%、奥まで届いて、びくびくって……。ご、ごめんなさい、深くしすぎちゃった……っ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM194 後背位させる ---
+;  ▼【視点】キャラ攻め＝キャラ(ふたなり/ペニバン)が助手/他の女子の膣に後背位で挿入する。相手は女性（他の生徒）
+;  ※ウフフ中限定 / キャラがふたなりまたはペニバン装備
+;  ※相手は助手か他の女子。キャラが挿入する側
+IF SELECTCOM == 194
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ……後ろから、%LOCALS%の白い背中、びくびくして……わたしも、どきどきしちゃう……えへへ♪」
+		ELSEIF A == 1
+			PRINTFORMW 「んっ……奥まで届くと、%LOCALS%、きゅうって……。あ、すごい……もっと、奥……っ」
+		ELSE
+			PRINTFORMW 「んっ……腰を掴むと、%LOCALS%、ぷるって揺れて……。けものさんみたい……ふふ、かわいい……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁ……%LOCALS%のお尻に、ぴたって当たって……。ぱちん、て音……う、はずかしすぎます……っ」
+		ELSEIF A == 1
+			PRINTFORMW 「んっ……奥に当たるたび、%LOCALS%、震えて……。せ、先輩に見られてる……ぐすん、はずかしい……っ」
+		ELSE
+			PRINTFORMW 「ひゃっ……%LOCALS%、甘い声で啼いて……。う、動き方、まちがえちゃう……ご、ごめんなさい……っ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM195 騎乗位する ---
+;  ▼【視点】キャラ攻め＝助手/他の女子がキャラ(ふたなり)のペニスに上から騎乗する。キャラは下だが膣に挿入している側＝攻め。相手は女性（他の生徒）
+;  ※ウフフ中限定 / 助手/他の女子がキャラのふたなりペニスに上から騎乗するコマンド
+;  ※乗る側は助手/他の女子（女性）
+IF SELECTCOM == 195
+	A = RAND:3
+	IF TALENT:TARGET:153
+		IF A == 0
+			PRINTFORMW 「ふぁ……%LOCALS%が上から、ずぶって……わたしの、ぜんぶ呑み込んで……えへへ、あったかい……♪」
+		ELSEIF A == 1
+			PRINTFORMW 「んっ……%LOCALS%が腰を弾ませるたび、奥が擦れて……っ。うう、しびれちゃう……っ」
+		ELSE
+			PRINTFORMW 「んっ……%LOCALS%が上で動くと、わたし、潰されちゃいそう……ちっちゃいから……でも、すごい……♪」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「うぴ……っ、%LOCALS%が上で、ぐりぐりって……。お、奥まで擦れて……あう、変な声、出ちゃう……っ」
+		ELSEIF A == 1
+			PRINTFORMW 「うう……%LOCALS%に締めつけられて、わたしの、もってかれそう……ちっちゃいのに、せ、せつない……っ」
+		ELSE
+			PRINTFORMW 「ひゃっ……%LOCALS%が上から、わたしを見下ろして……。は、はずかしいのに……もう、イっちゃいそう……っ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;==============================================================
+; その他コマンド（恋人/通常 各1行）
+;==============================================================
+;--- COM3 自慰 ---
+;  ※キャラが自慰する（バイブ/アナルバイブ/ビデオ撮影等で内容変化）
+IF SELECTCOM == 3
+	;--- ビデオ撮影中 ---
+	IF TEQUIP:53
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・ビデオ・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。撮ってるんですか? う、うう、はずかしいけど……見ててください♪」
+			ELSEIF A == 1
+				;恋人・ビデオ・2
+				PRINTFORMW 「（カメラの前で、自分で……うう、でも先輩が見てるなら）ふぁ、止まらない」
+			ELSE
+				;恋人・ビデオ・3
+				PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。こんな姿、先輩だけの秘密にしてくださいね……♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・ビデオ・1
+				PRINTFORMW 「ふぁっ! あ、転校生の先輩。撮らないでくださいっ……! うう、はずかしいのに……!」
+			ELSEIF A == 1
+				;通常・ビデオ・2
+				PRINTFORMW 「うう、転校生の先輩。見られながらなんて……。でも、止まらない……ぐすん」
+			ELSE
+				;通常・ビデオ・3
+				PRINTFORMW 「うぴ……! カメラ、こっち向けないで、転校生の先輩。は、はずかしいから……」
+			ENDIF
+		ENDIF
+	ELSE
+		;--- 通常 ---
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。見ててくれるなら、頑張れちゃう……えへへ♪」
+			ELSEIF A == 1
+				;恋人・2
+				PRINTFORMW 「（先輩に見られてると思うと、よけいに……）うう、変な気分」
+			ELSE
+				;恋人・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。じっと見ないで……えへへ、でも、嬉しい」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・1
+				PRINTFORMW 「ふぁっ! あ、転校生の先輩。み、見ないでください……! ひとりにさせて……」
+			ELSEIF A == 1
+				;通常・2
+				PRINTFORMW 「うう、転校生の先輩。こ、こんなところ見られるなんて……。は、はずかしい」
+			ELSE
+				;通常・3
+				PRINTFORMW 「うぴ……! 出てって、ください、転校生の先輩。ひとりで、させて……ぐすん」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM4 フェラする ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりキャラのペニスをくわえる逆フェラ（キャラはされる側）。通常フェラCOM31と混同するな
+;  ※ふたなりパートナーのペニスをプレイヤーがくわえるコマンド
+;  ※（プレイヤーが奉仕する側）
+IF SELECTCOM == 4
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。わ、わたしのを、お口で……? あう、しあわせ、です……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩……! こ、こんな体のわたしを、お口でなんて……! は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM7 何もしない ---
+IF SELECTCOM == 7
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。何もしないで、こうしてるのも、好き……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あ、転校生の先輩。何もしないんですか? えっと……ちょっと、緊張しちゃう」
+	ENDIF
+ENDIF
+
+;--- COM8 指挿入れ ---
+IF SELECTCOM == 8
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお指……♪ 奥まで、しびれちゃう」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。お、お指、いきなりは……! うう、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM9 アナル舐め ---
+IF SELECTCOM == 9
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろ、舐められるの、ぞくぞくする……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩……! そ、そんなとこ舐めないで……! 汚いですから……!」
+	ENDIF
+ENDIF
+
+;--- COM10 ローター ---
+IF SELECTCOM == 10
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩。これ、ぶるぶるして……えへへ、変な気分♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! こ、これ何ですか転校生の先輩……? ぶるぶるって……! うう」
+	ENDIF
+ENDIF
+
+;--- COM18 シャワー ---
+IF SELECTCOM == 18
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。一緒にシャワー、なんだか照れちゃう……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。い、一緒にって……は、はずかしいです。見ないで」
+	ENDIF
+ENDIF
+
+;--- COM19 アナルビーズ ---
+IF SELECTCOM == 19
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろに、つぶつぶが……えへへ、変な感じ」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩。お、お尻に、こんなの入れないで……! うう」
+	ENDIF
+ENDIF
+
+;--- COM26 正常位アナル ---
+IF SELECTCOM == 26
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お顔見ながら、後ろって……えへへ、ふしぎ」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。お、お尻でお顔見ながらなんて……! は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM27 後背位アナル ---
+IF SELECTCOM == 27
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろからお尻って……うう、ぞくぞくする♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩……! 後ろからお尻は、無理ですっ……! 痛い」
+	ENDIF
+ENDIF
+
+;--- COM28 対面座位アナル ---
+IF SELECTCOM == 28
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。抱っこされながらお尻、安心する……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。こ、この格好でお尻は……! あう、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM29 背面座位アナル ---
+IF SELECTCOM == 29
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。背中越しにお尻って、ふしぎ……えへへ」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。後ろからお尻なんて……。は、はずかしすぎ……ぐすん」
+	ENDIF
+ENDIF
+
+;--- COM35 泡踊り ---
+;  ▼【視点】キャラ奉仕＝キャラが泡まみれの体でプレイヤーを洗う/擦る側
+IF SELECTCOM == 35
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。泡まみれ、くすぐったい……♪ ぬるぬる」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。あ、泡だらけ……! ぬるぬるして、変な感じ」
+	ENDIF
+ENDIF
+
+;--- COM37 足扱き ---
+;  ▼【視点】キャラ奉仕＝キャラが足でプレイヤーを扱く側。足コキCOM67（キャラ受け）と混同するな
+IF SELECTCOM == 37
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩。あ、足で、ですか……? えへへ、こうかな♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。足で、なんて……。う、うまくできてますか?」
+	ENDIF
+ENDIF
+
+;--- COM38 尻素股 ---
+;  ▼【視点】キャラ奉仕＝キャラが尻でプレイヤーを挟む（尻素股を行う）側
+IF SELECTCOM == 38
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お尻で挟むの、変な感じ……えへへ」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。お尻で、なんて……。は、はずかしいですから」
+	ENDIF
+ENDIF
+
+;--- COM39 オナホ手淫 ---
+;  ▼【視点】キャラ奉仕＝キャラがオナホでプレイヤーを手淫する側
+IF SELECTCOM == 39
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩。これ使うんですか? えへへ、変な道具……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。こ、これ何ですか……? 変な形……」
+	ENDIF
+ENDIF
+
+;--- COM42 針 ---
+IF SELECTCOM == 42
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。針、ちょっと怖いけど、先輩となら……」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴいっ!? は、針なんて無理ですっ、転校生の先輩……! 痛いの、怖い……う～! うう～、ううう～……!」
+	ENDIF
+ENDIF
+
+;--- COM43 アイマスク ---
+IF SELECTCOM == 43
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩。目隠し、されると……どきどきしちゃう♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。め、目隠しなんて……! 見えなくて、怖い」
+	ENDIF
+ENDIF
+
+;--- COM45 ボールギャグ ---
+IF SELECTCOM == 45
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。んむ、お口に、これ……えへへ、喋れない」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩。こ、こんなの口に……! んむぐ、喋れないっ」
+	ENDIF
+ENDIF
+
+;--- COM46 浣腸器＋プラグ ---
+IF SELECTCOM == 46
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お腹、変な感じ……うう、怖いけど、平気」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴいっ!? あ、転校生の先輩……! お、お腹に、こんなの……! 無理ですっ」
+	ENDIF
+ENDIF
+
+;--- COM53 ビデオカメラ ---
+IF SELECTCOM == 53
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。撮るんですか? わたしの可愛いとこ、撮ってね♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。と、撮らないでください……! は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM54 野外プレイ ---
+IF SELECTCOM == 54
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お外でなんて、誰かに見られちゃう……えへへ、どきどき♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩。お、お外でなんて、無理ですっ……! 見られちゃう」
+	ENDIF
+ENDIF
+
+;--- COM56 助手を犯す ---
+;  ▼【視点】キャラは見る/煽る側＝プレイヤーが助手を犯す（このコマンド中ターゲットは助手）
+;  ※プレイヤーが助手にセックスする（このコマンド中はターゲットが助手になる）
+IF SELECTCOM == 56
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「うう、%CALLNAME:PLAYER%先輩が、%LOCALS%と……。わたし、見てるだけなんて、寂しい……」
+	ELSE
+		;通常
+		PRINTFORMW 「あ、あの。転校生の先輩。わたし、見てたほうがいいんですか……? なんだか、複雑」
+	ENDIF
+ENDIF
+
+;--- COM57 羞恥プレイ ---
+IF SELECTCOM == 57
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。は、はずかしいの、見られるの……うう、好きかも♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。は、はずかしいことばっかり……。ぐすん、いじわる」
+	ENDIF
+ENDIF
+
+;--- COM58 お風呂場プレイ ---
+IF SELECTCOM == 58
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。お風呂で、二人っきり……♪ のぼせちゃいそう」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。お、お風呂で、なんて……。は、はずかしいです」
+	ENDIF
+ENDIF
+
+;--- COM59 新妻プレイ ---
+IF SELECTCOM == 59
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。新妻さんごっこ、ですか? わたし、お嫁さん……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。に、新妻なんて……。う、うう、まだ早いですよ……えへへ」
+	ENDIF
+ENDIF
+
+;--- COM61 クンニ ---
+;  ▼【視点】キャラ攻め＝キャラが女性器を舐める側。相手は助手/他女子（女性同士の行為）。舐められるCOM1と混同するな
+; ▼ パートナーが女性にクンニするコマンド（キャラが舐める側＝奉仕/攻め）
+;  ※クンニの相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 61
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ん、れろ……ふぁ、こんなに濡れて……可愛い……ちゅ、ぷ……わ、わたしのお口で気持ちよくなって……れろれろ……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ふぁ、れろ……は、恥ずかしい……でも、女の子のここ、ぷっくりしてて……ちゅ、ん……あ、また溢れてきました……っ」
+	ENDIF
+ENDIF
+
+;--- COM63 貝あわせ ---
+;  ▼【視点】キャラ攻め/相互＝女性器同士の貝あわせ。相手は助手/他女子（女性同士の行為）
+;  ※女性同士が性器を合わせるプレイ
+;  ※相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 63
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、こ、%LOCALS%と……? %CALLNAME:PLAYER%先輩、見ててくれるなら……えへへ」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。お、女の子同士なんて……。は、はずかしい、けど」
+	ENDIF
+ENDIF
+
+;--- COM65 助手を犯させる ---
+;  ▼【視点】キャラ攻め＝ふたなりのキャラが助手を犯す（挿入する）側
+;  ※キャラ（ふたなり等）が助手を犯す / キャラが挿入する側
+;  ※このコマンド中は P=TARGET, T=ASSI
+IF SELECTCOM == 65
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、わ、わたしが%LOCALS%を……? こんな体で、%CALLNAME:PLAYER%先輩に見られながら……うう」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! わ、わたしが%LOCALS%を犯すなんて……! せ、先輩、無理ですっ……!」
+	ENDIF
+ENDIF
+
+;--- COM66 Ｗフェラ ---
+;  ▼【視点】キャラ奉仕＝キャラ一人がプレイヤーと助手の2本を舐める（Wフェラ）
+;  ※プレイヤーと助手の2本をパートナー1人が舐めるコマンド
+;  ※（パートナーが奉仕する側）
+IF SELECTCOM == 66
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、二本も……? %CALLNAME:PLAYER%先輩、お口に入りきらない……えへへ」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。に、二本なんて……。お、お口、いっぱいで苦しい……」
+	ENDIF
+ENDIF
+
+;--- COM67 足コキ ---
+;  ▼【視点】キャラ受け＝プレイヤーがふたなりのキャラに足コキする（キャラはされる側）。足扱きCOM37（キャラ奉仕）と混同するな
+; ▼ ふたなりのパートナーに対してプレイヤーが足コキするコマンド
+IF SELECTCOM == 67
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩。あ、足で扱かれるの……? えへへ、くすぐったい♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩。あ、足でなんて……! う、うう、変な感じ」
+	ENDIF
+ENDIF
+
+;--- COM68 ダブルフェラ ---
+;  ▼【視点】キャラ奉仕＝キャラと助手の2人でプレイヤーの1本を舐める（ダブルフェラ）
+;  ※パートナーと助手の2人がプレイヤーの1本を舐めるコマンド
+;  ※（パートナーが奉仕する側）
+IF SELECTCOM == 68
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩……となりの子の舌と、ふれて……♪ くすぐったい、です」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、せ、先輩。こ、横で見られながら、なんて……。は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM69 シックスナイン（男女・相互口淫） ---
+;  ▼【視点】キャラ相互＝互いの体を逆向きに重ね、キャラがプレイヤー（転校生＝男性）のペニスを咥えながら、自分の女性器を舐められる相互奉仕
+;  ※クンニ／フェラの連携で、相手がオトコ（プレイヤー＝転校生）の場合にシックスナインから派生（女性同士は160/189へ分岐）
+;  ※相手はプレイヤー（男性）。フェラしながら同時にクンニされる二重の快感を書く
+IF SELECTCOM == 69
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ん……っ、んむ……ちゅ……。先輩の、舐めながら……わたしのも、されてて……っ。あたま、ぼーっとしちゃう……でも、えへへ♪」
+	ELSE
+		;通常
+		PRINTFORMW 「んむ……っ、ちゅ……。あ、あちこち一緒なんて……は、はずかしいです……。んっ、でも……やめられない、かも……っ」
+	ENDIF
+ENDIF
+
+;--- COM71 秘貝開帳 ---
+IF SELECTCOM == 71
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。ぜ、ぜんぶ見られちゃう……うう、はずかしい♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩。ひ、開かないで……! ぜんぶ見えちゃう……!」
+	ENDIF
+ENDIF
+
+;--- COM75 言葉責め ---
+IF SELECTCOM == 75
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。い、いじわるな言葉、ぞくぞくしちゃう……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。そ、そんなひどいこと言わないで……う～! うう～、ううう～……! ぐすん、泣いちゃう」
+	ENDIF
+ENDIF
+
+;--- COM80 イラマチオ ---
+;  ▼【視点】キャラ受け（奉仕）＝プレイヤーがキャラの口/喉を突くイラマチオ（キャラの口が使われる側）
+IF SELECTCOM == 80
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。の、喉の奥まで……えへへ、苦しいけど、好き」
+	ELSE
+		;通常
+		PRINTFORMW 「うぐ! あ、転校生の先輩……! の、喉、苦しいですっ……! うう」
+	ENDIF
+ENDIF
+
+;--- COM85 放尿 ---
+IF SELECTCOM == 85
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。み、見ないで……うう、出ちゃう……はずかしい♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴいっ!? み、見ないでください転校生の先輩……! お、おもらしなんて……! ぐすん」
+	ENDIF
+ENDIF
+
+;--- COM90 アナル愛撫させる ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーのアナルを愛撫する（転校生がやられる側）
+;  ※パートナーがプレイヤーのアナルを愛撫するコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 90
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお尻を、わたしが……? えへへ、ふしぎな気分♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。せ、先輩のお尻を、わたしが触るの……? は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM110 クスコ ---
+;  ▼【視点】キャラ受け＝女性器用クスコをキャラ自身が挿入される（キャラは女性）。クスコするCOM203（キャラが使う側）と混同するな
+IF SELECTCOM == 110
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。ぜ、ぜんぶ見えちゃう、これ……うう、はずかしい♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩。こ、これ、ひ、開いちゃう……! 見ないで……!」
+	ENDIF
+ENDIF
+
+;--- COM130 目隠しされる ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーに目隠しを付ける（転校生がやられる側）。受動形の名前だがキャラ自身がされる受けではない
+;  ※パートナーがプレイヤーに目隠しを付けるコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 130
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩に目隠し……? えへへ、わたしがするの、緊張する♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。め、目隠しを、わたしが……? う、うまくできるかな」
+	ENDIF
+ENDIF
+
+;--- COM131 拘束される ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーを拘束する（転校生がやられる側）。受動形の名前だがキャラ自身がされる受けではない
+;  ※パートナーがプレイヤーを拘束するコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 131
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩を、わたしが縛るの……? えへへ、ロマンス小説みたい♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。し、縛るなんて……。う、うまくできないかも、ごめんなさい」
+	ENDIF
+ENDIF
+
+;--- COM132 口枷される ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーに口枷を付ける（転校生がやられる側）。受動形の名前だがキャラ自身がされる受けではない
+;  ※パートナーがプレイヤーに口枷を付けるコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 132
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩に口枷を……? えへへ、ちょっとかわいい、かも♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。く、口枷を、わたしが……? なんだか、変な感じ」
+	ENDIF
+ENDIF
+
+;--- COM181 コンドーム ---
+IF SELECTCOM == 181
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。ちゃんとつけて、ね? ふふ、わたしがつけてあげる♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。こ、これ、わたしがつけるんですか……? は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM182 コンドーム精飲(P) ---
+IF SELECTCOM == 182
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。これ、飲むんですか? えへへ、先輩のだから……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。こ、これを飲むなんて……。は、はずかしすぎ……ぐすん」
+	ENDIF
+ENDIF
+
+;--- COM183 コンドーム精飲(A) ---
+IF SELECTCOM == 183
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろから出たの、飲むの……? えへへ、変な気分♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。こ、こんなの飲むなんて……。う、うう、無理かも」
+	ENDIF
+ENDIF
+
+;--- COM184 コンドーム精飲(M) ---
+IF SELECTCOM == 184
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。お口に出たの、ぜんぶ……えへへ、しあわせ♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、転校生の先輩。お、お口に出たのを飲むなんて……。は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM185 口移し ---
+IF SELECTCOM == 185
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。口移し、えへへ。先輩から、もらっちゃう♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。く、口移しなんて……。は、はずかしいけど、嬉しい」
+	ENDIF
+ENDIF
+
+;--- COM186 排卵誘発剤 ---
+IF SELECTCOM == 186
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩。これ、赤ちゃんできやすくなる薬……? えへへ、どきどき♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。こ、こんなお薬……。う、うう、責任、取ってくださいね?」
+	ENDIF
+ENDIF
+
+;--- COM187 緊急避妊薬 ---
+IF SELECTCOM == 187
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「うう、%CALLNAME:PLAYER%先輩。これ、飲んだほうがいいですよね……。えへへ、ちょっと寂しいけど」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。こ、これ飲めば、大丈夫なんですよね……? 不安です」
+	ENDIF
+ENDIF
+
+;--- COM196 ペニバン挿入 ---
+;  ▼【視点】キャラ受け＝ペニバン装着の助手/他の女子がキャラに挿入する（キャラはされる側）。挿入する側は助手/他の女子（女性同士）
+;  ※ウフフ中限定 / ペニバン装着の助手/他の女子がキャラに挿入する
+IF SELECTCOM == 196
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ……%LOCALS%のペニバンが、奥までっ……。ほ、本物と違う硬さで……えへへ、変な感じ……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ……っ、%LOCALS%ので、ぐって広げられて……。こ、こんなの初めてで……こわい、けど……んっ……」
+	ENDIF
+ENDIF
+
+;--- COM197 お風呂を楽しむ ---
+IF SELECTCOM == 197
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。お風呂、楽しいですね♪ ずっと入ってたい」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。お、お風呂で、二人っきり……。は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM198 お外を楽しむ ---
+IF SELECTCOM == 198
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。お外デート、楽しい♪ 手、繋いでもいいですか?」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。お、お外で、こんなこと……。だ、誰かに見られちゃう」
+	ENDIF
+ENDIF
+
+;--- COM199 お嫁さんで楽しむ ---
+IF SELECTCOM == 199
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。お嫁さんごっこ、しあわせ……♪ ずっと一緒、ね?」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。お、お嫁さんなんて……。う、うう、まだ早いですよ……えへへ」
+	ENDIF
+ENDIF
+
+;--- COM200 乳の揉み合い ---
+;  ▼【視点】キャラ攻め/相互＝乳同士を擦り合わせる女性同士。相手は助手/他女子（女性同士の行為）
+;  ▼ 女性同士が乳を揉み合うプレイ
+;  ※相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 200
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。%LOCALS%と胸、こすりあわせるの、くすぐったい……♪　えへへ」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ！　あ、転校生の先輩。お、女の子同士で胸を合わせるなんて……！　ちっちゃいから、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM201 指フェラ ---
+;  ▼【視点】キャラ奉仕＝キャラがプレイヤーの指をフェラのように舐めしゃぶる
+IF SELECTCOM == 201
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお指、お口で……? えへへ、ちゅっ♪ 美味しい」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。お、お指を舐めるの……? は、はずかしいですけど」
+	ENDIF
+ENDIF
+
+;--- COM203 クスコされる ---
+;  ▼【視点】キャラ攻め＝女性器用クスコをキャラが使う側。相手は助手/他女子（女性同士の行為）。されるCOM110（キャラ受け）と逆
+;  ▼ パートナーが女子生徒にクスコを使うコマンド（キャラが使う側）
+;  ※クスコは女性器用。相手は助手か他の女子（女性同士の行為）
+IF SELECTCOM == 203
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩。%LOCALS%のなか、開きました……えへへ、よく見えますか……？♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、せ、先輩。こ、%LOCALS%にこれを……。う、うまく開けるか不安です……」
+	ENDIF
+ENDIF
+
+;--- COM204 アナルに入れさせる ---
+;  ▼【視点】キャラ攻め＝キャラがプレイヤーのアナルに挿入する（転校生がやられる側）
+;  ※パートナーがプレイヤーのアナルに挿入するコマンド
+;  ※（プレイヤーがやられる側）
+IF SELECTCOM == 204
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩のお尻に、わたしが……? えへへ、緊張するけど♪」
+	ELSE
+		;通常
+		PRINTFORMW 「あう、転校生の先輩。せ、先輩のお尻に、わたしが入れるの……? は、はずかしい」
+	ENDIF
+ENDIF
+
+;--- COM205 自慰見せつけ ---
+;  ▼【視点】キャラは見る側＝プレイヤーがキャラに自慰を見せる
+; ▼ プレイヤーがパートナーに自慰を見せるコマンド
+IF SELECTCOM == 205
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩の、あんなに……。み、見てるだけで、顔が熱いです……えへへ♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うう、先輩の、目の前で……。は、はずかしいのに、視線が外せません……ぐすん」
+	ENDIF
+ENDIF
+;--- COM160 69クンニ（シックスナイン派生） ---
+;  ▼【視点】キャラ攻め/相互＝互いの体を逆向きに重ね、二人が同時に相手の女性器を舐め合う（女性同士の行為）
+;  ※クンニ強制→クンニの連携で、双方が女性器を持つ（ふたなり or 女性）場合にシックスナインから派生
+;  ※相手は助手/他の女子（女性同士）。セリフも相手の女子を意識して書く
+IF SELECTCOM == 160
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ん……れろ……%LOCALS%のここ、舐めると……びくって、震えるの……。わたしのも舐められて……あぅ、とろけちゃう……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「は……っ、れろ……%LOCALS%の、ぴちゃぴちゃって……。わたしのも、され……っ。は、はずかしいのに、やめられない……」
+	ENDIF
+ENDIF
+
+;--- COM189 69フェラ（シックスナイン派生） ---
+;  ▼【視点】キャラ攻め/相互＝互いの体を逆向きに重ね、二人が同時に相手のペニスを咥え合う（ふたなり同士の行為）
+;  ※フェラチオ→フェラの連携で、双方がふたなりの場合にシックスナインから派生
+;  ※相手は助手/他の女子（ふたなり同士）。セリフも相手の女子を意識して書く
+IF SELECTCOM == 189
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ん、ぷ……ちゅぷ……。%LOCALS%のを頬張ると……わたしのも、ちゅって……っ。あたま、しびれちゃう……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「んむ……っ、れろ……。%LOCALS%の先、舐めながら……わたしのも、され……っ。は、はずかしいのに、腰が……っ」
+	ENDIF
+ENDIF
+
+;--- COM188 相互挿入（ふたなり同士限定） ---
+;  ▼【視点】キャラ攻め/相互＝二人が向き合い、互いのペニスを相手の膣に同時に挿入し合う（ふたなり同士の行為）
+;  ※ウフフ中限定 / 調教者・ターゲット双方がふたなりの場合のみ実行可能
+;  ※相手は助手/他の女子（ふたなり同士）。セリフも相手の女子を意識して書く
+IF SELECTCOM == 188
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ん……っ、ぬぷ……%LOCALS%の奥に……っ。なのに、わたしのなかにも、ぐって来て……あたま、まっしろ……♪」
+	ELSE
+		;通常
+		PRINTFORMW 「は……っ、ずぶ、ずぶって……%LOCALS%も、わたしも……っ。こ、こんなの、おかしくなっちゃう……」
+	ENDIF
+ENDIF
+
+
+;--- COM255 挿入Ｇスポ責め ---
+IF SELECTCOM == 255
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。奥のいい場所、ぐりぐりされて……うう、しびれちゃう♪」
+	ELSE
+		;通常
+		PRINTFORMW 「ひゃっ! あ、転校生の先輩……! そ、そこ、知らないでください……! うう、変になる」
+	ENDIF
+ENDIF
+
+;--- COM256 挿入子宮口責め ---
+IF SELECTCOM == 256
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。いちばん奥、こんこんって……うう、とろけちゃう♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴ! あ、転校生の先輩……! い、いちばん奥は、無理ですっ……! 怖い」
+	ENDIF
+ENDIF
+
+;--- COM257 剃毛プレイ ---
+IF SELECTCOM == 257
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。つ、つるつるにされちゃう……うう、はずかしい♪」
+	ELSE
+		;通常
+		PRINTFORMW 「うぴいっ!? あ、転校生の先輩……! そ、剃るなんて……! は、はずかしすぎますっ」
+	ENDIF
+ENDIF
+
+;--- COM390 ゲームセンター ---
+IF SELECTCOM == 390
+	IF TALENT:TARGET:153
+		;恋人
+		PRINTFORMW 「えへへ、%CALLNAME:PLAYER%先輩。ゲームセンター、楽しい♪ あのぬいぐるみ、取ってほしいなぁ……」
+	ELSE
+		;通常
+		PRINTFORMW 「あ、転校生の先輩。ゲームセンターですか? わたし、上手じゃないけど……えへへ、楽しそう」
+	ENDIF
+ENDIF
+
+;==============================================================
+; 装着アイテム 付け外し口上（あいかの声で記入済）
+;==============================================================
+;--- COM11 バイブ ---
+IF SELECTCOM == 11
+	IF TEQUIP:11
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		IF TALENT:TARGET:153
+			PRINTFORMW 「ぁんっ、奥に、届いて……こういうの、物語でしか知らなかったのに……先輩となら、こわくないんですね……ふふ♪」
+		ELSE
+			PRINTFORMW 「ぁっ、ま、待ってくださいっ、心の準備が……! はぁっ、だめ、こんなの、わたし……だめぇっ」
+		ENDIF
+	ELSE
+		;取り外し
+		IF TALENT:TARGET:153
+			PRINTFORMW 「え、もう、終わりですか……。急に、なんだか心細い……って、い、今のは忘れてください、ね……?」
+		ELSE
+			PRINTFORMW 「は……ぁ、膝に力が、入らない……。せ、先輩、支えて……ううん、なんでもないですっ、自分で立てますからっ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM13 アナルバイブ ---
+IF SELECTCOM == 13
+	IF TEQUIP:13
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		IF TALENT:TARGET:153
+			PRINTFORMW 「んぅっ、は、はしたないですよね、わたし……でも先輩の前だけは、素直でいても、いいのかな……?」
+		ELSE
+			PRINTFORMW 「やっ、そ、そっちは聞いてないですっ……! ふるえが止まらなくて……わたし、こういうの、ほんとに弱いんですっ」
+		ENDIF
+	ELSE
+		;取り外し
+		IF TALENT:TARGET:153
+			PRINTFORMW 「あ……まだ、ぞくぞくが、残ってて……。み、見ないでくれたら、嬉しい、です……」
+		ELSE
+			PRINTFORMW 「ほ……っ、こ、こわかったぁ……せ、先輩、もう、ゆるしてください……わたし、まだふるえてますっ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM14 クリキャップ ---
+IF SELECTCOM == 14
+	IF TEQUIP:14
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		IF TALENT:TARGET:153
+			PRINTFORMW 「あぅっ、クリが、じんじん、ずっと続いて……。先輩のいじわる、嫌いになれないのが、困ります……」
+		ELSE
+			PRINTFORMW 「ひゃうぅっ!? そ、そんなの聞いてませんっ……! 本に、集中、できな……あぁんっ、やだぁっ」
+		ENDIF
+	ELSE
+		;取り外し
+		IF TALENT:TARGET:153
+			PRINTFORMW 「あっ、まだ、脈打ってて……。こんな身体、物語にも書けないですよ……もう」
+		ELSE
+			PRINTFORMW 「ふぅ……っ、やっと。あ、あんなにいじっておいて、急に知らんぷりなんて……ひ、ひどい人ですね、先輩は」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM15 ニプルキャップ ---
+IF SELECTCOM == 15
+	IF TEQUIP:15
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		IF TALENT:TARGET:153
+			PRINTFORMW 「んっ、乳首、きゅって……カーディガンの下で、こんなになってるなんて……先輩にだけ、内緒ですよ……?」
+		ELSE
+			PRINTFORMW 「ひゃんっ、あっ、や、やだっ……! こ、こんな声、だめ、誰かに聞かれたら、わたしっ……」
+		ENDIF
+	ELSE
+		;取り外し
+		IF TALENT:TARGET:153
+			PRINTFORMW 「あ、心もとないって、こういうのを言うんですね……って、へ、変なこと口走りました、き、聞かなかったことに」
+		ELSE
+			PRINTFORMW 「う、もう……。余韻が引かなくて……こんなにされたら、今日はもう、何も手につかないです……っ」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM16 搾乳器 ---
+IF SELECTCOM == 16
+	IF TEQUIP:16
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		IF TALENT:TARGET:153
+			PRINTFORMW 「ひぁっ、あ、乳首の先から、出ちゃう……。恥ずかしいのに、先輩に見られてると思うと……なんだか、満たされる、みたいで」
+		ELSE
+			PRINTFORMW 「やっ、う、嘘っ……! で、出るわけ……えっ、な、なんで……み、見ないでぇっ」
+		ENDIF
+	ELSE
+		;取り外し
+		IF TALENT:TARGET:153
+			PRINTFORMW 「あ、わたしの身体、先輩の前だと、言葉より正直すぎますね……困っちゃう」
+		ELSE
+			PRINTFORMW 「は……っ。ううん、自分でやりますからっ……こんなの、恥ずかしすぎますっ、見ないで」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM17 オナホール ---
+IF SELECTCOM == 17
+	IF TEQUIP:17
+		;装着（トグル後なので TEQUIPオン＝今装着した）
+		IF TALENT:TARGET:153
+			PRINTFORMW 「んっ、腰が、ひとりでに揺れちゃう……。こんなの物語の女の子みたい……先輩、もっと、見ててください……?」
+		ELSE
+			PRINTFORMW 「ひゃうっ、な、なにこれっ……! せ、先輩っ、からだが、いうこときかなくて……こんなのだめっ」
+		ENDIF
+	ELSE
+		;取り外し
+		IF TALENT:TARGET:153
+			PRINTFORMW 「あっ、は、こんなにとろとろにされて……せ、先輩、責任、とってくれますよね……?」
+		ELSE
+			PRINTFORMW 「う、もう……。せ、先輩のばか、こんなにからかって……嫌い……ううん、嘘、です」
+		ENDIF
+	ENDIF
+ENDIF
+
+RETURN 0
+
+;=== AIKA MISSING COMMAND TRIAL START ===
+; 未実装10コマンド（恋慕TALENT:85／非恋慕を各3種）
+
+;--- COM60 助手にキスさせる ---
+IF SELECTCOM == 60
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「相手の子のほうが震えてる……。安心させなきゃって思ったら、先輩に見られてることまで忘れられました。少しだけですけど」
+		ELSEIF A == 1
+			PRINTFORMW 「ん、ちゅ……。キスしてる間は何も言えないんですね。先輩に聞きたいことばかり浮かぶのに、唇が塞がってる……」
+		ELSE
+			PRINTFORMW 「嫉妬を試して恋が深まる、なんて本にはありますけど……わたしは試したくないです。先輩の気持ち、本物だから怖いんです」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ふぁっ、わたしが相手でいいんですか？　あの、嫌という意味じゃなくて……まず、そっちも困ってないか知りたくて」
+		ELSEIF A == 1
+			PRINTFORMW 「んむ……ひゃっ。いま謝りそうになったけど、キスされて謝るのも変ですよね。……もう一度なら、今度は黙ってできます」
+		ELSE
+			PRINTFORMW 「ふたりとも目を閉じるタイミングを逃しちゃった……。ふふ、変な顔。笑えたから、さっきより怖くないです」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM62 ダブル素股 ---
+IF SELECTCOM == 62
+	CALL AITE_YOBI, 6, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「%LOCALS%とふたりで先輩を……。こんな場面、小説にも書いたことないです。ひゃっ、急に腰を動かさないでください！」
+		ELSEIF A == 1
+			PRINTFORMW 「先輩のが脚の間を通るたび、%LOCALS%の肌まで擦れて……。わたし、どこを見ればいいんですか……？」
+		ELSE
+			PRINTFORMW 「もう息が上がっちゃいました……。でも先輩が気持ちよさそうだから、あと少しだけ……%LOCALS%、支えてくれる？」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「わ、わたし運動は苦手なのに、三人で息を合わせるなんて無理です……！　%LOCALS%、置いていかないでね？」
+		ELSEIF A == 1
+			PRINTFORMW 「ひゃっ、先輩が動くと脚に当たって……。ごめんなさい、止まっちゃった。わたしのせいで調子が狂いましたよね」
+		ELSE
+			PRINTFORMW 「%LOCALS%、もう少しゆっくり……。わたし、脚が震えて先輩を挟んでるのか、寄りかかってるのかわからないよぉ……」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM76 双頭バイブ ---
+IF SELECTCOM == 76
+	CALL AITE_YOBI, 6, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「%LOCALS%が動くたび、わたしのなかまで……ひゃぁっ！　同じものを感じてるって思うと、怖いのに離したくない……っ」
+		ELSEIF A == 1
+			PRINTFORMW 「待って、速い……っ！　あっ、でも止まったら寂しいなんて、わがままですよね……ひゃぅっ！」
+		ELSE
+			PRINTFORMW 「%LOCALS%、手を……。わたし、もう息が続かなくて……なか、また締まっ、あぁっ……一緒にいて……！」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「うぴいっ!?　%LOCALS%が動いたのに、どうしてわたしの奥まで……！　やだ、次が来るの怖いっ！」
+		ELSEIF A == 1
+			PRINTFORMW 「ゆっくり、お願い……っ。わたし体力ないから、もう震えが止まらなくて……あっ、動かさないでぇ！」
+		ELSE
+			PRINTFORMW 「ごめんね%LOCALS%、わたしが力を抜けないせいで、そっちまで苦しいよね……。でも、怖くて緩められないの……！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM78 母乳飲み ---
+IF SELECTCOM == 78
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「こんな小さな胸でも、先輩を満たせるんですね……。えへへ。わたしにも、あげられるものがあってよかった♪」
+		ELSEIF A == 1
+			PRINTFORMW 「んっ、吸われるたびに胸の奥が引っぱられて……。先輩、そんなに夢中だと、わたしまで離れたくなくなります」
+		ELSE
+			PRINTFORMW 「物語なら、きっと穏やかで綺麗な場面なのに……現実は息づかいまで聞こえて、こんなに恥ずかしいんですね」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ほ、本当に飲むんですか？　わたしのなんて、おいしくないかもしれないのに……あとで後悔しても知りませんからね？」
+		ELSEIF A == 1
+			PRINTFORMW 「ふぁっ、そこを吸われると、身体の力まで抜けちゃう……。すみません、少し肩を貸してもらっていいですか？」
+		ELSE
+			PRINTFORMW 「むせてないですか？　無理しなくていいですよ。残されたら寂しいけど……先輩が苦しくなるほうが嫌ですから」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM79 乳搾り ---
+IF SELECTCOM == 79
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「先輩の手、優しいですね……。搾られてるのに、頭を撫でられたときみたいに安心するの、何だか変です」
+		ELSEIF A == 1
+			PRINTFORMW 「あっ、また出た……。そんな大事そうに集めてもらうと、わたしまで自分の身体を嫌わずにすみそうです」
+		ELSE
+			PRINTFORMW 「もう出ないと思います……。それでも先輩が触っていたいなら、わたしは……もう少しだけ、このままでいいです」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「ひゃっ、そんなに見つめないでください……！　小さい胸からどれだけ出るか、数えられてるみたいで落ち着かないです」
+		ELSEIF A == 1
+			PRINTFORMW 「痛っ……ご、ごめんなさい、大声出して。わたし痛いのに弱いから、もう少しだけ優しくしてもらえますか？」
+		ELSE
+			PRINTFORMW 「容器、いっぱいになってきましたね……。わたしが持つと落としそうなので、最後まで先輩が持っていてください」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM84 Gスポット刺激 ---
+IF SELECTCOM == 84
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「こんなの、言葉にして覚えておけない……っ。先輩、わたしが忘れても、どこが好きだったか……覚えててぇ……！」
+		ELSEIF A == 1
+			PRINTFORMW 「せんぱい、せんぱい……っ。名前しか出てこない……ひゃぁっ、でも呼んだら返事して、置いてかないでぇ……！」
+		ELSE
+			PRINTFORMW 「やめてって言ってるのに、止まったら寂しいって思ってる……っ。こんなわがまま、わたしにもわからないよぉ……！」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「うぴいっ!?　い、今ので息のしかた忘れました……！　先輩、次に触る前に、ちゃんと呼吸させて……っ！」
+		ELSEIF A == 1
+			PRINTFORMW 「痛いのと気持ちいいの、区別できない……っ。わたし痛いの苦手なのに、身体は先輩の指を追いかけてる……！」
+		ELSE
+			PRINTFORMW 「ごめんなさ……ひゃぁっ！　謝るのも最後まで言えない……先輩、わたし、もう何もちゃんとできな……っ！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM86 強制放尿 ---
+IF SELECTCOM == 86
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「小説なら、こういう時間は一行あけて飛ばすんです……。でも現実のわたしは、その空白のなかにもずっといるんですね」
+		ELSEIF A == 1
+			PRINTFORMW 「頭のなかで、先輩に嫌われる結末ばかり浮かびます……。お願い、その先を先輩の言葉で書きかえてください」
+		ELSE
+			PRINTFORMW 「身体にまで置いていかれるなんて思わなかった……。先輩、わたしの声だけは置いていかないで。ちゃんと聞いていてください……っ」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「恋愛小説がこういうことを書かない理由、やっとわかりました……。綺麗じゃないからじゃなくて、本人には長すぎるからです……っ」
+		ELSEIF A == 1
+			PRINTFORMW 「謝っても止まらないし、我慢しても止まらない……わたし、こういうとき何を言えばいいのか、本当に知らないです……！」
+		ELSE
+			PRINTFORMW 「ひとりなら毛布をかぶって、なかったことにできたのに……。先輩がいると恥ずかしい。でも、ひとりよりは怖くないです」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM202 乳首合わせ ---
+IF SELECTCOM == 202
+	CALL AITE_YOBI, 6, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「%LOCALS%の胸、あったかい……。わたしのは小さくて合わせづらいのに、離さないでいてくれるんだね」
+		ELSEIF A == 1
+			PRINTFORMW 「ひゃっ、先っぽ同士が擦れると、そこだけぞくって……。%LOCALS%も同じ顔してる。えへへ、少し安心した♪」
+		ELSE
+			PRINTFORMW 「こんなに近いと、胸より顔のほうが気になります……。%LOCALS%、目を逸らさないで。わたしも頑張るから」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「わ、わたしの胸、小さいから合わせにくいですよね……。ごめんね%LOCALS%、無理に押しつけなくていいから」
+		ELSEIF A == 1
+			PRINTFORMW 「ふぁっ、いま擦れた……！　女の子同士なのに、こんな声が出るんだ。%LOCALS%も、びっくりした？」
+		ELSE
+			PRINTFORMW 「%LOCALS%、痛くない？　わたし、力加減がよくわからなくて……嫌だったら、ちゃんと言ってね？」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM258 助手顔面騎乗 ---
+IF SELECTCOM == 258
+	CALL AITE_YOBI, 6, ASSI
+	LOCALS '= @"%RESULTS%"
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「先輩の顔が見えないのに、なかにはずっといる……っ。変です、こんなに繋がってるのに、ひとりみたいで怖い……！」
+		ELSEIF A == 1
+			PRINTFORMW 「%LOCALS%に触る手はあるのに、わたしを支える手がない……っ。先輩、せめて腰で、ここにいるって教えて……ひゃぁっ！」
+		ELSE
+			PRINTFORMW 「物語のヒロインなら綺麗に腰を揺らすのに……わたし、先輩にしがみつくことしか、あぁっ、できない……！」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「わひっ、%LOCALS%、急に動かないで……！　わたしのなかの先輩までずれて、どこにも力を逃がせないの……！」
+		ELSEIF A == 1
+			PRINTFORMW 「もう脚が保たないです……。落ちたら先輩を痛くしそうで、それが怖い……%LOCALS%、肩だけ貸して……！」
+		ELSE
+			PRINTFORMW 「ふたりの息づかいが別々に聞こえて、頭が追いつかない……っ。わたし、どっちにも迷惑かけないなんて無理ですぅ……！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;--- COM318 頭を撫でてもらう ---
+; 視点：あいかがプレイヤーの頭を撫でる側
+IF SELECTCOM == 318
+	A = RAND:3
+	IF TALENT:TARGET:85
+		IF A == 0
+			PRINTFORMW 「いつもは子供あつかいしないでって怒るのに、今日はわたしが撫でる側ですね。えへへ……先輩、良い子です♪」
+		ELSEIF A == 1
+			PRINTFORMW 「先輩が無理してるの、ちゃんと気づきたいんです。手遅れになってから後悔するのは……もう、嫌ですから」
+		ELSE
+			PRINTFORMW 「何も話さなくていいです。わたしも、黙ったままそばにいてもらって救われたことがありますから……」
+		ENDIF
+	ELSE
+		IF A == 0
+			PRINTFORMW 「あの……頭、撫でてもいいですか？　いつも助けてもらってるから、わたしにも少しくらいお返しさせてください」
+		ELSEIF A == 1
+			PRINTFORMW 「よしよし……。ふふ、先輩が静かにしてると、本を読んでる猫みたいです。今のは誰にも言わないでくださいね？」
+		ELSE
+			PRINTFORMW 「元気が出るまで、ここにいます。迷惑じゃなければ……ひとりにされる寂しさは、わたしも知ってますから」
+		ENDIF
+	ENDIF
+ENDIF
+;=== AIKA MISSING COMMAND TRIAL END ===
+
+;==============================================================
+; 処女喪失時  @CHAR_VIRGIN_6
+;==============================================================
+@CHAR_VIRGIN_6
+IF TALENT:TARGET:153
+	;恋人・処女喪失
+	PRINTFORMW 「ふぁ……%CALLNAME:PLAYER%先輩。わたしの、はじめて……。痛いけど、嬉しい……えへへ、もう先輩のものです♪」
+ELSE
+	;通常・処女喪失
+	PRINTFORMW 「うう、転校生の先輩……。い、痛い……。わたしの、はじめてだったのに……ぐすん」
+ENDIF
+RETURN 0
+
+;==============================================================
+; ファーストキス時  @CHAR_FIRST_KISS_6
+;==============================================================
+@CHAR_FIRST_KISS_6
+IF TALENT:TARGET:153
+	;恋人・ファーストキス
+	PRINTFORMW 「ふぁ……%CALLNAME:PLAYER%先輩。はじめてのキス……えへへ、夢みたい。ずっと、覚えてますね♪」
+ELSE
+	;通常・ファーストキス
+	PRINTFORMW 「ふぁっ……! 転校生の先輩。い、いまのが、わたしのファーストキス……? うう、はずかしい」
+ENDIF
+RETURN 0
+
+;==============================================================
+; 服を脱がせたとき  @CHAR_UNDRESS_6
+;==============================================================
+@CHAR_UNDRESS_6
+IF TALENT:TARGET:153
+	;恋人・脱衣
+	PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。み、見ないでください……えへへ、でも、先輩になら……♪」
+ELSE
+	;通常・脱衣
+	PRINTFORMW 「うう、転校生の先輩。脱がさないで……。は、はずかしいから、お電気消して……ぐすん」
+ENDIF
+RETURN 0
+
+;==============================================================
+; 射精したとき（一般）※手コキ・素股・足扱き等  @CHAR_EJAC_6
+; TFLAG:302=量(1=通常 2=大量 4=超大量)  TFLAG:711=今回の調教での射精回数
+;==============================================================
+@CHAR_EJAC_6
+;--- 大量射精以上 ---
+IF TFLAG:302 >= 2
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・初回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。すごい、いっぱい出た……えへへ、わたしので、こんなに?」
+			ELSEIF A == 1
+				;恋人・大量・初回・2
+				PRINTFORMW 「（先輩の、勢いよく飛んで……あったかい）うう、手、べたべた」
+			ELSE
+				;恋人・大量・初回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。こんなに溜めて……えへへ、元気すぎ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・初回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! こ、こんなにいっぱい……! うう、びっくりした」
+			ELSEIF A == 1
+				;通常・大量・初回・2
+				PRINTFORMW 「うう、転校生の先輩。すごい量……。か、顔にかかっちゃった……ぐすん」
+			ELSE
+				;通常・大量・初回・3
+				PRINTFORMW 「うぴ……! こ、こんなに出るなんて、本に書いてなかった……転校生の先輩」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・複数回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。また、いっぱい……えへへ、何度でも受け止めます♪」
+			ELSEIF A == 1
+				;恋人・大量・複数回・2
+				PRINTFORMW 「（先輩の、まだこんなに……すごい）うう、手から溢れちゃう」
+			ELSE
+				;恋人・大量・複数回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。こんなに何回も……ふふ、わたしのこと好きすぎ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・複数回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。ま、また出た……! こんなに何度も……うう」
+			ELSEIF A == 1
+				;通常・大量・複数回・2
+				PRINTFORMW 「うう、転校生の先輩。もう何回目……? わたし、受け止めるの大変です……」
+			ELSE
+				;通常・大量・複数回・3
+				PRINTFORMW 「うぴ……! また、こんなに……。転校生の先輩、すごすぎ……は、はずかしい」
+			ENDIF
+		ENDIF
+	ENDIF
+;--- 通常射精 ---
+ELSE
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・初回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。出ましたね、えへへ。わたしので気持ちよくなってくれた♪」
+			ELSEIF A == 1
+				;恋人・通常・初回・2
+				PRINTFORMW 「（先輩の、ぴゅって……あったかい）うう、ふしぎな気分」
+			ELSE
+				;恋人・通常・初回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。こんなところに出して……えへへ、ふきふきしますね」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・初回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! で、出たんですか……? うう、びっくりした」
+			ELSEIF A == 1
+				;通常・通常・初回・2
+				PRINTFORMW 「うう、転校生の先輩。て、手にかかっちゃった……。あの、ティッシュ、ティッシュ」
+			ELSE
+				;通常・通常・初回・3
+				PRINTFORMW 「うぴ……! こ、これが、出るってこと……? 転校生の先輩、はずかしい」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・複数回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。また、出ましたね。えへへ、わたしで何度も♪」
+			ELSEIF A == 1
+				;恋人・通常・複数回・2
+				PRINTFORMW 「（先輩の、また……あったかい）うう、もう手がべたべた」
+			ELSE
+				;恋人・通常・複数回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。何回もするから、お洗濯が大変……ふふ、でも嬉しい」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・複数回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。ま、また出た……! 元気ですね……うう」
+			ELSEIF A == 1
+				;通常・通常・複数回・2
+				PRINTFORMW 「うう、転校生の先輩。もう何回目だろ……。わたし、ふきふきで忙しい……ぐすん」
+			ELSE
+				;通常・通常・複数回・3
+				PRINTFORMW 「うぴ……! また出るなんて、転校生の先輩。す、すごい体力……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+;==============================================================
+; 口に出されたとき  @CHAR_EJAC_MOUTH_6
+; TFLAG:302=量(1=通常 2=大量 4=超大量)  TFLAG:711=今回の調教での射精回数
+;==============================================================
+@CHAR_EJAC_MOUTH_6
+;--- 大量射精以上 ---
+IF TFLAG:302 >= 2
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・初回・1
+				PRINTFORMW 「んむ……ふぁ、%CALLNAME:PLAYER%先輩。お口に、いっぱい……えへへ、ぜんぶ飲んじゃいました♪」
+			ELSEIF A == 1
+				;恋人・大量・初回・2
+				PRINTFORMW 「（お口の中、いっぱいで……苦い、けど）うう、ごっくん……」
+			ELSE
+				;恋人・大量・初回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お口にこんなに……ふふ、口移ししちゃおうかな♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・初回・1
+				PRINTFORMW 「んぐっ! あ、転校生の先輩……! お、お口にこんなに……! うう、こぼれちゃう」
+			ELSEIF A == 1
+				;通常・大量・初回・2
+				PRINTFORMW 「うう、転校生の先輩。お口、いっぱいで苦しい……。あの、飲んでいいんですか?」
+			ELSE
+				;通常・大量・初回・3
+				PRINTFORMW 「うぴ……! お、お口にこんなに出すなんて、転校生の先輩。は、はずかしい」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・複数回・1
+				PRINTFORMW 「んむ、ふぁ……%CALLNAME:PLAYER%先輩。また、お口に……えへへ、慣れてきちゃった♪」
+			ELSEIF A == 1
+				;恋人・大量・複数回・2
+				PRINTFORMW 「（先輩の味、覚えてきた……えへへ）うう、ごっくん、です」
+			ELSE
+				;恋人・大量・複数回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。また口の中……ふふ、わたしのお口、好きすぎ♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・複数回・1
+				PRINTFORMW 「んぐっ! あ、転校生の先輩。ま、また口に……! うう、まだ慣れない……」
+			ELSEIF A == 1
+				;通常・大量・複数回・2
+				PRINTFORMW 「うう、転校生の先輩。何回も口に……。あの、お水、飲んでいいですか?」
+			ELSE
+				;通常・大量・複数回・3
+				PRINTFORMW 「うぴ……! また口の中なんて……。転校生の先輩、はずかしい」
+			ENDIF
+		ENDIF
+	ENDIF
+;--- 通常射精 ---
+ELSE
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・初回・1
+				PRINTFORMW 「んむ、ふぁ……%CALLNAME:PLAYER%先輩。お口に、ちょっぴり……えへへ、美味しい、かも♪」
+			ELSEIF A == 1
+				;恋人・通常・初回・2
+				PRINTFORMW 「（先輩の、お口の中で……ふしぎな味）うう、ごっくん」
+			ELSE
+				;恋人・通常・初回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。お口に出すの、好きですね……ふふ」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・初回・1
+				PRINTFORMW 「んぐっ! あ、転校生の先輩。お、お口に……? うう、びっくりした」
+			ELSEIF A == 1
+				;通常・通常・初回・2
+				PRINTFORMW 「うう、転校生の先輩。お口の中、変な味……。あの、飲み込んでいいの?」
+			ELSE
+				;通常・通常・初回・3
+				PRINTFORMW 「うぴ……! お、お口にだなんて……。転校生の先輩、はずかしいです」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・複数回・1
+				PRINTFORMW 「んむ、ふぁ……%CALLNAME:PLAYER%先輩。また、お口に……えへへ、ぜんぶ飲みます♪」
+			ELSEIF A == 1
+				;恋人・通常・複数回・2
+				PRINTFORMW 「（また、お口の中……慣れてきたかも）うう、ごっくん、です」
+			ELSE
+				;恋人・通常・複数回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。何度もお口に……ふふ、わたしのお口専用、ですね♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・複数回・1
+				PRINTFORMW 「んぐっ! あ、転校生の先輩。ま、また口に出した……! うう、忙しい」
+			ELSEIF A == 1
+				;通常・通常・複数回・2
+				PRINTFORMW 「うう、転校生の先輩。もう何回お口に……。あの、お水ください……ぐすん」
+			ELSE
+				;通常・通常・複数回・3
+				PRINTFORMW 「うぴ……! また口の中だなんて、転校生の先輩。は、はずかしすぎ……」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+;==============================================================
+; 中に出されたとき  @CHAR_EJAC_IN_6
+; TFLAG:302=量(1=通常 2=大量 4=超大量)  TFLAG:711=今回の調教での射精回数
+;==============================================================
+@CHAR_EJAC_IN_6
+;--- 大量射精以上 ---
+IF TFLAG:302 >= 2
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・初回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。中に、いっぱい……えへへ、あったかいの、感じる♪」
+			ELSEIF A == 1
+				;恋人・大量・初回・2
+				PRINTFORMW 「（奥が、先輩のでいっぱいに……じんわり）うう、しあわせ」
+			ELSE
+				;恋人・大量・初回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。中にこんなに……ふふ、赤ちゃん、できちゃうかも♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・初回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! な、中に、こんなに……! うう、どうしよう」
+			ELSEIF A == 1
+				;通常・大量・初回・2
+				PRINTFORMW 「うう、転校生の先輩。中に出すなんて……。あの、だ、大丈夫なんですか……?」
+			ELSE
+				;通常・大量・初回・3
+				PRINTFORMW 「うぴ……! な、中にだなんて、転校生の先輩。せ、責任、取ってください……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・大量・複数回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。また中に、いっぱい……えへへ、満たされちゃう♪」
+			ELSEIF A == 1
+				;恋人・大量・複数回・2
+				PRINTFORMW 「（奥が、また先輩ので……あふれちゃう）うう、とろけそう」
+			ELSE
+				;恋人・大量・複数回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。何回も中に……ふふ、ほんとに赤ちゃんできちゃう♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・大量・複数回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。ま、また中に……! うう、こんなに何度も……」
+			ELSEIF A == 1
+				;通常・大量・複数回・2
+				PRINTFORMW 「うう、転校生の先輩。中に何回も……。わたし、ほんとに妊娠しちゃう……?」
+			ELSE
+				;通常・大量・複数回・3
+				PRINTFORMW 「うぴ……! また中になんて……。転校生の先輩、はずかしい……」
+			ENDIF
+		ENDIF
+	ENDIF
+;--- 通常射精 ---
+ELSE
+	;初回
+	IF TFLAG:711 == 1
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・初回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。中に、ちょっぴり……えへへ、あったかい♪」
+			ELSEIF A == 1
+				;恋人・通常・初回・2
+				PRINTFORMW 「（奥に、じんわり広がって……）うう、ふしぎな感じ」
+			ELSE
+				;恋人・通常・初回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩ったら。中に出して……えへへ、後でちゃんとしないと」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・初回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩……! な、中に出したんですか……? うう、びっくり」
+			ELSEIF A == 1
+				;通常・通常・初回・2
+				PRINTFORMW 「うう、転校生の先輩。中に、なんて……。あの、お薬、飲まないと……」
+			ELSE
+				;通常・通常・初回・3
+				PRINTFORMW 「うぴ……! な、中になんて……。転校生の先輩、どうしよう……」
+			ENDIF
+		ENDIF
+	;2回目以上
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・通常・複数回・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。また中に、ですね。えへへ、何度でも受け止めます♪」
+			ELSEIF A == 1
+				;恋人・通常・複数回・2
+				PRINTFORMW 「（また奥に、あったかいの……）うう、満たされちゃう」
+			ELSE
+				;恋人・通常・複数回・3
+				PRINTFORMW 「もう、%CALLNAME:PLAYER%先輩。何度も中に……ふふ、わたし、お母さんになっちゃう♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・通常・複数回・1
+				PRINTFORMW 「ひゃっ! あ、転校生の先輩。ま、また中に……! うう、何度も……」
+			ELSEIF A == 1
+				;通常・通常・複数回・2
+				PRINTFORMW 「うう、転校生の先輩。もう何回中に……。わたし、絶対妊娠しちゃう……ぐすん」
+			ELSE
+				;通常・通常・複数回・3
+				PRINTFORMW 「うぴ……! また中になんて、転校生の先輩。せ、責任取ってくださいね……?」
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+;==============================================================
+; 絶頂したとき  @CHAR_ORGASM_6
+; NOWEX:0=Cクリ :1=V膣 :2=Aアナル :3=Bバスト :6=Mマウス/キス（絶頂強度）
+; TFLAG:710=同時絶頂数  強度: >=9=最強 >=2=強 ==1=通常
+;==============================================================
+@CHAR_ORGASM_6
+
+;--- 五重絶頂（全部位同時） ---
+IF TFLAG:710 >= 5
+	;★全部位最強（特別）
+	IF NOWEX:0 >= 9 && NOWEX:1 >= 9 && NOWEX:2 >= 9 && NOWEX:3 >= 9 && NOWEX:6 >= 9
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・全部位最強★・1
+				PRINTFORML 「ふぁ、ああっ……%CALLNAME:PLAYER%先輩……! もう、わたし、どこにいるかも、わかんな……っ! ぜんぶ、
+				PRINTFORML いっぺんに来て、あたま、まっしろで……っ。せんぱ……すき、すきぃ……っ! あいか、
+				PRINTFORMW こわれちゃうよぉ……っ!」
+			ELSEIF A == 1
+				;恋人・五重絶頂・全部位最強★・2
+				PRINTFORML 「ひゃ、あ、あ……っ! からだじゅう、ぜんぶ、しびれて……! もう、たってられな……っ。
+				PRINTFORML あちこちから、いっぺんに来て……っ、いきも、できな……。とけちゃう、
+				PRINTFORMW ぜんぶとけちゃうよぉ……っ!」
+			ELSE
+				;恋人・五重絶頂・全部位最強★・3
+				PRINTFORML 「うあ、あ……っ、こんなの、本にも、かいてな……っ! ぜんぶいっぺんなんて、聞いてな……っ!
+				PRINTFORMW あ、あ、%CALLNAME:PLAYER%せんぱ……っ、たすけ……あいか、もう、とろけちゃ……っ!」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・全部位最強★・1
+				PRINTFORML 「ひゃああっ……! な、なに、これ……っ! ぜんぶいっぺんに来て……っ、わたし、わたし、
+				PRINTFORMW こわれちゃ……! あ、あ、とまらな……っ、たすけて、転校生の先輩……っ!」
+			ELSEIF A == 1
+				;通常・五重絶頂・全部位最強★・2
+				PRINTFORML 「あぅ、あ、あ……っ! からだ、ぜんぶ、いうこと聞かな……っ! あちこち、じんじんして……っ、
+				PRINTFORMW あたま、ぼうっと……。もう、なにも、かんがえられな……っ!」
+			ELSE
+				;通常・五重絶頂・全部位最強★・3
+				PRINTFORML 「うう、あ、あ……っ! こんな、はしたない声……っ、で、でちゃ……! みないで、
+				PRINTFORMW みないでぇ……っ。ぜんぶいっぺんなんて……っ、おかしくなっちゃうよぉ……っ!」
+			ENDIF
+		ENDIF
+	;いずれかの部位が最強
+	ELSEIF NOWEX:0 >= 9 || NOWEX:1 >= 9 || NOWEX:2 >= 9 || NOWEX:3 >= 9 || NOWEX:6 >= 9
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・最強・1
+				PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! もう、だめ、いっぱいで……っ。ぜんぶいっぺんに来ちゃ……っ、あ、あ、とろけちゃう……!」
+			ELSEIF A == 1
+				;恋人・五重絶頂・最強・2
+				PRINTFORMW 「ひゃ、あ……っ! からだじゅう、しびれて……。腰、勝手に……っ、あ、もうとまらな……!」
+			ELSE
+				;恋人・五重絶頂・最強・3
+				PRINTFORMW 「うあ、あ……っ、こんなの知らな……! えへ、へ……っ、もう、わけわかんなくなっちゃ……!」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・最強・1
+				PRINTFORMW 「ひゃああっ……! な、なに、これ、こわい……っ! あちこち、いっぺんに……っ、あ、あ……!」
+			ELSEIF A == 1
+				;通常・五重絶頂・最強・2
+				PRINTFORMW 「あぅ、あ……っ。からだ、いうこと聞かな……。あたま、ぼうっとして……っ、もう、だめぇ……!」
+			ELSE
+				;通常・五重絶頂・最強・3
+				PRINTFORMW 「うう、あっ……! こんな声、でちゃう……っ。みないで……っ、は、はずかし……あ、あ……!」
+			ENDIF
+		ENDIF
+	;いずれかの部位が強
+	ELSEIF NOWEX:0 >= 2 || NOWEX:1 >= 2 || NOWEX:2 >= 2 || NOWEX:3 >= 2 || NOWEX:6 >= 2
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・強・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……っ。あちこち、いっぺんに来て……えへへ、すごい、です……っ」
+			ELSEIF A == 1
+				;恋人・五重絶頂・強・2
+				PRINTFORMW 「ひゃ、あ……っ。からだじゅう、ぞくぞくして……。腰、勝手に動いちゃう……っ」
+			ELSE
+				;恋人・五重絶頂・強・3
+				PRINTFORMW 「うあ、あ……っ。こんなにいっぱい、本にも書いてなかった……えへへ、とろけちゃう」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・強・1
+				PRINTFORMW 「ひゃっ、あ……っ! あちこち、いっぺんなんて……! うう、びっくり……っ」
+			ELSEIF A == 1
+				;通常・五重絶頂・強・2
+				PRINTFORMW 「あぅ、あ……っ。からだ、じんじんして……。なんだか、ぼうっとしちゃう……っ」
+			ELSE
+				;通常・五重絶頂・強・3
+				PRINTFORMW 「うう、あっ……。こんなにいっぱい、はずかしい……っ。見ないでください……っ」
+			ENDIF
+		ENDIF
+	ELSE
+		A = RAND:3
+		IF TALENT:TARGET:153
+			IF A == 0
+				;恋人・五重絶頂・通常・1
+				PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。いっぱい、来ちゃった……えへへ、しあわせ♪」
+			ELSEIF A == 1
+				;恋人・五重絶頂・通常・2
+				PRINTFORMW 「ひゃ、あ……。からだじゅう、ぞくっとした……。えへへ、すごい」
+			ELSE
+				;恋人・五重絶頂・通常・3
+				PRINTFORMW 「うあ、あ……。こんなにいっぺん、初めて……えへへ、とろけちゃう♪」
+			ENDIF
+		ELSE
+			IF A == 0
+				;通常・五重絶頂・通常・1
+				PRINTFORMW 「ひゃっ、あ……! いっぱい、来ちゃった……うう、びっくり」
+			ELSEIF A == 1
+				;通常・五重絶頂・通常・2
+				PRINTFORMW 「あぅ、あ……。あちこち、じんわり……。なんだか、ぼうっとする」
+			ELSE
+				;通常・五重絶頂・通常・3
+				PRINTFORMW 「うう、あ……。こんなの、はずかしい……。見ないで、ください」
+			ENDIF
+		ENDIF
+	ENDIF
+
+;--- 複絶頂（2～4箇所同時）---
+ELSEIF TFLAG:710 >= 2
+	;--- 膣を含む複絶頂 ---
+	IF NOWEX:1 > 0
+		IF NOWEX:0 >= 9 || NOWEX:1 >= 9 || NOWEX:2 >= 9 || NOWEX:3 >= 9 || NOWEX:6 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣含む・最強・1
+					PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! 奥も、それ以外も……っ。もう、いっぱいで……っ、あ、あ、とろけちゃう……!」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣含む・最強・2
+					PRINTFORMW 「ひゃ、あ……っ! 奥まで、届いて……。腰、勝手に……っ、もう、とまらな……!」
+				ELSE
+					;恋人・複絶頂・膣含む・最強・3
+					PRINTFORMW 「うあ、あ……っ、こんなの知らな……! えへ……っ、あたま、まっしろ……!」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣含む・最強・1
+					PRINTFORMW 「ひゃああっ……! な、なに、これ……っ! いろんなとこ、いっぺんに……っ、あ、あ……!」
+				ELSEIF A == 1
+					;通常・複絶頂・膣含む・最強・2
+					PRINTFORMW 「あぅ、あ……っ。奥が、じんじんして……。からだ、いうこと聞かな……っ!」
+				ELSE
+					;通常・複絶頂・膣含む・最強・3
+					PRINTFORMW 「うう、あっ……! こんな声……っ。見ないで……っ、は、はずかし……!」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:0 >= 2 || NOWEX:1 >= 2 || NOWEX:2 >= 2 || NOWEX:3 >= 2 || NOWEX:6 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣含む・強・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……っ。奥も、いろんなとこも……えへへ、すごい……っ」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣含む・強・2
+					PRINTFORMW 「ひゃ、あ……っ。中が、じんじんして……。腰、勝手に動いちゃう……っ」
+				ELSE
+					;恋人・複絶頂・膣含む・強・3
+					PRINTFORMW 「うあ、あ……っ。こんなにいっぱい、本にもなかった……えへへ、とろける」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣含む・強・1
+					PRINTFORMW 「ひゃっ、あ……っ! いろんなとこ、いっぺんに……! うう、びっくり……っ」
+				ELSEIF A == 1
+					;通常・複絶頂・膣含む・強・2
+					PRINTFORMW 「あぅ、あ……っ。奥が、じんわり……。ぼうっとしちゃう……っ」
+				ELSE
+					;通常・複絶頂・膣含む・強・3
+					PRINTFORMW 「うう、あっ……。こんなにいっぱい、はずかしい……っ。見ないで……っ」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣含む・通常・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。奥も、いろいろ来ちゃった……えへへ♪」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣含む・通常・2
+					PRINTFORMW 「ひゃ、あ……。中が、じんわり……。えへへ、しあわせ」
+				ELSE
+					;恋人・複絶頂・膣含む・通常・3
+					PRINTFORMW 「うあ、あ……。こんなにいっぺん、初めて……えへへ、とろける♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣含む・通常・1
+					PRINTFORMW 「ひゃっ、あ……! いろいろ、来ちゃった……うう、びっくり」
+				ELSEIF A == 1
+					;通常・複絶頂・膣含む・通常・2
+					PRINTFORMW 「あぅ、あ……。奥が、じんわりして……。ぼうっとする」
+				ELSE
+					;通常・複絶頂・膣含む・通常・3
+					PRINTFORMW 「うう、あ……。こんなの、はずかしい……。見ないで」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- 膣を含まない複絶頂 ---
+	ELSE
+		IF NOWEX:0 >= 9 || NOWEX:2 >= 9 || NOWEX:3 >= 9 || NOWEX:6 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣なし・最強・1
+					PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! あちこち、いっぺんに……っ。もう、だめ……っ、あ、あ、とろけちゃう……!」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣なし・最強・2
+					PRINTFORMW 「ひゃ、あ……っ! からだじゅう、ぞくぞくして……。腰、勝手に……っ、とまらな……!」
+				ELSE
+					;恋人・複絶頂・膣なし・最強・3
+					PRINTFORMW 「あぁっ、いろんなとこ、いっぺんに……っ！　こわれちゃう、先輩ぇ……っ、たすけて……♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣なし・最強・1
+					PRINTFORMW 「ひゃうぅっ……！　あちこち、ぜんぶ……っ！　な、なんですかこれ、こわい……っ！」
+				ELSEIF A == 1
+					;通常・複絶頂・膣なし・最強・2
+					PRINTFORMW 「あぅ、あ……っ。じんじんが、広がって……。からだ、いうこと聞かな……っ!」
+				ELSE
+					;通常・複絶頂・膣なし・最強・3
+					PRINTFORMW 「やぁっ、声、抑えられない……っ！　み、見ないでください先輩ぇ……っ！」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:0 >= 2 || NOWEX:2 >= 2 || NOWEX:3 >= 2 || NOWEX:6 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣なし・強・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……っ。あちこち、ぞくぞくして……えへへ、すごい……っ」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣なし・強・2
+					PRINTFORMW 「ひゃ、あ……っ。じんじんが、止まらない……。腰、勝手に……っ」
+				ELSE
+					;恋人・複絶頂・膣なし・強・3
+					PRINTFORMW 「うあ、あ……っ。こんなにいっぱい、本にもなかった……えへへ」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣なし・強・1
+					PRINTFORMW 「ひゃうっ……！　あちこち、じんじんって……っ。う、うう、すごい……っ」
+				ELSEIF A == 1
+					;通常・複絶頂・膣なし・強・2
+					PRINTFORMW 「あぅ、あ……っ。ぞくぞくが、広がって……。ぼうっとしちゃう……っ」
+				ELSE
+					;通常・複絶頂・膣なし・強・3
+					PRINTFORMW 「やぁ……っ、こんなに感じて……。は、恥ずかしいです……見ないで……っ」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・複絶頂・膣なし・通常・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。あちこち、ぞくっとした……えへへ♪」
+				ELSEIF A == 1
+					;恋人・複絶頂・膣なし・通常・2
+					PRINTFORMW 「ひゃ、あ……。じんじんして……。えへへ、しあわせ」
+				ELSE
+					;恋人・複絶頂・膣なし・通常・3
+					PRINTFORMW 「うあ、あ……。こんなにいっぺん、初めて……えへへ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・複絶頂・膣なし・通常・1
+					PRINTFORMW 「ひゃっ……あちこち、きちゃいました……。うう、びっくり、です……」
+				ELSEIF A == 1
+					;通常・複絶頂・膣なし・通常・2
+					PRINTFORMW 「あぅ、あ……。じんじんが、広がって……。ぼうっとする」
+				ELSE
+					;通常・複絶頂・膣なし・通常・3
+					PRINTFORMW 「うう……感じちゃった……。は、恥ずかしい、です……見ないで……」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+
+;--- 単絶頂（1箇所） ---
+ELSE
+	;--- V（膣）絶頂 ---
+	IF NOWEX:1 > 0
+		IF NOWEX:1 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・膣・最強・1
+					PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! 奥、奥まで、届いて……っ。もう、とろけちゃ……っ、あ、あ……!」
+				ELSEIF A == 1
+					;恋人・膣・最強・2
+					PRINTFORMW 「ひゃ、あ……っ! 中が、ぜんぶ持ってかれて……。足腰、力入らな……っ!」
+				ELSE
+					;恋人・膣・最強・3
+					PRINTFORMW 「んあぁっ、奥、奥が……っ！　こんなの本にもなかった……あたま、とんじゃう……っ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・膣・最強・1
+					PRINTFORMW 「ひゃああっ……! お、奥が、こんな……っ! あ、あ、とまらな……っ!」
+				ELSEIF A == 1
+					;通常・膣・最強・2
+					PRINTFORMW 「あぅ、あ……っ。中が、じんじんして……。腰、抜けちゃ……っ!」
+				ELSE
+					;通常・膣・最強・3
+					PRINTFORMW 「んあぁっ、奥でこんな声……っ。は、恥ずかしいのに、止まらない……っ！」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:1 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・膣・強・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……っ。奥まで、届いて……えへへ、とろけちゃう……っ」
+				ELSEIF A == 1
+					;恋人・膣・強・2
+					PRINTFORMW 「ひゃ、あ……っ。中が、じんじんして……。腰、勝手に……っ」
+				ELSE
+					;恋人・膣・強・3
+					PRINTFORMW 「うあ、あ……っ。こんなに奥まで、本にもなかった……えへへ」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・膣・強・1
+					PRINTFORMW 「ひゃっ、あ……っ! お、奥が、じんじん……! うう、びっくり……っ」
+				ELSEIF A == 1
+					;通常・膣・強・2
+					PRINTFORMW 「あぅ、あ……っ。中が、とろけて……。ぼうっとしちゃう……っ」
+				ELSE
+					;通常・膣・強・3
+					PRINTFORMW 「うう、あっ……。奥なんて、はずかしい……っ。見ないで……っ」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・膣・通常・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。奥に、届いた……えへへ、しあわせ♪」
+				ELSEIF A == 1
+					;恋人・膣・通常・2
+					PRINTFORMW 「ひゃ、あ……。中が、じんわり……。えへへ、とろける」
+				ELSE
+					;恋人・膣・通常・3
+					PRINTFORMW 「うあ、あ……。奥まで、初めて……えへへ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・膣・通常・1
+					PRINTFORMW 「ひゃっ、あ……! 奥が、じんって……うう、びっくり」
+				ELSEIF A == 1
+					;通常・膣・通常・2
+					PRINTFORMW 「あぅ、あ……。中が、じんわりして……。ぼうっとする」
+				ELSE
+					;通常・膣・通常・3
+					PRINTFORMW 「うう、あ……。奥なんて、はずかしい……。見ないで」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- A（アナル）絶頂 ---
+	ELSEIF NOWEX:2 > 0
+		IF NOWEX:2 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・アナル・最強・1
+					PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! 後ろ、こんなになっちゃ……っ。いけないのに……っ、あ、あ……!」
+				ELSEIF A == 1
+					;恋人・アナル・最強・2
+					PRINTFORMW 「ひゃ、あ……っ! お腹の奥まで、ぴくぴく……。もう、とまらな……っ!」
+				ELSE
+					;恋人・アナル・最強・3
+					PRINTFORMW 「ひゃうぅっ、後ろ、へんになる……っ！　知らない、こんなの知らないよぉ……っ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・アナル・最強・1
+					PRINTFORMW 「ひゃああっ……! う、後ろが、こんな……っ! い、いけないのに……っ、あ、あ……!」
+				ELSEIF A == 1
+					;通常・アナル・最強・2
+					PRINTFORMW 「あぅ、あ……っ。お腹の奥、じんじんして……。からだ、ふるえちゃ……っ!」
+				ELSE
+					;通常・アナル・最強・3
+					PRINTFORMW 「うう、あっ……! こんなとこで……っ。見ないで……っ、は、はずかし……!」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:2 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・アナル・強・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……っ。後ろ、ぴくぴくして……えへへ、変な感じ……っ」
+				ELSEIF A == 1
+					;恋人・アナル・強・2
+					PRINTFORMW 「ひゃ、あ……っ。お腹の奥が、じんじん……。腰、勝手に……っ」
+				ELSE
+					;恋人・アナル・強・3
+					PRINTFORMW 「うあ、あ……っ。後ろでなんて、本にもなかった……えへへ」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・アナル・強・1
+					PRINTFORMW 「ひゃっ、あ……っ! う、後ろが、ぴく……! うう、びっくり……っ」
+				ELSEIF A == 1
+					;通常・アナル・強・2
+					PRINTFORMW 「あぅ、あ……っ。こっちが、じんじんして……。ぼうっとしちゃう……っ」
+				ELSE
+					;通常・アナル・強・3
+					PRINTFORMW 「うう、あっ……。いけないとこなのに……っ。見ないで……っ」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・アナル・通常・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。後ろ、ぴくっとした……えへへ♪」
+				ELSEIF A == 1
+					;恋人・アナル・通常・2
+					PRINTFORMW 「ひゃ、あ……。お腹の奥、じんわり……。えへへ、変な感じ」
+				ELSE
+					;恋人・アナル・通常・3
+					PRINTFORMW 「うあ、あ……。後ろでなんて、初めて……えへへ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・アナル・通常・1
+					PRINTFORMW 「ひゃっ、あ……! 後ろが、ぴくって……うう、びっくり」
+				ELSEIF A == 1
+					;通常・アナル・通常・2
+					PRINTFORMW 「あぅ、あ……。こっちが、じんわり……。ぼうっとする」
+				ELSE
+					;通常・アナル・通常・3
+					PRINTFORMW 「うう、あ……。いけないとこ、はずかしい……。見ないで」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- C（クリ）絶頂 ---
+	ELSEIF NOWEX:0 > 0
+		IF NOWEX:0 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・クリ・最強・1
+					PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! 電気みたいなのが、あたままで……っ。腰、勝手に……っ、あ、あ……!」
+				ELSEIF A == 1
+					;恋人・クリ・最強・2
+					PRINTFORMW 「ひゃ、あ……っ! 先っぽから、ぴりぴり……。もう、たってられな……っ!」
+				ELSE
+					;恋人・クリ・最強・3
+					PRINTFORMW 「だめぇっ、そこ、ぱちぱちって……っ！　うあ、あ、まっしろになっちゃう……っ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・クリ・最強・1
+					PRINTFORMW 「ひゃああっ……! な、なに、これ……っ! 電気みたいなのが……っ、あ、あ……!」
+				ELSEIF A == 1
+					;通常・クリ・最強・2
+					PRINTFORMW 「あぅ、あ……っ。腰、勝手にびくびくして……。とまらな……っ!」
+				ELSE
+					;通常・クリ・最強・3
+					PRINTFORMW 「ひゃうっ、そこでイっちゃう……っ。う、うう、こんなの知らない……っ！」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:0 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・クリ・強・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……っ。ぴりぴり、あたままで響いて……えへへ……っ」
+				ELSEIF A == 1
+					;恋人・クリ・強・2
+					PRINTFORMW 「ひゃ、あ……っ。腰、勝手にびくびく……。とまらない……っ」
+				ELSE
+					;恋人・クリ・強・3
+					PRINTFORMW 「うあ、あ……っ。こんなにぴくぴく、本にもなかった……えへへ」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・クリ・強・1
+					PRINTFORMW 「ひゃっ、あ……っ! 電気みたいなの……! うう、びっくり……っ」
+				ELSEIF A == 1
+					;通常・クリ・強・2
+					PRINTFORMW 「あぅ、あ……っ。腰、勝手に動いて……。ぼうっとしちゃう……っ」
+				ELSE
+					;通常・クリ・強・3
+					PRINTFORMW 「うう、あっ……。こんなにびくびく、はずかしい……っ。見ないで……っ」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・クリ・通常・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。ぴくぴくしちゃった……えへへ♪」
+				ELSEIF A == 1
+					;恋人・クリ・通常・2
+					PRINTFORMW 「ひゃ、あ……。腰、勝手に動いた……。えへへ、すごい」
+				ELSE
+					;恋人・クリ・通常・3
+					PRINTFORMW 「うあ、あ……。こんなの初めて……えへへ、あたままで響く♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・クリ・通常・1
+					PRINTFORMW 「ひゃっ、あ……! ぴくって、しちゃった……うう、びっくり」
+				ELSEIF A == 1
+					;通常・クリ・通常・2
+					PRINTFORMW 「あぅ、あ……。腰、勝手に……。ぼうっとする」
+				ELSE
+					;通常・クリ・通常・3
+					PRINTFORMW 「やぁ……クリで、なんて……。うう、こんなの恥ずかしい……」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- B（バスト）絶頂 ---
+	ELSEIF NOWEX:3 > 0
+		IF NOWEX:3 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・バスト・最強・1
+					PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! 先っぽから、しびれが……っ。ちっちゃい胸なのに……っ、あ、あ……!」
+				ELSEIF A == 1
+					;恋人・バスト・最強・2
+					PRINTFORMW 「ひゃ、あ……っ! 胸の奥まで、ぴりぴり……。もう、とまらな……っ!」
+				ELSE
+					;恋人・バスト・最強・3
+					PRINTFORMW 「ひゃあっ、胸、こんなに……っ！　ちっちゃいのに、こわれちゃう……っ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・バスト・最強・1
+					PRINTFORMW 「ひゃああっ……! む、胸が、こんな……っ! ちっちゃいのに……っ、あ、あ……!」
+				ELSEIF A == 1
+					;通常・バスト・最強・2
+					PRINTFORMW 「あぅ、あ……っ。先っぽが、じんじんして……。からだ、ふるえちゃ……っ!」
+				ELSE
+					;通常・バスト・最強・3
+					PRINTFORMW 「やああっ、胸で、なんて……っ。は、はしたない声、でちゃう……っ！」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:3 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・バスト・強・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……っ。先っぽ、しびれて……えへへ、すごい……っ」
+				ELSEIF A == 1
+					;恋人・バスト・強・2
+					PRINTFORMW 「ひゃ、あ……っ。胸の奥が、ぴりぴり……。とまらない……っ」
+				ELSE
+					;恋人・バスト・強・3
+					PRINTFORMW 「うあ、あ……っ。ちっちゃい胸でも、こんなに……えへへ」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・バスト・強・1
+					PRINTFORMW 「ひゃっ、あ……っ! む、胸の先が……! うう、びっくり……っ」
+				ELSEIF A == 1
+					;通常・バスト・強・2
+					PRINTFORMW 「あぅ、あ……っ。先っぽが、じんじんして……。ぼうっとしちゃう……っ」
+				ELSE
+					;通常・バスト・強・3
+					PRINTFORMW 「うう、あっ……。胸でなんて、はずかしい……っ。見ないで……っ」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・バスト・通常・1
+					PRINTFORMW 「ふぁ、%CALLNAME:PLAYER%先輩……。先っぽ、しびれた……えへへ♪」
+				ELSEIF A == 1
+					;恋人・バスト・通常・2
+					PRINTFORMW 「ひゃ、あ……。胸の奥が、じんわり……。えへへ、すごい」
+				ELSE
+					;恋人・バスト・通常・3
+					PRINTFORMW 「うあ、あ……。ちっちゃい胸でも、こんなに……えへへ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・バスト・通常・1
+					PRINTFORMW 「ひゃっ、あ……! 胸の先が、じんって……うう、びっくり」
+				ELSEIF A == 1
+					;通常・バスト・通常・2
+					PRINTFORMW 「あぅ、あ……。先っぽが、じんわり……。ぼうっとする」
+				ELSE
+					;通常・バスト・通常・3
+					PRINTFORMW 「うう、あ……。胸でなんて、はずかしい……。見ないで」
+				ENDIF
+			ENDIF
+		ENDIF
+	;--- M（マウス・キス）絶頂 ---
+	ELSEIF NOWEX:6 > 0
+		IF NOWEX:6 >= 9
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・キス・最強・1
+					PRINTFORMW 「ふぁ、あっ……%CALLNAME:PLAYER%先輩……! 唇から、ぜんぶ溶けて……っ。息、できな……っ、あ、あ……!」
+				ELSEIF A == 1
+					;恋人・キス・最強・2
+					PRINTFORMW 「ん、ふぁ……っ! 唇、離せない……。あたま、まっしろになっちゃ……っ!」
+				ELSE
+					;恋人・キス・最強・3
+					PRINTFORMW 「うあ、あ……っ、こんなの知らな……! えへ……っ、息、とまっちゃ……!」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・キス・最強・1
+					PRINTFORMW 「ん、ふぁあっ……! い、息が……っ! 唇から、ぞくぞく……っ、あ、あ……!」
+				ELSEIF A == 1
+					;通常・キス・最強・2
+					PRINTFORMW 「あぅ、あ……っ。唇が、しびれて……。あたま、ぼうっと……っ!」
+				ELSE
+					;通常・キス・最強・3
+					PRINTFORMW 「うう、ん……っ! こんな声……っ。見ないで……っ、は、はずかし……!」
+				ENDIF
+			ENDIF
+		ELSEIF NOWEX:6 >= 2
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・キス・強・1
+					PRINTFORMW 「ん、ふぁ……%CALLNAME:PLAYER%先輩……っ。唇から、溶けちゃう……えへへ……っ」
+				ELSEIF A == 1
+					;恋人・キス・強・2
+					PRINTFORMW 「ふぁ、あ……っ。唇、離せなくて……。息、乱れちゃう……っ」
+				ELSE
+					;恋人・キス・強・3
+					PRINTFORMW 「ん、ふぁ……っ。キスだけで、こんなに……本にもなかった……えへへ」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・キス・強・1
+					PRINTFORMW 「ん、ふぁ……っ! く、唇が、しびれて……! うう、びっくり……っ」
+				ELSEIF A == 1
+					;通常・キス・強・2
+					PRINTFORMW 「あぅ、あ……っ。息が、乱れて……。ぼうっとしちゃう……っ」
+				ELSE
+					;通常・キス・強・3
+					PRINTFORMW 「うう、ん……。キスだけでなんて、はずかしい……っ。見ないで……っ」
+				ENDIF
+			ENDIF
+		ELSE
+			A = RAND:3
+			IF TALENT:TARGET:153
+				IF A == 0
+					;恋人・キス・通常・1
+					PRINTFORMW 「ん、ふぁ……%CALLNAME:PLAYER%先輩。唇、しびれた……えへへ、しあわせ♪」
+				ELSEIF A == 1
+					;恋人・キス・通常・2
+					PRINTFORMW 「ふぁ、あ……。息、乱れちゃった……。えへへ、キス、好き」
+				ELSE
+					;恋人・キス・通常・3
+					PRINTFORMW 「ん、ふぁ……。キスだけで、こんなに……えへへ♪」
+				ENDIF
+			ELSE
+				IF A == 0
+					;通常・キス・通常・1
+					PRINTFORMW 「ん、ふぁ……! 唇が、しびれて……うう、びっくり」
+				ELSEIF A == 1
+					;通常・キス・通常・2
+					PRINTFORMW 「あぅ、あ……。息、乱れちゃう……。ぼうっとする」
+				ELSE
+					;通常・キス・通常・3
+					PRINTFORMW 「うう、ん……。キスだけでなんて、はずかしい……。見ないで」
+				ENDIF
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+RETURN 0
+
+@TRAIN_MESSAGE_B280_6
+	PRINTFORMW %CALLNAME:PLAYER%は、誰も来ない文芸部の部室で、古い本の匂いに包まれた%CALLNAME:TARGET%と二人きりになった
+
+@TRAIN_MESSAGE_B281_6
+	PRINTFORMW %CALLNAME:PLAYER%は、静まり返った図書室の書架の陰に、%CALLNAME:TARGET%をそっと連れ込んだ
+
+@TRAIN_MESSAGE_B282_6
+	PRINTFORMW %CALLNAME:PLAYER%は、体が冷えやすくいつもカーディガンを羽織る%CALLNAME:TARGET%を、温めるように抱き寄せた
+
+@TRAIN_MESSAGE_B283_6
+	PRINTFORMW %CALLNAME:PLAYER%は、ロマンス小説の取材だという%CALLNAME:TARGET%に、恋人同士の場面の参考にと迫られた
+
+@TRAIN_MESSAGE_B284_6
+	PRINTFORMW %CALLNAME:PLAYER%は、野良猫の世話を終えて誰もいなくなった校舎裏で、寂しがりな%CALLNAME:TARGET%に引き止められた

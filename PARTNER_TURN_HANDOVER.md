@@ -14,7 +14,7 @@
 |---|---|
 | `tools/add_auto_training_mode.py` | パートナーターン本体の生成元 |
 | `ERB/PARTNER_TURN_パートナーターン.ERB` | 候補抽出・重み付け・実行 |
-| `ERB/PASSIVE_パッシブスキル.ERB` | パッシブ行動名と通常COMへの変換 |
+| `ERB/PASSIVE_パートナーターン.ERB` | パッシブ行動名と通常COMへの変換 |
 | `ERB/COMF/COMABLE.ERB` | 通常COMの実行可否 |
 | `ERB/REVMODE_リバースモード.ERB` | パートナーターン中の消費処理 |
 | `ERB/COUNTERSYSTEM_カウンターシステム.ERB` | 射精時の耐力ダメージ |

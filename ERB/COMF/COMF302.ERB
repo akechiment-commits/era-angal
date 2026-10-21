@@ -37,7 +37,7 @@ IF MONEY >= 150000
 	PRINTFORML [5] ブランドコスメ($150000)
 	LOCAL:5 = 1
 ENDIF
-IF MONEY >= 1000000 && TALENT:153 && TALENT:85 && TALENT:89 == 0 && TALENT:180 == 0 && CFLAG:2 >= 8000 && ABL:0+ABL:1+ABL:2+ABL:6 >= 40 && CFLAG:TARGET:29 == 0 && ASSIPLAY == 0
+IF MONEY >= 1000000 && TALENT:153 && TALENT:85 && TALENT:89 == 0 && TALENT:180 == 0 && CFLAG:2 >= 8000 && ABL:0+ABL:1+ABL:2+ABL:6 >= 40 && CFLAG:TARGET:29 == 0 && ASSIPLAY == 0	; 【[恋人] / [恋慕] / [相愛]なし / [服従]なし / [親密] / [欲望] / [技巧] / [奉仕精神]Lv>=40 / [好感度]>=8000 / TARGET:[エンゲージリング受取]==0 / 調教者:[主人]】
 	PRINTFORML [6] エンゲージリング($1000000)
 	LOCAL:6 = 1
 ENDIF
@@ -91,10 +91,27 @@ ELSEIF RESULT == 7
 	TFLAG:92 = 1
 ENDIF
 
+;貢いだ金額加算
+IF TFLAG:17 == 1	; 【[コマンド内容]==1】
+	CFLAG:TARGET:1275 += 1000
+ELSEIF TFLAG:17 == 2	; 【[コマンド内容]==2】
+	CFLAG:TARGET:1275 += 2500
+ELSEIF TFLAG:17 == 3	; 【[コマンド内容]==3】
+	CFLAG:TARGET:1275 += 10000
+ELSEIF TFLAG:17 == 4	; 【[コマンド内容]==4】
+	CFLAG:TARGET:1275 += 25000
+ELSEIF TFLAG:17 == 5	; 【[コマンド内容]==5】
+	CFLAG:TARGET:1275 += 150000
+ELSEIF TFLAG:17 == 6	; 【[コマンド内容]==6】
+	CFLAG:TARGET:1275 += 1000000
+ELSEIF TFLAG:17 == 7	; 【[コマンド内容]==7】
+	CFLAG:TARGET:1275 += 300000
+ENDIF
+
 
 ;誕生日チェック：スマイル以外かつ誕生月かつ年一回未実施なら誕生日プレゼント扱い
 LOCAL:10 = 0
-IF TFLAG:17 != 0 && LOCAL:9 > 0 && LOCAL:9 == DAY:8 && CFLAG:TARGET:211 != DAY:3
+IF TFLAG:17 != 0 && LOCAL:9 > 0 && LOCAL:9 == DAY:8 && CFLAG:TARGET:211 != GET_SCHOOL_YEAR()	; 【[コマンド内容]】
 	LOCAL:10 = 1
 ENDIF
 
@@ -116,16 +133,16 @@ ELSE
 ENDIF
 
 ;エンゲージリングプレゼントは強制的に大成功
-SIF TFLAG:17 == 6
+SIF TFLAG:17 == 6	; 【[コマンド内容]==6】
 	TFLAG:18 = 1
 ;誕生日プレゼント扱いの場合、好感度100以上なら強制的に大成功
-SIF LOCAL:10 && CFLAG:2 >= 300
+SIF LOCAL:10 && CFLAG:2 >= 300	; 【[好感度]>=300】
 	TFLAG:18 = 1
 
 CALL TRAIN_MESSAGE_B
 ;誕生日メッセージ
 IF LOCAL:10
-	IF CFLAG:2 < 300
+	IF CFLAG:2 < 300	; 【[好感度]<300】
 		PRINTFORML ……なぜ誕生日を知っているのかと、%CALLNAME:TARGET%が怪訝な顔を向けた
 	ELSE
 		PRINTFORML 今日は%CALLNAME:TARGET%の誕生日だ
@@ -139,24 +156,24 @@ LOSEBASE:1 += 100
 SOURCE:18 = 200
 
 ;ABL:従順をみる
-IF ABL:0 <= 1
+IF ABL:0 <= 1	; 【[親密]Lv<=1】
 	SOURCE:18 += (ABL:0 * 60)
-ELSEIF ABL:0 <= 3
+ELSEIF ABL:0 <= 3	; 【[親密]Lv<=3】
 	SOURCE:18 += 200 + (ABL:0 * 60)
-ELSEIF ABL:0 <= 5
+ELSEIF ABL:0 <= 5	; 【[親密]Lv<=5】
 	SOURCE:18 += 500 + (ABL:0 * 60)
-ELSEIF ABL:0 <= 8
+ELSEIF ABL:0 <= 8	; 【[親密]Lv<=8】
 	SOURCE:18 += 750 + (ABL:0 * 75)
-ELSEIF ABL:0 <= 11
+ELSEIF ABL:0 <= 11	; 【[親密]Lv<=11】
 	SOURCE:18 += 1000 + (ABL:0 * 75)
 ELSE
 	SOURCE:18 += 2000 + (ABL:0 * 30)
 ENDIF
 
 ;好感度をみる
-IF CFLAG:2 <= 500
+IF CFLAG:2 <= 500	; 【[好感度]<=500】
 	SOURCE:18 += CFLAG:2
-ELSEIF CFLAG:2 <= 5000
+ELSEIF CFLAG:2 <= 5000	; 【[好感度]<=5000】
 	SOURCE:18 += 500 + (CFLAG:2 - 500) / 3
 ELSE
 	SOURCE:18 += 2000 + (CFLAG:2 - 5000) / 5
@@ -165,18 +182,18 @@ SIF SOURCE:18 < 0
 	SOURCE:18 = 0
 
 ;主導権をチェック
-IF TFLAG:45 == 0
+IF TFLAG:45 == 0	; 【無[主導権]】
 	;主導権が主人公側
 	;ABL:従順をみる
-	IF ABL:0 == 0
+	IF ABL:0 == 0	; 【[親密]Lv==0】
 		SOURCE:21 = 200
-	ELSEIF ABL:0 == 1
+	ELSEIF ABL:0 == 1	; 【[親密]Lv==1】
 		SOURCE:21 = 300
-	ELSEIF ABL:0 == 2
+	ELSEIF ABL:0 == 2	; 【[親密]Lv==2】
 		SOURCE:21 = 400
-	ELSEIF ABL:0 == 3
+	ELSEIF ABL:0 == 3	; 【[親密]Lv==3】
 		SOURCE:21 = 500
-	ELSEIF ABL:0 == 4
+	ELSEIF ABL:0 == 4	; 【[親密]Lv==4】
 		SOURCE:21 = 600
 	ELSE
 		SOURCE:21 = 500 + (ABL:0 * 50)
@@ -184,15 +201,15 @@ IF TFLAG:45 == 0
 ELSE
 	;主導権が相手側
 	;ABL:サドっ気をみる
-	IF ABL:15 == 0
+	IF ABL:15 == 0	; 【[サドっ気]Lv==0】
 		SOURCE:20 = 300
-	ELSEIF ABL:15 == 1
+	ELSEIF ABL:15 == 1	; 【[サドっ気]Lv==1】
 		SOURCE:20 = 400
-	ELSEIF ABL:15 == 2
+	ELSEIF ABL:15 == 2	; 【[サドっ気]Lv==2】
 		SOURCE:20 = 500
-	ELSEIF ABL:15 == 3
+	ELSEIF ABL:15 == 3	; 【[サドっ気]Lv==3】
 		SOURCE:20 = 600
-	ELSEIF ABL:15 == 4
+	ELSEIF ABL:15 == 4	; 【[サドっ気]Lv==4】
 		SOURCE:20 = 700
 	ELSE
 		SOURCE:20 = 300 + (ABL:15 * 100)
@@ -203,10 +220,10 @@ ENDIF
 ;以下、好感度変化量を変数Aに記録
 A = 0
 TFLAG:49 = 0
-IF TFLAG:17 == 0
+IF TFLAG:17 == 0	; 【無[コマンド内容]】
 	;花　殆ど効果は無い。会話でもしてた方がマシ。でもデート中ならまぁ……ってところ
 	;好感度が一定値以下なら効果減少と共に懐疑のソースが入る
-	IF CFLAG:2 < 30 && TFLAG:18 != 1
+	IF CFLAG:2 < 30 && TFLAG:18 != 1	; 【[好感触]!=1 / [好感度]<30】
 		TIMES SOURCE:18 , 0.30
 		TIMES SOURCE:20 , 1.20
 		TIMES SOURCE:21 , 0.30
@@ -214,7 +231,7 @@ IF TFLAG:17 == 0
 		A -= RAND:3 + 1
 		TFLAG:49 = 1
 	;好感度が一定値以上なら効果増加
-	ELSEIF CFLAG:2 > 300
+	ELSEIF CFLAG:2 > 300	; 【[好感度]>300】
 		TIMES SOURCE:18 , 0.90
 		TIMES SOURCE:20 , 0.90
 		TIMES SOURCE:21 , 0.90
@@ -228,17 +245,17 @@ IF TFLAG:17 == 0
 	ENDIF
 	
 	;デート中は効果微増
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 1.10
 		TIMES SOURCE:20 , 1.10
 		TIMES SOURCE:21 , 1.10
 		A += 1
 		TFLAG:37 += 5
 	ENDIF
-ELSEIF TFLAG:17 == 1
+ELSEIF TFLAG:17 == 1	; 【[コマンド内容]==1】
 	;酒　学院の少女には非常に好まれる。でもデート中にプレゼントは流石にね……
 	;好感度が一定値以下なら効果減少と共に懐疑のソースが入る
-	IF (CFLAG:2 < -100) && TFLAG:18 != 1
+	IF (CFLAG:2 < -100) && TFLAG:18 != 1	; 【[好感触]!=1 / [好感度]】
 		TIMES SOURCE:18 , 0.70
 		TIMES SOURCE:20 , 2.00
 		TIMES SOURCE:21 , 0.70
@@ -246,7 +263,7 @@ ELSEIF TFLAG:17 == 1
 		A -= RAND:3 + 1
 		TFLAG:49 = 1
 	;好感度が一定値以上なら効果増加
-	ELSEIF CFLAG:2 > 500
+	ELSEIF CFLAG:2 > 500	; 【[好感度]>500】
 		TIMES SOURCE:18 , 1.70
 		TIMES SOURCE:20 , 1.70
 		TIMES SOURCE:21 , 1.70
@@ -261,17 +278,17 @@ ELSEIF TFLAG:17 == 1
 
 
 	;デート中は効果激減
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 0.10
 		TIMES SOURCE:20 , 0.10
 		TIMES SOURCE:21 , 0.10
 		A -= 10
 		TFLAG:37 -= 30
 	ENDIF
-ELSEIF TFLAG:17 == 2
+ELSEIF TFLAG:17 == 2	; 【[コマンド内容]==2】
 	;日用品　少しは仲良くなっておかないと変に思われる。序盤ではそれなりの効果を発揮
 	;好感度が一定値以下なら効果減少と共に懐疑のソースが入る
-	IF CFLAG:2 < 150 && TFLAG:18 != 1
+	IF CFLAG:2 < 150 && TFLAG:18 != 1	; 【[好感触]!=1 / [好感度]<150】
 		TIMES SOURCE:18 , 0.50
 		TIMES SOURCE:20 , 3.00
 		TIMES SOURCE:21 , 0.50
@@ -279,7 +296,7 @@ ELSEIF TFLAG:17 == 2
 		A -= RAND:5 + 2
 		TFLAG:49 = 1
 	;好感度が一定値以上なら効果増加
-	ELSEIF CFLAG:2 > 500
+	ELSEIF CFLAG:2 > 500	; 【[好感度]>500】
 		TIMES SOURCE:18 , 2.50
 		TIMES SOURCE:20 , 2.50
 		TIMES SOURCE:21 , 2.50
@@ -293,17 +310,17 @@ ELSEIF TFLAG:17 == 2
 	ENDIF
 	
 	;デート中は効果微増
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 1.20
 		TIMES SOURCE:20 , 1.20
 		TIMES SOURCE:21 , 1.20
 		A += 2
 		TFLAG:37 += 5
 	ENDIF
-ELSEIF TFLAG:17 == 3
+ELSEIF TFLAG:17 == 3	; 【[コマンド内容]==3】
 	;アクセサリ　割と仲良くなっておかないと変に思われる。かなりの効果を発揮。デート中プレゼントと相性が良い
 	;好感度が一定値以下なら効果減少と共に懐疑のソースが入る
-	IF CFLAG:2 < 400 && TFLAG:18 != 1
+	IF CFLAG:2 < 400 && TFLAG:18 != 1	; 【[好感触]!=1 / [好感度]<400】
 		TIMES SOURCE:18 , 0.70
 		TIMES SOURCE:20 , 9.00
 		TIMES SOURCE:21 , 0.70
@@ -311,7 +328,7 @@ ELSEIF TFLAG:17 == 3
 		A -= RAND:10 + 5
 		TFLAG:49 = 1
 	;好感度が一定値以上なら効果増加
-	ELSEIF CFLAG:2 > 1000
+	ELSEIF CFLAG:2 > 1000	; 【[好感度]>1000】
 		TIMES SOURCE:18 , 7.00
 		TIMES SOURCE:20 , 7.00
 		TIMES SOURCE:21 , 7.00
@@ -325,17 +342,17 @@ ELSEIF TFLAG:17 == 3
 	ENDIF
 	
 	;デート中は効果増
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 2.00
 		TIMES SOURCE:20 , 2.00
 		TIMES SOURCE:21 , 2.00
 		A += 4
 		TFLAG:37 += 15
 	ENDIF
-ELSEIF TFLAG:17 == 4
+ELSEIF TFLAG:17 == 4	; 【[コマンド内容]==4】
 	;服　ラブラブじゃないと変に思われる。普通の服なのか変な服なのかは妄想次第
 	;好感度が一定値以下なら効果減少と共に懐疑のソースが入る
-	IF CFLAG:2 < 900 && TFLAG:18 != 1
+	IF CFLAG:2 < 900 && TFLAG:18 != 1	; 【[好感触]!=1 / [好感度]<900】
 		TIMES SOURCE:18 , 0.80
 		TIMES SOURCE:20 , 15.00
 		TIMES SOURCE:21 , 0.80
@@ -343,7 +360,7 @@ ELSEIF TFLAG:17 == 4
 		A -= RAND:15 + 10
 		TFLAG:49 = 1
 	;好感度が一定値以上なら効果増加
-	ELSEIF CFLAG:2 > 3000
+	ELSEIF CFLAG:2 > 3000	; 【[好感度]>3000】
 		TIMES SOURCE:18 , 12.00
 		TIMES SOURCE:20 , 12.00
 		TIMES SOURCE:21 , 12.00
@@ -357,17 +374,17 @@ ELSEIF TFLAG:17 == 4
 	ENDIF
 	
 	;デート中は効果微増
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 1.50
 		TIMES SOURCE:20 , 1.50
 		TIMES SOURCE:21 , 1.50
 		A += 3
 		TFLAG:37 += 10
 	ENDIF
-ELSEIF TFLAG:17 == 5
+ELSEIF TFLAG:17 == 5	; 【[コマンド内容]==5】
 	;ブランドコスメ　恋人以上の仲でないと怪しまれる。デート中と相性が良い
 	;好感度が低いと怪しまれる
-	IF CFLAG:2 < 1200 && TFLAG:18 != 1
+	IF CFLAG:2 < 1200 && TFLAG:18 != 1	; 【[好感触]!=1 / [好感度]<1200】
 		TIMES SOURCE:18 , 0.60
 		TIMES SOURCE:20 , 5.00
 		TIMES SOURCE:21 , 0.60
@@ -375,7 +392,7 @@ ELSEIF TFLAG:17 == 5
 		A -= RAND:8 + 4
 		TFLAG:49 = 1
 	;好感度が高いなら効果増加
-	ELSEIF CFLAG:2 > 5000
+	ELSEIF CFLAG:2 > 5000	; 【[好感度]>5000】
 		TIMES SOURCE:18 , 25.00
 		TIMES SOURCE:20 , 25.00
 		TIMES SOURCE:21 , 25.00
@@ -389,17 +406,17 @@ ELSEIF TFLAG:17 == 5
 	ENDIF
 
 	;デート中は効果増
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 1.50
 		TIMES SOURCE:20 , 1.50
 		TIMES SOURCE:21 , 1.50
 		A += 5
 		TFLAG:37 += 15
 	ENDIF
-ELSEIF TFLAG:17 == 6
+ELSEIF TFLAG:17 == 6	; 【[コマンド内容]==6】
 	;エンゲージリング　最強のプレゼント。デート中プレゼントと相性が良い
 	;好感度が一定値以上なら効果増加
-	IF CFLAG:2 > 10000
+	IF CFLAG:2 > 10000	; 【[好感度]>10000】
 		TIMES SOURCE:18 , 100.00
 		TIMES SOURCE:20 , 100.00
 		TIMES SOURCE:21 , 100.00
@@ -413,7 +430,7 @@ ELSEIF TFLAG:17 == 6
 	ENDIF
 	
 	;デート中は効果大幅増
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 3.00
 		TIMES SOURCE:20 , 3.00
 		TIMES SOURCE:21 , 3.00
@@ -434,12 +451,12 @@ ELSEIF TFLAG:17 == 6
 	TFLAG:13 = 7
 	CALL SELF_MAEKOJO
 	;地の文章カット
-	IF CFLAG:99 & 1
+	IF CFLAG:99 & 1	; 【[地の文カットフラグ]】
 ;		TFLAG:13 = 7
 		CALL SELF_KOJO
-		SIF TALENT:27
+		SIF TALENT:27	; 【[一線越えない]】
 			TALENT:27 = 0
-		SIF TALENT:89 == 0
+		SIF TALENT:89 == 0	; 【[相愛]なし】
 			TALENT:89 = 1
 ;		CALL SINGLE_ENDING
 		CFLAG:7 = 1
@@ -457,7 +474,7 @@ ELSEIF TFLAG:17 == 6
 		PRINTFORMW %NAME:TARGET%は頬を染めて%NAME:MASTER%の気持ちを受け入れる旨を伝えた
 
 		;一線越えない消滅
-		IF TALENT:27
+		IF TALENT:27	; 【[一線越えない]】
 			PRINTFORMW その顔は今までに無く幸福に満ち、すべてを吹っ切ったように見えた
 			PRINTFORMS NAME:TARGET
 			PRINT は
@@ -469,7 +486,7 @@ ELSEIF TFLAG:17 == 6
 		ENDIF
 		PRINTFORMW %NAME:TARGET%と寄り添い、長い間抱擁を交し合っていた……
 		;相愛取得
-		IF TALENT:89 == 0
+		IF TALENT:89 == 0	; 【[相愛]なし】
 			PRINTFORMS NAME:TARGET
 			PRINT は
 			PRINT [
@@ -500,10 +517,10 @@ ELSEIF TFLAG:17 == 6
 	;!;CFLAG:99 = LOCAL:100
 ;	CALL SINGLE_ENDING
 
-ELSEIF TFLAG:17 == 7
+ELSEIF TFLAG:17 == 7	; 【[コマンド内容]==7】
 	;ブランドバッグ　しっかり付き合っていないと怪しまれる。デート中と相性が良い
 	;好感度が低いと怪しまれる
-	IF CFLAG:2 < 1500 && TFLAG:18 != 1
+	IF CFLAG:2 < 1500 && TFLAG:18 != 1	; 【[好感触]!=1 / [好感度]<1500】
 		TIMES SOURCE:18 , 0.70
 		TIMES SOURCE:20 , 10.00
 		TIMES SOURCE:21 , 0.70
@@ -511,7 +528,7 @@ ELSEIF TFLAG:17 == 7
 		A -= RAND:12 + 8
 		TFLAG:49 = 1
 	;好感度が高いなら効果増加
-	ELSEIF CFLAG:2 > 8000
+	ELSEIF CFLAG:2 > 8000	; 【[好感度]>8000】
 		TIMES SOURCE:18 , 50.00
 		TIMES SOURCE:20 , 50.00
 		TIMES SOURCE:21 , 50.00
@@ -525,7 +542,7 @@ ELSEIF TFLAG:17 == 7
 	ENDIF
 
 	;デート中は効果増
-	IF TEQUIP:2
+	IF TEQUIP:2	; 【[デート中]使用中】
 		TIMES SOURCE:18 , 2.00
 		TIMES SOURCE:20 , 2.00
 		TIMES SOURCE:21 , 2.00
@@ -536,13 +553,13 @@ ENDIF
 
 ;誕生日ボーナス（誕生月初回のみ）
 IF LOCAL:10
-	IF CFLAG:2 < 300
+	IF CFLAG:2 < 300	; 【[好感度]<300】
 		;怪しまれた：効果減退＋懐疑ソース追加
 		TIMES SOURCE:18 , 0.50
 		TIMES SOURCE:21 , 0.50
 		SOURCE:22 += 600
 		A -= 5
-	ELSEIF CFLAG:2 < 1000
+	ELSEIF CFLAG:2 < 1000	; 【[好感度]<1000】
 		;喜んでいる：ボーナス
 		TIMES SOURCE:18 , 2.50
 		TIMES SOURCE:20 , 2.50
@@ -558,20 +575,20 @@ IF LOCAL:10
 		TFLAG:49 = 2
 	ENDIF
 	;年一回フラグをセット
-	CFLAG:TARGET:211 = DAY:3
+	CFLAG:TARGET:211 = GET_SCHOOL_YEAR()
 ENDIF
 
 ;好感度変化
 TFLAG:30 += A
 
 ;失敗～大成功の補正
-IF TFLAG:18 == -1
+IF TFLAG:18 == -1	; 【[好感触]】
 	TIMES SOURCE:18 , 0.10
 	TIMES SOURCE:20 , 0.50
 	TIMES SOURCE:21 , 0.50
 	TFLAG:30 -= 5
 	TFLAG:37 -= 5
-ELSEIF TFLAG:18 == 0
+ELSEIF TFLAG:18 == 0	; 【無[好感触]】
 	TIMES SOURCE:18 , 1.00
 	TIMES SOURCE:20 , 1.00
 	TIMES SOURCE:21 , 1.00
@@ -580,7 +597,7 @@ ELSE
 	TIMES SOURCE:18 , 2.00
 	TIMES SOURCE:20 , 2.00
 	TIMES SOURCE:21 , 2.00
-	SIF TFLAG:30 <= 0
+	SIF TFLAG:30 <= 0	; 【[現在の好感度]<=0】
 		TFLAG:30 = 1
 	TFLAG:30 += 2
 	TFLAG:37 += 10 + A
@@ -591,15 +608,15 @@ RETURN 1
 ;プレゼント
 @TRAIN_MESSAGE_COM302
 PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%に
-IF TFLAG:17 == 0
+IF TFLAG:17 == 0	; 【無[コマンド内容]】
 	PRINTFORM 爽やかな笑顔
-ELSEIF TFLAG:17 == 1
+ELSEIF TFLAG:17 == 1	; 【[コマンド内容]==1】
 	PRINTFORM 美味しいスイーツ
-ELSEIF TFLAG:17 == 2
+ELSEIF TFLAG:17 == 2	; 【[コマンド内容]==2】
 	PRINTFORM 軽くて身近な日用品
-ELSEIF TFLAG:17 == 3
+ELSEIF TFLAG:17 == 3	; 【[コマンド内容]==3】
 	PRINTFORM 綺麗なアクセサリ
-ELSEIF TFLAG:17 == 4
+ELSEIF TFLAG:17 == 4	; 【[コマンド内容]==4】
 	IF RAND:4 == 0
 		PRINTFORM 可愛らしい服
 	ELSEIF RAND:3 == 0
@@ -609,18 +626,18 @@ ELSEIF TFLAG:17 == 4
 	ELSE
 		PRINTFORM 着心地の良い服
 	ENDIF
-ELSEIF TFLAG:17 == 5
+ELSEIF TFLAG:17 == 5	; 【[コマンド内容]==5】
 	PRINTFORM ブランドコスメセット
-ELSEIF TFLAG:17 == 6
+ELSEIF TFLAG:17 == 6	; 【[コマンド内容]==6】
 	PRINTFORM エンゲージリング
-ELSEIF TFLAG:17 == 7
+ELSEIF TFLAG:17 == 7	; 【[コマンド内容]==7】
 	PRINTFORM ブランドバッグ
 ENDIF
 PRINTFORMW をプレゼントした
 
-IF TFLAG:18 == 1
+IF TFLAG:18 == 1	; 【[好感触]==1】
 	PRINTFORML %CALLNAME:TARGET%はプレゼントを気に入ってくれたようだ…
-ELSEIF TFLAG:18 == -1
+ELSEIF TFLAG:18 == -1	; 【[好感触]】
 	PRINTFORML ……どうやら、あまり気に入ってもらえなかったようだ…
 ENDIF
 

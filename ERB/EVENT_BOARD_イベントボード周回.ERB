@@ -31,6 +31,8 @@
 ;   FLAG:15010～15015 = イベント別エリア番号
 ;   FLAG:15020～15025 = 今月イベント別報酬受取数
 ;   FLAG:15070 = プレイヤーレベル（0は未初期化、通常は1以上）
+;   FLAG:15300～15347 = イベント別進行状態（6枠×8項目、15050～15057の保存先）
+;   FLAG:15348 = イベント別進行状態の初期化済みフラグ
 ;   FLAG:15071 = 現在レベル内のプレイヤー経験値
 ;   FLAG:15070 = プレイヤーレベル（0は未初期化、通常は1以上）
 ;   FLAG:5013 = イベント初参加概要の表示済みビット（0～55、月替わりで維持）
@@ -63,6 +65,12 @@ REPEAT 18
 	FLAG:(78 + COUNT) = 1	;イベント別ミッションLv
 REND
 
+;保存した全イベントの進行状態も月替わりで破棄する。
+REPEAT 48
+	FLAG:(15300 + COUNT) = 0
+REND
+FLAG:15348 = 1
+
 ;選択中イベントだけが使う共有進行状態も月替わりで破棄する。
 FLAG:15050 = 0
 FLAG:15051 = 0
@@ -79,6 +87,44 @@ FLAG:68 = 0
 FLAG:67 = MONTH_KEY
 RETURN 1
 
+;イベント表示番号から保存スロットへ変換する（いずれも0始まり）。
+;7月の帰宅部争奪戦は表示5番、保存は従来どおり6枠目。
+@EVENT_BOARD_MENU_SLOT(ARG, ARG:1)
+IF ARG == 7 && ARG:1 == 4
+	RETURN 5
+ENDIF
+RETURN ARG:1
+
+;旧セーブに残る選択中イベントの進捗を一度だけ取り込む。
+@EVENT_BOARD_STATE_INIT
+SIF FLAG:15348 > 0
+	RETURN 0
+CALL EVENT_BOARD_STATE_SAVE
+FLAG:15348 = 1
+RETURN 1
+
+@EVENT_BOARD_STATE_SAVE
+#DIM DYNAMIC STATE_OFFSET, 1
+#DIM DYNAMIC STATE_BASE, 1
+SIF FLAG:68 < 0 || FLAG:68 >= 6
+	RETURN 0
+STATE_BASE = 15300 + FLAG:68 * 8
+FOR STATE_OFFSET, 0, 8
+	FLAG:(STATE_BASE + STATE_OFFSET) = FLAG:(15050 + STATE_OFFSET)
+NEXT
+RETURN 1
+
+@EVENT_BOARD_STATE_LOAD
+#DIM DYNAMIC STATE_OFFSET, 1
+#DIM DYNAMIC STATE_BASE, 1
+SIF FLAG:68 < 0 || FLAG:68 >= 6
+	RETURN 0
+STATE_BASE = 15300 + FLAG:68 * 8
+FOR STATE_OFFSET, 0, 8
+	FLAG:(15050 + STATE_OFFSET) = FLAG:(STATE_BASE + STATE_OFFSET)
+NEXT
+RETURN 1
+
 @EVENT_BOARD_MAIN
 IF TARGET < 0
 	PRINTFORMW パートナーが選択されていません。
@@ -92,6 +138,7 @@ CALL EVENT_BOARD_PLAYER_LEVEL_INIT
 CALL EVENT_BOARD_STORY_CYCLE_RESET
 ;年月変更チェック。6イベントすべての月内状態を一括リセットする。
 CALL EVENT_BOARD_MONTHLY_RESET
+CALL EVENT_BOARD_STATE_INIT
 
 ;今月のイベント一覧を取得
 A = DAY:8
@@ -136,7 +183,8 @@ LOCAL:8 = RESULT - 1
 A = 100 + LOCAL:8
 TFLAG:91 = TFLAG:A
 TSTR:99 = %TSTR:A%
-FLAG:68 = LOCAL:8	;イベントインデックス保存(0-5)
+CALL EVENT_BOARD_MENU_SLOT, DAY:8, LOCAL:8
+FLAG:68 = RESULT	;保存スロット(0-5)。表示番号とは分けて既存セーブを維持する。
 ; EVENT_STORY_OVERVIEW_HOOK_BEGIN
 ;選択したイベントの概要は、セーブデータ内でイベントごとに初回だけ表示する。
 CALL EVENT_BOARD_GET_EVENT_INDEX
@@ -149,15 +197,11 @@ ENDIF
 CALL EVENT_BOARD_SHOW_REACHED_PROGRESS
 ; EVENT_STORY_OVERVIEW_HOOK_END
 
-;ミッション状態・エリア進捗・すごろく盤面位置クリア（新規開始）
-;FLAG:15055/FLAG:33はイベント別ではない共有変数のため、切り替え時にリセットしないと
-;前のイベントの進捗%・盤面位置が新しいイベントに持ち越されてしまう
-FLAG:15051 = 0
-FLAG:15052 = 0
-FLAG:15053 = 0
-FLAG:15055 = 0
-FLAG:15050 = 0
+;選んだイベント固有の進行状態を復元する。
+CALL EVENT_BOARD_STATE_LOAD
 $BOARD_LOOP
+;各操作の結果を保存する。退出・別イベントへの切替後もここから再開する。
+CALL EVENT_BOARD_STATE_SAVE
 DRAWLINE
 CALL EVENT_BOARD_STATUS
 
@@ -168,17 +212,17 @@ IF FLAG:15053 > 0
 	LOCAL:0 = 500	;気力消費固定値
 	LOCAL:1 = 250	;体力消費固定値
 	PRINTFORML [1] 気力を使う（-{LOCAL:0}）
-	IF TFLAG:91 == 3
+	IF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 		PRINTFORML [2] サイコロを振る（体力-{LOCAL:1}）
 	ELSE
 		PRINTFORML [2] エリアを進む（体力-{LOCAL:1}）
 	ENDIF
 	PRINTFORML [3] デッキ編成
-	SIF ITEM:92 > 0
+	SIF ITEM:92 > 0	; 【アイテム:[ドーナッツ]>0】
 		PRINTFORML [4] ドーナッツを使う（気力+1500）　所持:{ITEM:92}個
-	SIF ITEM:93 > 0
+	SIF ITEM:93 > 0	; 【アイテム:[パフェ]>0】
 		PRINTFORML [5] パフェを使う（気力+3000）　所持:{ITEM:93}個
-	SIF ITEM:94 > 0
+	SIF ITEM:94 > 0	; 【アイテム:[お弁当]>0】
 		PRINTFORML [7] お弁当を食べる（体力・気力を最大値分回復）　所持:{ITEM:94}個
 	PRINTFORML [8] 発揮値の内訳を見る
 	PRINTFORML [6] 報酬確認
@@ -189,7 +233,7 @@ IF FLAG:15053 > 0
 	CASE 1
 		CALL EVENT_BOARD_ATTACK
 	CASE 2
-		IF TFLAG:91 == 3
+		IF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 			CALL EVENT_BOARD_SUGOROKU_ADVANCE
 		ELSE
 			CALL EVENT_BOARD_ADVANCE
@@ -214,17 +258,17 @@ IF FLAG:15053 > 0
 ELSE
 	;ミッションなし・進行フェーズ
 	LOCAL:0 = 250	;体力消費固定値
-	IF TFLAG:91 == 3
+	IF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 		PRINTFORML [1] サイコロを振る（体力-{LOCAL:0}）
 	ELSE
 		PRINTFORML [1] エリアを進む（体力-{LOCAL:0}）
 	ENDIF
 	PRINTFORML [2] デッキ編成
-	SIF ITEM:90 > 0
+	SIF ITEM:90 > 0	; 【アイテム:[おにぎり]>0】
 		PRINTFORML [3] おにぎりを使う（体力+1000）　所持:{ITEM:90}個
-	SIF ITEM:91 > 0
+	SIF ITEM:91 > 0	; 【アイテム:[カレー]>0】
 		PRINTFORML [4] カレーを使う（体力+5000）　所持:{ITEM:91}個
-	SIF ITEM:94 > 0
+	SIF ITEM:94 > 0	; 【アイテム:[お弁当]>0】
 		PRINTFORML [6] お弁当を食べる（体力・気力を最大値分回復）　所持:{ITEM:94}個
 	PRINTFORML [8] 発揮値の内訳を見る
 	PRINTFORML [5] 報酬確認
@@ -235,7 +279,7 @@ ELSE
 	CASE 0
 		RETURN 1
 	CASE 1
-		IF TFLAG:91 == 3
+		IF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 			CALL EVENT_BOARD_SUGOROKU_ADVANCE
 		ELSE
 			CALL EVENT_BOARD_ADVANCE
@@ -320,7 +364,7 @@ GOTO EVENT_PLAYER_LEVEL_CHECK
 ; EVENT_STORY_FUNCTIONS_BEGIN
 ;---------------------------------------------------------
 ; イベント物語表示の開催年リセット
-; FLAG:26=強くてニューゲーム周回数、DAY:3=開催年
+; FLAG:26=強くてニューゲーム周回数、GET_SCHOOL_YEAR()=開催年度
 ;---------------------------------------------------------
 @EVENT_BOARD_STORY_CYCLE_RESET
 #DIM DYNAMIC STORY_CYCLE_KEY, 1
@@ -333,7 +377,7 @@ IF FLAG:5019 < 1
 	FLAG:5019 = 1
 ENDIF
 
-STORY_CYCLE_KEY = FLAG:26 * 10000 + DAY:3
+STORY_CYCLE_KEY = FLAG:26 * 10000 + GET_SCHOOL_YEAR()
 ;導入前セーブでは、既存の完走済みイベントを現在年の表示済みとして引き継ぐ。
 IF FLAG:5015 == 0
 	FLAG:5014 = FLAG:5004
@@ -2647,13 +2691,13 @@ RETURN 0
 ;---------------------------------------------------------
 @EVENT_BOARD_STATUS
 PRINTFORML 【%TSTR:99%】
-IF TFLAG:91 == 0
+IF TFLAG:91 == 0	; 【無[レシピ結果判定]】
 	PRINTFORML 収拾イベント　発揮値：表現力
-ELSEIF TFLAG:91 == 1
+ELSEIF TFLAG:91 == 1	; 【[レシピ結果判定]==1】
 	PRINTFORML バトルイベント　発揮値：運動力
-ELSEIF TFLAG:91 == 2
+ELSEIF TFLAG:91 == 2	; 【[レシピ結果判定]==2】
 	PRINTFORML 宝探しイベント　発揮値：学力
-ELSEIF TFLAG:91 == 3
+ELSEIF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 	PRINTFORML すごろくイベント　発揮値：好感度
 ELSE
 	PRINTFORML 親愛度イベント　発揮値：親密度+表現
@@ -2667,7 +2711,7 @@ PRINTFORML プレイヤーLv:{FLAG:15070}　EXP:{FLAG:15071}/{LOCAL:15}
 PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}　気力:{BASE:MASTER:1}/{MAXBASE:MASTER:1}　発揮値:{LOCAL:14}
 A = FLAG:68 + 15010	;エリア番号index
 B = 71 + FLAG:68	;イベントPT index
-IF TFLAG:91 == 3
+IF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 	IF FLAG:A < 20
 		LOCAL:0 = FLAG:15054 % 3
 		PRINTFORML エリア{FLAG:A}　周回数:{FLAG:15054}周（次のエリアまで{3 - LOCAL:0}周）
@@ -2684,7 +2728,7 @@ A = FLAG:68 * 3 + 78	;通常Lv index
 B = A + 1	;特大Lv index
 C = A + 2	;緊急Lv index
 PRINTFORML ミッションLv　通常:{FLAG:A}　特大:{FLAG:B}　緊急:{FLAG:C}
-IF TFLAG:91 == 3
+IF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 	CALL SUGOROKU_DRAW_BOARD
 ENDIF
 ; 次の報酬を動的に表示
@@ -2753,7 +2797,7 @@ RETURN 1
 A = FLAG:68 + 15010	;エリア番号index
 LOCAL:0 = 250	;体力消費固定値
 
-IF BASE:MASTER:0 < LOCAL:0
+IF BASE:MASTER:0 < LOCAL:0	; 【MASTER:[体力]<LOCAL:0】
 	PRINTFORMW 体力が足りない！これ以上進めない。
 	RETURN 0
 ENDIF
@@ -2819,7 +2863,7 @@ RETURN 1
 @EVENT_BOARD_ATTACK
 LOCAL:0 = 500	;気力消費固定値
 
-IF BASE:MASTER:1 < LOCAL:0
+IF BASE:MASTER:1 < LOCAL:0	; 【MASTER:[気力]<LOCAL:0】
 	PRINTFORMW 気力が足りない！挑戦できない！
 	RETURN 0
 ENDIF
@@ -3002,28 +3046,28 @@ REPEAT 5
 	;デッキキャラ個別スコア（親密度ベース共通）
 	LOCAL:1 = CFLAG:Z:2 / 10
 
-	IF TFLAG:91 == 0
+	IF TFLAG:91 == 0	; 【無[レシピ結果判定]】
 		;収拾: 表現力重視
 		LOCAL:1 += ABL:Z:88 * 5	;学力
 		LOCAL:1 += ABL:Z:93 * 5	;運動
 		LOCAL:1 += ABL:Z:94 * 15	;表現★
 		LOCAL:1 += ABL:Z:95 * 5	;知識
 		C += ABL:Z:94	;有利属性:表現
-	ELSEIF TFLAG:91 == 1
+	ELSEIF TFLAG:91 == 1	; 【[レシピ結果判定]==1】
 		;バトル: 運動重視
 		LOCAL:1 += ABL:Z:88 * 5	;学力
 		LOCAL:1 += ABL:Z:93 * 15	;運動★
 		LOCAL:1 += ABL:Z:94 * 5	;表現
 		LOCAL:1 += ABL:Z:95 * 5	;知識
 		C += ABL:Z:93	;有利属性:運動
-	ELSEIF TFLAG:91 == 2
+	ELSEIF TFLAG:91 == 2	; 【[レシピ結果判定]==2】
 		;宝探し: 学力+知識重視
 		LOCAL:1 += ABL:Z:88 * 12	;学力★
 		LOCAL:1 += ABL:Z:93 * 3	;運動
 		LOCAL:1 += ABL:Z:94 * 3	;表現
 		LOCAL:1 += ABL:Z:95 * 10	;知識★
 		C += ABL:Z:88 + ABL:Z:95	;有利属性:学力+知識
-	ELSEIF TFLAG:91 == 3
+	ELSEIF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 		;すごろく: 親密度重視
 		LOCAL:1 += CFLAG:Z:2 / 10	;親密度追加
 		LOCAL:1 += ABL:Z:88 * 5	;学力
@@ -3045,7 +3089,7 @@ REPEAT 5
 	LOCAL:1 += CFLAG:Z:303 * 5
 	LOCAL:1 += CFLAG:Z:304 * 5
 	LOCAL:1 += CFLAG:Z:305 * 5
-	LOCAL:1 += CFLAG:Z:306 * 5
+	LOCAL:1 += (CFLAG:Z:306 / 2) * 5
 
 	A += LOCAL:1
 	B += 1
@@ -3057,19 +3101,19 @@ SIF B == 0
 
 ;有利属性ボーナス（平均がしきい値を超えたら x1.2）
 LOCAL:3 = C / B
-IF TFLAG:91 == 0 && LOCAL:3 >= 50
+IF TFLAG:91 == 0 && LOCAL:3 >= 50	; 【無[レシピ結果判定]】
 	TIMES A, 1.20
 	PRINTFORML 	（表現ボーナス x1.2）
-ELSEIF TFLAG:91 == 1 && LOCAL:3 >= 50
+ELSEIF TFLAG:91 == 1 && LOCAL:3 >= 50	; 【[レシピ結果判定]==1】
 	TIMES A, 1.20
 	PRINTFORML 	（運動ボーナス x1.2）
-ELSEIF TFLAG:91 == 2 && LOCAL:3 >= 80
+ELSEIF TFLAG:91 == 2 && LOCAL:3 >= 80	; 【[レシピ結果判定]==2】
 	TIMES A, 1.20
 	PRINTFORML 	（学力+知識ボーナス x1.2）
-ELSEIF TFLAG:91 == 3 && LOCAL:3 >= 500
+ELSEIF TFLAG:91 == 3 && LOCAL:3 >= 500	; 【[レシピ結果判定]==3】
 	TIMES A, 1.20
 	PRINTFORML 	（親密ボーナス x1.2）
-ELSEIF TFLAG:91 == 4 && LOCAL:3 >= 500
+ELSEIF TFLAG:91 == 4 && LOCAL:3 >= 500	; 【[レシピ結果判定]==4】
 	TIMES A, 1.20
 	PRINTFORML 	（親愛ボーナス x1.2）
 ENDIF
@@ -3098,7 +3142,7 @@ SIF A < 10
 	A = 10
 
 ;人形ボーナス（手作り人形のLVに応じて加算）
-SIF ITEM:852 > 0
+SIF ITEM:852 > 0	; 【アイテム:[手作り人形]>0】
 	A += ITEM:852 * 100
 
 RETURN A
@@ -3126,7 +3170,7 @@ IF FLAG:15056 > 0
 	PRINTFORML 【ボーナス継続】サイコロの体力消費が無料！（残り{FLAG:15056}回）
 ENDIF
 
-IF BASE:MASTER:0 < LOCAL:0
+IF BASE:MASTER:0 < LOCAL:0	; 【MASTER:[体力]<LOCAL:0】
 	PRINTFORMW 体力が足りない！これ以上進めない。
 	RETURN 0
 ENDIF
@@ -3792,7 +3836,7 @@ RETURN
 ; アイテム使用：おにぎり（体力+1000）
 ;---------------------------------------------------------
 @EVENT_BOARD_USE_STAMINA_1
-IF ITEM:90 <= 0
+IF ITEM:90 <= 0	; 【アイテム:[おにぎり]<=0】
 	PRINTFORMW おにぎりを持っていない！
 	RETURN 0
 ENDIF
@@ -3805,7 +3849,7 @@ RETURN 1
 ; アイテム使用：カレー（体力+5000）
 ;---------------------------------------------------------
 @EVENT_BOARD_USE_STAMINA_2
-IF ITEM:91 <= 0
+IF ITEM:91 <= 0	; 【アイテム:[カレー]<=0】
 	PRINTFORMW カレーを持っていない！
 	RETURN 0
 ENDIF
@@ -3818,7 +3862,7 @@ RETURN 1
 ; アイテム使用：ドーナッツ（気力+1500）
 ;---------------------------------------------------------
 @EVENT_BOARD_USE_ENERGY_1
-IF ITEM:92 <= 0
+IF ITEM:92 <= 0	; 【アイテム:[ドーナッツ]<=0】
 	PRINTFORMW ドーナッツを持っていない！
 	RETURN 0
 ENDIF
@@ -3831,7 +3875,7 @@ RETURN 1
 ; アイテム使用：パフェ（気力+3000）
 ;---------------------------------------------------------
 @EVENT_BOARD_USE_ENERGY_2
-IF ITEM:93 <= 0
+IF ITEM:93 <= 0	; 【アイテム:[パフェ]<=0】
 	PRINTFORMW パフェを持っていない！
 	RETURN 0
 ENDIF
@@ -4071,7 +4115,7 @@ RETURN 0
 ; アイテム使用：お弁当（体力・気力を最大値分回復）
 ;---------------------------------------------------------
 @EVENT_BOARD_USE_BENTO
-IF ITEM:94 <= 0
+IF ITEM:94 <= 0	; 【アイテム:[お弁当]<=0】
 	PRINTFORMW お弁当を持っていない！
 	RETURN 0
 ENDIF
@@ -4205,13 +4249,13 @@ RETURN 0
 CALL CARD_RECALC_BONUSES
 DRAWLINE
 PRINTFORML ── デッキ発揮値の内訳 ──
-IF TFLAG:91 == 0
+IF TFLAG:91 == 0	; 【無[レシピ結果判定]】
 	PRINTFORML タイプ：収拾（表現★★★ 学力/運動/知識×5）
-ELSEIF TFLAG:91 == 1
+ELSEIF TFLAG:91 == 1	; 【[レシピ結果判定]==1】
 	PRINTFORML タイプ：バトル（運動★★★ 学力/表現/知識×5）
-ELSEIF TFLAG:91 == 2
+ELSEIF TFLAG:91 == 2	; 【[レシピ結果判定]==2】
 	PRINTFORML タイプ：宝探し（学力×12 知識×10 運動/表現×3）
-ELSEIF TFLAG:91 == 3
+ELSEIF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 	PRINTFORML タイプ：すごろく（好感度×2 各能力×5）
 ELSE
 	PRINTFORML タイプ：親愛度（好感度★★★ 表現×10 他×3）
@@ -4224,26 +4268,26 @@ REPEAT 5
 	;好感度ベース
 	LOCAL:1 = CFLAG:Z:2 / 10
 	;タイプ別追加好感度
-	IF TFLAG:91 == 3
+	IF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 		LOCAL:1 += CFLAG:Z:2 / 10
-	ELSEIF TFLAG:91 == 4
+	ELSEIF TFLAG:91 == 4	; 【[レシピ結果判定]==4】
 		LOCAL:1 += CFLAG:Z:2 / 5
 	ENDIF
 	;ABLスコア
 	LOCAL:2 = 0
-	IF TFLAG:91 == 0
+	IF TFLAG:91 == 0	; 【無[レシピ結果判定]】
 		LOCAL:2 = ABL:Z:88 * 5 + ABL:Z:93 * 5 + ABL:Z:94 * 15 + ABL:Z:95 * 5
-	ELSEIF TFLAG:91 == 1
+	ELSEIF TFLAG:91 == 1	; 【[レシピ結果判定]==1】
 		LOCAL:2 = ABL:Z:88 * 5 + ABL:Z:93 * 15 + ABL:Z:94 * 5 + ABL:Z:95 * 5
-	ELSEIF TFLAG:91 == 2
+	ELSEIF TFLAG:91 == 2	; 【[レシピ結果判定]==2】
 		LOCAL:2 = ABL:Z:88 * 12 + ABL:Z:93 * 3 + ABL:Z:94 * 3 + ABL:Z:95 * 10
-	ELSEIF TFLAG:91 == 3
+	ELSEIF TFLAG:91 == 3	; 【[レシピ結果判定]==3】
 		LOCAL:2 = ABL:Z:88 * 5 + ABL:Z:93 * 5 + ABL:Z:94 * 5 + ABL:Z:95 * 5
 	ELSE
 		LOCAL:2 = ABL:Z:88 * 3 + ABL:Z:93 * 3 + ABL:Z:94 * 10 + ABL:Z:95 * 3
 	ENDIF
 	;カードボーナス
-	LOCAL:3 = (CFLAG:Z:303 + CFLAG:Z:304 + CFLAG:Z:305 + CFLAG:Z:306) * 5
+	LOCAL:3 = (CFLAG:Z:303 + CFLAG:Z:304 + CFLAG:Z:305 + CFLAG:Z:306 / 2) * 5
 	PRINTFORML %NAME:Z%: 好感{LOCAL:1}＋能力{LOCAL:2}＋カード{LOCAL:3} = {LOCAL:1+LOCAL:2+LOCAL:3}pt
 REND
 PRINTL

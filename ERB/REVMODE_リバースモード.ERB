@@ -127,13 +127,40 @@ CASE 801
 	CALL STAIN_INFO
 ;能力表示
 CASE 802
-	;新型表示
-	DRAWLINE
-	PRINTFORM ■ %NAME:TARGET%(パートナー)のステータス 
-	SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
-		PRINTFORM (好感度:{CFLAG:2})
-	PRINTL 
-	CALL SHOW_INFO
+	LOCAL:50 = 1
+	$REV_STATUS_LOOP
+	
+	IF LOCAL:50 == 1
+		W = TARGET
+		DRAWLINE
+		PRINTFORM ☆ %NAME:TARGET%(パートナー)のステータス (PAGE 1/2) 
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORM (好感度:{CFLAG:2})
+		PRINTL 
+		CALL SHOW_BODY_SIZE
+		DRAWLINE
+		PRINTL ・ 珠
+		CALL NEW_PRINT_JUEL
+		CALL SHOW_INFO_PAGE1
+		PRINTL
+		PRINTFORML [10] 次のページ（詳細記録・陥落歴等へ）
+		PRINTFORML [0] 戻る
+	ELSE
+		CALL SHOW_CHARA_PAGE2, TARGET
+		PRINTL
+		PRINTFORML [10] 前のページ（基本ステータスへ）
+		PRINTFORML [0] 戻る
+	ENDIF
+	$REV_STATUS_INPUT
+	INPUT
+	IF RESULT == 10
+		LOCAL:50 = (LOCAL:50 == 1) ? 2 # 1
+		GOTO REV_STATUS_LOOP
+	ELSEIF RESULT == 0
+		; 戻る
+	ELSE
+		GOTO REV_STATUS_INPUT
+	ENDIF
 ;能力表示(マスター)
 CASE 902
 	;新型表示
@@ -268,7 +295,7 @@ IF PENIS(PLAYER)
 	;正常位させる OR 後背位させる OR 対面座位させる OR 背面座位させる OR 騎乗位する OR キス正常位 OR キス後背位 OR キス対面座位 OR キス背面座位 OR キス騎乗位 OR 挿入Ｇスポ責め OR 挿入子宮口責め
 	CASE 20, 21, 24, 25, 34, 120 TO 124, 255, 256
 		;続行
-		IF !TFLAG:302 || (RAND:100 >= (50 + GETPALAMLV(PALAM:5, 10)))
+		IF !TFLAG:302 || (RAND:100 >= (50 + GETPALAMLV(PALAM:5, 10)))	; 【[欲情] / [同時絶頂]】
 			FOR LCOUNT, 0, 23
 				LOCAL:LCOUNT *= INRANGE(LCOUNT, 8, 12)
 			NEXT
@@ -286,7 +313,7 @@ IF PENIS(TARGET)
 	;正常位する OR 後背位する OR 騎乗位させる
 	CASE 193 TO 195
 		;続行
-		IF !TFLAG:10 || (RAND:100 >= (50 + GETPALAMLV(PALAM:5, 10)))
+		IF !TFLAG:10 || (RAND:100 >= (50 + GETPALAMLV(PALAM:5, 10)))	; 【[欲情] / [対象射精]】
 			FOR LCOUNT, 0, 23
 				LOCAL:LCOUNT *= INRANGE(LCOUNT, 18, 20)
 			NEXT
@@ -328,7 +355,7 @@ IF LOCAL:100
 	DRAWLINE
 	LINE = LINECOUNT
 	;PASSIVEPHASEの地の文
-	IF FLAG:6 && !(CFLAG:99 & 2)
+	IF FLAG:6 && !(CFLAG:99 & 2)	; 【[地の文カットフラグ]】
 		;個別の地の文
 		TRYCCALLFORM TRAIN_MESSAGE_REVMODE_PASSIVEPHASE_K{NO:TARGET}(PREVCOM, LOCAL:101)
 		;共通の地の文
@@ -621,7 +648,7 @@ CASE 1
 	CASE 30
 		PRINTFORM %CALLNAME:TARGET%は
 		;プレイヤーがオトコ
-		IF !RAND:2 && TALENT:PLAYER:122
+		IF !RAND:2 && TALENT:PLAYER:122	; 【PLAYER:[オトコ]】
 			PRINTFORM %CALLNAME:PLAYER%の陰嚢を優しく揉みながら
 		;それ以外
 		ELSE
@@ -938,7 +965,7 @@ CASE 0 TO 9
 	DRAWLINE
 	LINE = LINECOUNT
 	;ACTIVEPHASEの地の文
-	IF FLAG:6 && !(CFLAG:99 & 2)
+	IF FLAG:6 && !(CFLAG:99 & 2)	; 【[地の文カットフラグ]】
 		;個別の地の文
 		TRYCCALLFORM TRAIN_MESSAGE_REVMODE_ACTIVEPHASE_K{NO:TARGET}(SELECTCOM, REACTION)
 		;共通の地の文
@@ -956,7 +983,7 @@ CASE 0 TO 9
 	CALL REVMODE_SOURCE_CHECK
 	
 	;TARGETの体力が500以上 AND TARGETの気力が0より大きい AND PLAYERの体力が0より大きい
-	SIF BASE:TARGET:0 >= 500 && BASE:TARGET:1 > 0 && BASE:PLAYER:0 > 0
+	SIF BASE:TARGET:0 >= 500 && BASE:TARGET:1 > 0 && BASE:PLAYER:0 > 0	; 【TARGET:[体力]>=500 / TARGET:[気力]>0 / PLAYER:[体力]>0】
 		CALL REVMODE_TRAIN_MAIN
 ;USERCOM
 CASEELSE
@@ -1178,7 +1205,7 @@ CASE 30
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%の顔を見つめながら、
 			PRINTFORML 激しく男性器をしごきあげ射精へと導いた…
 		;射精しない
@@ -1201,7 +1228,7 @@ CASE 31
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%の腰を掴んでペニスを根元まで飲み込むと
 			PRINTFORML 一滴でも多く射精させようと一心不乱に吸いあげた…
 		;射精しない
@@ -1249,7 +1276,7 @@ CASE 69
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%の顔面に性器をこすりつけながら
 			PRINTFORML 一滴でも多く射精させようと一心不乱にペニスに吸いついた…
 		;射精しない
@@ -1282,9 +1309,9 @@ CASE 32
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			;巨乳
-			IF TALENT:141 || TALENT:巨乳
+			IF TALENT:141 || TALENT:巨乳	; 【[爆乳]】
 				PRINTFORML %CALLNAME:TARGET%は豊満な胸からかろうじて顔をのぞかせた%CALLNAME:PLAYER%の亀頭に
 				PRINTFORML 口づけし、射精の瞬間を待ち構えた…
 			;貧乳
@@ -1299,7 +1326,7 @@ CASE 32
 		;射精しない
 		ELSE
 			;巨乳
-			IF TALENT:141 || TALENT:巨乳
+			IF TALENT:141 || TALENT:巨乳	; 【[爆乳]】
 				PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%のペニスを手にとると
 				PRINTFORML 豊満な乳房で押し包み、やわやわと揉み焦らし始めた…
 			;貧乳
@@ -1327,7 +1354,7 @@ CASE 33
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:PLAYER%の亀頭を膣口に密着させると、
 			PRINTFORML グチュグチュと腰を前後させ射精へと導いた…
 		;射精しない
@@ -1392,7 +1419,7 @@ CASE 20
 	;積極的にやる
 	CASE 5
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は壊れたように激しく腰を振り、
 			PRINTFORML 射精の瞬間まで%CALLNAME:TARGET%を満足させようとした…
 		;射精しない
@@ -1407,7 +1434,7 @@ CASE 20
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%はがっちりと抱え込まれたまま腰を振り
 			PRINTFORML 射精の寸前にペニスを%CALLNAME:TARGET%の子宮口に届くほど深く突き入れた…
 		;射精しない
@@ -1429,7 +1456,7 @@ CASE 21
 	;積極的にやる
 	CASE 5
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は壊れたように激しく腰を振り、
 			PRINTFORML 射精の瞬間まで%CALLNAME:TARGET%を満足させようとした…
 		;射精しない
@@ -1444,7 +1471,7 @@ CASE 21
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:TARGET%の腰をつかんで激しく腰を振り、
 			PRINTFORML 射精の寸前にペニスを%CALLNAME:TARGET%の子宮口に届くほど深く突き入れた…
 		;射精しない
@@ -1466,7 +1493,7 @@ CASE 24
 	;積極的にやる
 	CASE 5
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は壊れたように激しく腰を振り、
 			PRINTFORML 射精の瞬間まで%CALLNAME:TARGET%を満足させようとした…
 		;射精しない
@@ -1481,7 +1508,7 @@ CASE 24
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:TARGET%の腰をつかんで激しく腰を振り、
 			PRINTFORML 射精の寸前にペニスを%CALLNAME:TARGET%の子宮口に届くほど深く突き入れた…
 		;射精しない
@@ -1503,7 +1530,7 @@ CASE 25
 	;積極的にやる
 	CASE 5
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は壊れたように激しく腰を振り、
 			PRINTFORML 射精の瞬間まで%CALLNAME:TARGET%を満足させようとした…
 		;射精しない
@@ -1518,7 +1545,7 @@ CASE 25
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:TARGET%の腰をつかんで激しく腰を振り、
 			PRINTFORML 射精の寸前にペニスを%CALLNAME:TARGET%の子宮口に届くほど深く突き入れた…
 		;射精しない
@@ -1540,7 +1567,7 @@ CASE 34
 	;積極的にやる
 	CASE 5
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は組み敷かれながらも腰を突き上げ、、
 			PRINTFORML 射精の瞬間まで%CALLNAME:TARGET%を満足させようとした…
 		;射精しない
@@ -1555,7 +1582,7 @@ CASE 34
 	;快感を受け入れる
 	CASE 7
 		;射精する
-		IF TFLAG:302
+		IF TFLAG:302	; 【[同時絶頂]】
 			PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:TARGET%の体が跳ね上がるほど激しく腰を突き上げ
 			PRINTFORML 射精の寸前にペニスを%CALLNAME:TARGET%の子宮口に届くほど深く突き入れた…
 		;射精しない
@@ -1724,10 +1751,10 @@ WAIT
 #DIM LCOUNT, 1
 
 ;射精した
-IF TFLAG:302
-	SIF TFLAG:302 >= 4
+IF TFLAG:302	; 【[同時絶頂]】
+	SIF TFLAG:302 >= 4	; 【[同時絶頂]>=4】
 		PRINT 超
-	SIF TFLAG:302 >= 2
+	SIF TFLAG:302 >= 2	; 【[同時絶頂]>=2】
 		PRINT 大量
 	PRINTL 射精
 	SELECTCASE SELECTCOM
@@ -1747,7 +1774,7 @@ TRYCALL TOUCH_SUCCESSION(TARGET)
 CALL EQUIP_CHECK
 
 ;生理中
-SIF TALENT:138 && (FLAG:62 & 1)
+SIF TALENT:138 && (FLAG:62 & 1)	; 【[生理]】
 	TRYCALL EVENT_MENSTRUAL_PAIN
 
 ;同性のチェック、調教者の能力のチェック
@@ -1756,7 +1783,7 @@ CALL PLAYER_SKILL_CHECK
 CALL MASTER_SKILL_CHECK
 
 ;処女喪失のチェック
-IF EXP:0 && TALENT:0 && TFLAG:19
+IF EXP:0 && TALENT:0 && TFLAG:19	; 【[処女] / [Ｖ経験]あり / [膣性交]】
 	PRINTW 処女喪失
 	TALENT:0 = 0
 	;処女喪失フラグ(今回のコマンド)
@@ -1764,17 +1791,17 @@ IF EXP:0 && TALENT:0 && TFLAG:19
 	;処女喪失フラグ(今回の調教)
 	TFLAG:31 = 1
 	;処女喪失フラグ(ビデオ撮影)
-	SIF TEQUIP:53
+	SIF TEQUIP:53	; 【[撮影中]使用中】
 		TFLAG:32 |= 1
 ENDIF
 ;素質発覚イベント
-SIF EXP:0 && TFLAG:19
+SIF EXP:0 && TFLAG:19	; 【[Ｖ経験]あり / [膣性交]】
 	CALL FINE_VIRGIN
 
 ;童貞喪失（各種計算に童貞の有無が関係するので、実際の喪失処理は最後）
 ;フラグ追加とか面倒なので力技
 ;喪失の可能性のあるコマンドを実行すれば喪失
-IF (SELECTCOM == 20 || SELECTCOM == 21 || SELECTCOM == 24 || SELECTCOM == 25 || SELECTCOM == 34 || SELECTCOM == 88 || SELECTCOM == 120 || SELECTCOM == 121 || SELECTCOM == 122 || SELECTCOM == 123 || SELECTCOM == 124 || SELECTCOM == 363 || SELECTCOM == 365 || SELECTCOM == 366) && TALENT:PLAYER:154
+IF (SELECTCOM == 20 || SELECTCOM == 21 || SELECTCOM == 24 || SELECTCOM == 25 || SELECTCOM == 34 || SELECTCOM == 88 || SELECTCOM == 120 || SELECTCOM == 121 || SELECTCOM == 122 || SELECTCOM == 123 || SELECTCOM == 124 || SELECTCOM == 363 || SELECTCOM == 365 || SELECTCOM == 366) && TALENT:PLAYER:154	; 【PLAYER:[童貞] / コマンド:[正常位] / コマンド:[後背位] / コマンド:[対面座位] / コマンド:[背面座位] / コマンド:[騎乗位] / コマンド:[キス正常位] / コマンド:[キス後背位] / コマンド:[キス対面座位] / コマンド:[キス背面座位] / コマンド:[キス騎乗位] / コマンド:[着衣挿入] / コマンド:[着衣後背位] / コマンド:[着衣騎乗位]】
 	PRINTFORMW %CALLNAME:PLAYER%は童貞を失った
 	TALENT:PLAYER:154 = 2
 	;一部の反感に関係するソースを半減
@@ -1814,13 +1841,15 @@ CALL MASTER_FLAG_CHECK
 
 ;体力・気力の減少
 ;パートナー主導の一手は、体力・気力・耐力の実消費量と表示をともに半額にする。
-IF TFLAG:543
+IF TFLAG:543	; 【[パートナー主導]】
 	LOSEBASE:0 = (LOSEBASE:0 + 1) / 2
 	LOSEBASE:1 = (LOSEBASE:1 + 1) / 2
 	DOWNBASE:MASTER:4 = (DOWNBASE:MASTER:4 + 1) / 2
 ENDIF
 BASE:0 -= LOSEBASE:0
 BASE:1 -= LOSEBASE:1
+SIF BASE:1 < 0	; 【[気力]<0】
+	BASE:1 = 0
 
 ;メッセージ表示
 CALL TRAIN_MESSAGE_A
@@ -1868,19 +1897,19 @@ SIF RELATION:R != 0
 TFLAG:50 = ASSIPLAY
 
 ;気力０
-SIF BASE:1 <= 0
+SIF BASE:1 <= 0	; 【[気力]<=0】
 	PRINTFORML %NAME:TARGET%の★気力０★
 
 ;体力・気力の減少
 PRINTFORML %NAME:TARGET%の体力-{LOSEBASE:0} 気力-{LOSEBASE:1}
-IF DOWNBASE:MASTER:4
+IF DOWNBASE:MASTER:4	; 【MASTER:[耐力]】
 	PRINTFORML %NAME:MASTER%の耐力-{DOWNBASE:MASTER:4}
 	BASE:MASTER:4 -= DOWNBASE:MASTER:4
 	DOWNBASE:MASTER:4 = 0
 ENDIF
 
 ;テキストの表示（顔面騎乗クンニ、胸を揉ませる）
-IF GROUPMATCH(SELECTCOM, 1, 5)
+IF GROUPMATCH(SELECTCOM, 1, 5)	; 【[クンニ]/[胸愛撫]】
 	PRINTL 
 	CALL TEXT
 	PRINTL 
@@ -1893,6 +1922,9 @@ ELSE
 	UPCHECK
 ENDIF
 
+;消耗処理後、実行行動4ターンごとに調教者の耐力を少量回復
+CALL TRAINER_ENDURANCE_RECOVERY, PLAYER
+
 ;フラグの初期化
 TFLAG:18 = 0
 ;コンドーム射精した時に1になるフラグ初期化
@@ -1902,11 +1934,11 @@ TFLAG:302 = 0
 
 ;童貞喪失（各種計算に童貞の有無が関係するので、喪失処理は最後）
 ;TALENTが2になってる場合喪失フラグがONとみなす
-SIF TALENT:PLAYER:154 == 2
+SIF TALENT:PLAYER:154 == 2	; 【PLAYER:[童貞:強]】
 	TALENT:PLAYER:154 = 0
 
 ;今回のコマンドを「前回のコマンド」とする（但し「何もしない」は除外）
-SIF SELECTCOM != 7
+SIF SELECTCOM != 7	; 【コマンド:[何もしない]以外】
 	PREVCOM = SELECTCOM
 
 ;ムード表示用フラグのセット

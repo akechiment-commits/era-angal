@@ -14,7 +14,7 @@
 @CHANGE_ACTION
 X = 0
 REPEAT CHARANUM
-	SIF CFLAG:COUNT:16 == 1
+	SIF CFLAG:COUNT:16 == 1	; 【COUNT:[非表示]==1】
 		X = 1
 REND
 
@@ -23,6 +23,8 @@ REPEAT CHARANUM
 	SIF MARK:COUNT:90 == 1
 		CFLAG:COUNT:13 = 0
 REND
+;全キャラの待機行動適性を再検証
+CALL ALL_ACT_ABLE
 
 PRINTL 誰に指示を出しますか？
 CALL ACTION_LIST
@@ -87,11 +89,11 @@ ELSEIF RESULT == 300 && CHARANUM >= 3
 					SIF A == MASTER
 						CONTINUE
 					;U == 0の時（休憩中のキャラが表示されていない時）は休憩中のキャラの行動を変えない
-					SIF U == 0 && CFLAG:A:16
+					SIF U == 0 && CFLAG:A:16	; 【A:[非表示]】
 						CONTINUE
 					
 					;耐力が○(選択された値)％以下ならリフレッシュに変更
-					SIF (BASE:A:4 <= MAXBASE:A:4 * RESULT / 100)
+					SIF (BASE:A:4 <= MAXBASE:A:4 * RESULT / 100)	; 【A:[耐力]<=MAXBASE:A:4】
 						CFLAG:A:13 = 2
 				NEXT
 			ENDIF
@@ -102,7 +104,7 @@ ELSEIF RESULT == 300 && CHARANUM >= 3
 				SIF A == MASTER
 					CONTINUE
 				;U == 0の時（休憩中のキャラが表示されていない時）は休憩中のキャラの行動を変えない
-				SIF U == 0 && CFLAG:A:16
+				SIF U == 0 && CFLAG:A:16	; 【A:[非表示]】
 					CONTINUE
 				
 				CALL SHOP_ACT_ABLE
@@ -120,10 +122,10 @@ ELSEIF RESULT == 300 && CHARANUM >= 3
 ELSEIF RESULT < 0 || RESULT >= CHARANUM
 	PRINTFORML 正しい値を入力してください
 	GOTO INPUT_LOOP
-ELSEIF CFLAG:RESULT:16 == 1 && U == 0
+ELSEIF CFLAG:RESULT:16 == 1 && U == 0	; 【RESULT:[非表示]==1】
 	PRINTFORML 正しい値を入力してください
 	GOTO INPUT_LOOP
-ELSEIF CFLAG:RESULT:21 == 1
+ELSEIF CFLAG:RESULT:21 == 1	; 【RESULT:[別れ]==1】
 	PRINTFORML 正しい値を入力してください
 	GOTO INPUT_LOOP
 ELSEIF FLAG:62 & 1 && (MARK:RESULT:90 == 1)
@@ -133,7 +135,7 @@ ELSEIF FLAG:62 & 1 && (MARK:RESULT:90 == 1)
 	;GOTO INPUT_LOOP
 ENDIF
 
-IF CFLAG:RESULT:16 == 0 || U == 1
+IF CFLAG:RESULT:16 == 0 || U == 1	; 【RESULT:[非表示]==0】
 ;内容を指示
 	;RESULT退避
 	A = RESULT
@@ -229,50 +231,60 @@ TSTR:112 = 回復量↓   アイテム発見
 VARSET B, 0
 ;[0] 何もさせない
 B:0 = 1
-;[1] 勉強
-SIF A == MASTER || ABL:A:0 >= 2 || CFLAG:A:2 >= 200 || TALENT:A:153
-	B:1 = 1
 ;[2] リフレッシュ
 B:2 = 1
+
+;衰弱療養中（体力0以下）のキャラは「何もしない」か「リフレッシュ」のみ可能
+SIF A != MASTER && BASE:A:0 <= 0	; 【A:[体力]<=0】
+	RETURN 0
+
+;[1] 勉強
+SIF A == MASTER || ABL:A:0 >= 2 || CFLAG:A:2 >= 200 || TALENT:A:153	; 【A:[恋人] / A:[親密]Lv>=2 / A:[好感度]>=200】
+	B:1 = 1
 ;[3] 自給自足
 ;あなた様には親密30以上ないと自給自足を指示できない
-SIF TALENT:A:201 == 0 || ABL:A:0 >= 30 || A == MASTER
+SIF TALENT:A:201 == 0 || ABL:A:0 >= 30 || A == MASTER	; 【A:[特別な支配者]なし / A:[親密]Lv>=30】
 	B:3 = 1
 ;[4] 一緒に勉強する
-SIF A != MASTER && (ABL:A:0 >= 5 || CFLAG:A:2 >= 500 || TALENT:A:153)
+SIF A != MASTER && (ABL:A:0 >= 5 || CFLAG:A:2 >= 500 || TALENT:A:153)	; 【A:[恋人] / A:[親密]Lv>=5 / A:[好感度]>=500】
 	B:4 = 1
 ;[5] 家事
 ;あなた様には親密20以上ないと指示できない
-SIF A != MASTER && (TALENT:A:201 == 0 && (ABL:A:0 >= 5 || CFLAG:A:2 >= 500 || TALENT:A:153) || ABL:A:0 >= 20)
+SIF A != MASTER && (TALENT:A:201 == 0 && (ABL:A:0 >= 5 || CFLAG:A:2 >= 500 || TALENT:A:153) || ABL:A:0 >= 20)	; 【A:[特別な支配者]なし / A:[恋人] / A:[親密]Lv>=5 / A:[親密]Lv>=20 / A:[好感度]>=500】
 	B:5 = 1
 ;[6] お金稼ぎ
-SIF A != MASTER && A != TARGET && A != ASSI && BASE:A:4 >= 500 && (ABL:A:0 >= 5 || CFLAG:A:2 >= 500 || TALENT:A:153)
+SIF A != MASTER && A != TARGET && A != ASSI && BASE:A:4 >= 500 && (ABL:A:0 >= 5 || CFLAG:A:2 >= 500 || TALENT:A:153)	; 【A:[恋人] / A:[親密]Lv>=5 / A:[好感度]>=500 / A:[耐力]>=500】
 	B:6 = 1
 ;[7] イチャイチャする
-SIF A != MASTER && TALENT:A:153
+SIF A != MASTER && TALENT:A:153	; 【A:[恋人]】
 	B:7 = 1
 ;[8] 朝フェラ
-SIF TALENT:A:54 == 0 && A != MASTER && (TALENT:A:152 || TALENT:A:153) && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:6 >= 10 || ABL:A:11 >= 1) && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122)
+SIF TALENT:A:54 == 0 && A != MASTER && (TALENT:A:152 || TALENT:A:153) && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:6 >= 10 || ABL:A:11 >= 1) && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122)	; 【A:[猫舌]なし / A:[合意] / A:[恋人] / MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ] / A:[親密]Lv>=10 / A:[欲望]Lv>=10 / A:[奉仕精神]Lv>=10 / A:[精液中毒]Lv>=1】
 	B:8 = 1
 ;[9] 自慰
-SIF A != MASTER && (TALENT:A:152 || TALENT:A:153) && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:10 >= 1)
+SIF A != MASTER && (TALENT:A:152 || TALENT:A:153) && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:10 >= 1)	; 【A:[合意] / A:[恋人] / A:[親密]Lv>=10 / A:[欲望]Lv>=10 / A:[自慰中毒]Lv>=1】
 	B:9 = 1
 ;[10] レズ行為
-SIF A != MASTER && ABL:A:1 >= 5 && ABL:A:9 >= 3 && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:9 >= 10 || ABL:A:12 >= 1) && TALENT:MASTER:122 == 0 && TALENT:A:122 == 0
+SIF A != MASTER && ABL:A:1 >= 5 && ABL:A:9 >= 3 && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:9 >= 10 || ABL:A:12 >= 1) && TALENT:MASTER:122 == 0 && TALENT:A:122 == 0	; 【MASTER:[オトコ]なし / A:[オトコ]なし / A:[欲望]Lv>=5 / A:[レズっ気]Lv>=3 / A:[親密]Lv>=10 / A:[欲望]Lv>=10 / A:[レズっ気]Lv>=10 / A:[レズ中毒]Lv>=1】
 	B:10 = 1
 ;[11] 性行為
-SIF A != MASTER && TALENT:MASTER:154 == 0 && TALENT:A:88 && TALENT:A:0 == 0 && (ABL:A:0 + ABL:A:1 + ABL:A:4 + ABL:A:6 >= 55) && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122)
+SIF A != MASTER && TALENT:MASTER:154 == 0 && TALENT:A:88 && TALENT:A:0 == 0 && (ABL:A:0 + ABL:A:1 + ABL:A:4 + ABL:A:6 >= 55) && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122)	; 【MASTER:[童貞]なし / A:[親愛] / A:[処女]なし / MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ] / A:[親密] / A:[欲望] / A:[Ｖ感覚] / A:[奉仕精神]Lv>=55】
 	B:11 = 1
 ;[12] 宝探し
-SIF A == MASTER || ABL:A:0 >= 3 || CFLAG:A:2 >= 300 || TALENT:A:153
+SIF A == MASTER || ABL:A:0 >= 3 || CFLAG:A:2 >= 300 || TALENT:A:153	; 【A:[恋人] / A:[親密]Lv>=3 / A:[好感度]>=300】
 	B:12 = 1
 
 @ALL_ACT_ABLE
 ;全キャラ指定中の待機中行動をできるか判定し、できなくなっている場合は何もさせないに変更
 FOR A, 0, CHARANUM
 	CALL SHOP_ACT_ABLE
-	SIF B:(CFLAG:A:13) == 0
-		CFLAG:A:13 = 0
+	IF B:(CFLAG:A:13) == 0	; 【A:[待機中行動]】
+		IF A != MASTER && BASE:A:0 <= 0	; 【A:[体力]<=0】
+			CFLAG:A:13 = 2
+		ELSE
+			CFLAG:A:13 = 0
+		ENDIF
+	ENDIF
 NEXT
 
 @ACTION_LIST
@@ -282,10 +294,10 @@ REPEAT CHARANUM
 	SIF COUNT == MASTER
 		PRINTFORM                                     [ 0]デフォルト指示    
 	;預かり中のキャラは非表示だと選べない
-	SIF CFLAG:COUNT:16 == 1 && U == 0
+	SIF CFLAG:COUNT:16 == 1 && U == 0	; 【COUNT:[非表示]==1】
 		CONTINUE
 	;別れたキャラも選べない
-	SIF CFLAG:COUNT:21
+	SIF CFLAG:COUNT:21	; 【COUNT:[別れ]】
 		CONTINUE
 	;臨月、育児中のキャラも選べない
 	SIF FLAG:62 & 1 && (MARK:COUNT:90 == 1)
@@ -293,7 +305,7 @@ REPEAT CHARANUM
 	IF COUNT != MASTER
 		PRINT 体力
 		A = BASE:COUNT:0
-		SIF BASE:COUNT:0 < 0
+		SIF BASE:COUNT:0 < 0	; 【COUNT:[体力]<0】
 			A = 0
 		CALL PRINT_BAR_0, A, MAXBASE:COUNT:0, 16
 		PRINTFORM ({BASE:COUNT:0,4}/{MAXBASE:COUNT:0,4})
@@ -309,6 +321,11 @@ REPEAT CHARANUM
 	ENDIF
 
 	CALL SHOP_ACT_NAME
+	IF COUNT != MASTER && BASE:COUNT:0 <= 0	; 【COUNT:[体力]<=0】
+		SETCOLOR 0xFF6666
+		PRINTFORM 【療養中】
+		RESETCOLOR
+	ENDIF
 	PRINTFORML （%TSTR:(CFLAG:COUNT:13)%）
 REND
 PRINTL 　　　　　　☆：パートナー　★：助手　を表しています
@@ -321,12 +338,12 @@ VARSET LOCAL, 0
 LOCAL:98 = CFLAG:COUNT:2	;好感度基準値（恋人ボーナス用）
 ;SHOP.ERBのREPEAT CHARANUM中
 ;待機中指示コマンド実行
-IF COUNT != MASTER && CFLAG:COUNT:17 == 0
-	IF CFLAG:COUNT:13 == 0
+IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
+	IF CFLAG:COUNT:13 == 0	; 【COUNT:[待機中行動]==0】
 		;何もしない
 		;実行したコマンドを保存
 		Y:COUNT = 0
-	ELSEIF CFLAG:COUNT:13 == 1
+	ELSEIF CFLAG:COUNT:13 == 1	; 【COUNT:[待機中行動]==1】
 		;修行
 		TIMES A , 0.70
 		TIMES B , 0.70
@@ -337,17 +354,19 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		EXP:COUNT:95 += LOCAL
 		CALL TURNEND_COM_PRINT, "EXP", 95, LOCAL
 		Y:COUNT = 1
-	ELSEIF CFLAG:COUNT:13 == 2
+	ELSEIF CFLAG:COUNT:13 == 2	; 【COUNT:[待機中行動]==2】
 		;リフレッシュ
 		A *= 2
 		B *= 2
 		C *= 3
 		LOCAL = RAND:3 + 1
-		CFLAG:COUNT:2 += LOCAL
-		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL
+		IF BASE:COUNT:0 > 0	; 【COUNT:[体力]>0】
+			CFLAG:COUNT:2 += LOCAL
+			CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL
+		ENDIF
 		;実行したコマンドを保存
 		Y:COUNT = 2
-	ELSEIF CFLAG:COUNT:13 == 3
+	ELSEIF CFLAG:COUNT:13 == 3	; 【COUNT:[待機中行動]==3】
 		;自給自足
 		TIMES A , 0.10
 		TIMES B , 0.10
@@ -357,7 +376,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		CALL TURNEND_COM_PRINT, "JUEL", 16, LOCAL
 		;実行したコマンドを保存
 		Y:COUNT = 3
-	ELSEIF CFLAG:COUNT:13 == 4 && H == 1
+	ELSEIF CFLAG:COUNT:13 == 4 && H == 1	; 【COUNT:[待機中行動]==4】
 		;一緒に勉強する
 		TIMES A , 0.80
 		TIMES B , 0.80
@@ -371,7 +390,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		BASE:MASTER:4 -= MAXBASE:MASTER:4 / 100
 		;実行したコマンドを保存
 		Y:COUNT = 4
-	ELSEIF CFLAG:COUNT:13 == 5
+	ELSEIF CFLAG:COUNT:13 == 5	; 【COUNT:[待機中行動]==5】
 		;家事
 		TIMES A , 0.80
 		TIMES B , 0.80
@@ -387,9 +406,9 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL
 		;実行したコマンドを保存
 		Y:COUNT = 5
-	ELSEIF CFLAG:COUNT:13 == 6
+	ELSEIF CFLAG:COUNT:13 == 6	; 【COUNT:[待機中行動]==6】
 		;お金稼ぎ
-		IF BASE:COUNT:4 >= 500
+		IF BASE:COUNT:4 >= 500	; 【COUNT:[耐力]>=500】
 			LOCAL = RAND:5 + 5
 			EXP:COUNT:90 += LOCAL
 			CALL TURNEND_COM_PRINT, "EXP", 90, LOCAL
@@ -429,7 +448,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		ELSE
 			PRINTFORML %CALLNAME:COUNT%はかなり疲労しているようだ…
 		ENDIF
-	ELSEIF CFLAG:COUNT:13 == 7 && H == 1
+	ELSEIF CFLAG:COUNT:13 == 7 && H == 1	; 【COUNT:[待機中行動]==7】
 		;イチャイチャする
 		C *= 3
 		LOCAL = (ABL:COUNT:0 + 5) * (ABL:COUNT:6 + 3) * (RAND:10 + 10) / 10
@@ -441,7 +460,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		BASE:MASTER:4 -= MAXBASE:MASTER:4 / 200
 		;実行したコマンドを保存
 		Y:COUNT = 7
-	ELSEIF CFLAG:COUNT:13 == 8 && H == 1
+	ELSEIF CFLAG:COUNT:13 == 8 && H == 1	; 【COUNT:[待機中行動]==8】
 		;朝フェラ 朝じゃなくてもやってくれます。昼寝の寝起き？
 		TIMES A , 0.90
 		TIMES B , 0.90
@@ -451,38 +470,38 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		BASE:MASTER:4 -= MAXBASE:MASTER:4 / 200
 
 		G = 0
-		IF ABL:COUNT:11 == 1
+		IF ABL:COUNT:11 == 1	; 【COUNT:[精液中毒]Lv==1】
 			G = 1
-		ELSEIF ABL:COUNT:11 == 2
+		ELSEIF ABL:COUNT:11 == 2	; 【COUNT:[精液中毒]Lv==2】
 			G = 2
-		ELSEIF ABL:COUNT:11 == 3
+		ELSEIF ABL:COUNT:11 == 3	; 【COUNT:[精液中毒]Lv==3】
 			G = 3
-		ELSEIF ABL:COUNT:11 == 4
+		ELSEIF ABL:COUNT:11 == 4	; 【COUNT:[精液中毒]Lv==4】
 			G = 4
-		ELSEIF ABL:COUNT:11 >= 5
+		ELSEIF ABL:COUNT:11 >= 5	; 【COUNT:[精液中毒]Lv>=5】
 			G = 3 + ABL:COUNT:11 / 2
 		ENDIF
 
 		;汚臭鈍感
-		SIF TALENT:COUNT:61
+		SIF TALENT:COUNT:61	; 【COUNT:[汚臭鈍感]】
 			G += 1
 		;汚臭敏感
-		SIF TALENT:COUNT:62
+		SIF TALENT:COUNT:62	; 【COUNT:[汚臭敏感]】
 			G -= 1
 		;献身的
-		SIF TALENT:COUNT:63
+		SIF TALENT:COUNT:63	; 【COUNT:[献身的]】
 			G += 1
 		;恋慕
-		SIF TALENT:COUNT:76
+		SIF TALENT:COUNT:76	; 【COUNT:[淫乱]】
 			G += 1
 		;淫乱
-		SIF TALENT:COUNT:85
+		SIF TALENT:COUNT:85	; 【COUNT:[恋慕]】
 			G += 1
 		;親愛
-		SIF TALENT:COUNT:88
+		SIF TALENT:COUNT:88	; 【COUNT:[親愛]】
 			G += 3
 		;恋人
-		SIF TALENT:COUNT:153
+		SIF TALENT:COUNT:153	; 【COUNT:[恋人]】
 			G += 1
 
 		;言われてやってるので普段より多い
@@ -506,7 +525,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		
 		;実行したコマンドを保存
 		Y:COUNT = 8
-	ELSEIF CFLAG:COUNT:13 == 9
+	ELSEIF CFLAG:COUNT:13 == 9	; 【COUNT:[待機中行動]==9】
 		;自慰
 		TIMES A , 0.80
 		TIMES B , 0.80
@@ -517,42 +536,42 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 
 		G = 0
 
-		IF ABL:COUNT:10 == 1
+		IF ABL:COUNT:10 == 1	; 【COUNT:[自慰中毒]Lv==1】
 			G = 1
-		ELSEIF ABL:COUNT:10 == 2
+		ELSEIF ABL:COUNT:10 == 2	; 【COUNT:[自慰中毒]Lv==2】
 			G = 2
-		ELSEIF ABL:COUNT:10 == 3
+		ELSEIF ABL:COUNT:10 == 3	; 【COUNT:[自慰中毒]Lv==3】
 			G = 4
-		ELSEIF ABL:COUNT:10 == 4
+		ELSEIF ABL:COUNT:10 == 4	; 【COUNT:[自慰中毒]Lv==4】
 			G = 6
-		ELSEIF ABL:COUNT:10 >= 5
+		ELSEIF ABL:COUNT:10 >= 5	; 【COUNT:[自慰中毒]Lv>=5】
 			G = (ABL:COUNT:10 * 2) - 1
 		ENDIF
 
 		;言われてやってるので普段より多い
 		G += 1
 
-		IF ABL:COUNT:1 == 4 && ABL:COUNT:3 >= 4
+		IF ABL:COUNT:1 == 4 && ABL:COUNT:3 >= 4	; 【COUNT:[欲望]Lv==4 / COUNT:[Ｃ感覚]Lv>=4】
 			G += 1
-		ELSEIF ABL:COUNT:1 >= 5 && ABL:COUNT:3 >= 4
+		ELSEIF ABL:COUNT:1 >= 5 && ABL:COUNT:3 >= 4	; 【COUNT:[欲望]Lv>=5 / COUNT:[Ｃ感覚]Lv>=4】
 			G += ABL:COUNT:1
 		ENDIF
 		
 		;自慰しやすい
-		IF TALENT:COUNT:60
+		IF TALENT:COUNT:60	; 【COUNT:[自慰しやすい]】
 			G *= 2
 			;欲望ＬＶ３でもGに+1する
-			SIF ABL:COUNT:1 >= 3 && ABL:COUNT:3 >= 3
+			SIF ABL:COUNT:1 >= 3 && ABL:COUNT:3 >= 3	; 【COUNT:[欲望]Lv>=3 / COUNT:[Ｃ感覚]Lv>=3】
 				G += 1
 		ENDIF
 		
 		;快感に素直、快感の否定、淫乱化
-		IF TALENT:COUNT:70
+		IF TALENT:COUNT:70	; 【COUNT:[快感に素直]】
 			G *= 3/2
-		ELSEIF TALENT:COUNT:71
+		ELSEIF TALENT:COUNT:71	; 【COUNT:[快感の否定]】
 			G /= 2
 		ENDIF
-		IF TALENT:COUNT:76
+		IF TALENT:COUNT:76	; 【COUNT:[淫乱]】
 			G *= 2
 		ENDIF
 		
@@ -570,14 +589,14 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		JUEL:COUNT:5 += G*250
 		CALL TURNEND_COM_PRINT, "JUEL", 5, G*250
 		
-		IF ABL:COUNT:0+ABL:COUNT:7+ABL:COUNT:8 >= 10
+		IF ABL:COUNT:0+ABL:COUNT:7+ABL:COUNT:8 >= 10	; 【COUNT:[親密] / COUNT:[露出癖] / COUNT:[マゾっ気]Lv>=10】
 			JUEL:COUNT:8 += G*200
 			CALL TURNEND_COM_PRINT, "JUEL", 8, G*200
 		ENDIF
 		
 		;実行したコマンドを保存
 		Y:COUNT = 9
-	ELSEIF CFLAG:COUNT:13 == 10
+	ELSEIF CFLAG:COUNT:13 == 10	; 【COUNT:[待機中行動]==10】
 		;レズ行為
 		TIMES A , 0.80
 		TIMES B , 0.80
@@ -585,15 +604,15 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 
 		N = 0
 
-		IF ABL:COUNT:12 == 1
+		IF ABL:COUNT:12 == 1	; 【COUNT:[レズ中毒]Lv==1】
 			N += 1
-		ELSEIF ABL:COUNT:12 == 2
+		ELSEIF ABL:COUNT:12 == 2	; 【COUNT:[レズ中毒]Lv==2】
 			N += 2
-		ELSEIF ABL:COUNT:12 == 3
+		ELSEIF ABL:COUNT:12 == 3	; 【COUNT:[レズ中毒]Lv==3】
 			N += 3
-		ELSEIF ABL:COUNT:12 == 4
+		ELSEIF ABL:COUNT:12 == 4	; 【COUNT:[レズ中毒]Lv==4】
 			N += 5
-		ELSEIF ABL:COUNT:12 >= 5
+		ELSEIF ABL:COUNT:12 >= 5	; 【COUNT:[レズ中毒]Lv>=5】
 			N += 2 + ABL:COUNT:12
 		ENDIF
 		G = RAND:100 + 1
@@ -622,7 +641,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		CALL TURNEND_COM_PRINT, "JUEL", 6, N*75*(ABL:COUNT:2+ABL:COUNT:6)
 		JUEL:COUNT:7 += N*75*(ABL:COUNT:2+ABL:COUNT:6)
 		CALL TURNEND_COM_PRINT, "JUEL", 7, N*75*(ABL:COUNT:2+ABL:COUNT:6)
-		IF TALENT:COUNT:121
+		IF TALENT:COUNT:121	; 【COUNT:[ふたなり]】
 			EXP:COUNT:3 += N
 			CALL TURNEND_COM_PRINT, "EXP", 3, N
 			JUEL:COUNT:8 += N*100
@@ -631,7 +650,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		
 		;実行したコマンドを保存
 		Y:COUNT = 10
-	ELSEIF CFLAG:COUNT:13 == 11 && H == 1
+	ELSEIF CFLAG:COUNT:13 == 11 && H == 1	; 【COUNT:[待機中行動]==11】
 		;性行為
 		TIMES A , 0.70
 		TIMES B , 0.70
@@ -642,38 +661,38 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 
 		S = 1
 		;V感覚
-		IF ABL:COUNT:4 == 1
+		IF ABL:COUNT:4 == 1	; 【COUNT:[Ｖ感覚]Lv==1】
 			S += 1
-		ELSEIF ABL:COUNT:4 == 2
+		ELSEIF ABL:COUNT:4 == 2	; 【COUNT:[Ｖ感覚]Lv==2】
 			S += 2
-		ELSEIF ABL:COUNT:4 == 3
+		ELSEIF ABL:COUNT:4 == 3	; 【COUNT:[Ｖ感覚]Lv==3】
 			S += 2
-		ELSEIF ABL:COUNT:4 == 4
+		ELSEIF ABL:COUNT:4 == 4	; 【COUNT:[Ｖ感覚]Lv==4】
 			S += 3
-		ELSEIF ABL:COUNT:4 >= 5
+		ELSEIF ABL:COUNT:4 >= 5	; 【COUNT:[Ｖ感覚]Lv>=5】
 			S += 1 + (ABL:COUNT:4 * 3/4)
 		ENDIF
 		
 		;欲望と奉仕精神によるボーナス
-		IF ABL:COUNT:1 == 4 && ABL:COUNT:6 >= 4
+		IF ABL:COUNT:1 == 4 && ABL:COUNT:6 >= 4	; 【COUNT:[欲望]Lv==4 / COUNT:[奉仕精神]Lv>=4】
 			S += 1
-		ELSEIF ABL:COUNT:1 >= 5 && ABL:COUNT:6 >= 4
+		ELSEIF ABL:COUNT:1 >= 5 && ABL:COUNT:6 >= 4	; 【COUNT:[欲望]Lv>=5 / COUNT:[奉仕精神]Lv>=4】
 			S += ABL:COUNT:1
 		ENDIF
 		
 		;V感覚が充分にあれば、欲望ＬＶ３でもSに+1する
-		IF ABL:COUNT:1 >= 3 && ABL:COUNT:4 >= 3
+		IF ABL:COUNT:1 >= 3 && ABL:COUNT:4 >= 3	; 【COUNT:[欲望]Lv>=3 / COUNT:[Ｖ感覚]Lv>=3】
 			S += 1
 		ENDIF
 		
 		;快感に素直、快感の否定、淫乱化
-		IF TALENT:COUNT:70
+		IF TALENT:COUNT:70	; 【COUNT:[快感に素直]】
 			S *= 3/2
-		ELSEIF TALENT:COUNT:71
+		ELSEIF TALENT:COUNT:71	; 【COUNT:[快感の否定]】
 			S /= 2
 		ENDIF
 		
-		IF TALENT:COUNT:76
+		IF TALENT:COUNT:76	; 【COUNT:[淫乱]】
 			S *= 2
 		ENDIF
 	
@@ -689,7 +708,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		CALL TURNEND_COM_PRINT, "EXP", 3, S
 		CFLAG:COUNT:2 += S*5
 		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL+S*5
-		IF TALENT:MASTER:121 || TALENT:MASTER:122
+		IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
 			EXP:COUNT:20 += S * 10
 			CALL TURNEND_COM_PRINT, "EXP", 20, S*10
 		ENDIF
@@ -704,7 +723,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0
 		
 		;実行したコマンドを保存
 		Y:COUNT = 11
-	ELSEIF CFLAG:COUNT:13 == 12
+	ELSEIF CFLAG:COUNT:13 == 12	; 【COUNT:[待機中行動]==12】
 		;宝探し
 		TIMES A , 0.70
 		TIMES B , 0.70

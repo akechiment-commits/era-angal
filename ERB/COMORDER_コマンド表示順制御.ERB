@@ -6,17 +6,22 @@
 ;コマンドを実行できるか判定の処理
 ;-------------------------------------------------
 @COM_ORDER_COMMON
-;各コマンドの固有実行判定
+;各コマンドの固有実行判定（実行値の内訳を計算・表示）
 TRYCALLFORM COM_ORDER_{SELECTCOM}
 
 ;実行できない場合
 IF A < V
+	;気絶中の場合：実行値は表示した上で、不足していても拒否されず実行可能
+	IF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+		PRINTFORML （意識を失っているため、抵抗されることなくそのまま受け入れた…）
+		RETURN 1
+	ENDIF
 	;実行判定失敗口上呼び出し
 	TFLAG:13 = 99
 	CALL SELF_KOJO
 	;日常・交流コマンドの失敗地の文
 	;COM306/307はコマンド側に専用の失敗分岐があるため除外
-IF SELECTCOM != 306 && SELECTCOM != 307
+IF SELECTCOM != 306 && SELECTCOM != 307	; 【コマンド:[髪梳き]以外 / コマンド:[櫛で梳かす]以外】
 		CALL COM_ORDER_FAILURE_GROUND
 	ENDIF
 	;実行判定非表示にしている場合下記の文章が表示されないと実行できない場合が分かり難いため文章表示
@@ -220,27 +225,27 @@ RETURN 1
 A = ABL:0 * 5
 
 ;性格
-SIF TALENT:11
+SIF TALENT:11	; 【[反抗的]】
 	A -= 5
-SIF TALENT:12
+SIF TALENT:12	; 【[気丈]】
 	A -= 3
-SIF TALENT:13
+SIF TALENT:13	; 【[素直]】
 	A += 5
-SIF TALENT:15
+SIF TALENT:15	; 【[プライド高い]】
 	A -= 5
-SIF TALENT:17
+SIF TALENT:17	; 【[プライド低い]】
 	A += 3
-SIF TALENT:23
+SIF TALENT:23	; 【[好奇心]】
 	A += 3
 
 ;男嫌い
-SIF TALENT:82 && TALENT:PLAYER:122
+SIF TALENT:82 && TALENT:PLAYER:122	; 【[男嫌い] / PLAYER:[オトコ]】
 	A -= 7
 
 ;プレイヤーの対人魅力
-SIF TALENT:PLAYER:91
+SIF TALENT:PLAYER:91	; 【PLAYER:[魅惑]】
 	A += 6
-SIF TALENT:PLAYER:92
+SIF TALENT:PLAYER:92	; 【PLAYER:[謎の魅力]】
 	A += 6
 
 ;相性
@@ -261,11 +266,11 @@ ENDIF
 
 ;好感度と関係
 A += CFLAG:2 / 50
-SIF TALENT:85
+SIF TALENT:85	; 【[恋慕]】
 	A += 20
-SIF TALENT:153
+SIF TALENT:153	; 【[恋人]】
 	A += 20
-SIF TALENT:88
+SIF TALENT:88	; 【[親愛]】
 	A += 40
 
 SIF A < 0
@@ -278,7 +283,7 @@ RETURN 1
 ;-------------------------------------------------
 @COM_ORDER_DAILY
 ;親密
-IF ABL:0
+IF ABL:0	; 【[親密]】
 	A += ABL:0 * 3
 ENDIF
 
@@ -295,18 +300,18 @@ ELSEIF RELATION:R >= 170
 ENDIF
 
 ;日常の誘いに関係する性格
-SIF TALENT:11
+SIF TALENT:11	; 【[反抗的]】
 	A -= 5
-SIF TALENT:13
+SIF TALENT:13	; 【[素直]】
 	A += 5
-SIF TALENT:15
+SIF TALENT:15	; 【[プライド高い]】
 	A -= 5
-SIF TALENT:17
+SIF TALENT:17	; 【[プライド低い]】
 	A += 3
 
 ;実行判定を表示する設定
 IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
-	IF ABL:0
+	IF ABL:0	; 【[親密]】
 		SIF S
 			PRINT  + 
 		PRINTS ABLNAME:0
@@ -339,26 +344,26 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 
-	IF TALENT:11
+	IF TALENT:11	; 【[反抗的]】
 		PRINT  - 
 		PRINTS TALENTNAME:11
 		PRINTV '(,5,')
 		S = 1
 	ENDIF
-	IF TALENT:13
+	IF TALENT:13	; 【[素直]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:13
 		PRINTV '(,5,')
 		S = 1
 	ENDIF
-	IF TALENT:15
+	IF TALENT:15	; 【[プライド高い]】
 		PRINT  - 
 		PRINTS TALENTNAME:15
 		PRINTV '(,5,')
 		S = 1
 	ENDIF
-	IF TALENT:17
+	IF TALENT:17	; 【[プライド低い]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:17
@@ -376,101 +381,101 @@ RETURN 1
 ;ターゲット主体コマンド判定
 B = 0
 ;正常位させる、後背位させる、吸血させる
-SIF SELECTCOM == 193 ||SELECTCOM == 194 || SELECTCOM == 151
+SIF SELECTCOM == 193 ||SELECTCOM == 194 || SELECTCOM == 151	; 【コマンド:[正常位させる] / コマンド:[後背位させる]】
 	B = 1
 
 ;ABL:従順
-IF ABL:0
+IF ABL:0	; 【[親密]】
 	A += ABL:0 * 3
 ENDIF
 
 ;ターゲット主体コマンド
 IF B
 	;ABL:サドっ気
-	IF ABL:15
+	IF ABL:15	; 【[サドっ気]】
 		A += ABL:15*2
 	ENDIF
 ELSE
 	;ABL:マゾっ気
-	IF ABL:8
+	IF ABL:8	; 【[マゾっ気]】
 		A += ABL:8*2
 	ENDIF
 ENDIF
 
 ;レズ調教
-IF TALENT:PLAYER:122 == 0 && TALENT:TARGET:122 == 0
+IF TALENT:PLAYER:122 == 0 && TALENT:TARGET:122 == 0	; 【PLAYER:[オトコ]なし / TARGET:[オトコ]なし】
 	;ウフフかどうか
-	IF TFLAG:44
-		IF TALENT:153 == 0
+	IF TFLAG:44	; 【[ウフフ中]】
+		IF TALENT:153 == 0	; 【[恋人]なし】
 			A -= 5
 		ENDIF
 	ELSE
 		A += 5
 	ENDIF
 	;ABL:レズっ気
-	IF ABL:9
+	IF ABL:9	; 【[レズっ気]】
 		A += ABL:9*3
 	ENDIF
 	;ABL:レズ中毒
-	IF ABL:12
+	IF ABL:12	; 【[レズ中毒]】
 		A += ABL:12*3
 	ENDIF
 	;TALENT:両刀
-	IF TALENT:81
+	IF TALENT:81	; 【[両刀]】
 		A += 10
 	ENDIF
 	;好奇心
-	IF TALENT:23
+	IF TALENT:23	; 【[好奇心]】
 		A += 7
 	ENDIF
 	;保守的
-	IF TALENT:24 && TFLAG:44
+	IF TALENT:24 && TFLAG:44	; 【[保守的] / [ウフフ中]】
 		A -= 13
 	ENDIF
 ELSE
 	;好奇心
-	IF TALENT:23
+	IF TALENT:23	; 【[好奇心]】
 		A += 5
 	ENDIF
 	;保守的
-	IF TALENT:24 == 1
+	IF TALENT:24 == 1	; 【[保守的]】
 		T = 5
-		SIF TFLAG:44
+		SIF TFLAG:44	; 【[ウフフ中]】
 			T = 10
 		A -= T
 	ENDIF
 ENDIF
 
 ;刻印チェック
-IF MARK:0
+IF MARK:0	; 【[苦痛依存]】
 	A += MARK:0 * 5
 ENDIF
 
-IF TALENT:15
+IF TALENT:15	; 【[プライド高い]】
 	T = 4
-ELSEIF TALENT:17
+ELSEIF TALENT:17	; 【[プライド低い]】
 	T = 1
 ELSE
 	T = 2
 ENDIF
 
-IF MARK:2
+IF MARK:2	; 【[既成事実]】
 	A += MARK:2 * 3 * T
 ENDIF
-IF MARK:3
+IF MARK:3	; 【[反発感情]】
 	A -= MARK:3 * 2 * T
 ENDIF
 
 ;PALAM:恭順
-IF PALAM:4 < PALAMLV:1
+IF PALAM:4 < PALAMLV:1	; 【[恭順]<PALAMLV:1】
 	L = 0
-ELSEIF PALAM:4 < PALAMLV:2
+ELSEIF PALAM:4 < PALAMLV:2	; 【[恭順]<PALAMLV:2】
 	L = 1
-ELSEIF PALAM:4 < PALAMLV:3
+ELSEIF PALAM:4 < PALAMLV:3	; 【[恭順]<PALAMLV:3】
 	L = 2
-ELSEIF PALAM:4 < PALAMLV:4
+ELSEIF PALAM:4 < PALAMLV:4	; 【[恭順]<PALAMLV:4】
 	L = 3
-ELSEIF PALAM:4 < PALAMLV:5
+ELSEIF PALAM:4 < PALAMLV:5	; 【[恭順]<PALAMLV:5】
 	L = 4
 ELSE
 	L = 5
@@ -480,15 +485,15 @@ IF L
 ENDIF
 
 ;PALAM:恐怖
-IF PALAM:10 < PALAMLV:1
+IF PALAM:10 < PALAMLV:1	; 【[恐怖]<PALAMLV:1】
 	L = 0
-ELSEIF PALAM:10 < PALAMLV:2
+ELSEIF PALAM:10 < PALAMLV:2	; 【[恐怖]<PALAMLV:2】
 	L = 1
-ELSEIF PALAM:10 < PALAMLV:3
+ELSEIF PALAM:10 < PALAMLV:3	; 【[恐怖]<PALAMLV:3】
 	L = 2
-ELSEIF PALAM:10 < PALAMLV:4
+ELSEIF PALAM:10 < PALAMLV:4	; 【[恐怖]<PALAMLV:4】
 	L = 3
-ELSEIF PALAM:10 < PALAMLV:5
+ELSEIF PALAM:10 < PALAMLV:5	; 【[恐怖]<PALAMLV:5】
 	L = 4
 ELSE
 	L = 5
@@ -498,60 +503,60 @@ IF L
 ENDIF
 
 ;反抗的
-IF TALENT:11 == 1
+IF TALENT:11 == 1	; 【[反抗的]】
 	A -= 5
 ENDIF
 ;気丈
-IF TALENT:12 == 1
+IF TALENT:12 == 1	; 【[気丈]】
 	A -= 5
 ENDIF
 ;素直
-IF TALENT:13
+IF TALENT:13	; 【[素直]】
 	A += 5
 ENDIF
 ;自尊心
-IF TALENT:15 == 1
+IF TALENT:15 == 1	; 【[プライド高い]】
 	A -= 15
 ENDIF
 ;プライド低い
-IF TALENT:17
+IF TALENT:17	; 【[プライド低い]】
 	A += 5
 ENDIF
 ;目立ちたがり
-IF TALENT:28
+IF TALENT:28	; 【[目立ちたがり]】
 	A += 2
 ENDIF
 ;抑圧
-IF TALENT:32 == 1
+IF TALENT:32 == 1	; 【[抑圧]】
 	A -= 10
 ENDIF
 ;抵抗
-IF TALENT:34 == 1
+IF TALENT:34 == 1	; 【[抵抗]】
 	A -= 10
 ENDIF
 ;弱味
-IF TALENT:37 == 1
+IF TALENT:37 == 1	; 【[弱味]】
 	A += 12
-ELSEIF TALENT:37 == 2
+ELSEIF TALENT:37 == 2	; 【[弱味:強]】
 	A += 20
 ENDIF
 ;即落ち
-IF TALENT:73
+IF TALENT:73	; 【[即落ち]】
 	A += 10
 ENDIF
 
 ;淫乱化
-IF TALENT:76 && TFLAG:44
+IF TALENT:76 && TFLAG:44	; 【[淫乱] / [ウフフ中]】
 	A += 5
 ENDIF
 
 ;妄信
-IF TALENT:86
+IF TALENT:86	; 【[妄信]】
 	A += 8
 ENDIF
 
 ;服従
-IF TALENT:180
+IF TALENT:180	; 【[服従]】
 	A += 10
 ENDIF
 
@@ -566,57 +571,57 @@ IF TALENT:182
 ENDIF
 
 ;恋人
-IF TALENT:153 && ASSIPLAY == 0
+IF TALENT:153 && ASSIPLAY == 0	; 【[恋人] / 調教者:[主人]】
 	A += 15
 ENDIF
 ;親愛
-IF TALENT:88 && ASSIPLAY == 0
+IF TALENT:88 && ASSIPLAY == 0	; 【[親愛] / 調教者:[主人]】
 	A += 30
 ENDIF
 
 ;調教者の素質
 ;魅惑
-IF TALENT:PLAYER:91
+IF TALENT:PLAYER:91	; 【PLAYER:[魅惑]】
 	A += 6
 ENDIF
 ;謎の魅力
-IF TALENT:PLAYER:92
+IF TALENT:PLAYER:92	; 【PLAYER:[謎の魅力]】
 	A += 6
 ENDIF
 
 ;ターゲット主体コマンド
 IF B
 	;サド
-	IF TALENT:83
+	IF TALENT:83	; 【[サド]】
 		A += 3
 	ENDIF
 	;マゾっ気
-	IF ABL:PLAYER:8 >= 3
+	IF ABL:PLAYER:8 >= 3	; 【PLAYER:[マゾっ気]Lv>=3】
 		A += ABL:PLAYER:8 / 3
 	ENDIF
 ELSE
 	;サド
-	IF TALENT:PLAYER:83
+	IF TALENT:PLAYER:83	; 【PLAYER:[サド]】
 		A += 3
 	ENDIF
 	;サドっ気
-	IF ABL:PLAYER:15 >= 3
+	IF ABL:PLAYER:15 >= 3	; 【PLAYER:[サドっ気]Lv>=3】
 		A += ABL:PLAYER:15 / 3
 	ENDIF
 ENDIF
 ;狂気の目発動中
-IF TFLAG:72 == 1
+IF TFLAG:72 == 1	; 【[狂気の目発動中フラグ？]==1】
 	A -= 15
 ENDIF
 
 ;酔ってる
-IF TFLAG:47 >= 5
+IF TFLAG:47 >= 5	; 【[酩酊度]>=5】
 	A += TFLAG:47 / 5
 ENDIF
 
 ;助手の素質
 ;鼓舞
-IF TALENT:PLAYER:118
+IF TALENT:PLAYER:118	; 【PLAYER:[鼓舞]】
 	A += 1
 ENDIF
 
@@ -639,7 +644,7 @@ ENDIF
 
 IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	;ABL:従順
-	IF ABL:0
+	IF ABL:0	; 【[親密]】
 		PRINTS ABLNAME:0
 		PRINTV 'LV,ABL:0,'(,ABL:0 * 3,')
 		S = 1
@@ -648,7 +653,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	;ターゲット主体コマンド
 	IF B
 		;ABL:サドっ気
-		IF ABL:15
+		IF ABL:15	; 【[サドっ気]】
 			SIF S
 				PRINT  + 
 			PRINTS ABLNAME:15
@@ -657,7 +662,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		ENDIF
 	ELSE
 		;ABL:マゾっ気
-		IF ABL:8
+		IF ABL:8	; 【[マゾっ気]】
 			SIF S
 				PRINT  + 
 			PRINTS ABLNAME:8
@@ -667,10 +672,10 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;レズ調教
-	IF TALENT:PLAYER:122 == 0 && TALENT:TARGET:122 == 0
+	IF TALENT:PLAYER:122 == 0 && TALENT:TARGET:122 == 0	; 【PLAYER:[オトコ]なし / TARGET:[オトコ]なし】
 		;ウフフかどうか
-		IF TFLAG:44
-			IF TALENT:153 == 0
+		IF TFLAG:44	; 【[ウフフ中]】
+			IF TALENT:153 == 0	; 【[恋人]なし】
 				PRINT  - 
 				PRINTFORM %TALENTNAME:153%じゃない
 				PRINTV '(,5,')
@@ -684,7 +689,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;ABL:レズっ気
-		IF ABL:9
+		IF ABL:9	; 【[レズっ気]】
 			SIF S
 				PRINT  + 
 			PRINTS ABLNAME:9
@@ -692,7 +697,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;ABL:レズ中毒
-		IF ABL:12
+		IF ABL:12	; 【[レズ中毒]】
 			SIF S
 				PRINT  + 
 			PRINTS ABLNAME:12
@@ -700,7 +705,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;TALENT:両刀
-		IF TALENT:81
+		IF TALENT:81	; 【[両刀]】
 			SIF S
 				PRINT  + 
 			PRINTS TALENTNAME:81
@@ -708,7 +713,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;好奇心
-		IF TALENT:23
+		IF TALENT:23	; 【[好奇心]】
 			SIF S
 				PRINT  + 
 			PRINTS TALENTNAME:23
@@ -716,7 +721,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;保守的
-		IF TALENT:24 && TFLAG:44
+		IF TALENT:24 && TFLAG:44	; 【[保守的] / [ウフフ中]】
 			PRINT  - 
 			PRINTS TALENTNAME:24
 			PRINTV '(,13,')
@@ -724,7 +729,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		ENDIF
 	ELSE
 		;好奇心
-		IF TALENT:23
+		IF TALENT:23	; 【[好奇心]】
 			SIF S
 				PRINT  + 
 			PRINTS TALENTNAME:23
@@ -732,9 +737,9 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;保守的
-		IF TALENT:24
+		IF TALENT:24	; 【[保守的]】
 			T = 5
-			SIF TFLAG:44
+			SIF TFLAG:44	; 【[ウフフ中]】
 				T = 10
 			PRINT  - 
 			PRINTS TALENTNAME:24
@@ -744,7 +749,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;刻印チェック
-	IF MARK:0
+	IF MARK:0	; 【[苦痛依存]】
 		SIF S
 			PRINT  + 
 		PRINTS MARKNAME:0
@@ -752,22 +757,22 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 
-	IF TALENT:15
+	IF TALENT:15	; 【[プライド高い]】
 		T = 4
-	ELSEIF TALENT:17
+	ELSEIF TALENT:17	; 【[プライド低い]】
 		T = 1
 	ELSE
 		T = 2
 	ENDIF
 
-	IF MARK:2
+	IF MARK:2	; 【[既成事実]】
 		SIF S
 			PRINT  + 
 		PRINTS MARKNAME:2
 		PRINTV 'LV,MARK:2,'(,MARK:2 * 3 * T,')
 		S = 1
 	ENDIF
-	IF MARK:3
+	IF MARK:3	; 【[反発感情]】
 		PRINT  - 
 		PRINTS MARKNAME:3
 		PRINTV 'LV,MARK:3,'(,MARK:3 * 2 * T,')
@@ -775,15 +780,15 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;PALAM:恭順
-	IF PALAM:4 < PALAMLV:1
+	IF PALAM:4 < PALAMLV:1	; 【[恭順]<PALAMLV:1】
 		L = 0
-	ELSEIF PALAM:4 < PALAMLV:2
+	ELSEIF PALAM:4 < PALAMLV:2	; 【[恭順]<PALAMLV:2】
 		L = 1
-	ELSEIF PALAM:4 < PALAMLV:3
+	ELSEIF PALAM:4 < PALAMLV:3	; 【[恭順]<PALAMLV:3】
 		L = 2
-	ELSEIF PALAM:4 < PALAMLV:4
+	ELSEIF PALAM:4 < PALAMLV:4	; 【[恭順]<PALAMLV:4】
 		L = 3
-	ELSEIF PALAM:4 < PALAMLV:5
+	ELSEIF PALAM:4 < PALAMLV:5	; 【[恭順]<PALAMLV:5】
 		L = 4
 	ELSE
 		L = 5
@@ -797,15 +802,15 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;PALAM:恐怖
-	IF PALAM:10 < PALAMLV:1
+	IF PALAM:10 < PALAMLV:1	; 【[恐怖]<PALAMLV:1】
 		L = 0
-	ELSEIF PALAM:10 < PALAMLV:2
+	ELSEIF PALAM:10 < PALAMLV:2	; 【[恐怖]<PALAMLV:2】
 		L = 1
-	ELSEIF PALAM:10 < PALAMLV:3
+	ELSEIF PALAM:10 < PALAMLV:3	; 【[恐怖]<PALAMLV:3】
 		L = 2
-	ELSEIF PALAM:10 < PALAMLV:4
+	ELSEIF PALAM:10 < PALAMLV:4	; 【[恐怖]<PALAMLV:4】
 		L = 3
-	ELSEIF PALAM:10 < PALAMLV:5
+	ELSEIF PALAM:10 < PALAMLV:5	; 【[恐怖]<PALAMLV:5】
 		L = 4
 	ELSE
 		L = 5
@@ -819,21 +824,21 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;反抗的
-	IF TALENT:11
+	IF TALENT:11	; 【[反抗的]】
 		PRINT  - 
 		PRINTS TALENTNAME:11
 		PRINTV '(,5,')
 		S = 1
 	ENDIF
 	;気丈
-	IF TALENT:12
+	IF TALENT:12	; 【[気丈]】
 		PRINT  - 
 		PRINTS TALENTNAME:12
 		PRINTV '(,5,')
 		S = 1
 	ENDIF
 	;素直
-	IF TALENT:13
+	IF TALENT:13	; 【[素直]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:13
@@ -841,14 +846,14 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;自尊心
-	IF TALENT:15
+	IF TALENT:15	; 【[プライド高い]】
 		PRINT  - 
 		PRINTS TALENTNAME:15
 		PRINTV '(,15,')
 		S = 1
 	ENDIF
 	;プライド低い
-	IF TALENT:17
+	IF TALENT:17	; 【[プライド低い]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:17
@@ -856,7 +861,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;目立ちたがり
-	IF TALENT:28
+	IF TALENT:28	; 【[目立ちたがり]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:28
@@ -864,21 +869,21 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;抑圧
-	IF TALENT:32
+	IF TALENT:32	; 【[抑圧]】
 		PRINT  - 
 		PRINTS TALENTNAME:32
 		PRINTV '(,10,')
 		S = 1
 	ENDIF
 	;抵抗
-	IF TALENT:34
+	IF TALENT:34	; 【[抵抗]】
 		PRINT  - 
 		PRINTS TALENTNAME:34
 		PRINTV '(,10,')
 		S = 1
 	ENDIF
 	;弱味
-	IF TALENT:37
+	IF TALENT:37	; 【[弱味]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:37
@@ -886,7 +891,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;即落ち
-	IF TALENT:73
+	IF TALENT:73	; 【[即落ち]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:73
@@ -895,7 +900,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;淫乱化
-	IF TALENT:76 && TFLAG:44
+	IF TALENT:76 && TFLAG:44	; 【[淫乱] / [ウフフ中]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:76
@@ -904,7 +909,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;妄信
-	IF TALENT:86
+	IF TALENT:86	; 【[妄信]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:86
@@ -913,7 +918,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;服従
-	IF TALENT:180
+	IF TALENT:180	; 【[服従]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:180
@@ -940,7 +945,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;恋人
-	IF TALENT:153 && ASSIPLAY == 0
+	IF TALENT:153 && ASSIPLAY == 0	; 【[恋人] / 調教者:[主人]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:153
@@ -948,7 +953,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;親愛
-	IF TALENT:88 && ASSIPLAY == 0
+	IF TALENT:88 && ASSIPLAY == 0	; 【[親愛] / 調教者:[主人]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:88
@@ -958,7 +963,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 	;調教者の素質
 	;魅惑
-	IF TALENT:PLAYER:91
+	IF TALENT:PLAYER:91	; 【PLAYER:[魅惑]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:91
@@ -966,7 +971,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		S = 1
 	ENDIF
 	;謎の魅力
-	IF TALENT:PLAYER:92
+	IF TALENT:PLAYER:92	; 【PLAYER:[謎の魅力]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:92
@@ -977,7 +982,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	;ターゲット主体コマンド
 	IF B
 		;サド
-		IF TALENT:83
+		IF TALENT:83	; 【[サド]】
 			SIF S
 				PRINT  + 
 			PRINTS TALENTNAME:83
@@ -985,7 +990,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;マゾっ気
-		IF ABL:PLAYER:8 >= 3
+		IF ABL:PLAYER:8 >= 3	; 【PLAYER:[マゾっ気]Lv>=3】
 			SIF S
 				PRINT  + 
 			PRINTS ABLNAME:8
@@ -994,7 +999,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		ENDIF
 	ELSE
 		;サド
-		IF TALENT:PLAYER:83
+		IF TALENT:PLAYER:83	; 【PLAYER:[サド]】
 			SIF S
 				PRINT  + 
 			PRINTS TALENTNAME:83
@@ -1002,7 +1007,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			S = 1
 		ENDIF
 		;サドっ気
-		IF ABL:PLAYER:15 >= 3
+		IF ABL:PLAYER:15 >= 3	; 【PLAYER:[サドっ気]Lv>=3】
 			SIF S
 				PRINT  + 
 			PRINTS ABLNAME:15
@@ -1011,7 +1016,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		ENDIF
 	ENDIF
 	;狂気の目発動中
-	IF TFLAG:72 == 1
+	IF TFLAG:72 == 1	; 【[狂気の目発動中フラグ？]==1】
 		SIF S
 			PRINT  - 
 		PRINT 狂気の目発動中
@@ -1020,14 +1025,14 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 	ENDIF
 
 	;酔ってる
-	IF TFLAG:47 >= 5
+	IF TFLAG:47 >= 5	; 【[酩酊度]>=5】
 		SIF S
 			PRINT  + 
-		IF TFLAG:47 >= 60
+		IF TFLAG:47 >= 60	; 【[酩酊度]>=60】
 			PRINT 泥酔
-		ELSEIF TFLAG:47 >= 30
+		ELSEIF TFLAG:47 >= 30	; 【[酩酊度]>=30】
 			PRINT 酩酊
-		ELSEIF TFLAG:47 >= 5
+		ELSEIF TFLAG:47 >= 5	; 【[酩酊度]>=5】
 			PRINT ほろ酔い
 		ENDIF
 		PRINTV '(,TFLAG:47 / 5,')
@@ -1036,10 +1041,10 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 
 	;助手の素質
 	;鼓舞
-	IF TALENT:PLAYER:118
+	IF TALENT:PLAYER:118	; 【PLAYER:[鼓舞]】
 		SIF S
 			PRINT  + 
-		SIF ASSIPLAY
+		SIF ASSIPLAY	; 【調教者:[助手]】
 			PRINT 助手が
 		PRINTS TALENTNAME:118
 		PRINTV '(,1,')

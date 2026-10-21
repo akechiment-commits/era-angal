@@ -400,10 +400,9 @@ ELSEIF TFLAG:86 == 2	;委員会室
 		LOCAL:0 = 4
 	ELSEIF TFLAG:84 == 2
 		PRINTFORML ── 図書委員会 ──
-		LOCAL:1 = 27
-		LOCAL:2 = 55
-		LOCAL:3 = 69
-		LOCAL:0 = 3
+		LOCAL:1 = 64
+		LOCAL:2 = 70
+		LOCAL:0 = 2
 	ELSEIF TFLAG:84 == 3
 		PRINTFORML ── 緑化委員会 ──
 		LOCAL:1 = 43
@@ -411,20 +410,21 @@ ELSEIF TFLAG:86 == 2	;委員会室
 		LOCAL:0 = 2
 	ELSEIF TFLAG:84 == 4
 		PRINTFORML ── 美化委員会 ──
+		LOCAL:1 = 27
+		LOCAL:2 = 55
+		LOCAL:3 = 69
+		LOCAL:0 = 3
+	ELSEIF TFLAG:84 == 5
+		PRINTFORML ── 選挙管理委員会 ──
+		LOCAL:1 = 8
+		LOCAL:2 = 20
+		LOCAL:0 = 2
+	ELSEIF TFLAG:84 == 6
+		PRINTFORML ── 風紀委員会 ──
 		LOCAL:1 = 5
 		LOCAL:2 = 23
 		LOCAL:3 = 60
 		LOCAL:0 = 3
-	ELSEIF TFLAG:84 == 5
-		PRINTFORML ── 風紀委員会 ──
-		LOCAL:1 = 64
-		LOCAL:2 = 70
-		LOCAL:0 = 2
-	ELSEIF TFLAG:84 == 6
-		PRINTFORML ── 風紀委員会 ──
-		LOCAL:1 = 8
-		LOCAL:2 = 20
-		LOCAL:0 = 2
 	ENDIF
 
 ENDIF
@@ -487,9 +487,9 @@ ELSEIF A == 3
 	PRINTFORML 誰もいなかった。静かな空間で少し休憩することにした。
 	PRINTFORML 気分がすっきりした。
 	PRINTL
-	IF BASE:0 < MAXBASE:0
+	IF BASE:0 < MAXBASE:0	; 【[体力]<MAXBASE:0】
 		BASE:0 += MAXBASE:0 / 5 + 1
-		IF BASE:0 > MAXBASE:0
+		IF BASE:0 > MAXBASE:0	; 【[体力]>MAXBASE:0】
 			BASE:0 = MAXBASE:0
 		ENDIF
 	ENDIF
@@ -533,9 +533,22 @@ PRINTL
 PRINTFORML %CALLNAME:A%の好感度 +3（現在：{CFLAG:A:2}）
 PRINTL
 
+;衰弱療養中チェック
+IF BASE:A:0 <= 0	; 【A:[体力]<=0】
+	PRINTFORML （しかし%NAME:A%は体力が尽きて衰弱しており、保健室で療養中（お休み）のようだ……）
+	PRINTFORMW （体力が正の値に回復するまでパートナーにすることはできません）
+	RETURN 1
+ENDIF
+
 ;パートナー選択
 IF TARGET == A
 	PRINTFORMW %CALLNAME:A%はもう今のパートナーだ。
+	RETURN 1
+ENDIF
+
+;衰弱療養（休み）のキャラは誘えない
+IF BASE:A:0 <= 0	; 【A:[体力]<=0】
+	PRINTFORMW %CALLNAME:A%は体力が尽き({BASE:A:0})衰弱療養（休み）のため、パートナーに誘えません。
 	RETURN 1
 ENDIF
 
@@ -550,6 +563,12 @@ $INPUT_LOOP_ENC
 INPUT
 IF RESULT == 0
 	TARGET = A
+	;パートナー交代時に衰弱療養・気絶関連の残留フラグを確実にクリア
+	TFLAG:898 = 0
+	TFLAG:899 = 0
+	TFLAG:301 = 0
+	TFLAG:51 = 0
+	TFLAG:999 = 0
 	PRINTFORMW %NAME:A%がパートナーになった。
 	TRYCALLFORM CHAR_FIRST_PARTNER_{NO:A}
 	RETURN 1
@@ -619,6 +638,11 @@ PRINTFORML [0] 帰る
 $OD_SCENE_LOOP
 INPUT
 IF RESULT == 1
+	IF BASE:A:0 <= 0	; 【A:[体力]<=0】
+		PRINTFORML （しかし%NAME:A%は体力が尽きて衰弱しており、保健室で療養中（お休み）のようだ……）
+		PRINTFORMW （体力が正の値に回復するまで一緒に過ごすことはできません）
+		RETURN 1
+	ENDIF
 	TARGET = A
 	TFLAG:87 = 0
 	TFLAG:88 = 0

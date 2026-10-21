@@ -1,0 +1,2185 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+;--------------------------------------------------
+;実績一覧
+;--------------------------------------------------
+;実績システムはセーブ固有のFLAGで管理する（原作eratohoJのGLOBAL＝セーブ間共有方式から変更）。
+;GLOBAL:0-154(主人公素質記録)・900-1000(コンフィグ等)は実績と無関係、そのままGLOBAL。
+;実績関連の新FLAG番地（旧GLOBAL番号+4800。SPカウンタのみ旧GLOBAL:205との番地衝突バグを分離）:
+;FLAG:5000:イベント編（旧GLOBAL:200）
+;FLAG:5001:ウフフ編（旧GLOBAL:201）
+;FLAG:5002:イベント編-上級編-（旧GLOBAL:202）
+;FLAG:5003:ウフフ編-Lunatic-（旧GLOBAL:203）
+;FLAG:5004:月別イベント完走ビット（旧GLOBAL:204）
+;FLAG:5005:射精記録実績ビット（旧GLOBAL:205のビットマスク用途のみ）
+;FLAG:5006-5012:カード編実績（旧GLOBAL:206-212）
+;FLAG:5020/5021:最大体力/気力強化Lv（旧GLOBAL:220/221）
+;FLAG:5040:累計射精量（旧GLOBAL:240）
+;FLAG:5041:消費済みスキルポイント（旧GLOBAL:205のカウンタ用途。ビットマスクと番地衝突していたため分離）
+;FLAG:5100+n/5200+n/5300+n/5400+n:カード集計一時領域（旧GLOBAL:300+n/400+n/500+n/600+n）
+;FLAG:5800+n:相手別累計射精量（旧GLOBAL:1000+n）
+;FLAG:57 どの実績を開いていたかの記録に使用
+;--------------------------------------------------
+@TROPHY
+CALL TROPHY_CHECK_200
+CALL TROPHY_CHECK_202
+CALL TROPHY_CHECK_205
+CALL TROPHY_CHECK_CARDS
+
+VARSET B, 0
+VARSET S, 0
+VARSET G, 0
+VARSET P, 0
+VARSET LOCAL, 0
+LOCAL:2 = 200+FLAG:57
+
+$PRINT_LIST
+VARSET RESULT, 0
+DRAWLINE
+PRINTFORM  ■ 生徒手帳　
+IF FLAG:57 == 0
+	PRINTFORML イベント編　　
+ELSEIF FLAG:57 == 1
+	PRINTFORML ウフフ編　　
+ELSEIF FLAG:57 == 2
+	PRINTFORML イベント編-上級編-　　
+ELSEIF FLAG:57 == 3
+	PRINTFORML キャラ編
+ELSEIF FLAG:57 == 4
+	PRINTFORML カード編
+ELSEIF FLAG:57 == 5
+	PRINTFORML 射精記録
+ENDIF
+DRAWLINE
+IF FLAG:57 == 3
+	CALL TROPHY_CHAR_LIST
+	GOTO CHAR_LIST_END
+ELSEIF FLAG:57 == 4
+	CALL TROPHY_CARD_LIST
+	GOTO CHAR_LIST_END
+ENDIF
+FOR LOCAL, 0, 50
+	TRYCALLFORM TROPHY_{LOCAL:2}_{LOCAL}
+	SIF RESULTS:0 == ""
+		CONTINUE
+	GETBIT FLAG:(LOCAL:2 + 4800), LOCAL
+	IF RESULTS:0 == "ブロンズ"
+		SETCOLOR 151, 107, 47
+		PRINT [B] 
+	ELSEIF RESULTS:0 == "シルバー"
+		SETCOLOR 158, 158, 158
+		PRINT [S] 
+	ELSEIF RESULTS:0 == "ゴールド"
+		SETCOLOR 180, 158, 83
+		PRINT [G] 
+	ELSEIF RESULTS:0 == "プラチナ"
+		SETCOLOR 217, 217, 140
+		PRINT [P] 
+	ENDIF
+	RESETCOLOR
+	SIF RESULT == 0
+		SETCOLOR 105, 105, 105
+	SIF RESULT == 0 && (RESULTS:0 == "シルバー" || RESULTS:0 == "ゴールド" || RESULTS:0 == "プラチナ")
+		RESULTS:1 = ？？？
+	SIF RESULT == 0 && (RESULTS:0 == "ゴールド" || RESULTS:0 == "プラチナ")
+		RESULTS:2 = ？？？
+	;イベント編-上級編-は実績名長
+	IF FLAG:57 == 2
+		PRINTFORM %RESULTS:1,28,LEFT%%RESULTS:2%
+	ELSE
+		PRINTFORM %RESULTS:1,22,LEFT%%RESULTS:2%
+	ENDIF
+	;実績によっては現在の達成率をパーセント表示
+	IF RESULT:1 && RESULT == 0
+		PRINT [ 現在
+		PRINTFORM {RESULT:1}
+		PRINT % ]
+	ENDIF
+	PRINTL 
+	VARSET RESULT, 0
+	VARSET RESULTS, ""
+	RESETCOLOR
+NEXT
+
+;イベント完走実績（イベント編のみ）
+SIF FLAG:57 == 0
+	CALL TROPHY_EVENT_LIST
+;技能実績（イベント編のみ）
+SIF FLAG:57 == 0
+	CALL TROPHY_SKILL_LIST
+;射精統計（射精記録のみ）
+SIF FLAG:57 == 5
+	CALL TROPHY_EJAC_STATS
+
+DRAWLINE
+;実績数カウント
+SIF FLAG:57 != 4
+	CALL TROPHY_COUNT(LOCAL:2)
+;イベント完走を加算（イベント編のみ）
+SIF FLAG:57 == 0
+	CALL TROPHY_COUNT_EVENTS
+;技能実績を加算（イベント編のみ）
+SIF FLAG:57 == 0
+	CALL TROPHY_COUNT_SKILLS
+;カード編カウント
+SIF FLAG:57 == 4
+	CALL TROPHY_COUNT_CARDS
+;実績数表示
+CALL TROPHY_COUNT_PRINT
+$CHAR_LIST_END
+DRAWLINE
+PRINTFORML 全実績総合
+;全実績数カウント
+CALL TROPHY_COUNT_ALL
+;実績数表示
+CALL TROPHY_COUNT_PRINT
+DRAWLINE
+PRINTFORML [  0] イベント編
+PRINTFORML [  1] ウフフ編
+SIF FLAG:5002
+	PRINTFORML [  2] イベント編-上級編-
+PRINTFORML [  3] キャラ編
+;PRINTFORML [  3] ウフフ編-Lunatic-
+PRINTFORML [  4] カード編
+PRINTFORML [  5] 射精記録
+PRINTFORML [100] 戻る
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT >= 0 && RESULT <= 1
+	FLAG:57 = RESULT
+	LOCAL:2 = 200+FLAG:57
+	GOTO PRINT_LIST
+ELSEIF RESULT == 2 && FLAG:5002
+	FLAG:57 = RESULT
+	LOCAL:2 = 200+FLAG:57
+	GOTO PRINT_LIST
+ELSEIF RESULT == 3
+	FLAG:57 = RESULT
+	GOTO PRINT_LIST
+ELSEIF RESULT == 4
+	FLAG:57 = RESULT
+	GOTO PRINT_LIST
+ELSEIF RESULT == 5
+	FLAG:57 = RESULT
+	LOCAL:2 = 205
+	GOTO PRINT_LIST
+ELSE
+	PRINTFORML 正しい値を入力してください
+	GOTO INPUT_LOOP
+ENDIF
+
+;--------------------------------------------------
+;実績数カウント
+;--------------------------------------------------
+@TROPHY_COUNT(ARG)
+LOADGLOBAL
+
+VARSET B, 0
+VARSET S, 0
+VARSET G, 0
+VARSET P, 0
+VARSET LOCAL, 0
+
+
+FOR LOCAL, 0, 50
+	TRYCALLFORM TROPHY_{ARG}_{LOCAL}
+	SIF RESULTS:0 == ""
+		CONTINUE
+	GETBIT FLAG:(ARG + 4800), LOCAL
+	IF RESULTS:0 == "ブロンズ"
+		B:0 += 1
+		B:1 += RESULT
+	ELSEIF RESULTS:0 == "シルバー"
+		S:0 += 1
+		S:1 += RESULT
+	ELSEIF RESULTS:0 == "ゴールド"
+		G:0 += 1
+		G:1 += RESULT
+	ELSEIF RESULTS:0 == "プラチナ"
+		P:0 += 1
+		P:1 += RESULT
+	ENDIF
+	VARSET RESULTS, ""
+NEXT
+
+;--------------------------------------------------
+;全実績数カウント
+;--------------------------------------------------
+@TROPHY_COUNT_ALL
+#DIM LCOUNT, 1
+VARSET LOCAL, 0
+
+FOR LCOUNT, 200, 203
+	CALL TROPHY_COUNT(LCOUNT)
+	LOCAL:0 += B:0
+	LOCAL:1 += S:0
+	LOCAL:2 += G:0
+	LOCAL:3 += P:0
+	
+	LOCAL:10 += B:1
+	LOCAL:11 += S:1
+	LOCAL:12 += G:1
+	LOCAL:13 += P:1
+NEXT
+B:0 = LOCAL:0
+S:0 = LOCAL:1
+G:0 = LOCAL:2
+P:0 = LOCAL:3
+
+B:1 = LOCAL:10
+S:1 = LOCAL:11
+G:1 = LOCAL:12
+P:1 = LOCAL:13
+
+;射精記録を合計に加算
+CALL TROPHY_COUNT(205)
+LOCAL:0 += B:0
+LOCAL:1 += S:0
+LOCAL:2 += G:0
+LOCAL:3 += P:0
+LOCAL:10 += B:1
+LOCAL:11 += S:1
+LOCAL:12 += G:1
+LOCAL:13 += P:1
+;キャラ編を合計に加算
+CALL TROPHY_COUNT_CHAR
+B:0 += LOCAL:0
+S:0 += LOCAL:1
+G:0 += LOCAL:2
+P:0 += LOCAL:3
+B:1 += LOCAL:10
+S:1 += LOCAL:11
+G:1 += LOCAL:12
+P:1 += LOCAL:13
+
+;イベント完走を合計に加算
+CALL TROPHY_COUNT_EVENTS
+;技能実績を合計に加算
+CALL TROPHY_COUNT_SKILLS
+;カード編を合計に加算
+CALL TROPHY_COUNT_CARDS
+
+;--------------------------------------------------
+;実績数表示
+;--------------------------------------------------
+@TROPHY_COUNT_PRINT
+LOCAL:0 = B:0 + S:0 + G:0 + P:0
+LOCAL:1 = B:1 + S:1 + G:1 + P:1
+PRINTFORM 達成率 {(LOCAL:1)*100/(LOCAL:0)}％　
+CALL PRINT_BAR, LOCAL:1, LOCAL:0, 32, UNICODE(0x2585), UNICODE(0x2585), 0x0082FF, 0x002050
+IF LOCAL:0 == LOCAL:1
+	SETCOLOR 217, 217, 140 
+	PRINT [P]
+	RESETCOLOR
+ENDIF
+PRINTL 
+PRINTFORML 実績数 {LOCAL:1}/{LOCAL:0}
+SETCOLOR 217, 217, 140 
+PRINT [P]
+RESETCOLOR
+PRINTFORM {P:1} 
+
+SETCOLOR 180, 158, 83
+PRINT [G]
+RESETCOLOR
+PRINTFORM {G:1} 
+
+SETCOLOR 158, 158, 158
+PRINT [S]
+RESETCOLOR
+PRINTFORM {S:1} 
+
+SETCOLOR 151, 107, 47
+PRINT [B]
+RESETCOLOR
+PRINTFORM {B:1} 
+
+PRINTL 
+
+;--------------------------------------------------
+;判定（FLAG:5000）
+;--------------------------------------------------
+@TROPHY_CHECK_200
+LOADGLOBAL
+
+VARSET T, 0
+VARSET LOCAL, 0
+;経験～～以上等の実績はここで一括して判定
+FOR LOCAL, 1, CHARANUM
+NEXT
+
+VARSET LOCAL, 0
+FOR LOCAL, 0, 50
+	;条件をクリアしているか
+	TRYCALLFORM TROPHY_200_{LOCAL}
+	SIF RESULT
+		SETBIT FLAG:5000, LOCAL
+NEXT
+
+SAVEGLOBAL
+
+;全実績取得判定
+;実績数カウント
+CALL TROPHY_COUNT(200)
+LOCAL:0 = B:0 + S:0 + G:0
+LOCAL:1 = B:1 + S:1 + G:1
+SIF LOCAL:0 == LOCAL:1
+	FLAG:5000 |= 1p0
+
+SAVEGLOBAL
+
+;--------------------------------------------------
+;イベント編実績（FLAG:5000）
+;--------------------------------------------------
+;例
+;@TROPHY_200_X
+;RESULTS:0 = 実績のランク
+;RESULTS:1 = 実績名
+;RESULTS:2 = 説明文
+;;達成判定(条件を達成したらRETURN 1)
+;SIF 1
+;	RETURN 1
+
+@TROPHY_200_0
+RESULTS:0 = プラチナ
+RESULTS:1 = eraあんガル+制覇
+RESULTS:2 = イベント編全実績取得
+;達成判定は別
+
+@TROPHY_200_1
+RESULTS:0 = ブロンズ
+RESULTS:1 = eraあんガル+デビュー
+RESULTS:2 = eraあんガルをプレイした
+;達成判定
+RETURN 1
+
+@TROPHY_200_10
+RESULTS:0 = ブロンズ
+RESULTS:1 = 貯金好き
+RESULTS:2 = 所持金$100000以上達成
+;達成判定
+SIF MONEY >= 100000
+	RETURN 1
+
+@TROPHY_200_11
+RESULTS:0 = ブロンズ
+RESULTS:1 = ミリオンダラー！
+RESULTS:2 = 所持金$1000000以上達成
+;達成判定
+SIF MONEY >= 1000000
+	RETURN 1
+
+@TROPHY_200_12
+RESULTS:0 = シルバー
+RESULTS:1 = この世は金
+RESULTS:2 = 所持金$10000000以上達成
+;達成判定
+SIF MONEY >= 10000000
+	RETURN 1
+
+@TROPHY_200_13
+RESULTS:0 = ゴールド
+RESULTS:1 = 億万長者！
+RESULTS:2 = 所持金$100000000以上達成
+;達成判定
+SIF MONEY >= 100000000
+	RETURN 1
+
+@TROPHY_200_14
+RESULTS:0 = ブロンズ
+RESULTS:1 = 見習い錬金術師
+RESULTS:2 = 調合を行う
+;達成判定
+VARSET LOCAL, 0
+FOR LOCAL, 2001, 2700
+	;調合済みレシピ数確認
+	SIF FLAG:LOCAL == 1
+		LOCAL:1 += 1
+NEXT
+;1種調合していれば達成
+SIF LOCAL:1 >= 1
+	RETURN 1
+
+@TROPHY_200_15
+RESULTS:0 = ブロンズ
+RESULTS:1 = 普通の錬金術師
+RESULTS:2 = 50種類調合する
+;達成判定
+VARSET LOCAL, 0
+FOR LOCAL, 2001, 2700
+	;調合済みレシピ数確認
+	SIF FLAG:LOCAL == 1
+		LOCAL:1 += 1
+NEXT
+SIF LOCAL:1 < 50
+	RESULT:1 = LOCAL:1 * 100 / 50
+
+;50種調合していれば達成
+SIF LOCAL:1 >= 50
+	RETURN 1
+
+@TROPHY_200_16
+RESULTS:0 = シルバー
+RESULTS:1 = ベテラン錬金術師
+RESULTS:2 = 100種類調合する
+;達成判定
+VARSET LOCAL, 0
+FOR LOCAL, 2001, 2700
+	;調合済みレシピ数確認
+	SIF FLAG:LOCAL == 1
+		LOCAL:1 += 1
+NEXT
+SIF LOCAL:1 < 100
+	RESULT:1 = LOCAL:1 * 100 / 100
+
+;100種調合していれば達成
+SIF LOCAL:1 >= 100
+	RETURN 1
+
+@TROPHY_200_17
+RESULTS:0 = シルバー
+RESULTS:1 = アンビリーバボー！
+RESULTS:2 = 奇跡の薬を調合する
+;達成判定
+SIF FLAG:2666 == 1
+	RETURN 1
+
+@TROPHY_200_18
+RESULTS:0 = シルバー
+RESULTS:1 = 禁断の知識
+RESULTS:2 = 蓬莱の薬を調合する
+;達成判定
+SIF FLAG:2002 == 1
+	RETURN 1
+
+@TROPHY_200_19
+RESULTS:0 = ゴールド
+RESULTS:1 = 偉業達成
+RESULTS:2 = 全種類調合する
+;達成判定
+CALL RECIPE_NAME
+VARSET LOCAL, 0
+FOR LOCAL, 2001, 2700
+	;レシピが設定されていて調合してなければダメ
+	SIF FLAG:LOCAL == 1
+		LOCAL:1 += 1
+	SIF STR:LOCAL != ""
+		LOCAL:2 += 1
+NEXT
+SIF LOCAL:1 < LOCAL:2
+	RESULT:1 = LOCAL:1 * 100 / LOCAL:2
+
+;全て調合していれば達成
+SIF LOCAL:1 == LOCAL:2
+	RETURN 1
+
+@TROPHY_CHECK_201(ARG, ARG:1)
+LOADGLOBAL
+
+;ARG　4：四重絶頂、5：五重絶頂
+;ARG:1　4：最強四重絶頂、5：最強五重絶頂
+SIF ARG == 4
+	FLAG:5001 |= 1p1
+SIF ARG:1 == 4
+	FLAG:5001 |= 1p2
+SIF ARG == 5
+	FLAG:5001 |= 1p3
+SIF ARG:1 == 5
+	FLAG:5001 |= 1p4
+
+VARSET LOCAL, 0
+FOR LOCAL, 0, 50
+	;条件をクリアしているか
+	TRYCALLFORM TROPHY_201_{LOCAL}
+	SIF RESULT
+		SETBIT FLAG:5001, LOCAL
+NEXT
+
+SAVEGLOBAL
+
+VARSET LOCAL, 0
+;全実績取得判定
+;実績数カウント
+CALL TROPHY_COUNT(201)
+LOCAL:0 = B:0 + S:0 + G:0
+LOCAL:1 = B:1 + S:1 + G:1
+SIF LOCAL:0 == LOCAL:1
+	FLAG:5001 |= 1p0
+
+SAVEGLOBAL
+
+;--------------------------------------------------
+;ウフフ編実績（FLAG:5001）
+;--------------------------------------------------
+;例
+;@TROPHY_201_X
+;RESULTS:0 = 実績のランク
+;RESULTS:1 = 実績名
+;RESULTS:2 = 説明文
+;;達成判定(条件を達成したらRETURN 1)
+;SIF 1
+;	RETURN 1
+
+@TROPHY_201_0
+RESULTS:0 = プラチナ
+RESULTS:1 = ウフフマスター
+RESULTS:2 = ウフフ編全実績取得
+;達成判定は別
+
+@TROPHY_201_1
+RESULTS:0 = ブロンズ
+RESULTS:1 = 四重絶頂！
+RESULTS:2 = 四重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_201_2
+RESULTS:0 = シルバー
+RESULTS:1 = 最強四重絶頂！
+RESULTS:2 = 最強四重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_201_3
+RESULTS:0 = シルバー
+RESULTS:1 = 五重絶頂！
+RESULTS:2 = 五重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_201_4
+RESULTS:0 = ゴールド
+RESULTS:1 = 最強五重絶頂！
+RESULTS:2 = 最強五重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_201_5
+RESULTS:0 = ブロンズ
+RESULTS:1 = クリ好き
+RESULTS:2 = C絶頂25回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:0 >= 25
+	RETURN 1
+
+@TROPHY_201_6
+RESULTS:0 = シルバー
+RESULTS:1 = クリトリスマニア
+RESULTS:2 = C絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:0 >= 50
+	RETURN 1
+
+@TROPHY_201_7
+RESULTS:0 = ゴールド
+RESULTS:1 = クリトリスマスター
+RESULTS:2 = C絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:0 >= 100
+	RETURN 1
+
+@TROPHY_201_8
+RESULTS:0 = ブロンズ
+RESULTS:1 = 秘所好き
+RESULTS:2 = V絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:1 >= 50
+	RETURN 1
+
+@TROPHY_201_9
+RESULTS:0 = シルバー
+RESULTS:1 = 秘所マニア
+RESULTS:2 = V絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:1 >= 100
+	RETURN 1
+
+@TROPHY_201_10
+RESULTS:0 = ゴールド
+RESULTS:1 = 秘所マスター
+RESULTS:2 = V絶頂200回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:1 >= 200
+	RETURN 1
+
+@TROPHY_201_11
+RESULTS:0 = ブロンズ
+RESULTS:1 = アナル好き
+RESULTS:2 = A絶頂30回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:2 >= 30
+	RETURN 1
+
+@TROPHY_201_12
+RESULTS:0 = シルバー
+RESULTS:1 = アナルマニア
+RESULTS:2 = A絶頂70回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:2 >= 70
+	RETURN 1
+
+@TROPHY_201_13
+RESULTS:0 = ゴールド
+RESULTS:1 = アナルマスター
+RESULTS:2 = A絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:2 >= 100
+	RETURN 1
+
+@TROPHY_201_14
+RESULTS:0 = ブロンズ
+RESULTS:1 = 乳好き
+RESULTS:2 = B絶頂25回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:3 >= 25
+	RETURN 1
+
+@TROPHY_201_15
+RESULTS:0 = シルバー
+RESULTS:1 = 乳マニア
+RESULTS:2 = B絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:3 >= 50
+	RETURN 1
+
+@TROPHY_201_16
+RESULTS:0 = ゴールド
+RESULTS:1 = 乳マスター
+RESULTS:2 = B絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:3 >= 100
+	RETURN 1
+
+@TROPHY_201_17
+RESULTS:0 = ブロンズ
+RESULTS:1 = キス好き
+RESULTS:2 = M絶頂25回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:6 >= 25
+	RETURN 1
+
+@TROPHY_201_18
+RESULTS:0 = シルバー
+RESULTS:1 = キスマニア
+RESULTS:2 = M絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:6 >= 50
+	RETURN 1
+
+@TROPHY_201_19
+RESULTS:0 = ゴールド
+RESULTS:1 = キスマスター
+RESULTS:2 = M絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:6 >= 100
+	RETURN 1
+
+
+
+;--------------------------------------------------
+;判定（FLAG:5002　イベント編-上級編-）
+;--------------------------------------------------
+@TROPHY_CHECK_202
+LOADGLOBAL
+
+VARSET T, 0
+VARSET LOCAL, 0
+;好感度200000以上で上級編解放
+FOR LOCAL, 1, CHARANUM
+	SIF CFLAG:LOCAL:2 >= 200000	; 【LOCAL:[好感度]>=200000】
+		FLAG:5002 |= 1p20
+	SIF CFLAG:LOCAL:2 >= 300000	; 【LOCAL:[好感度]>=300000】
+		FLAG:5002 |= 1p21
+	SIF CFLAG:LOCAL:2 >= 500000	; 【LOCAL:[好感度]>=500000】
+		FLAG:5002 |= 1p22
+	SIF CFLAG:LOCAL:2 >= 999999	; 【LOCAL:[好感度]>=999999】
+		FLAG:5002 |= 1p23
+NEXT
+
+VARSET LOCAL, 0
+FOR LOCAL, 0, 50
+	;条件をクリアしているか
+	TRYCALLFORM TROPHY_202_{LOCAL}
+	SIF RESULT
+		SETBIT FLAG:5002, LOCAL
+NEXT
+
+SIF FLAG:5002
+	FLAG:5002 |= 1p1
+
+SAVEGLOBAL
+
+;全実績取得判定（上級編全実績 + イベント編全制覇 + 全カード収集）
+CALL TROPHY_COUNT(202)
+LOCAL:0 = B:0 + S:0 + G:0
+LOCAL:1 = B:1 + S:1 + G:1
+GETBIT FLAG:5000, 0
+LOCAL:2 = RESULT
+GETBIT FLAG:5012, 0
+LOCAL:3 = RESULT
+SIF LOCAL:0 == LOCAL:1 && LOCAL:2 && LOCAL:3
+	FLAG:5002 |= 1p0
+
+SAVEGLOBAL
+
+;--------------------------------------------------
+;イベント編-上級編-実績（FLAG:5002）
+;--------------------------------------------------
+@TROPHY_202_0
+RESULTS:0 = プラチナ
+RESULTS:1 = eraあんガル+完全制覇
+RESULTS:2 = イベント編全制覇＋全カード収集
+;達成判定は別
+
+@TROPHY_202_1
+RESULTS:0 = ブロンズ
+RESULTS:1 = 上級編デビュー
+RESULTS:2 = 上級編解放（好感度200000以上達成）
+;達成判定
+GETBIT FLAG:5002, 20
+SIF RESULT
+	RETURN 1
+
+@TROPHY_202_10
+RESULTS:0 = ブロンズ
+RESULTS:1 = ゴールデン・セレクション
+RESULTS:2 = 所持金$999999999999999達成
+;達成判定
+SIF MONEY >= 999999999999999
+	RETURN 1
+
+@TROPHY_202_11
+RESULTS:0 = ブロンズ
+RESULTS:1 = プラチナ・ハート
+RESULTS:2 = 所持金$9999999999999999達成
+;達成判定
+SIF MONEY >= 9999999999999999
+	RETURN 1
+
+@TROPHY_202_12
+RESULTS:0 = シルバー
+RESULTS:1 = ダイヤモンド・ウェディング
+RESULTS:2 = 所持金$99999999999999999達成
+;達成判定
+SIF MONEY >= 99999999999999999
+	RETURN 1
+
+@TROPHY_202_13
+RESULTS:0 = ゴールド
+RESULTS:1 = GOLD RUSH!!
+RESULTS:2 = 所持金$999999999999999999(最大値)達成
+;達成判定
+SIF MONEY >= 999999999999999999
+	RETURN 1
+
+@TROPHY_202_20
+RESULTS:0 = ブロンズ
+RESULTS:1 = プラトニック・ラブ
+RESULTS:2 = 好感度200000以上
+;達成判定は一括
+
+
+@TROPHY_202_21
+RESULTS:0 = ブロンズ
+RESULTS:1 = ハッピー・デイズ
+RESULTS:2 = 好感度300000以上
+;達成判定は一括
+
+
+@TROPHY_202_22
+RESULTS:0 = シルバー
+RESULTS:1 = スウィート・メモリーズ
+RESULTS:2 = 好感度500000以上
+;達成判定は一括
+
+
+
+@TROPHY_202_23
+RESULTS:0 = ゴールド
+RESULTS:1 = 変わらぬ愛
+RESULTS:2 = 好感度999999以上
+;達成判定は一括
+
+
+@TROPHY_CHECK_203(ARG, ARG:1)
+LOADGLOBAL
+
+;ARG　4：四重絶頂、5：五重絶頂
+;ARG:1　4：最強四重絶頂、5：最強五重絶頂
+SIF ARG == 4
+	FLAG:5003 |= 1p1
+SIF ARG:1 == 4
+	FLAG:5003 |= 1p2
+SIF ARG == 5
+	FLAG:5003 |= 1p3
+SIF ARG:1 == 5
+	FLAG:5003 |= 1p4
+
+VARSET LOCAL, 0
+FOR LOCAL, 0, 50
+	;条件をクリアしているか
+	TRYCALLFORM TROPHY_203_{LOCAL}
+	SIF RESULT
+		SETBIT FLAG:5003, LOCAL
+NEXT
+
+SAVEGLOBAL
+
+VARSET LOCAL, 0
+;全実績取得判定
+;実績数カウント
+CALL TROPHY_COUNT(203)
+LOCAL:0 = B:0 + S:0 + G:0
+LOCAL:1 = B:1 + S:1 + G:1
+SIF LOCAL:0 == LOCAL:1
+	FLAG:5003 |= 1p0
+
+SAVEGLOBAL
+
+;--------------------------------------------------
+;ウフフ編実績（FLAG:5003）
+;--------------------------------------------------
+;例
+;@TROPHY_203_X
+;RESULTS:0 = 実績のランク
+;RESULTS:1 = 実績名
+;RESULTS:2 = 説明文
+;;達成判定(条件を達成したらRETURN 1)
+;SIF 1
+;	RETURN 1
+
+@TROPHY_203_0
+RESULTS:0 = プラチナ
+RESULTS:1 = ウフフマスター
+RESULTS:2 = ウフフ編全実績取得
+;達成判定は別
+
+@TROPHY_203_1
+RESULTS:0 = ブロンズ
+RESULTS:1 = 四重絶頂！
+RESULTS:2 = 四重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_203_2
+RESULTS:0 = シルバー
+RESULTS:1 = 最強四重絶頂！
+RESULTS:2 = 最強四重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_203_3
+RESULTS:0 = シルバー
+RESULTS:1 = 五重絶頂！
+RESULTS:2 = 五重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_203_4
+RESULTS:0 = ゴールド
+RESULTS:1 = 最強五重絶頂！
+RESULTS:2 = 最強五重絶頂を達成する
+;達成判定は一括
+
+@TROPHY_203_5
+RESULTS:0 = ブロンズ
+RESULTS:1 = クリ好き
+RESULTS:2 = C絶頂25回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:0 >= 25
+	RETURN 1
+
+@TROPHY_203_6
+RESULTS:0 = シルバー
+RESULTS:1 = クリトリスマニア
+RESULTS:2 = C絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:0 >= 50
+	RETURN 1
+
+@TROPHY_203_7
+RESULTS:0 = ゴールド
+RESULTS:1 = クリトリスマスター
+RESULTS:2 = C絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:0 >= 100
+	RETURN 1
+
+@TROPHY_203_8
+RESULTS:0 = ブロンズ
+RESULTS:1 = 秘所好き
+RESULTS:2 = V絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:1 >= 50
+	RETURN 1
+
+@TROPHY_203_9
+RESULTS:0 = シルバー
+RESULTS:1 = 秘所マニア
+RESULTS:2 = V絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:1 >= 100
+	RETURN 1
+
+@TROPHY_203_10
+RESULTS:0 = ゴールド
+RESULTS:1 = 秘所マスター
+RESULTS:2 = V絶頂200回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:1 >= 200
+	RETURN 1
+
+@TROPHY_203_11
+RESULTS:0 = ブロンズ
+RESULTS:1 = アナル好き
+RESULTS:2 = A絶頂30回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:2 >= 30
+	RETURN 1
+
+@TROPHY_203_12
+RESULTS:0 = シルバー
+RESULTS:1 = アナルマニア
+RESULTS:2 = A絶頂70回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:2 >= 70
+	RETURN 1
+
+@TROPHY_203_13
+RESULTS:0 = ゴールド
+RESULTS:1 = アナルマスター
+RESULTS:2 = A絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:2 >= 100
+	RETURN 1
+
+@TROPHY_203_14
+RESULTS:0 = ブロンズ
+RESULTS:1 = 乳好き
+RESULTS:2 = B絶頂25回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:3 >= 25
+	RETURN 1
+
+@TROPHY_203_15
+RESULTS:0 = シルバー
+RESULTS:1 = 乳マニア
+RESULTS:2 = B絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:3 >= 50
+	RETURN 1
+
+@TROPHY_203_16
+RESULTS:0 = ゴールド
+RESULTS:1 = 乳マスター
+RESULTS:2 = B絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:3 >= 100
+	RETURN 1
+
+@TROPHY_203_17
+RESULTS:0 = ブロンズ
+RESULTS:1 = キス好き
+RESULTS:2 = M絶頂25回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:6 >= 25
+	RETURN 1
+
+@TROPHY_203_18
+RESULTS:0 = シルバー
+RESULTS:1 = キスマニア
+RESULTS:2 = M絶頂50回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:6 >= 50
+	RETURN 1
+
+@TROPHY_203_19
+RESULTS:0 = ゴールド
+RESULTS:1 = キスマスター
+RESULTS:2 = M絶頂100回以上を達成する
+;達成判定
+SIF TARGET > 0 && EX:6 >= 100
+	RETURN 1
+
+
+
+
+
+
+
+;--------------------------------------------------
+;特殊能力取得（スキルポイント制）
+; FLAG:5041 = 消費済みスキルポイント（旧GLOBAL:205。射精記録実績ビットマスク(新FLAG:5005)との番地衝突バグを分離）
+; 獲得SP = B:1×1 + S:1×2 + G:1×3 + P:1×10
+; コスト: 強化系8SP、それ以外5SP
+;--------------------------------------------------
+@TROPHY_FEAT_GET
+;=== スキルポイント計算 ===
+CALL TROPHY_COUNT_ALL
+LOCAL:90 = B:1 + S:1 * 2 + G:1 * 3 + P:1 * 10
+LOADGLOBAL
+LOCAL:91 = LOCAL:90 - FLAG:5041
+
+VARSET LOCALS, ""
+LOCALS:0 = 恋人ボーナス
+LOCALS:1 = 恋人ボーナス強化
+LOCALS:2 = 恋慕ボーナス
+LOCALS:3 = 恋慕ボーナス強化
+LOCALS:4 = 親愛ボーナス
+LOCALS:5 = 親愛ボーナス強化
+LOCALS:6 = 淫乱ボーナス
+LOCALS:7 = 淫乱ボーナス強化
+LOCALS:8 = 舌使い
+LOCALS:9 = 針さばき
+LOCALS:10 = 調合知識
+LOCALS:11 = 魅惑
+LOCALS:12 = 魅力
+LOCALS:13 = 回復早い
+LOCALS:14 = 日光浴
+LOCALS:15 = 月光浴
+LOCALS:16 = 治療
+LOCALS:17 = 鼓舞
+LOCALS:18 = 淫具知識
+LOCALS:19 = 最大体力強化
+LOCALS:20 = 最大気力強化
+
+DRAWLINE
+PRINTFORML スキルポイント: {LOCAL:91} SP（累計取得 {LOCAL:90} / 消費済 {FLAG:5041}）
+PRINTFORML B×1 / S×2 / G×3 / P×10　強化系8SP・それ以外5SP
+PRINTL 
+PRINTFORML 　[番号]　特殊能力　　　　コスト  状態
+
+FOR LOCAL, 0, 21
+	;コスト判定（強化系=8、段階購入=現Lv*2+5、その他=5）
+	IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
+		LOCAL:2 = 8
+	ELSEIF LOCAL == 19 || LOCAL == 20
+		LOCAL:2 = 5 + TALENT:MASTER:(LOCALS:LOCAL) * 2
+	ELSE
+		LOCAL:2 = 5
+	ENDIF
+	PRINTFORM [{LOCAL,3}] 
+	IF LOCAL == 19 || LOCAL == 20
+		;段階購入スキルは特別表示
+		IF LOCAL == 19
+			LOCAL:3 = FLAG:5020
+		ELSE
+			LOCAL:3 = FLAG:5021
+		ENDIF
+		PRINTFORM %LOCALS:LOCAL,12,LEFT%Lv{LOCAL:3,2} 
+		IF LOCAL:2 <= LOCAL:91
+			PRINTFORML {LOCAL:2}SP [購入可]
+		ELSE
+			SETCOLOR 105, 105, 105
+			PRINTFORML {LOCAL:2}SP [SP不足]
+			RESETCOLOR
+		ENDIF
+	ELSEIF TALENT:MASTER:(LOCALS:LOCAL)
+		SETCOLOR 80, 200, 220
+		PRINTFORM %LOCALS:LOCAL,16,LEFT%
+		RESETCOLOR
+		PRINTFORML {LOCAL:2}SP [取得済]
+	ELSEIF LOCAL:2 <= LOCAL:91
+		PRINTFORM %LOCALS:LOCAL,16,LEFT%
+		PRINTFORML {LOCAL:2}SP [取得可]
+	ELSE
+		SETCOLOR 105, 105, 105
+		PRINTFORM %LOCALS:LOCAL,16,LEFT%
+		RESETCOLOR
+		PRINTFORML {LOCAL:2}SP [SP不足]
+	ENDIF
+NEXT
+PRINTL 
+DRAWLINE
+PRINTL [ 98] 全特殊能力取得
+PRINTL [ 99] 全特殊能力を忘れる（ポイント全還元）
+PRINTL [100] 戻る
+
+$INPUT_LOOP
+INPUT
+IF RESULT == 100
+	RETURN 0
+ELSEIF RESULT == 98
+	;全スキル取得（SP不足チェックあり）
+	LOCAL:3 = 0
+	FOR LOCAL, 0, 21
+		SIF LOCAL == 19 || LOCAL == 20
+			CONTINUE
+		IF TALENT:MASTER:(LOCALS:LOCAL) == 0
+			IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
+				LOCAL:3 += 8
+			ELSE
+				LOCAL:3 += 5
+			ENDIF
+		ENDIF
+	NEXT
+	IF LOCAL:3 > LOCAL:91
+		PRINTFORMW SP不足（必要{LOCAL:3} / 現在{LOCAL:91}）
+	ELSE
+		FOR LOCAL, 0, 21
+			SIF LOCAL == 19 || LOCAL == 20
+				CONTINUE
+			IF TALENT:MASTER:(LOCALS:LOCAL) == 0
+				TALENT:MASTER:(LOCALS:LOCAL) = 1
+				IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
+					FLAG:5041 += 8
+				ELSE
+					FLAG:5041 += 5
+				ENDIF
+			ENDIF
+		NEXT
+		SAVEGLOBAL
+		PRINTFORMW 全特殊能力を取得しました（{LOCAL:3}SP消費）
+	ENDIF
+	RESTART
+ELSEIF RESULT == 99
+	;全スキルを忘れる
+	LOCAL:3 = 0
+	FOR LOCAL, 0, 21
+		SIF LOCAL == 19 || LOCAL == 20
+			CONTINUE
+		IF TALENT:MASTER:(LOCALS:LOCAL)
+			TALENT:MASTER:(LOCALS:LOCAL) = 0
+			IF LOCAL == 1 || LOCAL == 3 || LOCAL == 5 || LOCAL == 7
+				LOCAL:3 += 8
+			ELSE
+				LOCAL:3 += 5
+				ENDIF
+		ENDIF
+	NEXT
+	FLAG:5041 -= LOCAL:3
+	SAVEGLOBAL
+	PRINTFORMW 全特殊能力を忘れました（{LOCAL:3}SP還元）
+	RESTART
+ELSEIF RESULT >= 21 || LOCALS:RESULT == ""
+	PRINTFORML 正しい値を入力してください
+	GOTO INPUT_LOOP
+ENDIF
+
+LOCAL:4 = RESULT
+;段階購入スキルの特別処理
+IF LOCAL:4 == 19 || LOCAL:4 == 20
+	CALL TROPHY_FEAT_MAXBASE, LOCAL:4
+	RESTART
+ENDIF
+
+;コスト
+IF LOCAL:4 == 1 || LOCAL:4 == 3 || LOCAL:4 == 5 || LOCAL:4 == 7
+	LOCAL:5 = 8
+ELSE
+	LOCAL:5 = 5
+ENDIF
+
+IF TALENT:MASTER:(LOCALS:(LOCAL:4))
+	;取得済み → 忘れる確認
+	;強化スキルを保持している場合は連動して忘れる
+	LOCAL:6 = 0
+	LOCAL:7 = -1
+	IF LOCAL:4 == 0 && TALENT:MASTER:恋人ボーナス強化
+		LOCAL:7 = 1
+		LOCAL:6 = 8
+	ELSEIF LOCAL:4 == 2 && TALENT:MASTER:恋慕ボーナス強化
+		LOCAL:7 = 3
+		LOCAL:6 = 8
+	ELSEIF LOCAL:4 == 4 && TALENT:MASTER:親愛ボーナス強化
+		LOCAL:7 = 5
+		LOCAL:6 = 8
+	ELSEIF LOCAL:4 == 6 && TALENT:MASTER:淫乱ボーナス強化
+		LOCAL:7 = 7
+		LOCAL:6 = 8
+	ENDIF
+	LOCAL:8 = LOCAL:5 + LOCAL:6
+	IF LOCAL:7 >= 0
+		PRINTFORML 【%LOCALS:(LOCAL:4)%】【%LOCALS:(LOCAL:7)%】をまとめて忘れますか？
+	ELSE
+		PRINTFORML 【%LOCALS:(LOCAL:4)%】を忘れますか？
+	ENDIF
+	PRINTFORML {LOCAL:8}SP を返還します
+	PRINTL [0] はい
+	PRINTL [1] いいえ
+	$INPUT_LOOP_FORGET
+	INPUT
+	IF RESULT == 0
+		TALENT:MASTER:(LOCALS:(LOCAL:4)) = 0
+		FLAG:5041 -= LOCAL:5
+		IF LOCAL:7 >= 0
+			TALENT:MASTER:(LOCALS:(LOCAL:7)) = 0
+			FLAG:5041 -= LOCAL:6
+		ENDIF
+		SAVEGLOBAL
+		PRINTFORMW 忘れました（{LOCAL:8}SP還元）
+		RESTART
+	ELSEIF RESULT == 1
+		RESTART
+	ELSE
+		GOTO INPUT_LOOP_FORGET
+	ENDIF
+ELSEIF LOCAL:5 <= LOCAL:91
+	;未取得 かつ SP足りる → 習得確認
+	;強化系は対応する基底スキルが必要
+	LOCAL:6 = 0
+	IF LOCAL:4 == 1 && TALENT:MASTER:恋人ボーナス == 0
+		LOCAL:6 = 1
+	ELSEIF LOCAL:4 == 3 && TALENT:MASTER:恋慕ボーナス == 0
+		LOCAL:6 = 1
+	ELSEIF LOCAL:4 == 5 && TALENT:MASTER:親愛ボーナス == 0
+		LOCAL:6 = 1
+	ELSEIF LOCAL:4 == 7 && TALENT:MASTER:淫乱ボーナス == 0
+		LOCAL:6 = 1
+	ENDIF
+	IF LOCAL:6
+		PRINTFORMW 先に基本スキル（強化前）を習得してください
+		RESTART
+	ENDIF
+	TRYCALLFORM TROPHY_FEAT_GET_%LOCALS:(LOCAL:4)%
+	PRINTFORML 効果：%RESULTS:3%
+	PRINTFORML 【%LOCALS:(LOCAL:4)%】を習得しますか？（{LOCAL:5}SP）
+	PRINTL [0] はい
+	PRINTL [1] いいえ
+	$INPUT_LOOP_GET
+	INPUT
+	IF RESULT == 0
+		TALENT:MASTER:(LOCALS:(LOCAL:4)) = 1
+		FLAG:5041 += LOCAL:5
+		SAVEGLOBAL
+		PRINTFORMW 【%LOCALS:(LOCAL:4)%】を習得しました（{LOCAL:5}SP消費）
+		RESTART
+	ELSEIF RESULT == 1
+		RESTART
+	ELSE
+		GOTO INPUT_LOOP_GET
+	ENDIF
+ELSE
+	PRINTFORMW スキルポイントが不足しています（必要{LOCAL:5} / 現在{LOCAL:91}）
+	RESTART
+ENDIF
+
+@TROPHY_FEAT_GET_恋人ボーナス
+;Stage50をクリア
+RESULTS:3 = 恋人が1人いるごとに好感度増加量が1パーセント加算されます
+SIF FLAG:5000 & 1p5
+	RETURN 1
+
+@TROPHY_FEAT_GET_恋人ボーナス強化
+;Stage99をクリア
+RESULTS:3 = 恋人ボーナスの効果が2倍になります
+SIF FLAG:5000 & 1p6
+	RETURN 1
+
+@TROPHY_FEAT_GET_恋慕ボーナス
+;好感度50000以上の実績を取得済みかチェック
+RESULTS:3 = 恋慕が1人いるごとにデッキ発揮値が1パーセント増加します
+SIF FLAG:5000 & 1p22
+	RETURN 1
+
+@TROPHY_FEAT_GET_恋慕ボーナス強化
+;好感度100000以上の実績を取得済みかチェック
+RESULTS:3 = 恋慕ボーナスの効果が2倍になります
+SIF FLAG:5000 & 1p23
+	RETURN 1
+
+@TROPHY_FEAT_GET_親愛ボーナス
+;あなた様に50勝する
+RESULTS:3 = 親愛が1人いるごとにイベントポイント獲得量が1パーセント増加します
+SIF FLAG:5000 & 1p8
+	RETURN 1
+
+@TROPHY_FEAT_GET_親愛ボーナス強化
+;あなた様に99勝する
+RESULTS:3 = 親愛ボーナスの効果が2倍になります
+SIF FLAG:5000 & 1p9
+	RETURN 1
+
+@TROPHY_FEAT_GET_淫乱ボーナス
+;最強四重絶頂を達成する
+CALL TROPHY_201_1
+RESULTS:3 = 淫乱が1人いるごとに珠入手量が1パーセント増加します
+SIF FLAG:5001 & 1p1
+	RETURN 1
+
+@TROPHY_FEAT_GET_淫乱ボーナス強化
+;最強五重絶頂を達成する
+CALL TROPHY_201_3
+RESULTS:3 = 淫乱ボーナスの効果が2倍になります
+SIF FLAG:5001 & 1p3
+	RETURN 1
+
+@TROPHY_FEAT_GET_舌使い
+;M絶頂100回以上を達成する
+CALL TROPHY_201_18
+RESULTS:3 = フェラ系コマンドの効果が高くなります
+SIF FLAG:5001 & 1p18
+	RETURN 1
+
+@TROPHY_FEAT_GET_針さばき
+;あなた様に勝利する
+RESULTS:3 = 「針」の効果が高くなります
+SIF FLAG:5000 & 1p7
+	RETURN 1
+
+@TROPHY_FEAT_GET_調合知識
+;全種類調合する
+CALL TROPHY_200_19
+RESULTS:3 = 特殊なアイテムを購入でき、コマンド「媚薬」の体力と気力の消費が少なくなります
+SIF FLAG:5000 & 1p19
+	RETURN 1
+
+@TROPHY_FEAT_GET_魅惑
+;四重絶頂を達成する
+CALL TROPHY_201_0
+RESULTS:3 = コマンドを実行しやすくなり、パラメータを全体的に上げやすくなります
+SIF FLAG:5001 & 1p0
+	RETURN 1
+
+@TROPHY_FEAT_GET_魅力
+;五重絶頂を達成する
+CALL TROPHY_201_2
+RESULTS:3 = コマンド実行時のムード上昇量が+1されます
+SIF FLAG:5001 & 1p2
+	RETURN 1
+
+@TROPHY_FEAT_GET_回復早い
+;戦闘力1000000以上
+RESULTS:3 = 体力の回復量が上昇します
+SIF FLAG:5000 & 1p27
+	RETURN 1
+
+@TROPHY_FEAT_GET_日光浴
+;ゴールドトロフィー取得
+CALL TROPHY_COUNT_ALL
+RESULTS:2 = ゴールドトロフィー取得
+RESULTS:3 = 昼休憩時に体力の回復量が上昇します
+SIF G:1
+	RETURN 1
+
+@TROPHY_FEAT_GET_月光浴
+;戦闘力530000以上
+RESULTS:3 = 夜休憩時に体力の回復量が上昇します
+SIF FLAG:5000 & 1p26
+	RETURN 1
+
+@TROPHY_FEAT_GET_治療
+;100種類調合する
+CALL TROPHY_200_16
+RESULTS:3 = 仲間の体力の回復量が上昇します
+SIF FLAG:5000 & 1p16
+	RETURN 1
+
+@TROPHY_FEAT_GET_鼓舞
+;Stage50をクリア
+RESULTS:3 = コマンドを実行しやすくなり、パートナーと過ごす終了後の自慰回数が増加します
+SIF FLAG:5000 & 1p5
+	RETURN 1
+
+@TROPHY_FEAT_GET_淫具知識
+;最強五重絶頂を達成する
+CALL TROPHY_201_3
+RESULTS:3 = 道具を使ったコマンドの効果が上昇します
+SIF FLAG:5001 & 1p3
+	RETURN 1
+
+;--------------------------------------------------
+; @TROPHY_CHAR_LIST  キャラ編一覧表示
+; 全71キャラの恋慕・親愛・淫乱達成状況を一覧表示
+;--------------------------------------------------
+@TROPHY_CHAR_LIST
+VARSET LOCAL, 0
+LOCAL:10 = 0	;恋慕達成数
+LOCAL:11 = 0	;親愛達成数
+LOCAL:12 = 0	;相愛達成数
+FOR LOCAL, 1, CHARANUM
+	;関係状態ビット: 1=恋慕, 2=親愛, 4=相愛
+	LOCAL:2 = 0
+	SIF TALENT:LOCAL:85	; 【LOCAL:[恋慕]】
+		LOCAL:2 += 1
+	SIF TALENT:LOCAL:88	; 【LOCAL:[親愛]】
+		LOCAL:2 += 2
+	SIF TALENT:LOCAL:89	; 【LOCAL:[相愛]】
+		LOCAL:2 += 4
+
+	IF TALENT:LOCAL:89 && TALENT:LOCAL:76 && TALENT:LOCAL:74 && TALENT:LOCAL:78 && TALENT:LOCAL:75 && TALENT:LOCAL:77 && TALENT:LOCAL:589	; 【LOCAL:[相愛] / LOCAL:[淫乱] / LOCAL:[淫壷] / LOCAL:[淫乳] / LOCAL:[淫核] / LOCAL:[尻穴狂い] / LOCAL:[蕩唇]】
+		SETCOLOR 217, 217, 140
+		PRINT [P]
+	ELSEIF LOCAL:2 & 4
+		SETCOLOR 180, 158, 83
+		PRINT [G]
+	ELSEIF LOCAL:2 & 2
+		SETCOLOR 158, 158, 158
+		PRINT [S]
+	ELSEIF LOCAL:2 & 1
+		SETCOLOR 151, 107, 47
+		PRINT [B]
+	ELSE
+		SETCOLOR 105, 105, 105
+		PRINT [ ]
+	ENDIF
+	RESETCOLOR
+	PRINTFORM  %NAME:LOCAL,16,LEFT%
+	SIF TALENT:LOCAL:85	; 【LOCAL:[恋慕]】
+		PRINT [恋慕]
+	SIF TALENT:LOCAL:88	; 【LOCAL:[親愛]】
+		PRINT [親愛]
+	SIF TALENT:LOCAL:89	; 【LOCAL:[相愛]】
+		PRINT [相愛]
+	;好感度表示（<2000=グレー、2000-=オレンジ、10000-=水色、50000-=黄金）
+	IF CFLAG:LOCAL:2 >= 50000	; 【LOCAL:[好感度]>=50000】
+		SETCOLOR 230, 200, 0
+	ELSEIF CFLAG:LOCAL:2 >= 10000	; 【LOCAL:[好感度]>=10000】
+		SETCOLOR 80, 200, 220
+	ELSEIF CFLAG:LOCAL:2 >= 2000	; 【LOCAL:[好感度]>=2000】
+		SETCOLOR 210, 130, 40
+	ELSE
+		SETCOLOR 105, 105, 105
+	ENDIF
+	PRINTFORM  好感度{CFLAG:LOCAL:2}
+	RESETCOLOR
+	PRINTL
+
+	SIF TALENT:LOCAL:85	; 【LOCAL:[恋慕]】
+		LOCAL:10 += 1
+	SIF TALENT:LOCAL:88	; 【LOCAL:[親愛]】
+		LOCAL:11 += 1
+	SIF TALENT:LOCAL:89	; 【LOCAL:[相愛]】
+		LOCAL:12 += 1
+NEXT
+
+DRAWLINE
+PRINTFORML 恋慕 {LOCAL:10}/{CHARANUM-1}人　親愛 {LOCAL:11}/{CHARANUM-1}人　相愛 {LOCAL:12}/{CHARANUM-1}人
+
+;--------------------------------------------------
+; @TROPHY_COUNT_CHAR  キャラ編実績数集計
+; B=恋慕/S=親愛/G=相愛 の達成数をB:0/S:0/G:0等に格納
+;--------------------------------------------------
+@TROPHY_COUNT_CHAR
+#DIM LCHAR, 1
+VARSET B, 0
+VARSET S, 0
+VARSET G, 0
+VARSET P, 0
+VARSET LOCAL, 0
+
+;総数: 恋慕+好2k=B、親愛+好1万=S、相愛+好5万=G（各71+71=142）、P=1
+LCHAR = CHARANUM - 1
+B:0 = LCHAR * 2
+S:0 = LCHAR * 2
+G:0 = LCHAR * 2
+P:0 = 1
+
+;達成数カウント
+FOR LOCAL, 1, CHARANUM
+	SIF TALENT:LOCAL:85	; 【LOCAL:[恋慕]】
+		B:1 += 1
+	SIF CFLAG:LOCAL:2 >= 2000	; 【LOCAL:[好感度]>=2000】
+		B:1 += 1
+	SIF TALENT:LOCAL:88	; 【LOCAL:[親愛]】
+		S:1 += 1
+	SIF CFLAG:LOCAL:2 >= 10000	; 【LOCAL:[好感度]>=10000】
+		S:1 += 1
+	SIF TALENT:LOCAL:89	; 【LOCAL:[相愛]】
+		G:1 += 1
+	SIF CFLAG:LOCAL:2 >= 50000	; 【LOCAL:[好感度]>=50000】
+		G:1 += 1
+	;プラチナ条件カウント（相愛・淫乱・淫壺・淫乳・淫核・尻穴狂い・蕩唇 全所持）
+	IF TALENT:LOCAL:89 && TALENT:LOCAL:76 && TALENT:LOCAL:74 && TALENT:LOCAL:78 && TALENT:LOCAL:75 && TALENT:LOCAL:77 && TALENT:LOCAL:589	; 【LOCAL:[相愛] / LOCAL:[淫乱] / LOCAL:[淫壷] / LOCAL:[淫乳] / LOCAL:[淫核] / LOCAL:[尻穴狂い] / LOCAL:[蕩唇]】
+		LOCAL:8 += 1
+	ENDIF
+NEXT
+
+;プラチナ: 全キャラが全6条件達成
+SIF LOCAL:8 == LCHAR
+	P:1 = 1
+
+;--------------------------------------------------
+; @TROPHY_EVENT_LIST  イベント完走実績一覧表示
+; 月ごとに [完]/[ ] を表示
+;--------------------------------------------------
+@TROPHY_EVENT_LIST
+LOADGLOBAL
+DRAWLINE
+PRINTL 　イベント完走実績　20000PT達成で完走扱い
+FOR LOCAL, 1, 13
+	SELECTCASE LOCAL
+	CASE 1
+		LOCAL:5 = 0
+		LOCAL:6 = 4
+	CASE 2
+		LOCAL:5 = 4
+		LOCAL:6 = 4
+	CASE 3
+		LOCAL:5 = 8
+		LOCAL:6 = 4
+	CASE 4
+		LOCAL:5 = 12
+		LOCAL:6 = 5
+	CASE 5
+		LOCAL:5 = 17
+		LOCAL:6 = 5
+	CASE 6
+		LOCAL:5 = 22
+		LOCAL:6 = 5
+	CASE 7
+		LOCAL:5 = 27
+		LOCAL:6 = 4
+	CASE 8
+		LOCAL:5 = 31
+		LOCAL:6 = 5
+	CASE 9
+		LOCAL:5 = 36
+		LOCAL:6 = 4
+	CASE 10
+		LOCAL:5 = 40
+		LOCAL:6 = 4
+	CASE 11
+		LOCAL:5 = 44
+		LOCAL:6 = 4
+	CASE 12
+		LOCAL:5 = 48
+		LOCAL:6 = 4
+	ENDSELECT
+	PRINTFORM 　{LOCAL}月:
+	LOCAL:7 = 0
+	FOR LOCAL:4, 0, LOCAL:6
+		GETBIT FLAG:5004, LOCAL:5 + LOCAL:4
+		LOCAL:7 += RESULT
+		IF RESULT
+			SETCOLOR 80, 200, 220
+			PRINT [完]
+			RESETCOLOR
+		ELSE
+			SETCOLOR 105, 105, 105
+			PRINT [ ]
+			RESETCOLOR
+		ENDIF
+	NEXT
+	IF LOCAL:7 == LOCAL:6
+		SETCOLOR 255, 215, 0
+		PRINT  [G]
+		RESETCOLOR
+	ELSEIF LOCAL:7 >= 2
+		SETCOLOR 192, 192, 192
+		PRINT  [S]
+		RESETCOLOR
+	ENDIF
+	PRINTL
+NEXT
+
+;--------------------------------------------------
+; @TROPHY_COUNT_EVENTS  イベント完走実績数集計
+; 既存のB/S/G/Pに加算する（リセットしない）
+;--------------------------------------------------
+@TROPHY_COUNT_EVENTS
+LOADGLOBAL
+;イベント完走実績（B×52 / S×12 / G×12 / P×1）
+B:0 += 52
+S:0 += 12
+G:0 += 12
+P:0 += 1
+
+LOCAL:9 = 0
+FOR LOCAL, 1, 13
+	SELECTCASE LOCAL
+	CASE 1
+		LOCAL:5 = 0
+		LOCAL:6 = 4
+	CASE 2
+		LOCAL:5 = 4
+		LOCAL:6 = 4
+	CASE 3
+		LOCAL:5 = 8
+		LOCAL:6 = 4
+	CASE 4
+		LOCAL:5 = 12
+		LOCAL:6 = 5
+	CASE 5
+		LOCAL:5 = 17
+		LOCAL:6 = 5
+	CASE 6
+		LOCAL:5 = 22
+		LOCAL:6 = 5
+	CASE 7
+		LOCAL:5 = 27
+		LOCAL:6 = 4
+	CASE 8
+		LOCAL:5 = 31
+		LOCAL:6 = 5
+	CASE 9
+		LOCAL:5 = 36
+		LOCAL:6 = 4
+	CASE 10
+		LOCAL:5 = 40
+		LOCAL:6 = 4
+	CASE 11
+		LOCAL:5 = 44
+		LOCAL:6 = 4
+	CASE 12
+		LOCAL:5 = 48
+		LOCAL:6 = 4
+	ENDSELECT
+	LOCAL:7 = 0
+	FOR LOCAL:4, 0, LOCAL:6
+		GETBIT FLAG:5004, LOCAL:5 + LOCAL:4
+		LOCAL:7 += RESULT
+		LOCAL:9 += RESULT
+	NEXT
+	SIF LOCAL:7 >= 2
+		S:1 += 1
+	SIF LOCAL:7 == LOCAL:6
+		G:1 += 1
+NEXT
+
+B:1 += LOCAL:9
+SIF LOCAL:9 == 52
+	P:1 += 1
+
+;--------------------------------------------------
+; @TROPHY_SKILL_LIST  技能実績一覧表示
+; あなたの運動/表現/知識技能の達成状況
+;--------------------------------------------------
+@TROPHY_SKILL_LIST
+DRAWLINE
+PRINTL 　技能実績（あなたの技能値）
+;-- 運動技能
+PRINTFORM 　運動技能:{ABL:MASTER:93,4,RIGHT}
+IF ABL:MASTER:93 >= 10	; 【MASTER:[運動技能]Lv>=10】
+	SETCOLOR 151, 107, 47
+	PRINT [B]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+IF ABL:MASTER:93 >= 50	; 【MASTER:[運動技能]Lv>=50】
+	SETCOLOR 158, 158, 158
+	PRINT [S]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+IF ABL:MASTER:93 >= 100	; 【MASTER:[運動技能]Lv>=100】
+	SETCOLOR 180, 158, 83
+	PRINT [G]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+PRINTL
+;-- 表現技能
+PRINTFORM 　表現技能:{ABL:MASTER:94,4,RIGHT}
+IF ABL:MASTER:94 >= 10	; 【MASTER:[表現技能]Lv>=10】
+	SETCOLOR 151, 107, 47
+	PRINT [B]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+IF ABL:MASTER:94 >= 50	; 【MASTER:[表現技能]Lv>=50】
+	SETCOLOR 158, 158, 158
+	PRINT [S]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+IF ABL:MASTER:94 >= 100	; 【MASTER:[表現技能]Lv>=100】
+	SETCOLOR 180, 158, 83
+	PRINT [G]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+PRINTL
+;-- 知識技能
+PRINTFORM 　知識技能:{ABL:MASTER:95,4,RIGHT}
+IF ABL:MASTER:95 >= 10	; 【MASTER:[知識技能]Lv>=10】
+	SETCOLOR 151, 107, 47
+	PRINT [B]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+IF ABL:MASTER:95 >= 50	; 【MASTER:[知識技能]Lv>=50】
+	SETCOLOR 158, 158, 158
+	PRINT [S]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+IF ABL:MASTER:95 >= 100	; 【MASTER:[知識技能]Lv>=100】
+	SETCOLOR 180, 158, 83
+	PRINT [G]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+;プラチナ: 全3技能100達成
+IF ABL:MASTER:93 >= 100 && ABL:MASTER:94 >= 100 && ABL:MASTER:95 >= 100	; 【MASTER:[運動技能]Lv>=100 / MASTER:[表現技能]Lv>=100 / MASTER:[知識技能]Lv>=100】
+	SETCOLOR 217, 217, 140
+	PRINT [P]
+	RESETCOLOR
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+ENDIF
+PRINTL
+
+;--------------------------------------------------
+; @TROPHY_COUNT_SKILLS  技能実績数集計
+; B×3 / S×3 / G×3 / P×1
+;--------------------------------------------------
+@TROPHY_COUNT_SKILLS
+B:0 += 3
+S:0 += 3
+G:0 += 3
+P:0 += 1
+
+SIF ABL:MASTER:93 >= 10	; 【MASTER:[運動技能]Lv>=10】
+	B:1 += 1
+SIF ABL:MASTER:94 >= 10	; 【MASTER:[表現技能]Lv>=10】
+	B:1 += 1
+SIF ABL:MASTER:95 >= 10	; 【MASTER:[知識技能]Lv>=10】
+	B:1 += 1
+
+SIF ABL:MASTER:93 >= 50	; 【MASTER:[運動技能]Lv>=50】
+	S:1 += 1
+SIF ABL:MASTER:94 >= 50	; 【MASTER:[表現技能]Lv>=50】
+	S:1 += 1
+SIF ABL:MASTER:95 >= 50	; 【MASTER:[知識技能]Lv>=50】
+	S:1 += 1
+
+SIF ABL:MASTER:93 >= 100	; 【MASTER:[運動技能]Lv>=100】
+	G:1 += 1
+SIF ABL:MASTER:94 >= 100	; 【MASTER:[表現技能]Lv>=100】
+	G:1 += 1
+SIF ABL:MASTER:95 >= 100	; 【MASTER:[知識技能]Lv>=100】
+	G:1 += 1
+
+SIF ABL:MASTER:93 >= 100 && ABL:MASTER:94 >= 100 && ABL:MASTER:95 >= 100	; 【MASTER:[運動技能]Lv>=100 / MASTER:[表現技能]Lv>=100 / MASTER:[知識技能]Lv>=100】
+	P:1 += 1
+
+;--------------------------------------------------
+; @TROPHY_CHECK_CARDS  カード編実績チェック
+; FLAG:(3000+cardID) を全走査して FLAG:5006-212 に格納
+; FLAG:5006/207=ブロンズ, 208/209=ゴールド, 210/211=プラチナ（各キャラ）, 212=プラチナ（全収集）
+; charNo 1-63 → bit(charNo-1) in GLOBAL:X, charNo 64-71 → bit(charNo-64) in GLOBAL:(X+1)
+;--------------------------------------------------
+@TROPHY_CHECK_CARDS
+LOADGLOBAL
+;実績フラグリセット
+FLAG:5006 = 0
+FLAG:5007 = 0
+FLAG:5008 = 0
+FLAG:5009 = 0
+FLAG:5010 = 0
+FLAG:5011 = 0
+FLAG:5012 = 0
+;一時領域リセット（300+N=レア度ビット, 400+N=総種類数, 500+N=キラ数, 600+N=所持種類数）
+FOR LOCAL:99, 1, 72
+	FLAG:(5100+LOCAL:99) = 0
+	FLAG:(5200+LOCAL:99) = 0
+	FLAG:(5300+LOCAL:99) = 0
+	FLAG:(5400+LOCAL:99) = 0
+NEXT
+LOCAL:97 = 0	;全体で所持している種類数
+
+;全カード(1-1884)走査
+FOR LOCAL:95, 1, 1885
+	CALL CARD_GET_DATA, LOCAL:95
+	LOCAL:90 = RESULT:1	;キャラNo (1-71)
+	LOCAL:91 = RESULT:2	;レア度 (1-6)
+	IF LOCAL:90 >= 1 && LOCAL:90 <= 71 && LOCAL:91 >= 1 && LOCAL:91 <= 6
+		FLAG:(5200+LOCAL:90) += 1	;このキャラの総カード種類++
+		A = 3000 + LOCAL:95
+		LOCAL:96 = FLAG:A	;所持枚数
+		IF LOCAL:96 >= 1
+			LOCAL:97 += 1
+			FLAG:(5400+LOCAL:90) += 1	;所持種類数++
+			SETBIT FLAG:(5100+LOCAL:90), LOCAL:91 - 1	;レア度ビット（Bronze用）
+		ENDIF
+		SIF LOCAL:96 >= 12
+			FLAG:(5300+LOCAL:90) += 1	;キラ数++
+	ENDIF
+NEXT
+
+;プラチナ全収集: 全1884種所持
+SIF LOCAL:97 == 1884
+	SETBIT FLAG:5012, 0
+
+;各キャラの達成判定
+FOR LOCAL:99, 1, 72
+	LOCAL:88 = FLAG:(5100+LOCAL:99)	;レア度ビット（Bronze用）
+	LOCAL:89 = FLAG:(5200+LOCAL:99)	;総種類数
+	LOCAL:86 = FLAG:(5300+LOCAL:99)	;キラ数
+	LOCAL:87 = FLAG:(5400+LOCAL:99)	;所持種類数
+	;ブロンズ: N/R/HR/SR 各1枚以上所持（bits 0-3 = 15）
+	IF (LOCAL:88 & 15) == 15
+		SIF LOCAL:99 <= 63
+			SETBIT FLAG:5006, LOCAL:99 - 1
+		SIF LOCAL:99 >= 64
+			SETBIT FLAG:5007, LOCAL:99 - 64
+	ENDIF
+	;ゴールド: 全カード種類を1枚以上所持
+	IF LOCAL:89 > 0 && LOCAL:87 == LOCAL:89
+		SIF LOCAL:99 <= 63
+			SETBIT FLAG:5008, LOCAL:99 - 1
+		SIF LOCAL:99 >= 64
+			SETBIT FLAG:5009, LOCAL:99 - 64
+	ENDIF
+	;プラチナ（キャラ）: 全カードがキラ（12枚以上）
+	IF LOCAL:89 > 0 && LOCAL:86 == LOCAL:89
+		SIF LOCAL:99 <= 63
+			SETBIT FLAG:5010, LOCAL:99 - 1
+		SIF LOCAL:99 >= 64
+			SETBIT FLAG:5011, LOCAL:99 - 64
+	ENDIF
+NEXT
+
+;一時領域クリア
+FOR LOCAL:99, 1, 72
+	FLAG:(5100+LOCAL:99) = 0
+	FLAG:(5200+LOCAL:99) = 0
+	FLAG:(5300+LOCAL:99) = 0
+	FLAG:(5400+LOCAL:99) = 0
+NEXT
+SAVEGLOBAL
+RETURN
+
+;--------------------------------------------------
+; @TROPHY_CARD_LIST  カード編一覧表示
+; 現在パーティのキャラ分、カード収集達成状況を表示
+;--------------------------------------------------
+@TROPHY_CARD_LIST
+LOADGLOBAL
+DRAWLINE
+PRINTL 　カード収集実績
+PRINTL 　[B]N-SR各1枚  [G]全6レア1枚  [P]全カードキラ
+DRAWLINE
+LOCAL:80 = 0	;B達成数
+LOCAL:81 = 0	;G達成数
+LOCAL:82 = 0	;P達成数
+FOR LOCAL, 1, CHARANUM
+	LOCAL:98 = NO:LOCAL	;キャラNo (1-71)
+	SIF LOCAL:98 < 1 || LOCAL:98 > 71
+		CONTINUE
+	;各実績の取得状況
+	IF LOCAL:98 <= 63
+		GETBIT FLAG:5006, LOCAL:98 - 1
+		LOCAL:83 = RESULT
+		GETBIT FLAG:5008, LOCAL:98 - 1
+		LOCAL:84 = RESULT
+		GETBIT FLAG:5010, LOCAL:98 - 1
+		LOCAL:85 = RESULT
+	ELSE
+		GETBIT FLAG:5007, LOCAL:98 - 64
+		LOCAL:83 = RESULT
+		GETBIT FLAG:5009, LOCAL:98 - 64
+		LOCAL:84 = RESULT
+		GETBIT FLAG:5011, LOCAL:98 - 64
+		LOCAL:85 = RESULT
+	ENDIF
+	;最高ランク表示
+	IF LOCAL:85
+		SETCOLOR 217, 217, 140
+		PRINT [P]
+		LOCAL:82 += 1
+	ELSEIF LOCAL:84
+		SETCOLOR 180, 158, 83
+		PRINT [G]
+		LOCAL:81 += 1
+	ELSEIF LOCAL:83
+		SETCOLOR 151, 107, 47
+		PRINT [B]
+		LOCAL:80 += 1
+	ELSE
+		SETCOLOR 105, 105, 105
+		PRINT [ ]
+	ENDIF
+	RESETCOLOR
+	PRINTFORM  %NAME:LOCAL,16,LEFT%
+	SIF LOCAL:83
+		PRINT [B]
+	SIF LOCAL:84
+		PRINT [G]
+	SIF LOCAL:85
+		PRINT [P]
+	PRINTL
+NEXT
+DRAWLINE
+;プラチナ全収集
+GETBIT FLAG:5012, 0
+IF RESULT
+	SETCOLOR 217, 217, 140
+	PRINT [P]
+	RESETCOLOR
+	PRINTL  全1884枚のカードを収集！
+ELSE
+	SETCOLOR 105, 105, 105
+	PRINT [ ]
+	RESETCOLOR
+	PRINTL  全1884枚収集（全キャラ全種類）
+ENDIF
+PRINTL
+PRINTFORML B達成: {LOCAL:80}  G達成: {LOCAL:81}  P達成: {LOCAL:82}/{CHARANUM-1}人
+WAIT
+RETURN 1
+
+;--------------------------------------------------
+; @TROPHY_COUNT_CARDS  カード編実績数集計
+; B:0+=71 G:0+=71 P:0+=72（各キャラB/G/P + 全収集P）
+; B:1/G:1/P:1 には達成数を加算
+;--------------------------------------------------
+@TROPHY_COUNT_CARDS
+LOADGLOBAL
+;総数加算
+B:0 += 71
+G:0 += 71
+P:0 += 72
+
+;達成数カウント（charNo 1-71）
+FOR LOCAL:99, 1, 72
+	IF LOCAL:99 <= 63
+		GETBIT FLAG:5006, LOCAL:99 - 1
+		B:1 += RESULT
+		GETBIT FLAG:5008, LOCAL:99 - 1
+		G:1 += RESULT
+		GETBIT FLAG:5010, LOCAL:99 - 1
+		P:1 += RESULT
+	ELSE
+		GETBIT FLAG:5007, LOCAL:99 - 64
+		B:1 += RESULT
+		GETBIT FLAG:5009, LOCAL:99 - 64
+		G:1 += RESULT
+		GETBIT FLAG:5011, LOCAL:99 - 64
+		P:1 += RESULT
+	ENDIF
+NEXT
+;全収集プラチナ
+GETBIT FLAG:5012, 0
+P:1 += RESULT
+
+;--------------------------------------------------
+; 段階購入スキル処理（最大体力強化 / 最大気力強化）
+; ARG:0 = LOCALS インデックス（19=体力 / 20=気力）
+;--------------------------------------------------
+@TROPHY_FEAT_MAXBASE(ARG)
+;ARG:0 = 19(体力) or 20(気力)
+LOCAL:0 = ARG:0
+LOADGLOBAL
+;LOCALS は呼び出し元ローカルなので直接TALENT名を使う
+IF LOCAL:0 == 19
+	LOCAL:1 = FLAG:5020
+ELSE
+	LOCAL:1 = FLAG:5021
+ENDIF
+LOCAL:2 = 5 + LOCAL:1 * 2		;次の購入コスト（初回=5、+2ずつ）
+;利用可能SP再計算
+CALL TROPHY_COUNT_ALL
+LOCAL:90 = B:1 + S:1 * 2 + G:1 * 3 + P:1 * 10
+LOADGLOBAL
+LOCAL:91 = LOCAL:90 - FLAG:5041
+
+DRAWLINE
+IF LOCAL:0 == 19
+	PRINTFORML [最大体力強化] 現在Lv{LOCAL:1}（体力+{LOCAL:1 * 100}）
+ELSE
+	PRINTFORML [最大気力強化] 現在Lv{LOCAL:1}（気力+{LOCAL:1 * 100}）
+ENDIF
+PRINTFORML 次の強化コスト: {LOCAL:2}SP  / 所持SP: {LOCAL:91}SP
+PRINTFORML [0] 購入（+100 / {LOCAL:2}SP消費）
+SIF LOCAL:1 > 0
+	PRINTFORML [1] 忘れてSP全量返還（Lv{LOCAL:1}全解除・{LOCAL:1 * (LOCAL:1 + 4)}SP戻る）
+PRINTL [2] 戻る
+
+$MAXBASE_INPUT
+INPUT
+IF RESULT == 0
+	IF LOCAL:2 > LOCAL:91
+		PRINTFORMW SP不足（必要{LOCAL:2} / 残{LOCAL:91}）
+		GOTO MAXBASE_INPUT
+	ENDIF
+	IF LOCAL:0 == 19
+		FLAG:5020 += 1
+	ELSE
+		FLAG:5021 += 1
+	ENDIF
+	FLAG:5041 += LOCAL:2
+	SAVEGLOBAL
+	SIF LOCAL:0 == 19
+		MAXBASE:MASTER:0 += 100
+	SIF LOCAL:0 == 20
+		MAXBASE:MASTER:1 += 100
+	PRINTFORMW Lv{LOCAL:1 + 1}になりました（{LOCAL:2}SP消費）
+ELSEIF RESULT == 1 && LOCAL:1 > 0
+	LOCAL:3 = LOCAL:1 * (LOCAL:1 + 4)
+	IF LOCAL:0 == 19
+		FLAG:5020 = 0
+	ELSE
+		FLAG:5021 = 0
+	ENDIF
+	FLAG:5041 -= LOCAL:3
+	SAVEGLOBAL
+	SIF LOCAL:0 == 19
+		MAXBASE:MASTER:0 -= LOCAL:1 * 100
+	SIF LOCAL:0 == 20
+		MAXBASE:MASTER:1 -= LOCAL:1 * 100
+	PRINTFORMW {LOCAL:3}SP返還しました（全解除）
+ELSEIF RESULT != 2
+	GOTO MAXBASE_INPUT
+ENDIF
+RETURN 0
+
+@TROPHY_FEAT_GET_最大体力強化
+RESULTS:3 = 購入するたびに最大体力が100増加します（何度でも購入可）
+RETURN 0
+
+@TROPHY_FEAT_GET_最大気力強化
+RESULTS:3 = 購入するたびに最大気力が100増加します（何度でも購入可）
+RETURN 0
+
+;--------------------------------------------------
+;射精記録実績チェック
+;--------------------------------------------------
+@TROPHY_CHECK_205
+LOADGLOBAL
+VARSET LOCAL, 0
+FOR LOCAL, 0, 50
+	TRYCALLFORM TROPHY_205_{LOCAL}
+	SIF RESULT
+		SETBIT FLAG:5005, LOCAL
+NEXT
+SAVEGLOBAL
+RETURN 0
+
+;--------------------------------------------------
+;射精記録実績定義（FLAG:5005 ビット管理）
+;--------------------------------------------------
+@TROPHY_205_0
+RESULTS:0 = ブロンズ
+RESULTS:1 = 初射精
+RESULTS:2 = 主人公の累計射精量100mL達成
+;達成判定
+SIF FLAG:5040 >= 100
+	RETURN 1
+
+@TROPHY_205_1
+RESULTS:0 = ブロンズ
+RESULTS:1 = こぼれる想い
+RESULTS:2 = 主人公の累計射精量1000mL達成
+;達成判定
+SIF FLAG:5040 >= 1000
+	RETURN 1
+
+@TROPHY_205_2
+RESULTS:0 = シルバー
+RESULTS:1 = あふれる欲望
+RESULTS:2 = 主人公の累計射精量10000mL達成
+;達成判定
+SIF FLAG:5040 >= 10000
+	RETURN 1
+
+@TROPHY_205_3
+RESULTS:0 = ゴールド
+RESULTS:1 = 奔流
+RESULTS:2 = 主人公の累計射精量100000mL達成
+;達成判定
+SIF FLAG:5040 >= 100000
+	RETURN 1
+
+@TROPHY_205_4
+RESULTS:0 = プラチナ
+RESULTS:1 = 大洪水
+RESULTS:2 = 主人公の累計射精量1000000mL達成
+;達成判定
+SIF FLAG:5040 >= 1000000
+	RETURN 1
+
+@TROPHY_205_5
+RESULTS:0 = ブロンズ
+RESULTS:1 = 溺愛
+RESULTS:2 = 一人の相手への累計射精量1000mL達成
+;達成判定
+FOR LOCAL, 1, 72
+	SIF FLAG:(5800+LOCAL) >= 1000
+		RETURN 1
+NEXT
+
+@TROPHY_205_6
+RESULTS:0 = シルバー
+RESULTS:1 = 多情漢
+RESULTS:2 = 一人の相手への累計射精量10000mL達成
+;達成判定
+FOR LOCAL, 1, 72
+	SIF FLAG:(5800+LOCAL) >= 10000
+		RETURN 1
+NEXT
+
+@TROPHY_205_7
+RESULTS:0 = ブロンズ
+RESULTS:1 = 雨露
+RESULTS:2 = 10人以上の相手に射精
+;達成判定
+LOCAL:1 = 0
+FOR LOCAL, 1, 72
+	SIF FLAG:(5800+LOCAL) > 0
+		LOCAL:1 += 1
+NEXT
+SIF LOCAL:1 >= 10
+	RETURN 1
+
+@TROPHY_205_8
+RESULTS:0 = プラチナ
+RESULTS:1 = 全員制覇
+RESULTS:2 = 71人全員への射精達成
+;達成判定
+FOR LOCAL, 1, 72
+	SIF FLAG:(5800+LOCAL) == 0
+		RETURN 0
+NEXT
+RETURN 1
+
+;--------------------------------------------------
+;射精統計表示
+;--------------------------------------------------
+@TROPHY_EJAC_STATS
+LOADGLOBAL
+DRAWLINE
+PRINTFORML ■ 射精統計
+DRAWLINE
+PRINTFORML 累計射精量: {FLAG:5040}mL
+LOCAL:0 = 0
+LOCAL:2 = 0
+LOCAL:3 = 0
+FOR LOCAL:1, 1, 73
+	IF FLAG:(5800+LOCAL:1) > 0
+		LOCAL:0 += 1
+	ENDIF
+	IF FLAG:(5800+LOCAL:1) > LOCAL:2
+		LOCAL:2 = FLAG:(5800+LOCAL:1)
+		LOCAL:3 = LOCAL:1
+	ENDIF
+NEXT
+PRINTFORML 射精した相手: {LOCAL:0}人 / 72人
+DRAWLINE
+PRINTFORML ■ キャラ別射精量（0mLは省略）
+FOR LOCAL:1, 1, 73
+	SIF FLAG:(5800+LOCAL:1) == 0
+		CONTINUE
+	PRINTFORML %CALLNAME:(LOCAL:1)%：{FLAG:(5800+LOCAL:1)}mL
+NEXT
+DRAWLINE
+SIF LOCAL:3 > 0
+	PRINTFORML 最多: %CALLNAME:(LOCAL:3)%（{LOCAL:2}mL）
+RETURN 0
