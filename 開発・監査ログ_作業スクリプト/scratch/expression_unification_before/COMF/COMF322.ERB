@@ -1,0 +1,401 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+@COM_ABLE322
+;廃止済み。旧セーブ・旧参照との互換性維持のため関数本体は残す。
+RETURN 0
+
+
+@COM322
+;ストリートライブ
+;劣化公開野外ライブ。
+PRINTL ストリートライブ
+;-------------------------------------------------
+;成功できるかの判定
+;歌唱技能・ライブ経験・舞台向きの性格で決まる
+;欲望・露出癖・欲情・性的な刻印はライブの成否には使わない
+;-------------------------------------------------
+A = 0
+S = 0
+
+;ABL:歌唱技能
+IF ABL:92	; 【[歌唱技能]】
+	IF ABL:92 <= 5	; 【[歌唱技能]Lv<=5】
+		A += ABL:92 * 5
+	ELSEIF ABL:92 <= 10	; 【[歌唱技能]Lv<=10】
+		A += 30 + ABL:92 / 3
+	ELSEIF ABL:92 <= 20	; 【[歌唱技能]Lv<=20】
+		A += 40 + ABL:92 / 6
+	ELSE
+		A += 50 + ABL:92 / 9
+	ENDIF
+ENDIF
+
+;歌唱経験
+A += MIN(EXP:93 / 5, 20)
+
+;舞台での振る舞いに関係する性格・素質
+SIF TALENT:10	; 【[臆病]】
+	A -= 5
+SIF TALENT:23	; 【[好奇心]】
+	A += 2
+SIF TALENT:28	; 【[目立ちたがり]】
+	A += 5
+SIF TALENT:91	; 【[魅惑]】
+	A += 3
+SIF TALENT:92	; 【[謎の魅力]】
+	A += 5
+SIF TALENT:118	; 【[鼓舞]】
+	A += 5
+SIF TALENT:126	; 【[人気]】
+	A += 5
+
+;目標難易度を設定（成功：11～51　大成功：更に+40）
+V = 11 + RAND:41
+
+;初期化(必要無い筈だけど、念のため初期化)
+TFLAG:17 = 0
+
+;成功、失敗
+IF A < V
+	;失敗
+	TFLAG:18 = -1
+	CALL STREET_LIVE_FAIL
+ELSEIF A > V + 40
+	;大成功
+	TFLAG:18 = 1
+	CALL STREET_LIVE_SUCCESS
+ELSE
+	;成功
+	TFLAG:18 = 0
+	CALL STREET_LIVE_SUCCESS
+ENDIF
+TFLAG:79 = 1
+RETURN 1
+
+@STREET_LIVE_SUCCESS
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+STR:0 = ストリートライブ
+
+;-------------------------------------------------
+;ソースの計算
+;-------------------------------------------------
+LOSEBASE:0 += 100
+LOSEBASE:1 += 400
+
+A = 500
+B = 600
+C = 0
+
+;PALAM:欲情をみる
+IF PALAM:5 < PALAMLV:1	; 【[欲情]<PALAMLV:1】
+	TIMES A , 0.80
+	C += 0
+ELSEIF PALAM:5 < PALAMLV:2	; 【[欲情]<PALAMLV:2】
+	TIMES A , 0.90
+	C += 1
+ELSEIF PALAM:5 < PALAMLV:3	; 【[欲情]<PALAMLV:3】
+	TIMES A , 1.00
+	C += 2
+ELSEIF PALAM:5 < PALAMLV:4	; 【[欲情]<PALAMLV:4】
+	TIMES A , 1.10
+	C += 4
+ELSEIF PALAM:5 >= PALAMLV:4	; 【[欲情]>=PALAMLV:4】
+	TIMES A , 1.20
+	C += 8
+ENDIF
+;ABL:露出癖をみる
+IF ABL:7 == 0	; 【[露出癖]Lv==0】
+	SOURCE:21 += 0
+	C += 0
+	TIMES A, 1.00
+ELSEIF ABL:7 == 1	; 【[露出癖]Lv==1】
+	SOURCE:21 += 50
+	C += 1
+	TIMES A, 1.20
+ELSEIF ABL:7 == 2	; 【[露出癖]Lv==2】
+	SOURCE:21 += 100
+	C += 2
+	TIMES A, 1.40
+ELSEIF ABL:7 == 3	; 【[露出癖]Lv==3】
+	SOURCE:21 += 200
+	C += 3
+	TIMES A, 1.60
+ELSEIF ABL:7 == 4	; 【[露出癖]Lv==4】
+	SOURCE:21 += 400
+	C += 4
+	TIMES A, 2.00
+ELSE
+	SOURCE:21 += 800
+	C += 5
+	TIMES A, 3.00
+ENDIF
+;ABL:歌唱技能をみる
+IF ABL:92 == 0	; 【[歌唱技能]Lv==0】
+	C += 0
+	TIMES A , 0.80
+ELSEIF ABL:92 == 1	; 【[歌唱技能]Lv==1】
+	C += 1
+	TIMES A , 1.00
+ELSEIF ABL:92 == 2	; 【[歌唱技能]Lv==2】
+	C += 2
+	TIMES A , 1.30
+ELSEIF ABL:92 == 3	; 【[歌唱技能]Lv==3】
+	C += 3
+	TIMES A , 1.60
+ELSEIF ABL:92 == 4	; 【[歌唱技能]Lv==4】
+	C += 4
+	TIMES A , 2.00
+ELSE
+	C += 5
+	TIMES A , 3.00
+ENDIF
+
+;目立ちたがり
+IF TALENT:28	; 【[目立ちたがり]】
+	TIMES A , 1.50
+	C += 10
+ENDIF
+;解放
+IF TALENT:33	; 【[解放]】
+	TIMES A , 1.50
+	C += 5
+ENDIF
+;臆病
+IF TALENT:10	; 【[臆病]】
+	TIMES B , 2.00
+	C -= 10
+ENDIF
+;恥じらい
+IF TALENT:35	; 【[恥じらい]】
+	TIMES B , 2.00
+	C -= 7
+ENDIF
+;恥じ薄い
+IF TALENT:36	; 【[恥薄い]】
+	TIMES B , 0.80
+	C += 7
+ENDIF
+
+;魅惑
+SIF TALENT:91	; 【[魅惑]】
+	C += 10
+;謎の魅力
+SIF TALENT:92	; 【[謎の魅力]】
+	C += 25
+;魅力
+SIF TALENT:113	; 【[魅力]】
+	C += 20
+;鼓舞
+SIF TALENT:118	; 【[鼓舞]】
+	C += 50
+;人気
+SIF TALENT:126	; 【[人気]】
+	C += 30
+
+;大成功補正
+IF TFLAG:18	; 【[好感触]】
+	A *= 2
+	B *= 2
+ENDIF
+
+SOURCE:12 += A/8
+SOURCE:18 += A/4
+SOURCE:23 += B/2
+
+UP:7 += A/6
+UP:8 += A/9
+
+C /= 1 + RAND:3
+IF RAND:3 != 0
+	C += RAND:21
+ELSE
+	C -= RAND:21
+	SIF C < 0
+		C = 0
+ENDIF
+;お捻りが貰える際は、フラグを立てておく
+SIF C > 60
+	TFLAG:17 = 1
+
+CALL TRAIN_MESSAGE_B
+
+IF C > 60
+	T = 1 + EXP:93
+	T = (ABL:92 * 90) + (ABL:92 * RAND:20) + (RAND:T * 10)
+	;クリア前はリミットを加える
+	IF (FLAG:28 & 1) != 0
+		SIF T >= 20000
+			T = 20000
+	ENDIF
+;	T = 1 + RAND:3
+	MONEY += T
+	PRINTFORML 所持金 ${T}増加
+	WAIT
+	SOURCE:5 += 1500
+	SOURCE:20 += 3000
+	T = 3 + RAND:4
+	;大成功補正
+	IF TFLAG:18	; 【[好感触]】
+		SOURCE:5 += 1500
+		SOURCE:20 += 3000
+		T += 3 + RAND:4
+	ENDIF
+ELSE
+	SOURCE:5 += 500
+	T = 3 + RAND:4
+	;大成功補正
+	IF TFLAG:18	; 【[好感触]】
+		SOURCE:5 += 500
+		T += 3 + RAND:4
+	ENDIF
+ENDIF
+PRINTFORML %EXPNAME:93%+{T}
+EXP:93 += T
+
+RETURN 1
+
+@STREET_LIVE_FAIL
+;-------------------------------------------------
+;実行決定
+;-------------------------------------------------
+STR:0 = ストリートライブ
+
+;-------------------------------------------------
+;ソースの計算
+;-------------------------------------------------
+LOSEBASE:0 += 100
+LOSEBASE:1 += 400
+
+A = 400
+B = 300
+
+;PALAM:欲情をみる
+IF PALAM:5 < PALAMLV:1	; 【[欲情]<PALAMLV:1】
+	TIMES A , 0.80
+ELSEIF PALAM:5 < PALAMLV:2	; 【[欲情]<PALAMLV:2】
+	TIMES A , 0.90
+ELSEIF PALAM:5 < PALAMLV:3	; 【[欲情]<PALAMLV:3】
+	TIMES A , 1.00
+ELSEIF PALAM:5 < PALAMLV:4	; 【[欲情]<PALAMLV:4】
+	TIMES A , 1.10
+ELSEIF PALAM:5 >= PALAMLV:4	; 【[欲情]>=PALAMLV:4】
+	TIMES A , 1.20
+ENDIF
+;ABL:露出癖をみる
+IF ABL:7 == 0	; 【[露出癖]Lv==0】
+	SOURCE:21 += 0
+	TIMES A, 1.00
+ELSEIF ABL:7 == 1	; 【[露出癖]Lv==1】
+	SOURCE:21 += 50
+	TIMES A, 1.20
+ELSEIF ABL:7 == 2	; 【[露出癖]Lv==2】
+	SOURCE:21 += 100
+	TIMES A, 1.40
+ELSEIF ABL:7 == 3	; 【[露出癖]Lv==3】
+	SOURCE:21 += 200
+	TIMES A, 1.60
+ELSEIF ABL:7 == 4	; 【[露出癖]Lv==4】
+	SOURCE:21 += 400
+	TIMES A, 2.00
+ELSE
+	SOURCE:21 += 800
+	TIMES A, 3.00
+ENDIF
+;ABL:歌唱技能をみる
+IF ABL:92 == 0	; 【[歌唱技能]Lv==0】
+	TIMES A , 0.80
+ELSEIF ABL:92 == 1	; 【[歌唱技能]Lv==1】
+	TIMES A , 1.00
+ELSEIF ABL:92 == 2	; 【[歌唱技能]Lv==2】
+	TIMES A , 1.30
+ELSEIF ABL:92 == 3	; 【[歌唱技能]Lv==3】
+	TIMES A , 1.60
+ELSEIF ABL:92 == 4	; 【[歌唱技能]Lv==4】
+	TIMES A , 2.00
+ELSE
+	TIMES A , 3.00
+ENDIF
+
+;目立ちたがり
+SIF TALENT:28	; 【[目立ちたがり]】
+	TIMES A , 1.50
+
+;解放
+SIF TALENT:33	; 【[解放]】
+	TIMES A , 1.50
+
+;臆病
+SIF TALENT:10	; 【[臆病]】
+	TIMES B , 2.00
+
+;恥じらい
+SIF TALENT:35	; 【[恥じらい]】
+	TIMES B , 2.00
+;恥じ薄い
+SIF TALENT:36	; 【[恥薄い]】
+	TIMES B , 0.80
+
+SOURCE:12 += A/12
+SOURCE:18 += A/6
+SOURCE:23 += B/3
+
+UP:7 += A/12
+UP:8 += A/12
+
+CALL TRAIN_MESSAGE_B
+
+T = 1 + RAND:2
+PRINTFORML %EXPNAME:93%+{T}
+EXP:93 += T
+
+RETURN 1
+
+@TRAIN_MESSAGE_COM322
+IF TFLAG:18 == -1	; 【[好感触]】
+	PRINTFORML %CALLNAME:TARGET%は路上で軽く歌ってみた
+	PRINTL 
+	PRINTW   「♪～」
+	PRINTW  「♪♪～」
+	PRINTW 「♪～♪～」
+	PRINTW 「…………」
+	PRINTW ………………
+	PRINTL 
+	PRINTFORML %CALLNAME:TARGET%は恥ずかしさのためか、それとも緊張したせいか
+	PRINTFORMW 歌っている最中にもかかわらず完全に凍りついてしまった……
+	PRINTL  
+	PRINTL これ以上ここで歌うのは無理だろう
+	PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%を連れてその場を後にした……
+	WAIT
+ELSE
+	IF EXP:93 <= 50	; 【[歌唱経験]<=50】
+		PRINTFORML %CALLNAME:TARGET%は路上で軽く歌ってみた
+	ELSEIF EXP:93 <= 100	; 【[歌唱経験]<=100】
+		PRINTFORML %CALLNAME:TARGET%はストリートライブを開いた
+	ELSEIF EXP:93 <= 200	; 【[歌唱経験]<=200】
+		PRINTFORML %CALLNAME:TARGET%は足を止めた人々を前にして歌い始めた
+	ELSE
+		PRINTFORML %CALLNAME:TARGET%は待っていた人々に挨拶をしてから歌い始めた
+	ENDIF
+
+	PRINTL 
+	PRINTW   「♪～」
+	PRINTW  「♪♪～」
+	PRINTW 「♪～♪～」
+	PRINTW ………………
+	PRINTW      !
+	PRINTL 
+	IF C > 60
+		PRINTFORMW 聴衆は%CALLNAME:TARGET%の歌に聴き惚れている
+		PRINTL  
+		PRINTFORML 歌い終わった%CALLNAME:TARGET%に盛大な拍手が送られた
+		PRINTFORML 聴衆から%CALLNAME:TARGET%へとおひねりが投げられた
+	ELSE
+		PRINTFORMW 歌い終わった%CALLNAME:TARGET%へ通行人たちから拍手が送られた
+		PRINTL  
+	ENDIF
+ENDIF
+

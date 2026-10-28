@@ -7,7 +7,7 @@
 ;-------------------------------------------------
 @REVMODE_ACTIVEPHASE_TRAIN
 ;ウフフ中
-IF TFLAG:44
+IF TFLAG:44	; 【[ウフフ中]】
 	;REVMODE
 	CALL REVMODE_ACTIVEPHASE_R
 ;非ウフフ中
@@ -17,14 +17,15 @@ ELSE
 ENDIF
 
 ;ウフフ中。パートナーの体力が0になったときだけ強制終了する。
-IF TFLAG:44 && BASE:0 <= 0
-	BASE:0 = 1
+IF TFLAG:44 && BASE:0 <= 0	; 【[ウフフ中] / [体力]<=0】
 	TFLAG:301 = 1
+	TFLAG:51 = 2
 	TFLAG:999 = 1
-	PRINTFORMW （体力が限界に来ています。%CALLNAME:MASTER%は%CALLNAME:TARGET%にゆっくり休むよう伝えてから、一旦別れました）
+	PRINTFORMW （体力の限界に達して倒れ込んでしまいました。%CALLNAME:MASTER%は%CALLNAME:TARGET%を休ませるため、一旦別れました）
+	PRINTFORMW （%CALLNAME:TARGET%は衰弱療養中（お休み）となりました）
 	BEGIN AFTERTRAIN
 ;非ウフフ中
-ELSEIF TFLAG:44 == 0 && BASE:1 <= 0
+ELSEIF TFLAG:44 == 0 && BASE:1 <= 0	; 【無[ウフフ中] / [気力]<=0】
 	IF TIME == 0
 		PRINTFORMW （そろそろ夜になります。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
 	ELSE
@@ -47,7 +48,7 @@ CALL REVMODE_ACTIVECOM(SELECTCOM, REACTION)
 DRAWLINE
 LINE = LINECOUNT
 ;ACTIVEPHASEの地の文
-IF FLAG:6 && !(CFLAG:99 & 2)
+IF FLAG:6 && !(CFLAG:99 & 2)	; 【[地の文カットフラグ]】
 	;個別の地の文
 	TRYCCALLFORM TRAIN_MESSAGE_REVMODE_ACTIVEPHASE_K{NO:TARGET}(SELECTCOM, REACTION)
 	;共通の地の文
@@ -232,3 +233,30 @@ RESULT = 8
 CALL REVMODE_ACTIVEPHASE_TRAIN
 RETURN 0
 
+
+
+;-------------------------------------------------
+;主導権を返してもらう(REVMODE)
+;-------------------------------------------------
+@COM_ABLE509
+;実行判定
+;COM_ABLE共通判定
+CALL COM_ABLE_COMMON, SELECTCOM
+SIF RESULT == 0
+	RETURN 0
+RETURN 1
+
+@COM509
+PRINTFORML %CALLNAME:PLAYER%は%CALLNAME:TARGET%に優しく微笑みかけ、そろそろ主導権を戻してほしいと頼んだ…
+PRINTFORM %CALLNAME:TARGET%は
+IF TFLAG:108 >= 2	; 【[リバース過熱度]>=2】
+	PRINTFORML 名残惜しそうに熱い息を吐きながらも、愛おしそうに頷いてくれた…
+ELSE
+	PRINTFORML 満足そうに小さく笑って、主導権を譲ってくれた…
+ENDIF
+TFLAG:34 = 0
+CFLAG:15 = 0
+TFLAG:108 = 0
+TFLAG:109 = 0
+WAIT
+RETURN 0

@@ -343,7 +343,7 @@ PRINTFORML 【%CALLNAME:TARGET%との思い出】
 PRINTL
 
 ;好感度で分岐
-IF CFLAG:TARGET:2 >= 500
+IF CFLAG:TARGET:2 >= 500	; 【TARGET:[好感度]>=500】
 	PRINTFORML %CALLNAME:TARGET%と過ごした日々が走馬灯のように蘇る。
 	PRINTFORML 最初はこんなに仲良くなるとは思わなかった。
 	IF CSTR:TARGET:25 != ""
@@ -352,7 +352,7 @@ IF CFLAG:TARGET:2 >= 500
 	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%にとって、かけがえのない存在になっていた。
 	CFLAG:TARGET:2 += 3
 	PRINTFORMW 好感度 +3
-ELSEIF CFLAG:TARGET:2 >= 200
+ELSEIF CFLAG:TARGET:2 >= 200	; 【TARGET:[好感度]>=200】
 	PRINTFORML 最近の%CALLNAME:TARGET%とのやりとりが頭に浮かぶ。
 	IF CSTR:TARGET:25 != ""
 		PRINTFORML %CSTR:TARGET:25%での姿、授業中のふとした表情。
@@ -360,7 +360,7 @@ ELSEIF CFLAG:TARGET:2 >= 200
 	PRINTFORML 一緒にいると自然と笑顔になれる。そういう相手だった。
 	CFLAG:TARGET:2 += 2
 	PRINTFORMW 好感度 +2
-ELSEIF CFLAG:TARGET:2 >= 50
+ELSEIF CFLAG:TARGET:2 >= 50	; 【TARGET:[好感度]>=50】
 	PRINTFORML %CALLNAME:TARGET%とのやりとりを振り返ってみる。
 	PRINTFORML まだ知らないことがたくさんある。もっと話してみたいと思った。
 	CFLAG:TARGET:2 += 1
@@ -385,13 +385,13 @@ IF TARGET >= 0
 	PRINTFORML （%CALLNAME:TARGET%）  学力：{ABL:88}  学習素質：{ABL:98}  学習経験：{EXP:TARGET:95}
 	PRINT 体力
 	A = BASE:0
-	SIF BASE:0 < 0
+	SIF BASE:0 < 0	; 【[体力]<0】
 		A = 0
 	CALL PRINT_BAR_0, A, MAXBASE:0, 32
 	PRINTFORML ({A}/{MAXBASE:0})
 	PRINT 気力
 	A = BASE:1
-	SIF BASE:1 < 0
+	SIF BASE:1 < 0	; 【[気力]<0】
 		A = 0
 	CALL PRINT_BAR, A, MAXBASE:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
 	PRINTFORML ({A}/{MAXBASE:1})
@@ -400,13 +400,13 @@ ENDIF
 PRINTFORML （%CALLNAME:MASTER%）  学力：{ABL:MASTER:88}  学習素質：{ABL:MASTER:98}  学習経験：{EXP:MASTER:95}
 PRINT 体力
 A = BASE:MASTER:0
-SIF BASE:MASTER:0 < 0
+SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 	A = 0
 CALL PRINT_BAR_0, A, MAXBASE:MASTER:0, 32
 PRINTFORML ({A}/{MAXBASE:MASTER:0})
 PRINT 気力
 A = BASE:MASTER:1
-SIF BASE:MASTER:1 < 0
+SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
 	A = 0
 CALL PRINT_BAR, A, MAXBASE:MASTER:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
 PRINTFORML ({A}/{MAXBASE:MASTER:1})
@@ -450,11 +450,11 @@ IF TARGET >= 0
 	CALL CALC_ACADEMIC_LEVEL, TARGET
 	LOCAL:3 = ABL:TARGET:88 / 20
 	;好感度でさらに補正
-	IF CFLAG:2 >= 500
+	IF CFLAG:2 >= 500	; 【[好感度]>=500】
 		LOCAL:3 += 10
-	ELSEIF CFLAG:2 >= 200
+	ELSEIF CFLAG:2 >= 200	; 【[好感度]>=200】
 		LOCAL:3 += 5
-	ELSEIF CFLAG:2 >= 50
+	ELSEIF CFLAG:2 >= 50	; 【[好感度]>=50】
 		LOCAL:3 += 2
 	ENDIF
 	P += LOCAL:3
@@ -468,6 +468,12 @@ SIF P > 100
 
 ;結果表示
 PRINTFORML あなたの得点：{P}点（合格ライン：{LOCAL:5}点）
+	;パートナーとの試験結果記録
+	IF TARGET >= 1 && TARGET < CHARANUM
+		CFLAG:TARGET:1272 = P
+		SIF P > CFLAG:TARGET:1271	; 【TARGET:[最高試験得点]】
+			CFLAG:TARGET:1271 = P
+	ENDIF
 PRINTL 
 
 ;気力消費（試験は疲れる）
@@ -476,7 +482,7 @@ BASE:MASTER:1 -= 100
 ;--- 学期の区切り：長期学習経験の忘却(減衰)＋今学期勉強量のリセット ---
 ;過去の貯金だけで合格できないよう、試験のたびに学習経験を約1割忘れ、今学期分は0に戻す
 EXP:MASTER:95 -= EXP:MASTER:95 / 10
-SIF EXP:MASTER:95 < 0
+SIF EXP:MASTER:95 < 0	; 【MASTER:[学習経験]<0】
 	EXP:MASTER:95 = 0
 FLAG:210 = 0
 
@@ -521,11 +527,12 @@ IF P >= LOCAL:5
 	IF TFLAG:83 == 0
 		;中間試験合格
 		FLAG:27 |= TFLAG:84
-		IF TARGET >= 0
+		IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
 			LOCAL:7 = 1
 			SIF P >= LOCAL:5 + 30
 				LOCAL:7 = 2
 			TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(LOCAL:7)
+			CALL EXAM_PASS_AFTER_ICHA, (P - LOCAL:5)
 		ENDIF
 		PRINTFORMW 中間試験に合格！後半戦もしっかり頑張ろう。
 		RETURN 1
@@ -534,11 +541,12 @@ IF P >= LOCAL:5
 		FLAG:27 |= TFLAG:84
 		CALL SEMESTER_DECK_RESULT
 		CALL GET_SEMESTER_NAME
-		IF TARGET >= 0
+		IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
 			LOCAL:7 = 1
 			SIF P >= LOCAL:5 + 30
 				LOCAL:7 = 2
 			TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(LOCAL:7)
+			CALL EXAM_PASS_AFTER_ICHA, (P - LOCAL:5)
 		ENDIF
 		PRINTFORMW 期末試験に合格！次のステージへ！
 		RETURN 2
@@ -551,7 +559,7 @@ ELSE
 	ELSE
 		PRINTFORML もう少しで合格でした。次は頑張りましょう
 	ENDIF
-	IF TARGET >= 0
+	IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
 		TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(0)
 	ENDIF
 	SOURCE:18 = 30
@@ -616,13 +624,9 @@ RETURN 1
 @CALC_ACADEMIC_LEVEL(ARG)
 LOCAL:0 = TARGET
 TARGET = ARG:0
-; 学力は学習適性・学習経験から算出し、購入分(CFLAG:88)を加算する
-LOCAL:1 = ABL:TARGET:98 + EXP:TARGET:95 * ABL:TARGET:98 / 500
-IF CFLAG:TARGET:88 == 0 && ABL:TARGET:88 > LOCAL:1
-	; 既存セーブの購入済み分を初回計算時に取り込む
-	CFLAG:TARGET:88 = ABL:TARGET:88 - LOCAL:1
-ENDIF
-ABL:TARGET:88 = LOCAL:1 + CFLAG:TARGET:88
+;学力は学習素質と学習経験だけで算出する（学力購入は廃止）
+CFLAG:TARGET:88 = 0
+ABL:TARGET:88 = ABL:TARGET:98 + EXP:TARGET:95 * ABL:TARGET:98 / 500
 TARGET = LOCAL:0
 RETURN 1
 
@@ -653,7 +657,11 @@ ENDIF
 WAIT
 
 IF TARGET >= 0
-	TRYCALLFORM CHAR_EXAM_BEFORE_{NO:TARGET}
+	IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+		PRINTFORML 保健室で静かに療養している%CALLNAME:TARGET%のことを気にかけつつ、試験会場へと向かった……
+	ELSE
+		TRYCALLFORM CHAR_EXAM_BEFORE_{NO:TARGET}
+	ENDIF
 ENDIF
 CALL TAKE_EXAM
 
@@ -688,7 +696,7 @@ ELSE
 	IF RESULT == 0
 		PRINTFORMW それでは1日目、1年生の4月に戻ります。
 		REPEAT CHARANUM
-			SIF TALENT:COUNT:134 || MARK:COUNT:90
+			SIF TALENT:COUNT:134 || MARK:COUNT:90	; 【COUNT:[妊娠]】
 				CFLAG:COUNT:110 -= DAY
 		REND
 		DAY = 0
@@ -755,3 +763,262 @@ ELSE
 	PRINTFORMW ……まだ合格点に届かない。もっと自習して、学力を上げよう。
 ENDIF
 RETURN 1
+
+
+;---------------------------------------------------------
+; 定期試験合格後のパートナー自動ご褒美イチャイチャ (@EXAM_PASS_AFTER_ICHA)
+; 【引数】
+;   ・ARG:0 = 合格ラインからの超過点数 (P - LOCAL:5)
+; 【自動モード判定・発動条件（選択肢なしで自動進行）】
+;   ・前提：TARGETが有効 かつ TARGET:[体力(BASE:0)] > 0
+;   ■モード2（濃厚ご褒美ウフフ：LOCAL:9 == 2）：
+;       [合意(TALENT:152)] かつ 非[処女(TALENT:0==0)] かつ [Ｖ経験(EXP:0)]>0 かつ 双方非[キス未経験(TALENT:151==0)] かつ MASTER非[童貞(TALENT:154==0)]
+;       かつ ([親愛(TALENT:88)] または [相愛(TALENT:89)] または [淫乱(TALENT:76)] または ([恋人(TALENT:153)] かつ [好感度(CFLAG:2)]>=3000))
+;       ※Ａ経験・快Ａの珠はさらに[Ａ経験]>=20 かつ ([Ａ感覚]>=3 または [尻穴狂い]) のＡ開発済み時のみ加算
+;   ■モード1（純愛ご褒美イチャイチャ：LOCAL:9 == 1）：
+;       モード2未達 かつ [キス未経験(TALENT:151)]なし かつ ([親愛(TALENT:88)] または [相愛(TALENT:89)] または ([恋人(TALENT:153)] かつ [好感度(CFLAG:2)]>=1500))
+;
+; 【獲得経験・獲得珠・好感度・耐力消耗（すべてRANDによるランダム幅付き）】
+;   ■モード2（濃厚ご褒美ウフフ）時：
+;       TARGET：[Ｖ経験(EXP:0)] / [Ａ経験(EXP:1)] / [絶頂経験(EXP:2)] / [精液経験(EXP:20)] / [膣射経験(EXP:24)] / [奉仕快楽経験(EXP:21)] / [フェラ経験(EXP:22)] / [精飲経験(EXP:26)] / [愛情経験(EXP:23)] / [キス経験(EXP:96)]
+;       MASTER：[射精経験(EXP:MASTER:3)] / [キス経験(EXP:MASTER:96)] / [耐力(BASE:MASTER:4)]70%～95%消耗
+;       宝珠  ：[快Ｃ(0)] / [快Ｖ(1)] / [快Ａ(2)] / [快Ｂ(14)] / [快Ｍ(18)] / [恭順(4)] / [欲情(5)] / [屈服(6)] / [習得(7)]
+;   ■モード1（純愛ご褒美イチャイチャ）時：
+;       TARGET：[愛情経験(EXP:23)] / [キス経験(EXP:96)]、MASTER：[キス経験(EXP:MASTER:96)]
+;       宝珠  ：[快Ｍ(18)] / [恭順(4)] / [好意(15)]
+;   ※コンフィグ詳細報告(FLAG:23 & 1p25)がONなら各珠の具体値を表示、OFFなら「宝珠獲得」と簡潔に表示
+;---------------------------------------------------------
+@EXAM_PASS_AFTER_ICHA(ARG)
+SIF TARGET < 1 || TARGET >= CHARANUM
+	RETURN 0
+SIF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	RETURN 0
+
+;自動モード判定（2=濃厚ご褒美ウフフ, 1=純愛イチャイチャ, 0=発生しない）
+LOCAL:9 = 0
+;モード2（濃厚ウフフ）は非処女(V経験あり)・双方キス未経験なし・主人公非童貞も必須（処女の場合はモード1の純愛イチャイチャへ分岐）
+IF TALENT:TARGET:152 && TALENT:TARGET:0 == 0 && EXP:TARGET:0 > 0 && TALENT:TARGET:151 == 0 && TALENT:MASTER:151 == 0 && TALENT:MASTER:154 == 0 && (TALENT:TARGET:88 || TALENT:TARGET:89 || TALENT:TARGET:76 || (TALENT:TARGET:153 && CFLAG:TARGET:2 >= 3000))	; 【[合意]/非[処女]/[Ｖ経験]>0/双方[キス未経験]なし/MASTER:非[童貞] かつ ([親愛]/[相愛]/[淫乱]/([恋人]かつ[好感度]>=3000))】
+	LOCAL:9 = 2
+ELSEIF TALENT:TARGET:151 == 0 && TALENT:MASTER:151 == 0 && (TALENT:TARGET:88 || TALENT:TARGET:89 || (TALENT:TARGET:153 && CFLAG:TARGET:2 >= 1500))	; 【双方[キス未経験]なし かつ ([親愛]/[相愛]/([恋人]かつ[好感度]>=1500))】
+	LOCAL:9 = 1
+ENDIF
+
+SIF LOCAL:9 == 0
+	RETURN 0
+
+DRAWLINE
+SETCOLOR 255, 170, 220
+PRINTL ★ 定期試験合格・密室のご褒美アフタータイム ★
+RESETCOLOR
+
+LOCAL:100 = CFLAG:99
+
+;=========================================================
+; モード2：濃厚ご褒美ウフフ（RAND:3分岐）
+;=========================================================
+IF LOCAL:9 == 2
+	IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]なし】
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 試験勉強を一緒に乗り越えて無事に合格を果たした直後、二人きりの部屋で%CALLNAME:TARGET%が内側から鍵を閉めた。
+			PRINTFORML 試験期間中にずっと我慢していた欲求が堰を切ったように溢れ出し、%CALLNAME:TARGET%は自ら制服のリボンを解いて%CALLNAME:MASTER%へと抱きついてくる。
+			PRINTFORMW 参考書やノートが散らばるベッドの上で、二人は合格祝いの特別ご褒美として幾度も激しく求め合い、深い絶頂を分かち合った…
+		CASE 1
+			PRINTFORML 合格発表の安堵感で張り詰めていた糸が緩むなり、%CALLNAME:TARGET%は熱く潤んだ瞳で%CALLNAME:MASTER%を押し倒し、その唇を深く奪った。
+			PRINTFORML 勉強を手伝いながらずっと抑えていた疼きをぶつけるように、%CALLNAME:TARGET%は火照った柔肌を擦り寄せて献身的な奉仕と結合を求めてくる。
+			PRINTFORMW 試験からの解放感と甘い快楽に包まれながら、二人は日が暮れるまで濃厚なご褒美の逢瀬に溺れ続けた…
+		CASEELSE
+			PRINTFORML 二人きりの自室で合格を喜び合っていたのも束の間、%CALLNAME:MASTER%が引き寄せた%CALLNAME:TARGET%の身体はすでに熱く火照りきっていた。
+			PRINTFORML 約束のご褒美を何でも叶えるというように、%CALLNAME:TARGET%は顔を朱に染めながらも自ら衣服を寛げて%CALLNAME:MASTER%を奥深くまで迎え入れる。
+			PRINTFORMW 甘い吐息が部屋中に満ちる中、勉強の疲れがすべて快感へと塗り替えられるほど濃密に交わり合った…
+		ENDSELECT
+	ENDIF
+	TFLAG:13 = 4
+	CALL SELF_KOJO
+	CFLAG:99 = LOCAL:100
+
+	LOCAL:0 = 4 + MAX(ARG / 10, 0) + RAND:3	; 【基準回数（ランダム幅付き）】
+	SIF TALENT:TARGET:76	; 【TARGET:[淫乱]】
+		LOCAL:0 += 2 + RAND:3
+	LOCAL:10 = 0
+	LOCAL:11 = 0
+	IF (TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:MASTER:154 == 0 && TALENT:TARGET:0 == 0 && EXP:TARGET:0 > 0 && TALENT:TARGET:122 == 0	; 【MASTER:ペニス持ち/非[童貞] かつ TARGET:非[処女]/[Ｖ経験]>0/非[オトコ]】
+		LOCAL:10 = LOCAL:0 + RAND:3	; 【[Ｖ経験]増加量】
+		EXP:TARGET:0 += LOCAL:10	; 【TARGET:[Ｖ経験]加算】
+	ENDIF
+	IF EXP:TARGET:1 >= 20 && (ABL:TARGET:5 >= 3 || TALENT:TARGET:77)	; 【Ａ開発済み：[Ａ経験]>=20 かつ ([Ａ感覚]>=3 / [尻穴狂い])】
+		LOCAL:11 = MAX(LOCAL:0 / 3 + RAND:3, 1)	; 【[Ａ経験]増加量】
+		EXP:TARGET:1 += LOCAL:11	; 【TARGET:[Ａ経験]加算】
+	ENDIF
+	LOCAL:12 = LOCAL:0 + 1 + RAND:3	; 【[絶頂経験]増加量】
+	EXP:TARGET:2 += LOCAL:12	; 【TARGET:[絶頂経験]加算】
+
+	LOCAL:13 = 0
+	LOCAL:14 = 0
+	LOCAL:15 = 0
+	LOCAL:16 = 0
+	LOCAL:17 = 0
+	IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / [オトコ]】
+		LOCAL:13 = MAX(LOCAL:0 - 1 + RAND:3, 2)	; 【MASTER:[射精経験]増加量】
+		EXP:MASTER:3 += LOCAL:13	; 【MASTER:[射精経験]加算】
+		CFLAG:MASTER:1150 += LOCAL:13
+		CFLAG:MASTER:1151 += LOCAL:13 * (12 + RAND:8)
+		LOCAL:14 = LOCAL:13 * 2 + RAND:5	; 【TARGET:[精液経験]増加量】
+		EXP:TARGET:20 += LOCAL:14	; 【TARGET:[精液経験]加算】
+		IF LOCAL:10 > 0	; 【非処女でＶ挿入ありの時のみ膣射経験加算】
+			LOCAL:15 = MAX(LOCAL:13 - 1 - RAND:2, 1)	; 【TARGET:[膣射経験]増加量】
+			EXP:TARGET:24 += LOCAL:15	; 【TARGET:[膣射経験]加算】
+		ENDIF
+		IF TALENT:TARGET:151 == 0 && (EXP:TARGET:22 > 0 || ABL:TARGET:6 >= 3 || TALENT:TARGET:76)	; 【[キス未経験]なし かつ ([フェラ経験]>0 / [奉仕精神]>=3 / [淫乱])】
+			LOCAL:16 = MAX(LOCAL:0 / 2 + 1 + RAND:3, 1)	; 【TARGET:[フェラ経験]増加量】
+			EXP:TARGET:22 += LOCAL:16	; 【TARGET:[フェラ経験]加算】
+			IF EXP:TARGET:26 > 0 || ABL:TARGET:11 >= 1 || TALENT:TARGET:76	; 【[精飲経験]>0 / [精液中毒]>=1 / [淫乱]】
+				LOCAL:17 = MAX(LOCAL:16 / 2 + RAND:2, 1)	; 【TARGET:[精飲経験]増加量】
+				EXP:TARGET:26 += LOCAL:17	; 【TARGET:[精飲経験]加算】
+			ENDIF
+		ENDIF
+		FLAG:5040 += LOCAL:13 * (8 + RAND:6)
+		FLAG:(5800 + NO:TARGET) += LOCAL:13 * (8 + RAND:6)
+	ENDIF
+	LOCAL:18 = LOCAL:0 + RAND:3	; 【TARGET:[奉仕快楽経験]増加量】
+	EXP:TARGET:21 += LOCAL:18	; 【TARGET:[奉仕快楽経験]加算】
+	LOCAL:19 = MAX(LOCAL:0 / 2 + 1 + RAND:3, 1)	; 【TARGET:[愛情経験]増加量】
+	EXP:TARGET:23 += LOCAL:19	; 【TARGET:[愛情経験]加算】
+	LOCAL:20 = 0
+	IF TALENT:TARGET:151 == 0 && TALENT:MASTER:151 == 0	; 【双方とも[キス未経験]なし】
+		LOCAL:20 = LOCAL:0 + 2 + RAND:4	; 【[キス経験]増加量】
+		EXP:TARGET:96 += LOCAL:20	; 【TARGET:[キス経験]加算】
+		EXP:MASTER:96 += LOCAL:20	; 【MASTER:[キス経験]加算】
+	ENDIF
+
+	LOCAL:21 = LOCAL:0 * (240 + RAND:80) + RAND:100	; 【[快Ｃの珠]】
+	LOCAL:22 = (LOCAL:10 > 0) ? (LOCAL:10 * (380 + RAND:130) + RAND:140) # 0	; 【[快Ｖの珠]】
+	LOCAL:23 = (LOCAL:11 > 0) ? (LOCAL:11 * (330 + RAND:110) + RAND:100) # 0	; 【[快Ａの珠]】
+	LOCAL:24 = LOCAL:0 * (200 + RAND:70) + RAND:80	; 【[快Ｂの珠]】
+	LOCAL:25 = (LOCAL:20 > 0) ? (LOCAL:20 * (140 + RAND:60) + RAND:70) # 0	; 【[快Ｍの珠]（非キス未経験時のみ）】
+	LOCAL:26 = LOCAL:0 * (300 + RAND:100) + RAND:110	; 【[恭順の珠]】
+	LOCAL:27 = LOCAL:0 * (430 + RAND:140) + RAND:150	; 【[欲情の珠]】
+	LOCAL:28 = LOCAL:0 * (220 + RAND:80) + RAND:90	; 【[屈服の珠]】
+	LOCAL:29 = LOCAL:18 * (170 + RAND:60) + RAND:80	; 【[習得の珠]】
+	JUEL:TARGET:0 += LOCAL:21	; 【TARGET:[快Ｃの珠]加算】
+	JUEL:TARGET:1 += LOCAL:22	; 【TARGET:[快Ｖの珠]加算】
+	JUEL:TARGET:2 += LOCAL:23	; 【TARGET:[快Ａの珠]加算】
+	JUEL:TARGET:14 += LOCAL:24	; 【TARGET:[快Ｂの珠]加算】
+	JUEL:TARGET:18 += LOCAL:25	; 【TARGET:[快Ｍの珠]加算】
+	JUEL:TARGET:4 += LOCAL:26	; 【TARGET:[恭順の珠]加算】
+	JUEL:TARGET:5 += LOCAL:27	; 【TARGET:[欲情の珠]加算】
+	JUEL:TARGET:6 += LOCAL:28	; 【TARGET:[屈服の珠]加算】
+	JUEL:TARGET:7 += LOCAL:29	; 【TARGET:[習得の珠]加算】
+
+	LOCAL:40 = LOCAL:0 * (15 + RAND:6) + RAND:18	; 【TARGET:[好感度]増加量】
+	CFLAG:TARGET:2 += LOCAL:40	; 【TARGET:[好感度]加算】
+	CFLAG:TARGET:1286 = 2	; 【TARGET:[行事後余韻フラグ]=2】
+	FLAG:1286 = 1	; 【行事後余韻新規付与フラグ】
+
+	PRINTL
+	PRINTFORM 好感度＋{LOCAL:40}
+	SIF LOCAL:10 > 0
+		PRINTFORM  ／ %EXPNAME:0%＋{LOCAL:10}
+	SIF LOCAL:11 > 0
+		PRINTFORM  ／ %EXPNAME:1%＋{LOCAL:11}
+	PRINTFORM  ／ %EXPNAME:2%＋{LOCAL:12}
+	SIF LOCAL:14 > 0
+		PRINTFORM  ／ %EXPNAME:20%＋{LOCAL:14}
+	SIF LOCAL:15 > 0
+		PRINTFORM  ／ %EXPNAME:24%＋{LOCAL:15}
+	PRINTFORM  ／ %EXPNAME:21%＋{LOCAL:18}
+	SIF LOCAL:16 > 0
+		PRINTFORM  ／ %EXPNAME:22%＋{LOCAL:16}
+	SIF LOCAL:17 > 0
+		PRINTFORM  ／ %EXPNAME:26%＋{LOCAL:17}
+	PRINTFORM  ／ %EXPNAME:23%＋{LOCAL:19}
+	SIF LOCAL:20 > 0
+		PRINTFORM  ／ %EXPNAME:96%＋{LOCAL:20}
+	SIF (FLAG:23 & 1p25) == 0
+		PRINT  ／ 宝珠獲得
+	PRINTL
+	IF FLAG:23 & 1p25	; 【コンフィグ:[詳細報告]ON時は獲得した各珠の内訳を表示】
+		PRINTFORM 宝珠：%PALAMNAME:0%＋{LOCAL:21}
+		SIF LOCAL:22 > 0
+			PRINTFORM  ／ %PALAMNAME:1%＋{LOCAL:22}
+		SIF LOCAL:23 > 0
+			PRINTFORM  ／ %PALAMNAME:2%＋{LOCAL:23}
+		PRINTFORM  ／ %PALAMNAME:14%＋{LOCAL:24}
+		SIF LOCAL:25 > 0
+			PRINTFORM  ／ %PALAMNAME:18%＋{LOCAL:25}
+		PRINTFORM  ／ %PALAMNAME:4%＋{LOCAL:26}
+		PRINTFORM  ／ %PALAMNAME:5%＋{LOCAL:27}
+		PRINTFORM  ／ %PALAMNAME:6%＋{LOCAL:28}
+		PRINTFORML  ／ %PALAMNAME:7%＋{LOCAL:29}
+	ENDIF
+	SIF LOCAL:13 > 0
+		PRINTFORM %NAME:MASTER%の%EXPNAME:3%＋{LOCAL:13}　
+	SIF LOCAL:20 > 0
+		PRINTFORM %NAME:MASTER%の%EXPNAME:96%＋{LOCAL:20}　
+	IF BASE:MASTER:4 > 1	; 【MASTER:[耐力]>1（体力は減らさず耐力のみ割合消耗）】
+		LOCAL:30 = BASE:MASTER:4
+		LOCAL:31 = LIMIT(70 + (TALENT:TARGET:76 != 0) * 14 + (TALENT:TARGET:88 != 0 || TALENT:TARGET:89 != 0) * 6 + RAND:7, 70, 95)
+		IF LOCAL:30 >= 1000000000000
+			LOCAL:32 = MAX(LOCAL:30 / 100 * (100 - LOCAL:31), 1)
+		ELSE
+			LOCAL:32 = MAX(LOCAL:30 * (100 - LOCAL:31) / 100, 1)
+		ENDIF
+		LOCAL:6 = MAX(LOCAL:30 - LOCAL:32, 1)
+		BASE:MASTER:4 = LOCAL:32	; 【MASTER:[耐力]消耗】
+		PRINTFORML %NAME:MASTER%の耐力-{LOCAL:6}
+	ELSE
+		PRINTL
+	ENDIF
+	WAIT
+	RETURN 1
+
+;=========================================================
+; モード1：純愛ご褒美イチャイチャ（RAND:3分岐）
+;=========================================================
+ELSE
+	IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]なし】
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 試験合格の安堵に包まれた二人きりの部屋で、%CALLNAME:TARGET%は自分の柔らかな太ももを叩いて%CALLNAME:MASTER%を膝枕へと誘った。
+			PRINTFORML 勉強の疲れを癒すように優しく髪を撫でていた指先がやがて頬へと触れ、覗き込んできた%CALLNAME:TARGET%の唇と甘く重なり合う。
+			PRINTFORMW 二人三脚で頑張ったご褒美として、吐息が溶け合うほど深い口付けと抱擁を時間を忘れて繰り返した…
+		CASE 1
+			PRINTFORML 無事に試験を乗り切った解放感の中、%CALLNAME:TARGET%は嬉しそうに目を細めて%CALLNAME:MASTER%の胸元へと飛び込んできた。
+			PRINTFORML ぎゅっと抱きしめ合いながら互いの健闘を労うように唇を重ねると、%CALLNAME:TARGET%は甘えるように何度もキスをねだってくる。
+			PRINTFORMW 穏やかで甘い空気の中、二人はぴったりと寄り添い合ったまま幸せなご褒美のひとときを過ごした…
+		CASEELSE
+			PRINTFORML 勉強を教えてくれた%CALLNAME:TARGET%に礼を伝えると、%CALLNAME:TARGET%は照れくさそうに微笑みながら%CALLNAME:MASTER%の隣へと腰を下ろした。
+			PRINTFORML 自然と絡み合った指先から熱が伝わり、肩を寄せ合ったまま幾度も愛おしげな口付けを交わし合う。
+			PRINTFORMW 試験の緊張がすっかり溶け去るまで、二人は甘いスキンシップを心ゆくまで堪能した…
+		ENDSELECT
+	ENDIF
+	TFLAG:13 = 96
+	CALL SELF_KOJO
+	CFLAG:99 = LOCAL:100
+	LOCAL:0 = 3 + MAX(ARG / 10, 0) + RAND:2	; 【基準回数】
+	LOCAL:19 = LOCAL:0 + RAND:2	; 【[愛情経験]増加量】
+	LOCAL:20 = LOCAL:0 + 2 + RAND:4	; 【[キス経験]増加量】
+	LOCAL:25 = LOCAL:20 * (110 + RAND:50) + RAND:60	; 【[快Ｍの珠]】
+	LOCAL:26 = LOCAL:0 * (240 + RAND:80) + RAND:90	; 【[恭順の珠]】
+	LOCAL:27 = LOCAL:0 * (200 + RAND:70) + RAND:80	; 【[好意の珠]】
+	LOCAL:40 = LOCAL:0 * (11 + RAND:5) + RAND:10	; 【[好感度]増加量】
+	CFLAG:TARGET:2 += LOCAL:40	; 【TARGET:[好感度]加算】
+	EXP:TARGET:23 += LOCAL:19	; 【TARGET:[愛情経験]加算】
+	EXP:TARGET:96 += LOCAL:20	; 【TARGET:[キス経験]加算】
+	EXP:MASTER:96 += LOCAL:20	; 【MASTER:[キス経験]加算】
+	JUEL:TARGET:18 += LOCAL:25	; 【TARGET:[快Ｍの珠]加算】
+	JUEL:TARGET:4 += LOCAL:26	; 【TARGET:[恭順の珠]加算】
+	JUEL:TARGET:15 += LOCAL:27	; 【TARGET:[好意の珠]加算】
+	CFLAG:TARGET:1286 = 1 + (ARG >= 15)	; 【TARGET:[行事後余韻フラグ]=1～2】
+	FLAG:1286 = 1	; 【行事後余韻新規付与フラグ】
+	PRINTL
+	PRINTFORM 好感度＋{LOCAL:40} ／ %EXPNAME:23%＋{LOCAL:19} ／ %EXPNAME:96%＋{LOCAL:20} ／ %NAME:MASTER%の%EXPNAME:96%＋{LOCAL:20}
+	IF FLAG:23 & 1p25
+		PRINTFORML  ／ %PALAMNAME:18%の珠＋{LOCAL:25} ／ %PALAMNAME:4%の珠＋{LOCAL:26} ／ %PALAMNAME:15%の珠＋{LOCAL:27}
+	ELSE
+		PRINTL  ／ 宝珠獲得
+	ENDIF
+	WAIT
+	RETURN 1
+ENDIF
+RETURN 0

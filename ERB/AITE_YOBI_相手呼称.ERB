@@ -9,433 +9,453 @@
 @AITE_YOBI, ARG, ARG:1
 #DIM SP
 #DIM AI
+#DIM AI_SLOT
 #DIMS SUR
 	SP = ARG
-	AI = ARG:1
+	AI_SLOT = ARG:1
+	SIF AI_SLOT < 0 || AI_SLOT >= CHARANUM
+		AI_SLOT = PLAYER
+	SIF AI_SLOT < 0 || AI_SLOT >= CHARANUM
+		AI_SLOT = 0
+	IF AI_SLOT == 0
+		AI = NO:0
+	ELSEIF NO:AI_SLOT > 0
+		AI = NO:AI_SLOT
+	ELSE
+		AI = AI_SLOT
+	ENDIF
 	;•ciƒtƒ‹ƒl[ƒ€‚©‚ηΔ‚Ρ–Ό‚π‹j
-	SUR '= REPLACE(NAME:AI, CALLNAME:AI, "")
+	SUR '= REPLACE(NAME:AI_SLOT, CALLNAME:AI_SLOT, "")
+	SUR '= REPLACE(SUR, "E", "")
+	SIF SUR == ""
+		SUR '= CALLNAME:AI_SLOT
 	;--- (1) bÒ•Κ‚Μω’θΔΜ ---
 	SELECTCASE SP
+		CASE 1, 2, 3, 4, 6, 8, 9, 12, 13, 16, 18, 20, 21
+			;1”N¶•W€: γ‹‰¶(2”NE3”N)‚Νu•c+ζ”yvA“―‹‰¶(1”N)‚Νu•c+‚³‚ρv
+			IF GET_CHARA_GRADE(AI) > 1
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%SUR%‚³‚ρ"
+			ENDIF
+		CASE 5, 7, 11, 15, 17, 22
+			;‚ ‚·‚©/‚Ώ‚ ‚«/‚­‚ι‚έ/‚β‚¦: γ‹‰¶(2”NE3”N)‚Νu•c+ζ”yvA“―‹‰¶(1”N)‚Νu–Ό‘O+‚Ώ‚α‚ρv
+			IF GET_CHARA_GRADE(AI) > 1
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%CALLNAME:AI_SLOT%‚Ώ‚α‚ρ"
+			ENDIF
+		CASE 10
+			;–Ψ”V‰Ί‚δ‚δ: γ‹‰¶(2”NE3”N)‚Νu–Ό‘O+‚¨‚Λ[‚³‚ρvA“―‹‰¶(1”N)‚Νu–Ό‘O+‚Ώ‚α‚ρv
+			IF GET_CHARA_GRADE(AI) > 1
+				RESULTS '= @"%CALLNAME:AI_SLOT%‚¨‚Λ[‚³‚ρ"
+			ELSE
+				RESULTS '= @"%CALLNAME:AI_SLOT%‚Ώ‚α‚ρ"
+			ENDIF
 		CASE 14
 			;‰Τ‰Ή‚±‚Ζ‚θ: •c+‚µ‚α‚ρ•t‚―
 			RESULTS '= @"%SUR%‚µ‚α‚ρ"
-		CASE 26, 33, 46
-			;–x“c‚³‚ ‚β/•A‚ι‚Θ/‘o—t‚έ‚Γ‚«: •c‚ΕΔ‚ΡΜ‚Δ
+		CASE 46, 49, 50, 52, 56, 57, 60, 62
+			;‘o—t‚έ‚Γ‚«/¬Ό‚Ϊ‚½‚ρ/R‚¬‚ρ/Ξ“μ‚β‚±/”ª•Η‚Π‚©‚ι/βΛƒTƒ“/£μ‚©‚¦‚Ε/•X‚·‚Έ: •c‚ΕΔ‚ΡΜ‚Δ
 			RESULTS '= @"%SUR%"
-		CASE 23
-			;ις–Ψ‚±‚Ν‚ι: Δ‚Ρ–Ό‚ΕΔ‚ΡΜ‚Δ
-			RESULTS '= @"%CALLNAME:AI%"
-		CASE 51
-			;δ‰e‚©‚·‚έ: Δ‚Ρ–Ό+‰®‚³‚ρ•t‚―
-			RESULTS '= @"%CALLNAME:AI%‰®‚³‚ρ"
+		CASE 47, 63, 66, 72
+			;‘o—t‚έ‚Θ‚Γ‚«/”ª‰_‚Ώ‚Γ‚ι/‘]ªƒZƒCƒ‰/‚ ‚ρ‚Έ: –Ό‘O+‚Ώ‚α‚ρ
+			RESULTS '= @"%CALLNAME:AI_SLOT%‚Ώ‚α‚ρ"
+		CASE 26, 33
+			;–x“c‚³‚ ‚β/•A‚ι‚Θ: γ‹‰¶(3”N)‚Νu•c+ζ”yvA“―‹‰¶E‰Ί‹‰¶(2”NE1”N)‚Νu•cΔ‚ΡΜ‚Δv
+			IF GET_CHARA_GRADE(AI) > 2
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%SUR%"
+			ENDIF
+		CASE 27, 35, 36, 40, 41, 42, 43, 44
+			;‰Δ–μ‚δ‚θ/”~‰€‚©‚Θ/‰“©‚Ώ‚©/–ι–¶‚Ν‚β‚Δ/—I–Ψ‚Ζ‚ΰ‚±/ε‚ή‚Β‚έ/»‰κ‚έ‚Η‚θ/ω‰θ‚Π‚ζ‚Μ: γ‹‰¶(3”N)‚Νu•c+ζ”yvA“―‹‰¶E‰Ί‹‰¶(2”NE1”N)‚Νu•c+‚³‚ρv
+			IF GET_CHARA_GRADE(AI) > 2
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%SUR%‚³‚ρ"
+			ENDIF
+		CASE 29, 34
+			;t•—‚Θ‚Θ/‹Λ“‡‚©‚Ά‚θ: γ‹‰¶(3”N)‚Νu•c+ζ”yvA“―‹‰¶E‰Ί‹‰¶(2”NE1”N)‚Νu–Ό‘O+‚Ώ‚α‚ρv
+			IF GET_CHARA_GRADE(AI) > 2
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%CALLNAME:AI_SLOT%‚Ώ‚α‚ρ"
+			ENDIF
+		CASE 30
+			;’·‹‚δ‚¤: γ‹‰¶(3”N)‚Νu•c+ζ”yvA“―‹‰¶(2”N)‚Νu–Ό‘O+‚Ώ‚α‚ρvA‰Ί‹‰¶(1”N)‚Νu•c+‚³‚ρv
+			IF GET_CHARA_GRADE(AI) > 2
+				RESULTS '= @"%SUR%ζ”y"
+			ELSEIF GET_CHARA_GRADE(AI) == 2
+				RESULTS '= @"%CALLNAME:AI_SLOT%‚Ώ‚α‚ρ"
+			ELSE
+				RESULTS '= @"%SUR%‚³‚ρ"
+			ENDIF
+		CASE 19, 23
+			;‚έ‚―/‚±‚Ν‚ι: γ‹‰¶(2”NE3”N)‚Νu•c+ζ”yvA“―‹‰¶(1”N)‚ΝΔ‚Ρ–Ό‚ΕΔ‚ΡΜ‚Δ
+			IF GET_CHARA_GRADE(AI) > 1
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%CALLNAME:AI_SLOT%"
+			ENDIF
 		CASE 58
 			;“V‹{‚ι‚θ: ‘Sυ‚Ώ‚α‚ρ•t‚―
-			RESULTS '= @"%CALLNAME:AI%‚Ώ‚α‚ρ"
+			RESULTS '= @"%CALLNAME:AI_SLOT%‚Μ‚Π‚Ζ"
 		CASE 64
 			;•τR‚µ‚¨‚ρ: •c+‚­‚ρ•t‚―
 			RESULTS '= @"%SUR%‚­‚ρ"
-		CASE 70
-			;_–³‚Ω‚Ζ‚θ: •c+‚Ώ‚α‚ρ•t‚―
+		CASE 70, 71
+			;_–³‚Ω‚Ζ‚θ/¥‚Π‚Ρ‚«: •c+‚Ώ‚α‚ρ•t‚―
 			RESULTS '= @"%SUR%‚Ώ‚α‚ρ"
-		CASE 21, 35, 43, 44, 45, 47, 48, 49, 52, 54, 55, 57, 60, 62, 65, 67, 68, 69
-			;θ³q‚·‚έ‚κ/”~‰€‚©‚Θ/»‰κ‚έ‚Η‚θ/ω‰θ‚Π‚ζ‚Μ/‰~ι›‚κ‚Ά‚©/‘o—t‚έ‚Θ‚Γ‚«/l•ϋ‚έ‚Β‚ι/¬Ό‚Ϊ‚½‚ρ/Ξ“μ‚β‚±/‹vβ‚ ‚β‚ί/Ι“΅‚³‚­‚η/βΛƒTƒ“/£μ‚©‚¦‚Ε/•X‚·‚Έ/‘‚»‚η/“ϊ‘κ‚ά‚µ‚λ/[’Ή‚Σ‚έ/_χ‚Ν‚¶‚ί: •c+‚³‚ρ•t‚―
+		CASE 25, 28, 45, 48, 54, 55, 65, 67, 68, 69
+			;”ªρ‚Β‚δ‚θ/―C‚±‚ζ‚Ά/‰~ι›‚κ‚Ά‚©/l•ϋ‚έ‚Β‚ι/‹vβ‚ ‚β‚ί/Ι“΅‚³‚­‚η/‘‚»‚η/“ϊ‘κ‚ά‚µ‚λ/[’Ή‚Σ‚έ/_χ‚Ν‚¶‚ί: •c+‚³‚ρ•t‚―
 			RESULTS '= @"%SUR%‚³‚ρ"
-		CASE 53, 66
-			;‰Τ‹u‚ά‚θ/‘]ªƒZƒCƒ‰: Δ‚Ρ–Ό+‚³‚ρ•t‚―
-			RESULTS '= @"%CALLNAME:AI%‚³‚ρ"
-		CASE 15, 17, 18, 24, 59, 61, 63
-			;’·’¬‚β‚¦/¬”µ‚ ‚Έ‚³/F‘ς‚Π‚ί‚Μ/O”g‚Θ‚Β‚έ/…›Έ‚¤‚µ‚¨/’ίC‚Π‚ά‚θ/”ª‰_‚Ώ‚Γ‚ι: Δ‚Ρ–Ό+‚Ώ‚α‚ρ•t‚―
-			RESULTS '= @"%CALLNAME:AI%‚Ώ‚α‚ρ"
+		CASE 51
+			;δ‰e‚©‚·‚έ: –Ό‘O+‰®‚³‚ρi“Ζ“Α‚ΜΔΜE119‰ρΘγ“oκj
+			RESULTS '= @"%CALLNAME:AI_SLOT%‰®‚³‚ρ"
+		CASE 53
+			;‰Τ‹u‚ά‚θ: Δ‚Ρ–Ό+‚³‚ρ•t‚―
+			RESULTS '= @"%CALLNAME:AI_SLOT%‚³‚ρ"
+		CASE 24
+			;O”g‚Θ‚Β‚έ: γ‹‰¶(3”N)‚Νu•c+‚³‚ρvA“―‹‰¶(2”N)‚Νu–Ό‘O+‚Ώ‚α‚ρvA‰Ί‹‰¶(1”N)‚Νu•c+‚³‚ρv
+			IF GET_CHARA_GRADE(AI) == 2
+				RESULTS '= @"%CALLNAME:AI_SLOT%‚Ώ‚α‚ρ"
+			ELSE
+				RESULTS '= @"%SUR%‚³‚ρ"
+			ENDIF
+		CASE 59, 61
+			;…›Έ‚¤‚µ‚¨/’ίC‚Π‚ά‚θ: Δ‚Ρ–Ό‚ΕΔ‚ΡΜ‚Δ
+			RESULTS '= @"%CALLNAME:AI_SLOT%"
 		CASE 31
 			;–²H‚ά‚θ‚ : Δ‚Ρ–Ό+—l•t‚―
-			RESULTS '= @"%CALLNAME:AI%—l"
+			RESULTS '= @"%CALLNAME:AI_SLOT%—l"
+		CASE 38
+			;ƒN[EƒJƒƒA: γ‹‰¶(3”N)‚Νu–Ό‘O+ƒZƒ“ƒpƒCvA“―‹‰¶E‰Ί‹‰¶(2”NE1”N)‚Νu–Ό‘O+ƒ`ƒƒƒ“v
+			IF GET_CHARA_GRADE(AI) > 2
+				RESULTS '= @"%CALLNAME:AI_SLOT%ƒZƒ“ƒpƒC"
+			ELSE
+				RESULTS '= @"%CALLNAME:AI_SLOT%ƒ`ƒƒƒ“"
+			ENDIF
 		CASE 39
-			;α–Ψ‚ΰ‚ΰ: •c+‚­‚ρ•t‚―
-			RESULTS '= @"%SUR%‚­‚ρ"
-		CASE 32, 37, 50
-			;ΐπ‚ά‚Ά/—΄ς›ƒƒ“ƒƒ“/R‚¬‚ρ: •c+‚Ώ‚α‚ρ•t‚―
-			RESULTS '= @"%SUR%‚Ώ‚α‚ρ"
+			;α–Ψ‚ΰ‚ΰ: γ‹‰¶(3”N)‚Νu•c+ζ”yvA“―‹‰¶E‰Ί‹‰¶(2”NE1”N)‚Νu•c+‚­‚ρv
+			IF GET_CHARA_GRADE(AI) > 2
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%SUR%‚­‚ρ"
+			ENDIF
+		CASE 32, 37
+			;ΐπ‚ά‚Ά/—΄ς›ƒƒ“ƒƒ“: γ‹‰¶(3”N)‚Νu•c+ζ”yvA“―‹‰¶E‰Ί‹‰¶(2”NE1”N)‚Νu•c+‚Ώ‚α‚ρv
+			IF GET_CHARA_GRADE(AI) > 2
+				RESULTS '= @"%SUR%ζ”y"
+			ELSE
+				RESULTS '= @"%SUR%‚Ώ‚α‚ρ"
+			ENDIF
 		CASEELSE
-			RESULTS '= @"%CALLNAME:AI%"
+			RESULTS '= @"%CALLNAME:AI_SLOT%"
 	ENDSELECT
 	;--- (2) Β•Κ‚Μ“Α•ΚΔΜiγ‘‚«j---
 	SELECTCASE SP
 		CASE 1
-			;‚©‚Θ‚¦
+			;O‘P‚©‚Θ‚¦ (1-A / ‘ty•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"–kμ‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚³‚ρ"
 				CASE 4
+					;‘μ‚«‚± (e—F)
 					RESULTS '= @"‚Ò‚±‚Ώ‚α‚ρ"
-				CASE 5
-					RESULTS '= @"“’q‚³‚ρ"
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
-				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚³‚ρ"
-				CASE 17
-					RESULTS '= @"¬”µ‚³‚ρ"
-				CASE 20
-					RESULTS '= @"“΅’–‚³‚ρ"
-				CASE 25
-					RESULTS '= @"”ªρζ”y"
 				CASE 27
-					RESULTS '= @"‰Δ–μ"
-				CASE 32
-					RESULTS '= @"ΐπζ”y"
-				CASE 49
-					RESULTS '= @"¬Όζ”y"
-				CASE 65
-					RESULTS '= @"‘ζ”y"
-				CASE 69
-					RESULTS '= @"_χζ”y"
+					;‰Δ–μ‚δ‚θ (‘ty•”•”’·)
+					RESULTS '= @"‰Δ–μ•”’·"
 			ENDSELECT
 		CASE 2
-			;‚δ‚«
+			;–kμ‚δ‚« (1-A / ƒpƒ\ƒRƒ“•”)
 			SELECTCASE AI
-				CASE 3
-					RESULTS '= @"¬–μ‚³‚ρ"
-				CASE 6
-					RESULTS '= @"—•”T‚³‚ρ"
-				CASE 7
-					RESULTS '= @"‚΄‚³‚ρ"
-				CASE 9
-					RESULTS '= @"‰i‚³‚ρ"
-				CASE 12
-					RESULTS '= @"_χζ”y"
-				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 24
+					;O”g‚Θ‚Β‚έ (γ‹‰¶‚Ύ‚ªu‚³‚ρv•t‚―)
 					RESULTS '= @"‚Θ‚Β‚έ‚³‚ρ"
-				CASE 28
-					RESULTS '= @"―Cζ”y"
-				CASE 30
-					RESULTS '= @"’·‹ζ”y"
-				CASE 31
-					RESULTS '= @"–²Hζ”y"
-				CASE 37
-					RESULTS '= @"—΄ς›ζ”y"
-				CASE 50
-					RESULTS '= @"Rζ”y"
-				CASE 58
-					RESULTS '= @"“V‹{ζ”y"
-				CASE 65
-					RESULTS '= @"‘ζ”y"
-				CASE 67
-					RESULTS '= @"“ϊ‘κζ”y"
+				CASE 32
+					;ΐπ‚ά‚Ά (•η‚¤ζ”y)
+					RESULTS '= @"‚Λ‚¦‚³‚ρ"
 			ENDSELECT
 		CASE 3
-			;‚Ώ‚ζ
+			;¬–μ‚Ώ‚ζ (1-A / —Ώ—¤‹†•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 2
+					;–kμ‚δ‚« (¤Μ)
+					RESULTS '= @"‚δ‚«•P"
 				CASE 5
 					RESULTS '= @"‚ ‚·‚©‚Ώ‚α‚ρ"
 				CASE 6
+					;—•”T‚ ‚Ά‚© (’‡—Η‚µOl‘g)
 					RESULTS '= @"‚ ‚Ά‚©‚Ώ‚α‚ρ"
 				CASE 7
+					;‚΄‚Ώ‚ ‚« (’‡—Η‚µOl‘g)
 					RESULTS '= @"‚Ώ‚ ‚«‚Ώ‚α‚ρ"
 				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
+					RESULTS '= @"‚έ‚³‚«‚Ώ‚α‚ρ"
+				CASE 10
+					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
 				CASE 11
 					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
 				CASE 23
+					;ις–Ψ‚±‚Ν‚ι (γ”y)
 					RESULTS '= @"‚±‚Ν‚ι‚Ώ‚α‚ρ"
-				CASE 34
-					RESULTS '= @"‹Λ“‡ζ”y"
 				CASE 38
+					;ƒN[EƒJƒƒA (–Ό‘O+ζ”y)
 					RESULTS '= @"ƒN[ζ”y"
-				CASE 45
-					RESULTS '= @"‰~ι›ζ”y"
-				CASE 49
-					RESULTS '= @"¬Όζ”y"
 				CASE 51
+					;δ‰e‚©‚·‚έ (–Ό‘O+ζ”y)
 					RESULTS '= @"‚©‚·‚έζ”y"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
-				CASE 65
-					RESULTS '= @"‘ζ”y"
-				CASE 69
-					RESULTS '= @"_χζ”y"
 			ENDSELECT
 		CASE 4
-			;‚«‚±
+			;‘μ‚«‚± (1-A / ‘ty•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 1
+					;O‘P‚©‚Θ‚¦ (e—F)
 					RESULTS '= @"‚έ‚ζ‚Ώ‚α‚ρ"
 				CASE 2
-					RESULTS '= @"–kμ‚³‚ρ"
+					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
 				CASE 3
 					RESULTS '= @"‚Ώ‚ζ‚Ώ‚α‚ρ"
 				CASE 5
 					RESULTS '= @"‚ ‚·‚©‚Ώ‚α‚ρ"
+				CASE 7
+					RESULTS '= @"‚Ώ‚ ‚«‚Ώ‚α‚ρ"
 				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
+					RESULTS '= @"‚έ‚³‚«‚Ώ‚α‚ρ"
 				CASE 11
 					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 12
-					RESULTS '= @"‚Ά‚Ώ‚©‚Ώ‚α‚ρ"
 				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚³‚ρ"
+					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
 				CASE 20
 					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
 				CASE 27
+					;‰Δ–μ‚δ‚θ (‘ty•”•”’·ζ”y)
 					RESULTS '= @"‚Θ‚Α‚Ώ‚α‚ρζ”y"
-				CASE 65
-					RESULTS '= @"‘ζ”y"
 			ENDSELECT
 		CASE 5
-			;‚ ‚·‚©
+			;“’q‚ ‚·‚© (1-A / ƒoƒXƒP•”E•—‹IΟυ‰ο)
 			SELECTCASE AI
-				CASE 1
-					RESULTS '= @"‚©‚Θ‚¦‚Ώ‚α‚ρ"
-				CASE 3
-					RESULTS '= @"‚Ώ‚ζ‚Ώ‚α‚ρ"
-				CASE 11
-					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 24
+					RESULTS '= @"‚Θ‚Β‚Α‚Ώζ”y"
 				CASE 31
+					;–²H‚ά‚θ‚  (–Ό‘O+ζ”y)
 					RESULTS '= @"‚ά‚θ‚ ζ”y"
-				CASE 35
-					RESULTS '= @"”~‰€ζ”y"
 				CASE 43
 					RESULTS '= @"‚έ‚Η‚Α‚Ώζ”y"
+				CASE 46
+					RESULTS '= @"‚έ‚Έ‚Α‚Ώζ”y"
 				CASE 47
 					RESULTS '= @"‚έ‚Θ‚Α‚Ώζ”y"
 				CASE 49
+					;¬Ό‚Ϊ‚½‚ρ (ƒoƒXƒP•”•”’·ζ”y)
 					RESULTS '= @"‚±‚ά‚Α‚Ώζ”y"
+				CASE 51
+					;δ‰e‚©‚·‚έ (–Ό‘O+ζ”y)
+					RESULTS '= @"‚©‚·‚έζ”y"
 				CASE 60
-					RESULTS '= @"‚©‚¦‚Ε‚³‚ρ"
-				CASE 64
-					RESULTS '= @"•τRζ”y"
-				CASE 69
-					RESULTS '= @"_χζ”y"
+					;£μ‚©‚¦‚Ε (•—‹IΟυ‰ο/—c“ιυ)
+					RESULTS '= @"‚Ή‚ª‚Α‚ΏΟυ’·"
+				CASE 62
+					RESULTS '= @"ƒNƒ‚Α‚Ώζ”y"
 			ENDSELECT
 		CASE 6
-			;‚ ‚Ά‚©
+			;—•”T‚ ‚Ά‚© (1-A / •¶|•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 2
-					RESULTS '= @"–kμ‚³‚ρ"
+					;–kμ‚δ‚« (e—F)
+					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
 				CASE 3
+					;¬–μ‚Ώ‚ζ (’‡—Η‚µOl‘g)
 					RESULTS '= @"‚Ώ‚ζ‚Ώ‚α‚ρ"
 				CASE 7
+					;‚΄‚Ώ‚ ‚« (’‡—Η‚µOl‘g)
 					RESULTS '= @"‚Ώ‚ ‚«‚Ώ‚α‚ρ"
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
-				CASE 9
-					RESULTS '= @"‰i‚³‚ρ"
 				CASE 10
+					;–Ψ”V‰Ί‚δ‚δ (•¶|•”Ee—F)
 					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
-				CASE 16
-					RESULTS '= @"‘εΥ‚³‚ρ"
-				CASE 18
-					RESULTS '= @"F‘ς‚³‚ρ"
-				CASE 41
-					RESULTS '= @"—I–Ψζ”y"
-				CASE 44
-					RESULTS '= @"ω‰θζ”y"
-				CASE 50
-					RESULTS '= @"Rζ”y"
-				CASE 52
-					RESULTS '= @"Ξ“μζ”y"
-				CASE 58
-					RESULTS '= @"“V‹{ζ”y"
+				CASE 11
+					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
 				CASE 61
-					RESULTS '= @"‚Π‚ά‚θζ”y"
-				CASE 63
-					RESULTS '= @"”ª‰_ζ”y"
+					;’ίC‚Π‚ά‚θ (•¶|•”•”’·)
+					RESULTS '= @"•”’·"
 				CASE 64
+					;•τR‚µ‚¨‚ρ (“²‚κ‚Μ“Η‘’‡ΤE‰¶t)
 					RESULTS '= @"‚µ‚¨‚ρζ”y"
 			ENDSELECT
 		CASE 7
-			;‚Ώ‚ ‚«
+			;‚΄‚Ώ‚ ‚« (1-A / ƒ‰ƒNƒƒX•”)
 			SELECTCASE AI
-				CASE 3
-					RESULTS '= @"‚Ώ‚ζ‚Ώ‚α‚ρ"
-				CASE 6
-					RESULTS '= @"‚ ‚Ά‚©‚Ώ‚α‚ρ"
-				CASE 10
-					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
-				CASE 18
-					RESULTS '= @"‚Π‚ί‚Μ‚Ώ‚α‚ρ"
-				CASE 19
-					RESULTS '= @"”L’Λ‚³‚ρ"
-				CASE 26
-					RESULTS '= @"–x“cζ”y"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚¨Z‚Ώ‚α‚ρζ”y"
+				CASE 2
+					;–kμ‚δ‚« (1”NA‘g‚Μ‚¨•P‚³‚άE¤Μ)
+					RESULTS '= @"‚δ‚«•P"
 				CASE 38
+					;ƒN[EƒJƒƒA (ƒ‰ƒNƒƒX•”E–Ό‘O+ζ”y)
 					RESULTS '= @"ƒN[ζ”y"
-				CASE 46
-					RESULTS '= @"‚έ‚Γ‚«ζ”y"
-				CASE 47
-					RESULTS '= @"‚έ‚Θ‚Γ‚«ζ”y"
-				CASE 53
-					RESULTS '= @"‰Τ‹uζ”y"
-				CASE 67
-					RESULTS '= @"“ϊ‘κζ”y"
 			ENDSELECT
 		CASE 8
-			;‚έ‚³‚«
+			;Ϋq‚έ‚³‚« (1-B / •ϊ‘—•”E‘I‹“Η—Ου‰ο)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 3
+					RESULTS '= @"‚Ώ‚ζ‚Α‚Ώ"
+				CASE 4
+					RESULTS '= @"‚«‚±‚Α‚Ώ"
 				CASE 6
-					RESULTS '= @"—•”T‚³‚ρ"
+					RESULTS '= @"‚ ‚Ά‚©‚Α‚Ώ"
+				CASE 7
+					RESULTS '= @"‚Ώ‚ ‚«‚Α‚Ώ"
+				CASE 9
+					RESULTS '= @"‚ι‚©‚Α‚Ώ"
+				CASE 10
+					RESULTS '= @"‚δ‚δ‚Α‚Ώ"
+				CASE 12
+					RESULTS '= @"‚Ά‚Ώ‚©‚Α‚Ώ"
 				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
+					RESULTS '= @"‚Β‚Ξ‚³‚Α‚Ώ"
+				CASE 14
+					RESULTS '= @"‚±‚Ζ‚θ‚Α‚Ώ"
 				CASE 15
-					RESULTS '= @"‚β‚¦‚Ώ‚α‚ρ"
+					RESULTS '= @"‚β‚¦‚Α‚Ώ"
+				CASE 18
+					RESULTS '= @"F‚Α‚Ώ"
+				CASE 19
+					RESULTS '= @"”L‚Α‚Ώ"
 				CASE 20
-					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
-				CASE 24
-					RESULTS '= @"O”gζ”y"
-				CASE 25
-					RESULTS '= @"”ªρζ”y"
-				CASE 30
-					RESULTS '= @"’·‹‚³‚ρ"
-				CASE 32
-					RESULTS '= @"ΐπζ”y"
-				CASE 44
-					RESULTS '= @"ω‰θζ”y"
-				CASE 49
-					RESULTS '= @"¬Όζ”y"
-				CASE 58
-					RESULTS '= @"“V‹{ζ”y"
-				CASE 60
-					RESULTS '= @"£μζ”y"
-				CASE 62
-					RESULTS '= @"•Xζ”y"
-				CASE 65
-					RESULTS '= @"‘ζ”y"
-				CASE 68
-					RESULTS '= @"[’Ήζ”y"
+					;“΅’–‚µ‚Έ‚­ (‘εe—FE•ϊ‘—•”‘•ϋ)
+					RESULTS '= @"‚µ‚Έ‚­‚Α‚Ώ"
+				CASE 21
+					RESULTS '= @"‚·‚έ‚κ‚Α‚Ώ"
+				CASE 34
+					;‹Λ“‡‚©‚Ά‚θ (—c“ιυEΕ—L¤Μ)
+					RESULTS '= @"‚¨μ"
 			ENDSELECT
 		CASE 9
-			;‚ι‚©
+			;‰i‚ι‚© (1-B / y‰Ή•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"–kμ‚³‚ρ"
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 11
 					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 12
-					RESULTS '= @"_χ‚³‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
-				CASE 15
-					RESULTS '= @"’·’¬‚³‚ρ"
-				CASE 17
-					RESULTS '= @"¬”µ‚³‚ρ"
-				CASE 18
-					RESULTS '= @"F‘ς‚³‚ρ"
 				CASE 20
+					;“΅’–‚µ‚Έ‚­ (e—FEƒoƒ“ƒh’‡Τ)
 					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
 				CASE 23
-					RESULTS '= @"ις–Ψ‚³‚ρ"
+					RESULTS '= @"‚±‚Ν‚ι‚Ώ‚α‚ρ"
 				CASE 31
+					;–²H‚ά‚θ‚  (–Ό‘O+ζ”y)
 					RESULTS '= @"‚ά‚θ‚ ζ”y"
 				CASE 62
+					;•X‚·‚Έ (Εh¤‚Μζ”y)
 					RESULTS '= @"‚·‚Έζ”y"
 				CASE 66
+					;‘]ªƒZƒCƒ‰ (–Ό‘O+ζ”y)
 					RESULTS '= @"ƒZƒCƒ‰ζ”y"
 			ENDSELECT
 		CASE 10
-			;‚δ‚δ
+			;–Ψ”V‰Ί‚δ‚δ (1-B / •¶|•”)
 			SELECTCASE AI
-				CASE 3
-					RESULTS '= @"‚Ώ‚ζ‚Ώ‚α‚ρ"
-				CASE 6
-					RESULTS '= @"‚ ‚Ά‚©‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚¨‚Ι`‚³‚ρ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (•¶|•”•”’·)
+					RESULTS '= @"•”’·‚Ώ‚α‚ρ"
+			ENDSELECT
+		CASE 11
+			;•X–μ‚­‚ι‚έ (1-B / ‰€|•”E•Ϋ’Ου‰ο)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 25
+					;”ªρ‚Β‚δ‚θ (–Ό‘O+ζ”y)
+					RESULTS '= @"‚Β‚δ‚θζ”y"
+				CASE 28
+					;―C‚±‚ζ‚Ά (–Ό‘O+ζ”y)
+					RESULTS '= @"‚±‚ζ‚Άζ”y"
+				CASE 31
+					;–²H‚ά‚θ‚  (–Ό‘O+ζ”y)
+					RESULTS '= @"‚ά‚θ‚ ζ”y"
+				CASE 43
+					;»‰κ‚έ‚Η‚θ (‰€|•”•”’·)
+					RESULTS '= @"‚έ‚Η‚θ•”’·"
+				CASE 46
+					;‘o—t‚έ‚Γ‚« (–Ό‘O+ζ”y)
+					RESULTS '= @"‚έ‚Γ‚«ζ”y"
+			ENDSELECT
+		CASE 12
+			;_χ‚Ά‚Ώ‚© (1-B / •“Ή•”E‘ΜηΟυ‰ο)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 1
+					RESULTS '= @"O‘P‚Ώ‚α‚ρ"
 				CASE 7
 					RESULTS '= @"‚Ώ‚ ‚«‚Ώ‚α‚ρ"
 				CASE 8
 					RESULTS '= @"‚έ‚³‚«‚Ώ‚α‚ρ"
-				CASE 11
-					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 12
-					RESULTS '= @"‚Ά‚Ώ‚©‚Ώ‚α‚ρ"
-				CASE 16
-					RESULTS '= @"‚Ά‚³‚έ‚Ώ‚α‚ρ"
-				CASE 54
-					RESULTS '= @"‚ ‚β‚ί‚¨‚Λ[‚³‚ρ"
-				CASE 55
-					RESULTS '= @"‚³‚­‚η‚¨‚Λ[‚³‚ρ"
-				CASE 61
-					RESULTS '= @"‚Π‚ά‚θ‚Ώ‚α‚ρ"
-			ENDSELECT
-		CASE 11
-			;‚­‚ι‚έ
-			SELECTCASE AI
-				CASE 1
-					RESULTS '= @"O‘P‚³‚ρ"
-				CASE 3
-					RESULTS '= @"‚Ώ‚ζ‚Ώ‚α‚ρ"
-				CASE 4
-					RESULTS '= @"‘μ‚³‚ρ"
-				CASE 5
-					RESULTS '= @"“’q‚³‚ρ"
-				CASE 9
-					RESULTS '= @"‚ι‚©‚Ώ‚α‚ρ"
-				CASE 12
-					RESULTS '= @"‚Ά‚Ώ‚©‚Ώ‚α‚ρ"
-				CASE 14
-					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
-				CASE 15
-					RESULTS '= @"‚β‚¦‚Ώ‚α‚ρ"
-				CASE 17
-					RESULTS '= @"‚ ‚Έ‚³‚Ώ‚α‚ρ"
-				CASE 25
-					RESULTS '= @"‚Β‚δ‚θζ”y"
-				CASE 31
-					RESULTS '= @"‚ά‚θ‚ ζ”y"
-				CASE 43
-					RESULTS '= @"‚έ‚Η‚θ"
-				CASE 49
-					RESULTS '= @"¬Όζ”y"
-				CASE 66
-					RESULTS '= @"‘]ªζ”y"
-			ENDSELECT
-		CASE 12
-			;‚Ά‚Ώ‚©
-			SELECTCASE AI
-				CASE 1
-					RESULTS '= @"O‘P‚Ώ‚α‚ρ"
-				CASE 2
-					RESULTS '= @"–kμ‚³‚ρ"
-				CASE 8
-					RESULTS '= @"‚έ‚³‚«‚Ώ‚α‚ρ"
-				CASE 9
-					RESULTS '= @"‰i‚³‚ρ"
 				CASE 10
 					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
-				CASE 11
-					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
 				CASE 15
+					;’·’¬‚β‚¦ (‘εe—F)
 					RESULTS '= @"‚β‚¦‚Ώ‚α‚ρ"
-				CASE 16
-					RESULTS '= @"‘εΥ‚³‚ρ"
-				CASE 40
-					RESULTS '= @"–ι–¶ζ”y"
-				CASE 44
-					RESULTS '= @"ω‰θζ”y"
-				CASE 58
-					RESULTS '= @"“V‹{ζ”y"
+				CASE 18
+					;F‘ς‚Π‚ί‚Μ (¤Μ)
+					RESULTS '= @"F‚Ώ‚α‚ρ"
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚± (•“Ή•”•›•”’·)
+					RESULTS '= @"•›•”’·"
+				CASE 50
+					;R‚¬‚ρ (•“Ή•”•”’·)
+					RESULTS '= @"•”’·"
 				CASE 69
+					;_χ‚Ν‚¶‚ί (ΐ‚Μo)
 					RESULTS '= @"‚¨o‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 13
-			;‚Β‚Ξ‚³
+			;‰HX‚Β‚Ξ‚³ (1-B / ‡¥•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶“a"
 				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
-				CASE 9
-					RESULTS '= @"‰i‚³‚ρ"
-				CASE 16
-					RESULTS '= @"‘εΥ‚³‚ρ"
-				CASE 24
-					RESULTS '= @"O”gζ”y"
+					RESULTS '= @"ƒ}ƒ‹‚Ώ‚α‚ρ“a"
+				CASE 14
+					;‰Τ‰Ή‚±‚Ζ‚θ (—Bκ–³“ρ‚Μ‘•ϋ)
+					RESULTS '= @"‚±‚Ζ‚θ‚ρ"
+				CASE 19
+					RESULTS '= @"”L’Λ“a"
+				CASE 26
+					RESULTS '= @"–x“c“a"
 				CASE 30
+					;’·‹‚δ‚¤ (‡¥•”‚Μζ”y)
 					RESULTS '= @"’·‹“a"
 				CASE 34
+					;‹Λ“‡‚©‚Ά‚θ (‡¥•”‚Μζ”y)
 					RESULTS '= @"‹Λ“‡“a"
 				CASE 35
 					RESULTS '= @"”~‚Ώ‚α‚ρ“a"
@@ -447,1046 +467,1749 @@
 					RESULTS '= @"…›Έ“a"
 			ENDSELECT
 		CASE 14
-			;‚±‚Ζ‚θ
+			;‰Τ‰Ή‚±‚Ζ‚θ (1-B / ƒ`ƒAƒ[ƒfƒBƒ“ƒO•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚µ‚α‚ρ"
 				CASE 13
+					;‰HX‚Β‚Ξ‚³ (—Bκ–³“ρ‚Μ‘•ϋE–Ό‘O+‚µ‚α‚ρ)
 					RESULTS '= @"‚Β‚Ξ‚³‚µ‚α‚ρ"
+				CASE 15
+					RESULTS '= @"‚β‚¦‚µ‚α‚ρ"
+				CASE 24
+					RESULTS '= @"‚Θ‚Β‚έ‚µ‚α‚ρ"
 				CASE 29
+					;t•—‚Θ‚Θ (ƒ`ƒA•”•”’·E–Ό‘O+‚µ‚α‚ρ)
 					RESULTS '= @"‚Θ‚Θ‚µ‚α‚ρ"
 				CASE 67
+					;“ϊ‘κ‚ά‚µ‚λ (ƒ`ƒA•”‰‰‡’c’·)
 					RESULTS '= @"’c’·‚µ‚α‚ρ"
 			ENDSELECT
 		CASE 15
-			;‚β‚¦
+			;’·’¬‚β‚¦ (1-B / ƒ\ƒtƒgƒ{[ƒ‹•”)
 			SELECTCASE AI
-				CASE 9
-					RESULTS '= @"‚ι‚©‚Ώ‚α‚ρ"
-				CASE 10
-					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
-				CASE 11
-					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 13
-					RESULTS '= @"‚Β‚Ξ‚³‚Ώ‚α‚ρ"
-				CASE 36
-					RESULTS '= @"‰“©ζ”y"
-				CASE 40
-					RESULTS '= @"–ι–¶ζ”y"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚¨‚Ι`‚³‚ρ"
+				CASE 8
+					;Ϋq‚έ‚³‚« (ƒNƒ‰ƒXƒƒCƒgEΔ‚ΡΜ‚Δ)
+					RESULTS '= @"‚έ‚³‚«"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (‘εe—FEΔ‚ΡΜ‚Δ)
+					RESULTS '= @"‚Ά‚Ώ‚©"
 				CASE 46
+					;‘o—t‚έ‚Γ‚« (–Ό‘O+ζ”y)
 					RESULTS '= @"‚έ‚Γ‚«ζ”y"
-				CASE 52
-					RESULTS '= @"Ξ“μζ”y"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
-				CASE 55
-					RESULTS '= @"Ι“΅ζ”y"
-				CASE 69
-					RESULTS '= @"_χ‚Ν‚¶‚ίζ”y"
 			ENDSELECT
 		CASE 16
-			;‚Ά‚³‚έ
+			;‘εΥ‚Ά‚³‚έ (1-C / _“Ή•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"–kμ‚³‚ρ"
-				CASE 6
-					RESULTS '= @"—•”T‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 10
+					;–Ψ”V‰Ί‚δ‚δ
 					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
 				CASE 17
+					;¬”µ‚ ‚Έ‚³ (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚ ‚Έ‚³‚Ώ‚α‚ρ"
 				CASE 18
+					;F‘ς‚Π‚ί‚Μ (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚Π‚ί‚Μ‚Ώ‚α‚ρ"
 				CASE 19
+					;”L’Λ‚έ‚― (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚έ‚―‚Ώ‚α‚ρ"
 				CASE 20
+					;“΅’–‚µ‚Έ‚­ (1-CƒNƒ‰ƒXƒƒCƒgE‘εe—F)
 					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
+				CASE 21
+					;θ³q‚·‚έ‚κ (1-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"‚·‚έ‚κ‚Ώ‚α‚ρ"
 				CASE 22
+					;ιΝ‚Ά‚©‚θ (1-CƒNƒ‰ƒXƒƒCƒgE‘•ϋ)
 					RESULTS '= @"ƒCƒJ‚Ώ‚α‚ρ"
-				CASE 34
-					RESULTS '= @"‹Λ“‡ζ”y"
-				CASE 35
-					RESULTS '= @"”~‰€ζ”y"
-				CASE 36
-					RESULTS '= @"‰“©ζ”y"
-				CASE 45
-					RESULTS '= @"‰~ι›ζ”y"
-				CASE 52
-					RESULTS '= @"Ξ“μζ”y"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
+				CASE 23
+					;ις–Ψ‚±‚Ν‚ι (1-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"‚±‚Ν‚ι‚Ώ‚α‚ρ"
 				CASE 56
-					RESULTS '= @"”ª•Ηζ”y"
-				CASE 69
-					RESULTS '= @"_χζ”y"
+					;”ª•Η‚Π‚©‚ι (_“Ή•”•”’·)
+					RESULTS '= @"•”’·"
 			ENDSELECT
 		CASE 17
-			;‚ ‚Έ‚³
+			;¬”µ‚ ‚Έ‚³ (1-C / ƒeƒjƒX•”E•Ϋ’Ου‰ο)
 			SELECTCASE AI
-				CASE 1
-					RESULTS '= @"‚©‚Θ‚¦‚Ώ‚α‚ρ"
-				CASE 11
-					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 12
-					RESULTS '= @"‚Ά‚Ώ‚©‚Ώ‚α‚ρ"
-				CASE 18
-					RESULTS '= @"‚Π‚ί‚Μ‚Ώ‚α‚ρ"
-				CASE 19
-					RESULTS '= @"‚έ‚―‚Ώ‚α‚ρ"
-				CASE 20
-					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
-				CASE 21
-					RESULTS '= @"‚·‚έ‚κ‚Ώ‚α‚ρ"
-				CASE 22
-					RESULTS '= @"‚Ά‚©‚θ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 24
+					;O”g‚Θ‚Β‚έ (–Ό‘O+ζ”y)
+					RESULTS '= @"‚Θ‚Β‚έζ”y"
 				CASE 25
+					;”ªρ‚Β‚δ‚θ (•Ϋ’Ου‰οE–Ό‘O+ζ”y)
 					RESULTS '= @"‚Β‚δ‚θζ”y"
 				CASE 31
+					;–²H‚ά‚θ‚  (•Ϋ’Ου‰οE–Ό‘O+ζ”y)
 					RESULTS '= @"‚ά‚θ‚ ζ”y"
-				CASE 35
-					RESULTS '= @"”~‰€ζ”y"
+				CASE 53
+					;‰Τ‹u‚ά‚θ (ƒeƒjƒX•”•”’·Eh¤‚Μ‘ΞΫ)
+					RESULTS '= @"•”’·"
 				CASE 62
+					;•X‚·‚Έ (Ε—L‚ ‚Ύ–Ό+ζ”y)
 					RESULTS '= @"ƒNƒ‚Ώ‚α‚ρζ”y"
 				CASE 63
-					RESULTS '= @"‚Ώ‚Γ‚ιζ”y"
-				CASE 72
-					RESULTS '= @"‚ ‚ρ‚Έζ”y"
+					;”ª‰_‚Ώ‚Γ‚ι (‚ ‚Ύ–Ό+ζ”y)
+					RESULTS '= @"‚Ώ‚Γ‚Ώ‚α‚ρζ”y"
+				CASE 66
+					;‘]ªƒZƒCƒ‰ (Ε—L‚ ‚Ύ–Ό+ζ”y)
+					RESULTS '= @"ƒZƒ‰‚Ώ‚α‚ρζ”y"
 			ENDSELECT
 		CASE 18
-			;‚Π‚ί‚Μ
+			;F‘ς‚Π‚ί‚Μ (1-C / ƒeƒjƒX•”)
 			SELECTCASE AI
-				CASE 6
-					RESULTS '= @"—•”T‚³‚ρ"
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
-				CASE 9
-					RESULTS '= @"‚ι‚©‚Ώ‚α‚ρ"
-				CASE 12
-					RESULTS '= @"_χ‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 13
+					;‰HX‚Β‚Ξ‚³ (e—FE–Ό‘O+‚Ώ‚α‚ρ)
+					RESULTS '= @"‚Β‚Ξ‚³‚Ώ‚α‚ρ"
 				CASE 14
+					;‰Τ‰Ή‚±‚Ζ‚θ (ƒoƒCƒg’‡ΤE–Ό‘O+‚Ώ‚α‚ρ)
 					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
-				CASE 15
-					RESULTS '= @"’·’¬‚³‚ρ"
 				CASE 16
+					;‘εΥ‚Ά‚³‚έ (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚Ά‚³‚έ‚Ώ‚α‚ρ"
 				CASE 17
+					;¬”µ‚ ‚Έ‚³ (1-CƒNƒ‰ƒXƒƒCƒgEƒeƒjƒX•”‘•ϋE‘εe—F)
 					RESULTS '= @"‚ ‚Έ‚³‚Ώ‚α‚ρ"
 				CASE 19
+					;”L’Λ‚έ‚― (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚έ‚―‚Ώ‚α‚ρ"
 				CASE 20
+					;“΅’–‚µ‚Έ‚­ (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
 				CASE 21
+					;θ³q‚·‚έ‚κ (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚·‚έ‚κ‚Ώ‚α‚ρ"
 				CASE 22
+					;ιΝ‚Ά‚©‚θ (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚Ά‚©‚θ‚Ώ‚α‚ρ"
 				CASE 23
+					;ις–Ψ‚±‚Ν‚ι (1-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚±‚Ν‚ι‚Ώ‚α‚ρ"
 				CASE 53
-					RESULTS '= @"‚ά‚θζ”y"
-				CASE 66
-					RESULTS '= @"‘]ªζ”y"
+					;‰Τ‹u‚ά‚θ (ƒeƒjƒX•”•”’·)
+					RESULTS '= @"•”’·"
+				CASE 63
+					;”ª‰_‚Ώ‚Γ‚ι (‚ ‚Ύ–Ό+ζ”y)
+					RESULTS '= @"‚Ώ‚Γ‚Ώ‚α‚ρζ”y"
 			ENDSELECT
 		CASE 19
-			;‚έ‚―
+			;”L’Λ‚έ‚― (1-C / ƒoƒ[•”)
 			SELECTCASE AI
-				CASE 7
-					RESULTS '= @"‚΄‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 26
+					;–x“c‚³‚ ‚β (‘εD‚«‚Θƒoƒ[•”‚Μζ”y)
 					RESULTS '= @"–x“cζ”y"
 				CASE 35
+					;”~‰€‚©‚Θ (ƒoƒ[•”‚Μζ”y)
 					RESULTS '= @"”~‰€ζ”y"
 			ENDSELECT
 		CASE 20
-			;‚µ‚Έ‚­
+			;“΅’–‚µ‚Έ‚­ (1-C / y‰Ή•”E‘I‹“Η—Ου‰ο)
 			SELECTCASE AI
-				CASE 1
-					RESULTS '= @"O‘P‚³‚ρ"
-				CASE 6
-					RESULTS '= @"—•”T‚³‚ρ"
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 9
+					;‰i‚ι‚© (y‰Ή•”‘•ϋE‘εe—F)
 					RESULTS '= @"‚ι‚©‚Ώ‚α‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
-				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚³‚ρ"
 				CASE 16
+					;‘εΥ‚Ά‚³‚έ (Ε—L‚ ‚Ύ–Ό)
 					RESULTS '= @"ƒ^ƒCƒK[‚³‚ρ"
-				CASE 17
-					RESULTS '= @"¬”µ‚³‚ρ"
-				CASE 24
-					RESULTS '= @"O”gζ”y"
-				CASE 25
-					RESULTS '= @"”ªρζ”y"
-				CASE 52
-					RESULTS '= @"Ξ“μζ”y"
-				CASE 62
-					RESULTS '= @"•Xζ”y"
 				CASE 66
-					RESULTS '= @"ƒZƒCƒ‰"
+					;‘]ªƒZƒCƒ‰ (y‰Ή•”•”’·)
+					RESULTS '= @"ƒZƒCƒ‰•”’·"
 				CASE 69
+					;_χ‚Ν‚¶‚ί (–Ό‘O+‚Ώ‚α‚ρ)
 					RESULTS '= @"‚Ν‚¶‚ί‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 21
-			;‚·‚έ‚κ
+			;θ³q‚·‚έ‚κ (1-C / ”όp•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"–kμ‚³‚ρ"
-				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
 				CASE 17
-					RESULTS '= @"¬”µ‚³‚ρ"
-				CASE 18
-					RESULTS '= @"F‘ς‚³‚ρ"
-				CASE 19
-					RESULTS '= @"”L’Λ‚³‚ρ"
-				CASE 20
-					RESULTS '= @"“΅’–‚³‚ρ"
-				CASE 24
-					RESULTS '= @"O”gζ”y"
-				CASE 32
-					RESULTS '= @"ΐπζ”y"
-				CASE 36
-					RESULTS '= @"‰“©ζ”y"
-				CASE 39
-					RESULTS '= @"α–Ψζ”y"
-				CASE 45
-					RESULTS '= @"‰~ι›ζ”y"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
-				CASE 64
-					RESULTS '= @"•τRζ”y"
+					;¬”µ‚ ‚Έ‚³ (–Ό‘O+‚³‚ρ)
+					RESULTS '= @"‚ ‚Έ‚³‚³‚ρ"
 			ENDSELECT
 		CASE 22
-			;‚Ά‚©‚θ
+			;ιΝ‚Ά‚©‚θ (1-C / …‰j•”)
 			SELECTCASE AI
-				CASE 15
-					RESULTS '= @"‚β‚¦‚Ώ‚α‚ρ"
-				CASE 16
-					RESULTS '= @"ƒCƒK‚Ώ‚α‚ρ"
-				CASE 17
-					RESULTS '= @"‚ ‚Έ‚³‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ζ”y"
+				CASE 2
+					;–kμ‚δ‚« (Ε—L‚ ‚Ύ–Ό)
+					RESULTS '= @"‚δ‚«‚Ι‚α‚ρ"
 				CASE 19
+					;”L’Λ‚έ‚― (Ε—L‚ ‚Ύ–Ό)
 					RESULTS '= @"‚έ‚―‚Ι‚α‚ρ"
-				CASE 21
-					RESULTS '= @"θ³‚Ώ‚α‚ρ"
-				CASE 59
-					RESULTS '= @"‚Τ‚Ώ‚ε`"
-				CASE 71
-					RESULTS '= @"¥ζ”y"
 			ENDSELECT
 		CASE 23
-			;‚±‚Ν‚ι
+			;ις–Ψ‚±‚Ν‚ι (1-C / —Ώ—¤‹†•”E•—‹IΟυ‰ο)
 			SELECTCASE AI
-				CASE 3
-					RESULTS '= @"ƒ`ƒbƒ`"
-				CASE 16
-					RESULTS '= @"Υ‚³‚ρ"
-				CASE 18
-					RESULTS '= @"F‚³‚ρ"
-				CASE 37
-					RESULTS '= @"—΄‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚¨Z‚Ώ‚α‚ρζ”y"
 				CASE 46
+					;‘o—t‚έ‚Γ‚« (¤Μ)
 					RESULTS '= @"‚έ‚Γ‚Ώ‚α‚ρ"
 				CASE 47
+					;‘o—t‚έ‚Θ‚Γ‚« (¤Μ)
 					RESULTS '= @"‚έ‚Θ‚Ώ‚α‚ρ"
 				CASE 50
+					;R‚¬‚ρ (¤Μ)
 					RESULTS '= @"‚¬‚ρ‚³‚ρ"
-				CASE 51
-					RESULTS '= @"t‰Ί"
-				CASE 60
-					RESULTS '= @"‚©`‚³‚ρ"
 			ENDSELECT
 		CASE 24
-			;‚Θ‚Β‚έ
+			;O”g‚Θ‚Β‚έ (2-A / ”όp•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
-				CASE 20
-					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
-				CASE 21
-					RESULTS '= @"‚·‚έ‚κ‚Ώ‚α‚ρ"
-				CASE 25
-					RESULTS '= @"‚Β‚δ‚θ‚Ώ‚α‚ρ"
-				CASE 26
-					RESULTS '= @"‚³‚ ‚β‚Ώ‚α‚ρ"
-				CASE 28
-					RESULTS '= @"‚±‚ζ‚Ά‚Ώ‚α‚ρ"
-				CASE 29
-					RESULTS '= @"‚Θ‚Θ‚Ώ‚α‚ρ"
-				CASE 30
-					RESULTS '= @"‚δ‚¤‚Ώ‚α‚ρ"
-				CASE 31
-					RESULTS '= @"–²H‚³‚ρ"
-				CASE 32
-					RESULTS '= @"ΐπ‚³‚ρ"
-				CASE 39
-					RESULTS '= @"‚ΰ‚ΰ‚Ώ‚α‚ρ"
-				CASE 41
-					RESULTS '= @"‚Ζ‚ΰ‚±‚Ώ‚α‚ρ"
-				CASE 44
-					RESULTS '= @"‚Π‚ζ‚Μ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- γ‹‰¶ ---
 				CASE 49
-					RESULTS '= @"¬Όζ”y"
-				CASE 52
-					RESULTS '= @"Ξ“μζ”y"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
-				CASE 62
-					RESULTS '= @"•Xζ”y"
+					;¬Ό‚Ϊ‚½‚ρ (”όp•”ζ”y)
+					RESULTS '= @"‚Ϊ‚½‚ρζ”y"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
 				CASE 67
+					;“ϊ‘κ‚ά‚µ‚λ (ƒ`ƒA•”ζ”y)
 					RESULTS '= @"“ϊ‘κζ”y"
-				CASE 69
-					RESULTS '= @"_χζ”y"
-				CASE 72
-					RESULTS '= @"‚ ‚ρ‚Έ‚³‚ρ"
-			ENDSELECT
-		CASE 25
-			;‚Β‚δ‚θ
-			SELECTCASE AI
-				CASE 1
-					RESULTS '= @"O‘P‚³‚ρ"
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
-				CASE 11
+				;--- “―‹‰¶ (‘ζ1K‘w‚Μu`‚Ώ‚α‚ρv‚©‚η‹——£‚Μ‚ ‚ιu`‚³‚ρv‚Φ) ---
+				CASE 31
+					;–²H‚ά‚θ‚ 
+					RESULTS '= @"‚ά‚θ‚ ‚³‚ρ"
+				CASE 32
+					;ΐπ‚ά‚Ά
+					RESULTS '= @"ΐπ‚³‚ρ"
+				CASE 34
+					;‹Λ“‡‚©‚Ά‚θ
+					RESULTS '= @"‹Λ“‡‚³‚ρ"
+				CASE 35
+					;”~‰€‚©‚Θ
+					RESULTS '= @"”~‰€‚³‚ρ"
+				CASE 36
+					;‰“©‚Ώ‚©
+					RESULTS '= @"‰“©‚³‚ρ"
+				CASE 40
+					;–ι–¶‚Ν‚β‚Δ
+					RESULTS '= @"–ι–¶‚³‚ρ"
+				;--- ‰Ί‹‰¶ (‘ζ1K‘w‚Μu•c+‚³‚ρv‚©‚ηe‚µ‚Άu–Ό‘O+‚Ώ‚α‚ρv‚Φ) ---
+				CASE 2
+					;–kμ‚δ‚«
+					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
+CASE 11
+					;•X–μ‚­‚ι‚έ
 					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
+				CASE 12
+					;_χ‚Ά‚Ώ‚©
+					RESULTS '= @"‚Ά‚Ώ‚©‚Ώ‚α‚ρ"
+				CASE 14
+					;‰Τ‰Ή‚±‚Ζ‚θ
+					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
 				CASE 17
+					;¬”µ‚ ‚Έ‚³
 					RESULTS '= @"‚ ‚Έ‚³‚Ώ‚α‚ρ"
 				CASE 20
+					;“΅’–‚µ‚Έ‚­
 					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
+				CASE 21
+					;θ³q‚·‚έ‚κ (”όp•”γ”y)
+					RESULTS '= @"‚·‚έ‚κ‚Ώ‚α‚ρ"
+			ENDSELECT
+		CASE 25
+			;”ªρ‚Β‚δ‚θ (2-A / •Ϋ’Ου‰ο)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- “―‹‰¶ ---
 				CASE 24
+					;O”g‚Θ‚Β‚έ
 					RESULTS '= @"‚Θ‚Β‚έ‚Ώ‚α‚ρ"
+				CASE 26
+					;–x“c‚³‚ ‚β
+					RESULTS '= @"‚³‚ ‚β‚Ώ‚α‚ρ"
 				CASE 27
+					;‰Δ–μ‚δ‚θ (‘εe—F)
 					RESULTS '= @"‚Θ‚Α‚Ώ‚α‚ρ"
 				CASE 28
+					;―C‚±‚ζ‚Ά (]o–…)
 					RESULTS '= @"‚±‚ζ‚Ώ‚α‚ρ"
 				CASE 29
+					;t•—‚Θ‚Θ
 					RESULTS '= @"‚Θ‚Θ‚Ώ‚α‚ρ"
 				CASE 30
+					;’·‹‚δ‚¤
 					RESULTS '= @"‚δ‚¤‚Ώ‚α‚ρ"
 				CASE 31
+					;–²H‚ά‚θ‚  (e—FE•Ϋ’Ί’‡Τ)
 					RESULTS '= @"‚ά‚θ‚ ‚Ώ‚α‚ρ"
-				CASE 32
-					RESULTS '= @"ΐπ‚³‚ρ"
-				CASE 35
-					RESULTS '= @"”~‰€‚³‚ρ"
-				CASE 37
-					RESULTS '= @"—΄ς›‚³‚ρ"
-				CASE 41
-					RESULTS '= @"—I–Ψ‚³‚ρ"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
+				CASE 38
+					;ƒN[EƒJƒƒA
+					RESULTS '= @"ƒN[‚³‚ρ"
+				;--- ‰Ί‹‰¶ ---
+				CASE 1
+					;O‘P‚©‚Θ‚¦
+					RESULTS '= @"‚©‚Θ‚¦‚Ώ‚α‚ρ"
+				CASE 11
+					;•X–μ‚­‚ι‚έ (•Ϋ’Ου‰ογ”y)
+					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
+				CASE 17
+					;¬”µ‚ ‚Έ‚³ (•Ϋ’Ου‰ογ”y)
+					RESULTS '= @"‚ ‚Έ‚³‚Ώ‚α‚ρ"
+				CASE 20
+					;“΅’–‚µ‚Έ‚­ (e¤E‰Ζ‘°‚²‚Α‚±)
+					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
+				;--- γ‹‰¶ ---
+				CASE 50
+					;R‚¬‚ρ
+					RESULTS '= @"‚¬‚ρ‚³‚ρ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·‚³‚ρ"
 				CASE 65
+					;‘‚»‚η (•Ϋ’Ου‰οEƒIƒJ¤)
 					RESULTS '= @"‘ζ”y"
 				CASE 66
+					;‘]ªƒZƒCƒ‰ (“ό‰@’‡Τ)
 					RESULTS '= @"‘]ªζ”y"
+				CASE 67
+					;“ϊ‘κ‚ά‚µ‚λ
+					RESULTS '= @"‚ά‚µ‚λ‚³‚ρ"
+			ENDSELECT
+		CASE 26
+			;–x“c‚³‚ ‚β (2-A / ƒoƒ[•”)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚ ‚ρ‚½"
+				;--- γ‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				;--- “―‹‰¶ (•cΔ‚ΡΜ‚Δ‚©‚η‚³‚ρ•t‚―‚Φ) ---
+				CASE 31
+					;–²H‚ά‚θ‚ 
+					RESULTS '= @"–²H‚³‚ρ"
+				CASE 33
+					;•A‚ι‚Θ
+					RESULTS '= @"•A‚³‚ρ"
+				CASE 36
+					;‰“©‚Ώ‚©
+					RESULTS '= @"‰“©‚³‚ρ"
+				;--- ‰Ί‹‰¶ (•cΔ‚ΡΜ‚Δ‚©‚η‚³‚ρ•t‚―E‚Ώ‚α‚ρ•t‚―‚Φ) ---
+				CASE 6
+					;—•”T‚ ‚Ά‚© (‰φ‰δ‚Μθ“–‚ΔE‚¨‚ρ‚Τ)
+					RESULTS '= @"‚ ‚Ά‚©‚Ώ‚α‚ρ"
+				CASE 8
+					;Ϋq‚έ‚³‚«
+					RESULTS '= @"Ϋq‚³‚ρ"
+				CASE 10
+					;–Ψ”V‰Ί‚δ‚δ
+					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
+				CASE 15
+					;’·’¬‚β‚¦
+					RESULTS '= @"’·’¬‚³‚ρ"
+				CASE 23
+					;ις–Ψ‚±‚Ν‚ι
+					RESULTS '= @"ις–Ψ‚³‚ρ"
 			ENDSELECT
 		CASE 27
-			;‚δ‚θ
+			;‰Δ–μ‚δ‚θ (2-A / ‘ty•”E”ό‰»Ου‰ο)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- γ‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				CASE 72
+					;‚ ‚ρ‚Έ
+					RESULTS '= @"‚ ‚ρ‚Έ‚³‚ρ"
+				;--- “―‹‰¶ ---
 				CASE 24
+					;O”g‚Θ‚Β‚έ
 					RESULTS '= @"‚Θ‚Β‚έ‚Ώ‚α‚ρ"
 				CASE 25
+					;”ªρ‚Β‚δ‚θ (‘εe—F)
 					RESULTS '= @"‚Β‚δ‚θ‚Ώ‚α‚ρ"
-				CASE 28
-					RESULTS '= @"―C‚³‚ρ"
+				CASE 26
+					;–x“c‚³‚ ‚β
+					RESULTS '= @"‚³‚ ‚β‚Ώ‚α‚ρ"
 				CASE 29
-					RESULTS '= @"t•—‚³‚ρ"
+					;t•—‚Θ‚Θ
+					RESULTS '= @"‚Θ‚Θ‚Ώ‚α‚ρ"
 				CASE 30
+					;’·‹‚δ‚¤
 					RESULTS '= @"‚δ‚¤‚Ώ‚α‚ρ"
-				CASE 31
-					RESULTS '= @"–²H‚³‚ρ"
-				CASE 35
-					RESULTS '= @"”~‰€‚³‚ρ"
-				CASE 43
-					RESULTS '= @"»‰κ‚³‚ρ"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
-				CASE 55
-					RESULTS '= @"Ι“΅ζ”y"
+				;--- ‰Ί‹‰¶ (‘ty•”γ”y‚Φ‚ΜΔ‚ΡΜ‚Δ) ---
+				CASE 1
+					;O‘P‚©‚Θ‚¦ (‘ty•”γ”y)
+					RESULTS '= @"O‘P"
+				CASE 4
+					;‘μ‚«‚± (‘ty•”γ”y)
+					RESULTS '= @"‘μ"
 			ENDSELECT
 		CASE 28
-			;‚±‚ζ‚Ά
+			;―C‚±‚ζ‚Ά (2-A / “V•¶•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- γ‹‰¶ ---
+				CASE 58
+					;“V‹{‚ι‚θ (“V•¶•”•”’·)
+					RESULTS '= @"‚ι‚θ‚Ώ‚α‚ρ•”’·"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·‚³‚ρ"
+				CASE 70
+					;_–³‚Ω‚Ζ‚θ (“V•¶•”•›•”’·Ee¤‚Μ¤Μ)
+					RESULTS '= @"‚Ώ‚α‚ρζ”y"
+				;--- “―‹‰¶ ---
+				CASE 25
+					;”ªρ‚Β‚δ‚θ (]o–…)
+					RESULTS '= @"‚Β‚δ‚θ‚Ώ‚α‚ρ"
+				CASE 38
+					;ƒN[EƒJƒƒA
+					RESULTS '= @"ƒN[‚³‚ρ"
+				;--- ‰Ί‹‰¶ ---
 				CASE 10
+					;–Ψ”V‰Ί‚δ‚δ
 					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
 				CASE 11
+					;•X–μ‚­‚ι‚έ
 					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 24
-					RESULTS '= @"O”g‚³‚ρ"
-				CASE 25
-					RESULTS '= @"‚Β‚δ‚Ώ‚α‚ρ"
-				CASE 27
-					RESULTS '= @"‰Δ–μ‚³‚ρ"
-				CASE 30
-					RESULTS '= @"’·‹‚³‚ρ"
-				CASE 31
-					RESULTS '= @"–²H‚³‚ρ"
-				CASE 40
-					RESULTS '= @"–ι–¶‚³‚ρ"
-				CASE 44
-					RESULTS '= @"ω‰θ‚³‚ρ"
-				CASE 45
-					RESULTS '= @"‰~ι›‚³‚ρ"
-				CASE 49
-					RESULTS '= @"¬Όζ”y"
-				CASE 58
-					RESULTS '= @"‚ι‚θ‚Ώ‚α‚ρ"
-				CASE 59
-					RESULTS '= @"…›Έζ”y"
-				CASE 69
-					RESULTS '= @"_χζ”y"
-				CASE 70
-					RESULTS '= @"‚Ώ‚α‚ρζ”y"
+				CASE 20
+					;“΅’–‚µ‚Έ‚­
+					RESULTS '= @"‚µ‚Έ‚­‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 29
-			;‚Θ‚Θ
+			;t•—‚Θ‚Θ (2-A / ƒ`ƒAƒ[ƒfƒBƒ“ƒO•” •›•”’·)
 			SELECTCASE AI
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
-				CASE 14
-					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
-				CASE 16
-					RESULTS '= @"‚Ά‚³‚έ‚Ώ‚α‚ρ"
-				CASE 24
-					RESULTS '= @"‚Θ‚Β‚έ‚Ώ‚α‚ρ"
-				CASE 25
-					RESULTS '= @"‚Β‚δ‚θ‚Ώ‚α‚ρ"
-				CASE 26
-					RESULTS '= @"‚³‚ ‚β‚Ώ‚α‚ρ"
-				CASE 27
-					RESULTS '= @"‚δ‚θ‚Ώ‚α‚ρ"
-				CASE 28
-					RESULTS '= @"‚±‚ζ‚Ά‚Ώ‚α‚ρ"
-				CASE 30
-					RESULTS '= @"‚δ‚¤‚Ώ‚α‚ρ"
-				CASE 31
-					RESULTS '= @"‚ά‚θ‚ ‚Ώ‚α‚ρ"
-				CASE 35
-					RESULTS '= @"”~‰€‚³‚ρ"
-				CASE 38
-					RESULTS '= @"ƒN[‚Ώ‚α‚ρ"
-				CASE 40
-					RESULTS '= @"‚Ν‚β‚Δ‚Ώ‚α‚ρ"
-				CASE 43
-					RESULTS '= @"‚έ‚Η‚θ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- γ‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·‚³‚ρ"
 				CASE 67
-					RESULTS '= @"‚ά‚µ‚λ‚³‚ρ"
-				CASE 69
-					RESULTS '= @"_χζ”y"
+					;“ϊ‘κ‚ά‚µ‚λ (ƒ`ƒA•”•”’·E’c’·)
+					RESULTS '= @"’c’·"
+				;--- “―‹‰¶ (‘ζ1K‘w‚Μu`‚Ώ‚α‚ρv‚©‚η‹——£‚Μ‚ ‚ιu`‚³‚ρv‚Φ) ---
+				CASE 27
+					;‰Δ–μ‚δ‚θ
+					RESULTS '= @"‰Δ–μ‚³‚ρ"
+				CASE 35
+					;”~‰€‚©‚Θ
+					RESULTS '= @"”~‰€‚³‚ρ"
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚±
+					RESULTS '= @"—I–Ψ‚³‚ρ"
+				;--- ‰Ί‹‰¶ (‘ζ1K‘w‚Μu`‚Ώ‚α‚ρv‚©‚η‹——£‚Μ‚ ‚ιu`‚³‚ρv‚Φ) ---
+				CASE 2
+					;–kμ‚δ‚«
+					RESULTS '= @"–kμ‚³‚ρ"
+				CASE 8
+					;Ϋq‚έ‚³‚«
+					RESULTS '= @"Ϋq‚³‚ρ"
 			ENDSELECT
 		CASE 30
-			;‚δ‚¤
+			;’·‹‚δ‚¤ (2-A / ‡¥•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
-				CASE 8
-					RESULTS '= @"ƒ}ƒ‹‚Ώ‚α‚ρ"
-				CASE 13
-					RESULTS '= @"‚Β‚Ξ‚³‚Ώ‚α‚ρ"
-				CASE 14
-					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
-				CASE 24
-					RESULTS '= @"‚Θ‚Β‚έ‚Ώ‚α‚ρ"
-				CASE 25
-					RESULTS '= @"‚Β‚δ‚θ‚Ώ‚α‚ρ"
-				CASE 26
-					RESULTS '= @"‚³‚ ‚β‚Ώ‚α‚ρ"
-				CASE 27
-					RESULTS '= @"‚δ‚θ‚Ώ‚α‚ρ"
-				CASE 28
-					RESULTS '= @"‚±‚ζ‚Ά‚Ώ‚α‚ρ"
-				CASE 29
-					RESULTS '= @"‚Θ‚Θ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ƒ_[ƒƒ“"
+				;--- γ‹‰¶ ---
+				CASE 52
+					;Ξ“μ‚β‚± (“Α•Κ‚Θζ”yEu‰^–½‚Μ‚Π‚Ζv)
+					RESULTS '= @"Ξ“μζ”y"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				;--- “―‹‰¶ ---
 				CASE 34
+					;‹Λ“‡‚©‚Ά‚θ (‡¥•”“―‹‰¶)
 					RESULTS '= @"‚©‚Ά‚θ‚Ώ‚α‚ρ"
 				CASE 37
+					;—΄ς›ƒƒ“ƒƒ“
 					RESULTS '= @"ƒƒ“ƒƒ“‚Ώ‚α‚ρ"
-				CASE 43
-					RESULTS '= @"‚έ‚Η‚θ‚Ώ‚α‚ρ"
-				CASE 45
-					RESULTS '= @"‰~ι›ζ”y"
-				CASE 52
-					RESULTS '= @"Ξ“μζ”y"
-				CASE 62
-					RESULTS '= @"•Xζ”y"
+				;--- ‰Ί‹‰¶ ---
+				CASE 8
+					;Ϋq‚έ‚³‚« (Ε—L‚ ‚Ύ–Όuƒ}ƒ‹‚Ώ‚α‚ρvE‚©‚η‚©‚Ά‘ΞΫ)
+					RESULTS '= @"ƒ}ƒ‹‚Ώ‚α‚ρ"
+				CASE 2
+					;–kμ‚δ‚«
+					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
+				CASE 11
+					;•X–μ‚­‚ι‚έ
+					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
+				CASE 13
+					;‰HX‚Β‚Ξ‚³ (‡¥•”γ”y)
+					RESULTS '= @"‚Β‚Ξ‚³‚Ώ‚α‚ρ"
+				CASE 14
+					;‰Τ‰Ή‚±‚Ζ‚θ
+					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 31
-			;‚ά‚θ‚ 
+			;–²H‚ά‚θ‚  (2-B / ‹A‘ξ•”E•Ϋ’Ου‰ο)
 			SELECTCASE AI
-				CASE 27
-					RESULTS '= @"‚Θ‚Α‚Ώ‚α‚ρ—l"
-				CASE 44
-					RESULTS '= @"ω‰θ—l"
-				CASE 48
-					RESULTS '= @"‚έ‚Β‚ι‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚³‚ρ"
+				;--- γ‹‰¶ ---
+				CASE 49
+					;¬Ό‚Ϊ‚½‚ρ (ημΉl)
+					RESULTS '= @"¬Όζ”y"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·‚³‚ά"
+				;--- “―‹‰¶ (—Bκ–³“ρ‚Μ‘εe—FE—c“ιυ‚έ) ---
+				CASE 35
+					;”~‰€‚©‚Θ (—c“ιυ‚έ)
+					RESULTS '= @"”~‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 32
-			;‚ά‚Ά
+			;ΐπ‚ά‚Ά (2-B / ‹A‘ξ•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚ ‚ρ‚½"
+				;--- γ‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				CASE 66
+					;‘]ªƒZƒCƒ‰
+					RESULTS '= @"ƒZƒCƒ‰‚Ώ‚α‚ρ"
+				;--- “―‹‰¶ ---
+				CASE 37
+					;—΄ς›ƒƒ“ƒƒ“
+					RESULTS '= @"ƒƒ“ƒƒ“"
+				CASE 38
+					;ƒN[EƒJƒƒA
+					RESULTS '= @"ƒN["
+				;--- ‰Ί‹‰¶ (Εd—v‚Μ–…•ªE–Ό‘O‚Ώ‚α‚ρ•t‚―) ---
 				CASE 2
+					;–kμ‚δ‚« (–…•ªEu‚Λ‚¦‚³‚ρv)
 					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
-				CASE 23
-					RESULTS '= @"‚±‚Ν‚ι‚Ώ‚α‚ρ"
-				CASE 56
-					RESULTS '= @"”ª•Ηζ”y"
-				CASE 62
-					RESULTS '= @"•Xζ”y"
+			ENDSELECT
+		CASE 33
+			;•A‚ι‚Θ (2-B / ƒ‰ƒNƒƒX•”)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- γ‹‰¶ ---
+				CASE 45
+					;‰~ι›‚κ‚Ά‚©
+					RESULTS '= @"‰~ι›‚Μ‚¨μ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"‰ο’·‚Ν‚ρ"
+				;--- “―‹‰¶ ---
+				CASE 26
+					;–x“c‚³‚ ‚β (•cΔ‚ΡΜ‚Δ‚©‚η‚Ώ‚α‚ρ•t‚―‚Φ)
+					RESULTS '= @"–x“c‚Ώ‚α‚ρ"
+				CASE 38
+					;ƒN[EƒJƒƒA (ƒ‰ƒNƒƒX•”“―‹‰¶)
+					RESULTS '= @"ƒN["
+				;--- ‰Ί‹‰¶ (•cΔ‚ΡΜ‚Δ‚©‚η‚Ώ‚α‚ρ•t‚―‚Φ) ---
+				CASE 6
+					;—•”T‚ ‚Ά‚© (‰ΔΥ‚θ‚Μθ“`‚Ά)
+					RESULTS '= @"‚ ‚Ά‚©‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 34
-			;‚©‚Ά‚θ
+			;‹Λ“‡‚©‚Ά‚θ (2-B / ‡¥•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
-				CASE 3
-					RESULTS '= @"¬–μ‚³‚ρ"
-				CASE 8
-					RESULTS '= @"ƒ}ƒ‹‚Ώ‚α‚ρ"
-				CASE 13
-					RESULTS '= @"‚Β‚Ξ‚³‚Ώ‚α‚ρ"
-				CASE 14
-					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
-				CASE 16
-					RESULTS '= @"‚Ά‚³‚έ‚Ώ‚α‚ρ"
-				CASE 17
-					RESULTS '= @"¬”µ‚³‚ρ"
-				CASE 18
-					RESULTS '= @"‚Π‚ί‚Μ‚Ώ‚α‚ρ"
-				CASE 23
-					RESULTS '= @"‚±‚Ν‚ι‚Ώ‚α‚ρ"
-				CASE 24
-					RESULTS '= @"O”g‚³‚ρ"
-				CASE 30
-					RESULTS '= @"‚δ‚¤‚Ώ‚α‚ρ"
-				CASE 31
-					RESULTS '= @"‚ά‚θ‚ ‚Ώ‚α‚ρ"
-				CASE 32
-					RESULTS '= @"‚ά‚Ά‚Ώ‚α‚ρ"
-				CASE 33
-					RESULTS '= @"‚ι‚Θ‚Ώ‚α‚ρ"
-				CASE 35
-					RESULTS '= @"‚©‚Θ‚Ώ‚α‚ρ"
-				CASE 38
-					RESULTS '= @"ƒN[‚Ώ‚α‚ρ"
-				CASE 43
-					RESULTS '= @"‚έ‚Η‚θ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- γ‹‰¶ ---
 				CASE 52
+					;Ξ“μ‚β‚± (‡¥•”‚Μ‰¶l)
 					RESULTS '= @"Ξ“μζ”y"
 				CASE 60
+					;£μ‚©‚¦‚Ε (—c“ιυ‚έEƒƒƒƒ’‡Τ)
 					RESULTS '= @"‚©‚¦‚Ε‚Ώ‚α‚ρ"
-				CASE 66
-					RESULTS '= @"ƒZƒCƒ‰‚Ώ‚α‚ρ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				;--- “―‹‰¶ (‘ζ1K‘w‚Μu`‚Ώ‚α‚ρv‚©‚η‹——£‚Μ‚ ‚ιu`‚³‚ρv‚Φ) ---
+				CASE 24
+					;O”g‚Θ‚Β‚έ
+					RESULTS '= @"O”g‚³‚ρ"
+				CASE 26
+					;–x“c‚³‚ ‚β
+					RESULTS '= @"–x“c‚³‚ρ"
+				;--- ‰Ί‹‰¶ ---
+				CASE 8
+					;Ϋq‚έ‚³‚« (—c“ιυ‚έEΕd—v¤Μ)
+					RESULTS '= @"ƒ}ƒ‹‚Ώ‚α‚ρ"
+				CASE 3
+					;¬–μ‚Ώ‚ζ (‘ζ1K‘w‚Μu`‚Ώ‚α‚ρv‚©‚η‹——£‚Μ‚ ‚ιu`‚³‚ρv‚Φ)
+					RESULTS '= @"¬–μ‚³‚ρ"
+				CASE 17
+					;¬”µ‚ ‚Έ‚³ (‘ζ1K‘w‚Μu`‚Ώ‚α‚ρv‚©‚η‹——£‚Μ‚ ‚ιu`‚³‚ρv‚Φ)
+					RESULTS '= @"¬”µ‚³‚ρ"
 			ENDSELECT
 		CASE 35
-			;‚©‚Θ
+			;”~‰€‚©‚Θ (2-B / ƒoƒ[•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- γ‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				;--- “―‹‰¶ ---
+				CASE 31
+					;–²H‚ά‚θ‚  (—c“ιυ‚έE–Ό‘OΔ‚ΡΜ‚Δ)
+					RESULTS '= @"‚ά‚θ‚ "
+				CASE 26
+					;–x“c‚³‚ ‚β (ƒoƒ[•”–Ώ—FEƒ_ƒuƒ‹•”’·)
+					RESULTS '= @"–x“c"
+				CASE 32
+					;ΐπ‚ά‚Ά (2-BƒNƒ‰ƒXƒƒCƒgE•cΔ‚ΡΜ‚Δ)
+					RESULTS '= @"ΐπ"
+				CASE 33
+					;•A‚ι‚Θ (2-BƒNƒ‰ƒXƒƒCƒgE•cΔ‚ΡΜ‚Δ)
+					RESULTS '= @"•A"
+				CASE 34
+					;‹Λ“‡‚©‚Ά‚θ (2-BƒNƒ‰ƒXƒƒCƒgE•cΔ‚ΡΜ‚Δ)
+					RESULTS '= @"‹Λ“‡"
+				CASE 36
+					;‰“©‚Ώ‚© (2-BƒNƒ‰ƒXƒƒCƒgE•cΔ‚ΡΜ‚Δ)
+					RESULTS '= @"‰“©"
+;--- ‰Ί‹‰¶ ---
+				CASE 19
+					;”L’Λ‚έ‚― (ƒoƒ[•”γ”yE•cΔ‚ΡΜ‚Δ)
+					RESULTS '= @"”L’Λ"
 				CASE 5
+					;“’q‚ ‚·‚©
 					RESULTS '= @"‚ ‚·‚©‚Ώ‚α‚ρ"
-				CASE 7
-					RESULTS '= @"‚΄‚³‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
-				CASE 16
-					RESULTS '= @"‘εΥ‚³‚ρ"
-				CASE 27
-					RESULTS '= @"‰Δ–μ‚³‚ρ"
-				CASE 29
-					RESULTS '= @"t•—‚³‚ρ"
-				CASE 48
-					RESULTS '= @"‚έ‚Β‚ιζ”y"
-				CASE 49
-					RESULTS '= @"¬Όζ”y"
-				CASE 55
-					RESULTS '= @"Ι“΅ζ”y"
-				CASE 66
-					RESULTS '= @"‘]ªζ”y"
 			ENDSELECT
 		CASE 36
-			;‚Ώ‚©
+			;‰“©‚Ώ‚© (2-B / ‰‰€•”)
 			SELECTCASE AI
-				CASE 10
-					RESULTS '= @"–Ψ”V‰Ί‚³‚ρ"
-				CASE 11
-					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
-				CASE 12
-					RESULTS '= @"‚Ά‚Ώ‚©‚Ώ‚α‚ρ"
-				CASE 15
-					RESULTS '= @"ƒiƒKƒ}ƒ`‚³‚ρ"
-				CASE 24
-					RESULTS '= @"O”g‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ƒwƒ‹ƒvƒ}ƒ“"
+				;--- γ‹‰¶ ---
+				CASE 63
+					;”ª‰_‚Ώ‚Γ‚ι (‰‰€•”ζ”yE“M¤)
+					RESULTS '= @"‚Ώ‚Γ‚Ώ‚α‚ρζ”y"
+				CASE 52
+					;Ξ“μ‚β‚± (‰‰€•”•”’·)
+					RESULTS '= @"•”’·"
+				CASE 48
+					;l•ϋ‚έ‚Β‚ι
+					RESULTS '= @"‰¤q"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ_Π‚Μo)
+					RESULTS '= @"‚Ν‚¶‚ί‚¨o‚³‚ρ"
+				;--- “―‹‰¶ (‘ζ1K‘w‚Μu`‚³‚ρv‚©‚ηeΜE‚ ‚Ύ–Ό‚Φ) ---
 				CASE 31
+					;–²H‚ά‚θ‚ 
 					RESULTS '= @"‚ά‚θ‚ ‚Ώ‚α‚ρ"
 				CASE 32
+					;ΐπ‚ά‚Ά
 					RESULTS '= @"‚ά‚Ά‚Ώ‚α‚ρ"
 				CASE 33
+					;•A‚ι‚Θ
 					RESULTS '= @"‚ι‚Θ‚Ώ‚α‚ρ"
 				CASE 34
+					;‹Λ“‡‚©‚Ά‚θ
 					RESULTS '= @"‚©‚Ά‚θ‚Ώ‚α‚ρ"
 				CASE 35
+					;”~‰€‚©‚Θ
 					RESULTS '= @"‚©‚Θ‚Ώ‚α‚ρ"
 				CASE 39
+					;α–Ψ‚ΰ‚ΰ
 					RESULTS '= @"‚ΰ‚ΰ‚Ώ‚α‚ρ"
 				CASE 40
+					;–ι–¶‚Ν‚β‚Δ
 					RESULTS '= @"ƒMƒ["
 				CASE 43
+					;»‰κ‚έ‚Η‚θ
 					RESULTS '= @"ƒhƒ["
-				CASE 48
-					RESULTS '= @"‰¤q"
-				CASE 49
-					RESULTS '= @"¬Όζ”y"
-				CASE 52
-					RESULTS '= @"ζ”y"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
-				CASE 60
-					RESULTS '= @"£μζ”y"
-				CASE 63
-					RESULTS '= @"‚Ώ‚Γ‚Ώ‚α‚ρζ”y"
+				CASE 38
+					;ƒN[EƒJƒƒA
+					RESULTS '= @"ƒJƒƒAƒNƒ“"
+				;--- ‰Ί‹‰¶ (“Α—L‚ΜƒJƒ^ƒJƒiΔΜEeΜ) ---
+				CASE 15
+					;’·’¬‚β‚¦ (Εd—vIκΡ‚µ‚½ƒJƒ^ƒJƒiΔΜ)
+					RESULTS '= @"ƒiƒKƒ}ƒ`‚³‚ρ"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (_χ_Π‚Μ–…•ª’‡Τ)
+					RESULTS '= @"‚Ά‚Ώ‚©‚Ώ‚α‚ρ"
+				CASE 11
+					;•X–μ‚­‚ι‚έ
+					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 37
-			;ƒƒ“ƒƒ“
+			;—΄ς›ƒƒ“ƒƒ“ (2-B / ‹σθ•”)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- γ‹‰¶ (‘ζ1K‘w‚Μu`ζ”yv‚©‚η‘Ξ“™ƒ‰ƒCƒoƒ‹EeΜ‚Φ) ---
+				CASE 56
+					;”ª•Η‚Π‚©‚ι (_“Ή•”Eh“Gƒ‰ƒCƒoƒ‹)
+					RESULTS '= @"”ª•Η‚Ώ‚α‚ρ"
+				CASE 63
+					;”ª‰_‚Ώ‚Γ‚ι (‰‰€•”Ee¤)
+					RESULTS '= @"”ª‰_‚Ώ‚α‚ρ"
+				CASE 67
+					;“ϊ‘κ‚ά‚µ‚λ (ƒ`ƒA•”)
+					RESULTS '= @"‚ά‚µ‚λ‚³‚ρ"
+				;--- ‰Ί‹‰¶ (‘ζ1K‘w‚Μu`‚Ώ‚α‚ρv‚©‚η‹——£‚Μ‚ ‚ιu`‚³‚ρv‚Φ) ---
 				CASE 5
+					;“’q‚ ‚·‚©
 					RESULTS '= @"“’q‚³‚ρ"
-				CASE 50
-					RESULTS '= @"Rζ”y"
 			ENDSELECT
 		CASE 38
-			;ƒN[
+			;ƒN[EƒJƒƒA (2-C / ƒ‰ƒNƒƒX•”)
 			SELECTCASE AI
-				CASE 31
-					RESULTS '= @"‚ά‚θ‚ ‚Ώ‚α‚ρ"
-				CASE 36
-					RESULTS '= @"‚Ώ‚©‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- γ‹‰¶ ---
+				CASE 54
+					;‹vβ‚ ‚β‚ί
+					RESULTS '= @"‚ ‚β‚ίζ¶"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·ƒTƒ“"
+				;--- “―‹‰¶ (ƒ‰ƒNƒƒX•”EƒNƒ‰ƒXƒƒCƒg“™Δ‚ΡΜ‚ΔE‚ ‚Ύ–Ό) ---
+				CASE 33
+					;•A‚ι‚Θ (ƒ‰ƒNƒƒX•”)
+					RESULTS '= @"‚ι‚Θ"
+				CASE 40
+					;–ι–¶‚Ν‚β‚Δ (2-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"ƒnƒ„ƒe"
+				CASE 42
+					;ε‚ή‚Β‚έ (2-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"‚ή‚Β‚έ"
+				CASE 43
+					;»‰κ‚έ‚Η‚θ (2-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"‚έ‚Η‚θ"
+				CASE 44
+					;ω‰θ‚Π‚ζ‚Μ (2-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"‚Π‚ζ‚Μ"
+				CASE 39
+					;α–Ψ‚ΰ‚ΰ (2-CƒNƒ‰ƒXƒƒCƒgEΕ—L‚ ‚Ύ–Ό)
+					RESULTS '= @"‚ΰ‚ΰ‚½‚λ‚¤"
+				CASE 26
+					;–x“c‚³‚ ‚β
+					RESULTS '= @"–x“cƒTƒ“"
+				;--- ‰Ί‹‰¶ (ƒ‰ƒNƒƒX•”Δ‚ΡΜ‚Δ) ---
+				CASE 7
+					;‚΄‚Ώ‚ ‚« (ƒ‰ƒNƒƒX•”)
+					RESULTS '= @"‚Ώ‚ ‚«"
 			ENDSELECT
 		CASE 39
-			;‚ΰ‚ΰ
+			;α–Ψ‚ΰ‚ΰ (2-C / ”όp•”)
 			SELECTCASE AI
-				CASE 38
-					RESULTS '= @"ƒJƒƒA‚­‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- γ‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				;--- “―‹‰¶ (”όp•”‘εe—FEƒNƒ‰ƒXƒƒCƒg‚ ‚Ύ–Ό) ---
+				CASE 24
+					;O”g‚Θ‚Β‚έ (”όp•”–Ώ—FEΕd—v¤Μ)
+					RESULTS '= @"‚Θ‚Α‚Β‚ρ"
+				CASE 43
+					;»‰κ‚έ‚Η‚θ (2-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"‚έ‚Η‚θ‚ρ"
+				;--- ‰Ί‹‰¶ (”όp•”γ”yΔ‚ΡΜ‚Δ) ---
+				CASE 21
+					;θ³q‚·‚έ‚κ (”όp•”γ”y)
+					RESULTS '= @"‚·‚έ‚κ"
 			ENDSELECT
 		CASE 40
-			;‚Ν‚β‚Δ
+			;–ι–¶‚Ν‚β‚Δ (2-C / y‰Ή•”)
 			SELECTCASE AI
-				CASE 12
-					RESULTS '= @"_χζ”y"
-				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚³‚ρ"
-				CASE 28
-					RESULTS '= @"―C‚³‚ρ"
-				CASE 29
-					RESULTS '= @"‚Θ‚Θ‚³‚ρ"
-				CASE 31
-					RESULTS '= @"–²H‚³‚ρ"
-				CASE 41
-					RESULTS '= @"—I–Ψ‚³‚ρ"
-				CASE 43
-					RESULTS '= @"»‰κ‚³‚ρ"
-				CASE 44
-					RESULTS '= @"ω‰θ‚³‚ρ"
-				CASE 45
-					RESULTS '= @"‰~ι›ζ”y"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- γ‹‰¶ ---
 				CASE 49
+					;¬Ό‚Ϊ‚½‚ρ
 					RESULTS '= @"¬Ό‚³‚ρ"
-				CASE 50
-					RESULTS '= @"Rζ”y"
-				CASE 60
-					RESULTS '= @"£μζ”y"
-				CASE 62
-					RESULTS '= @"•Xζ”y"
 				CASE 68
+					;[’Ή‚Σ‚έ
 					RESULTS '= @"[’Ή‚³‚ρ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·"
+				;--- “―‹‰¶ (ƒNƒ‰ƒXƒƒCƒgEe—FΔ‚ΡΜ‚Δ) ---
+				CASE 38
+					;ƒN[EƒJƒƒA (2-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"ƒN["
+				CASE 44
+					;ω‰θ‚Π‚ζ‚Μ (‘εe—F)
+					RESULTS '= @"ω‰θ‚³‚ρ"
+				CASE 33
+					;•A‚ι‚Θ
+					RESULTS '= @"•A"
+				CASE 36
+					;‰“©‚Ώ‚©
+					RESULTS '= @"‰“©"
+				;--- ‰Ί‹‰¶ ---
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (‘ΜηΟυ‰ογ”yEΕd—vΕ—L‚ ‚Ύ–Ό)
+					RESULTS '= @"κ†"
+				CASE 15
+					;’·’¬‚β‚¦
+					RESULTS '= @"’·’¬"
 			ENDSELECT
 		CASE 41
-			;‚Ζ‚ΰ‚±
+			;—I–Ψ‚Ζ‚ΰ‚± (2-C / •“Ή•”E¶“k‰ο‘‹L)
 			SELECTCASE AI
-				CASE 6
-					RESULTS '= @"—•”T‚³‚ρ"
-				CASE 11
-					RESULTS '= @"•X–μ‚³‚ρ"
-				CASE 12
-					RESULTS '= @"‚Ά‚Ώ‚©‚³‚ρ"
-				CASE 16
-					RESULTS '= @"‘εΥ‚³‚ρ"
-				CASE 24
-					RESULTS '= @"‚Θ‚Β‚έ‚³‚ρ"
-				CASE 25
-					RESULTS '= @"”ªρ‚³‚ρ"
-				CASE 32
-					RESULTS '= @"ΐπ‚³‚ρ"
-				CASE 34
-					RESULTS '= @"‹Λ“‡‚³‚ρ"
-				CASE 36
-					RESULTS '= @"‰“©‚³‚ρ"
-				CASE 37
-					RESULTS '= @"—΄ς›‚³‚ρ"
-				CASE 39
-					RESULTS '= @"α–Ψ‚³‚ρ"
-				CASE 40
-					RESULTS '= @"–ι–¶‚³‚ρ"
-				CASE 43
-					RESULTS '= @"»‰κ‚³‚ρ"
-				CASE 44
-					RESULTS '= @"ω‰θ‚³‚ρ"
-				CASE 45
-					RESULTS '= @"‰~ι›ζ”y"
-				CASE 47
-					RESULTS '= @"‚έ‚Θ‚Γ‚«ζ”y"
-				CASE 48
-					RESULTS '= @"‚έ‚Β‚ιζ”y"
-				CASE 54
-					RESULTS '= @"‹vβζ”y"
-				CASE 56
-					RESULTS '= @"”ª•Ηζ”y"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚³‚ρ"
+				;--- γ‹‰¶ ---
+				CASE 50
+					;R‚¬‚ρ (•“Ή•”•”’·)
+					RESULTS '= @"•”’·"
 				CASE 61
-					RESULTS '= @"’ίCζ”y"
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"‰ο’·"
+				CASE 48
+					;l•ϋ‚έ‚Β‚ι
+					RESULTS '= @"‚έ‚Β‚ιζ”y"
+				CASE 60
+					;£μ‚©‚¦‚Ε (‹¶“k‰ο”h”΄)
+					RESULTS '= @"£μ‚³‚ρ"
+				;--- ‰Ί‹‰¶ ---
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (•“Ή•”γ”yE–…•ª’‡Τ)
+					RESULTS '= @"‚Ά‚Ώ‚©‚³‚ρ"
 			ENDSELECT
 		CASE 42
-			;‚ή‚Β‚έ
+			;ε‚ή‚Β‚έ (2-C / —¤γ•”)
 			SELECTCASE AI
-				CASE 4
-					RESULTS '= @"‚Ò‚±‚Ώ‚α‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
-				CASE 25
-					RESULTS '= @"”ªρ‚³‚ρ"
-				CASE 27
-					RESULTS '= @"‰Δ–μ"
-				CASE 32
-					RESULTS '= @"ƒAƒ“‚Ώ‚α‚ρ"
-				CASE 38
-					RESULTS '= @"ƒJƒ‚Ώ‚α‚ρ"
-				CASE 43
-					RESULTS '= @"ƒXƒi‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- γ‹‰¶ (—¤γ•”²•”EΕd—v) ---
+				CASE 57
+					;βΛƒTƒ“ (—¤γ•”•”’·)
+					RESULTS '= @"ƒAƒlƒS"
+				CASE 48
+					;l•ϋ‚έ‚Β‚ι (—¤γ•”•›•”’·)
+					RESULTS '= @"ƒAƒjƒL"
+				CASE 49
+					;¬Ό‚Ϊ‚½‚ρ
+					RESULTS '= @"¬Ό‚ΜƒAƒlƒS"
+				;--- “―‹‰¶ (“Α—L‚Μ—ªΜ‚ ‚Ύ–Ό) ---
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚± (ƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"MissƒuƒVƒh["
 				CASE 44
+					;ω‰θ‚Π‚ζ‚Μ (ƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"ƒsƒ‚Ώ‚α‚ρ"
+				CASE 43
+					;»‰κ‚έ‚Η‚θ (ƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"ƒXƒi‚Ώ‚α‚ρ"
+				CASE 38
+					;ƒN[EƒJƒƒA (ƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"ƒJƒ‚Ώ‚α‚ρ"
+				CASE 32
+					;ΐπ‚ά‚Ά
+					RESULTS '= @"ƒAƒ“‚Ώ‚α‚ρ"
+				;--- ‰Ί‹‰¶ ---
+				CASE 4
+					;‘μ‚«‚±
+					RESULTS '= @"‚Ò‚±‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 43
-			;‚έ‚Η‚θ
+			;»‰κ‚έ‚Η‚θ (2-C / ‰€|•”)
 			SELECTCASE AI
-				CASE 2
-					RESULTS '= @"‚δ‚«‚Ώ‚α‚ρ"
-				CASE 11
-					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- γ‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"¶“k‰ο’·‚³‚ρ"
+				;--- “―‹‰¶ (ƒNƒ‰ƒXƒƒCƒg¤Μ) ---
 				CASE 38
+					;ƒN[EƒJƒƒA (2-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"ƒN[‚Ώ‚α‚ρ"
 				CASE 39
+					;α–Ψ‚ΰ‚ΰ (2-CƒNƒ‰ƒXƒƒCƒg)
 					RESULTS '= @"‚ΰ‚ΰ‚Ώ‚α‚ρ"
-				CASE 63
-					RESULTS '= @"”ª‰_ζ”y"
-				CASE 66
-					RESULTS '= @"‘]ªζ”y"
+				CASE 42
+					;ε‚ή‚Β‚έ (2-CƒNƒ‰ƒXƒƒCƒg)
+					RESULTS '= @"‚ή‚Β‚έ‚Ώ‚α‚ρ"
+				;--- ‰Ί‹‰¶ (‰€|•”γ”yE‘εe—F) ---
+				CASE 11
+					;•X–μ‚­‚ι‚έ (‰€|•”γ”yEΕd—v‘•ϋ)
+					RESULTS '= @"‚­‚ι‚έ‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 44
-			;‚Π‚ζ‚Μ
+			;ω‰θ‚Π‚ζ‚Μ (2-C / •ϊ‘—•”E¶“k‰ο‘‹L)
 			SELECTCASE AI
-				CASE 24
-					RESULTS '= @"‚Θ‚Β‚έ‚³‚ρ"
-				CASE 38
-					RESULTS '= @"ƒN[‚³‚ρ"
-				CASE 41
-					RESULTS '= @"‚Ζ‚ΰ‚±‚³‚ρ"
-				CASE 43
-					RESULTS '= @"‚έ‚Η‚θ"
-				CASE 47
-					RESULTS '= @"‚έ‚Θ‚Γ‚«ζ”y"
-				CASE 58
-					RESULTS '= @"“V‹{ζ”y"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚³‚ρ"
+				;--- γ‹‰¶ ---
 				CASE 68
-					RESULTS '= @"‚Σ‚έ‚³‚ρ"
-				CASE 69
-					RESULTS '= @"_χζ”y"
+					;[’Ή‚Σ‚έ (V•·•”•”’·E—Bκ–³“ρ)
+					RESULTS '= @"•”’·"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·)
+					RESULTS '= @"‰ο’·‚³‚ρ"
+				CASE 64
+					;•τR‚µ‚¨‚ρ
+					RESULTS '= @"•τR‚³‚ρ"
+				CASE 46
+					;‘o—t‚έ‚Γ‚« (ζ‘γ‘‹L)
+					RESULTS '= @"‘o—tζ”y"
+				CASE 47
+					;‘o—t‚έ‚Θ‚Γ‚« (ζ‘γ‘‹L)
+					RESULTS '= @"‚έ‚Θ‚Γ‚«ζ”y"
 			ENDSELECT
 		CASE 45
-			;‚κ‚Ά‚©
+			;‰~ι›‚κ‚Ά‚© (3-A / ’ƒ“Ή•”•”’·E‘O¶“k‰ο’·)
 			SELECTCASE AI
-				CASE 8
-					RESULTS '= @"Ϋq‚³‚ρ"
-				CASE 13
-					RESULTS '= @"‰HX‚³‚ρ"
-				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚³‚ρ"
-				CASE 26
-					RESULTS '= @"–x“c‚³‚ρ"
-				CASE 34
-					RESULTS '= @"‹Λ“‡‚³‚ρ"
-				CASE 40
-					RESULTS '= @"–ι–¶‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- —c“ιυE¶“k‰ο’· ---
+				CASE 48
+					;l•ϋ‚έ‚Β‚ι (—c“ιυ)
+					RESULTS '= @"l•ϋ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (γ”C‚Μ¶“k‰ο’·)
+					RESULTS '= @"‚Π‚ά‚θ"
+				;--- “―‹‰¶iΔ‚ΡΜ‚ΔE¤Μj ---
+				CASE 46
+					;‘o—t‚έ‚Γ‚« (‘O‘‹L)
+					RESULTS '= @"‚έ‚Γ‚«"
+				CASE 47
+					;‘o—t‚έ‚Θ‚Γ‚« (‘O‘‹L)
+					RESULTS '= @"‚έ‚Θ‚Γ‚«"
 				CASE 49
-					RESULTS '= @"¬Ό‚³‚ρ"
-				CASE 52
-					RESULTS '= @"Ξ“μ‚³‚ρ"
+					;¬Ό‚Ϊ‚½‚ρ
+					RESULTS '= @"‚Ϊ‚½‚ρ"
+				CASE 50
+					;R‚¬‚ρ
+					RESULTS '= @"R"
+				CASE 51
+					;δ‰e‚©‚·‚έ
+					RESULTS '= @"‚©‚·‚έ"
+				CASE 55
+					;Ι“΅‚³‚­‚η
+					RESULTS '= @"‚³‚­‚η"
 				CASE 59
-					RESULTS '= @"…›Έ‚³‚ρ"
-				CASE 63
-					RESULTS '= @"”ª‰_‚³‚ρ"
+					;…›Έ‚¤‚µ‚¨
+					RESULTS '= @"‚¤‚µ‚¨"
+				CASE 60
+					;£μ‚©‚¦‚Ε
+					RESULTS '= @"‚©‚¦‚Ε"
 				CASE 65
-					RESULTS '= @"‘‚³‚ρ"
+					;‘‚»‚η
+					RESULTS '= @"‚»‚η"
 				CASE 67
+					;“ϊ‘κ‚ά‚µ‚λ
 					RESULTS '= @"“ϊ‘κ‚³‚ρ"
 				CASE 69
-					RESULTS '= @"‚Ν‚¶‚ί‚Ώ‚α‚ρ"
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"_χ‚³‚ρ"
+				;--- γ”yi¤ΜEmerry-melody“™j ---
+				CASE 13
+					;‰HX‚Β‚Ξ‚³
+					RESULTS '= @"‚Β‚Ξ‚³"
+				CASE 14
+					;‰Τ‰Ή‚±‚Ζ‚θ
+					RESULTS '= @"‚±‚Ζ‚θ"
+				CASE 26
+					;–x“c‚³‚ ‚β
+					RESULTS '= @"–x“c‚³‚ρ"
+				CASE 28
+					;―C‚±‚ζ‚Ά
+					RESULTS '= @"―C‚³‚ρ"
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚±
+					RESULTS '= @"‚Ζ‚ΰ‚±"
 				CASE 72
-					RESULTS '= @"‚ ‚ρ‚Έ‚³‚ρ"
+					;‚ ‚ρ‚Έ
+					RESULTS '= @"ƒAƒ“ƒW["
 			ENDSELECT
 		CASE 46
-			;‚έ‚Γ‚«
+			;‘o—t‚έ‚Γ‚« (3-A / ƒIƒJƒ‹ƒg¤‹†•”E‘O¶“k‰ο‘‹L)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- Εd—vi‘oq‚Μ–…E274‰ρ“oκj ---
 				CASE 47
+					;‘o—t‚έ‚Θ‚Γ‚« (–…‚Φ‚ΜΔ‚Ρ‚©‚―‚Νu‚έ‚Θ‚Ώ‚α‚ρv)
 					RESULTS '= @"‚έ‚Θ‚Ώ‚α‚ρ"
+				;--- e—FEƒIƒJƒ‹ƒg’‡ΤE“―‹‰¶ ---
+				CASE 59
+					;…›Έ‚¤‚µ‚¨ (e—F‚Μ…‰j•”•”’·E69‰ρ“oκ)
+					RESULTS '= @"‚¤‚µ‚¨"
+				CASE 65
+					;‘‚»‚η (ƒIƒJƒ‹ƒg¤‹†•”’‡ΤE60‰ρ“oκ)
+					RESULTS '= @"‚»‚η"
+				CASE 51
+					;δ‰e‚©‚·‚έ (34‰ρ“oκ)
+					RESULTS '= @"‚©‚·‚έ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (»¶“k‰ο’·)
+					RESULTS '= @"’ίC"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"‚Ν‚¶‚ί"
+;--- γ”y ---
+CASE 23
+					;ις–Ψ‚±‚Ν‚ι
+					RESULTS '= @"‚±‚Ν‚ι"
 			ENDSELECT
 		CASE 47
-			;‚έ‚Θ‚Γ‚«
+			;‘o—t‚έ‚Θ‚Γ‚« (3-A / ƒIƒJƒ‹ƒg¤‹†•”E‘O¶“k‰ο‘‹L)
 			SELECTCASE AI
-				CASE 22
-					RESULTS '= @"‚Ά‚©‚θ‚Ώ‚α‚ρ"
-				CASE 23
-					RESULTS '= @"‚±‚Ν‚ι‚Ώ‚α‚ρ"
-				CASE 28
-					RESULTS '= @"‚±‚ζ‚Ά‚Ώ‚α‚ρ"
-				CASE 41
-					RESULTS '= @"‚Ζ‚ΰ‚±‚Ώ‚α‚ρ"
-				CASE 44
-					RESULTS '= @"‚Π‚ζ‚Μ‚Ώ‚α‚ρ"
-				CASE 45
-					RESULTS '= @"‚κ‚Ά‚©‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- Εd—vi‘oq‚Μoj ---
 				CASE 46
-					RESULTS '= @"‚έ‚Γ‚Ώ‚α‚ρ"
-				CASE 48
-					RESULTS '= @"‚έ‚Β‚ι‚Ώ‚α‚ρ"
-				CASE 50
-					RESULTS '= @"‚¬‚ρ‚Ώ‚α‚ρ"
+					;‘o—t‚έ‚Γ‚« (o‚Φ‚ΜΔ‚Ρ‚©‚―‚Νu‚¨o‚Ώ‚α‚ρv)
+					RESULTS '= @"‚¨o‚Ώ‚α‚ρ"
+				;--- Ε—L¤Μ ---
 				CASE 51
+					;δ‰e‚©‚·‚έ (11‰ρ“oκEΕ—L¤Μ)
 					RESULTS '= @"‚©‚·‚έ‚Ώ‚α‚ρ"
-				CASE 59
-					RESULTS '= @"‚¤‚µ‚¨‚³‚ρ"
-				CASE 60
-					RESULTS '= @"‚©‚¦‚Ε‚Ώ‚α‚ρ"
-				CASE 61
-					RESULTS '= @"‚Π‚ά‚θ‚Ώ‚α‚ρ"
-				CASE 65
-					RESULTS '= @"‚»‚η‚Ώ‚α‚ρ"
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚± (12‰ρ“oκEΕ—L¤Μ)
+					RESULTS '= @"‚Ζ‚ΰ‚±‚Ώ‚α‚ρ"
+				CASE 56
+					;”ª•Η‚Π‚©‚ι (•cΔ‚ΡE΄μƒZƒƒt€‹’)
+					RESULTS '= @"”ª•Η‚³‚ρ"
 			ENDSELECT
 		CASE 48
-			;‚έ‚Β‚ι
+			;l•ϋ‚έ‚Β‚ι (3-A / —¤γ•”•”’·E¶“k‰ο•›‰ο’·)
 			SELECTCASE AI
-				CASE 24
-					RESULTS '= @"O”g‚³‚ρ"
-				CASE 25
-					RESULTS '= @"”ªρ‚³‚ρ"
-				CASE 27
-					RESULTS '= @"‰Δ–μ‚³‚ρ"
-				CASE 31
-					RESULTS '= @"‚ά‚θ‚ ‚Ώ‚α‚ρ"
-				CASE 32
-					RESULTS '= @"ΐπ‚³‚ρ"
-				CASE 35
-					RESULTS '= @"”~‰€‚³‚ρ"
-				CASE 36
-					RESULTS '= @"‚Ώ‚©‚Ώ‚α‚ρ"
-				CASE 52
-					RESULTS '= @"Ξ“μ‚³‚ρ"
-				CASE 57
-					RESULTS '= @"‚¨β‚Ώ‚α‚ρ"
-				CASE 60
-					RESULTS '= @"£μ‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- —c“ιυE¶“k‰ο’· ---
+				CASE 45
+					;‰~ι›‚κ‚Ά‚© (—c“ιυE52‰ρ“oκ)
+					RESULTS '= @"‚κ‚Ά‚©"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·E75‰ρ“oκ)
+					RESULTS '= @"‚Π‚ά‚θ"
+				;--- γ”yi—¤γ•”E¶“k‰ο–πυj ---
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚± (¶“k‰ο–πυE–…•ªE65‰ρ“oκ)
+					RESULTS '= @"‚Ζ‚ΰ‚±"
+				CASE 42
+					;ε‚ή‚Β‚έ (—¤γ•”γ”yE60‰ρ“oκ)
+					RESULTS '= @"‚ή‚Β‚έ"
+				;--- “―‹‰¶E‚»‚Μ‘Όe¤ ---
+				CASE 49
+					;¬Ό‚Ϊ‚½‚ρ (“―‹‰¶E33‰ρ“oκ)
+					RESULTS '= @"‚Ϊ‚½‚ρ"
 				CASE 63
+					;”ª‰_‚Ώ‚Γ‚ι (27‰ρ“oκ)
 					RESULTS '= @"‚Ώ‚Γ‚ι‚³‚ρ"
-				CASE 66
-					RESULTS '= @"‘]ª‚³‚ρ"
-				CASE 68
-					RESULTS '= @"[’Ή‚³‚ρ"
+				CASE 31
+					;–²H‚ά‚θ‚  (–Ό‘OΔ‚Ρ‚³‚ρ)
+					RESULTS '= @"‚ά‚θ‚ ‚Ώ‚α‚ρ"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"_χ‚³‚ρ"
+				CASE 72
+					;‚ ‚ρ‚Έ (Δ‚ΡΜ‚Δ)
+					RESULTS '= @"‚ ‚ρ‚Έ"
+			ENDSELECT
+		CASE 49
+			;¬Ό‚Ϊ‚½‚ρ (3-A / ƒoƒXƒPƒbƒgƒ{[ƒ‹•”)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- “―‹‰¶iΔ‚ΡΜ‚ΔE¤Μj ---
+				CASE 48
+					;l•ϋ‚έ‚Β‚ι (29‰ρ“oκ)
+					RESULTS '= @"‚έ‚Β‚ι"
+				CASE 57
+					;βΛƒTƒ“ (19‰ρ“oκEƒTƒ“Δ‚ΡΜ‚Δ)
+					RESULTS '= @"ƒTƒ“"
+				;--- hΜi`‚³‚ρj ---
+				CASE 67
+					;“ϊ‘κ‚ά‚µ‚λ (5‰ρ“oκ)
+					RESULTS '= @"“ϊ‘κ‚³‚ρ"
+				CASE 60
+					;£μ‚©‚¦‚Ε (9‰ρ“oκ)
+					RESULTS '= @"£μ‚³‚ρ"
+				CASE 44
+					;ω‰θ‚Π‚ζ‚Μ
+					RESULTS '= @"ω‰θ‚³‚ρ"
+				CASE 3
+					;¬–μ‚Ώ‚ζ (‚¨‰Ωq‚π‚­‚κ‚ιγ”y)
+					RESULTS '= @"¬–μ‚³‚ρ"
+				CASE 11
+					;•X–μ‚­‚ι‚έ
+					RESULTS '= @"•X–μ‚³‚ρ"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"‚Ν‚¶‚ί"
 			ENDSELECT
 		CASE 50
-			;‚¬‚ρ
+			;R‚¬‚ρ (3-A / •“Ή•”•”’·)
 			SELECTCASE AI
-				CASE 24
-					RESULTS '= @"O”g‚³‚ρ"
-				CASE 37
-					RESULTS '= @"—΄ς›‚Ώ‚α‚ρ"
-				CASE 45
-					RESULTS '= @"‰~ι›‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- •“Ή•”γ”yE‘–_ ---
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚± (•“Ή•”•›•”’·E18‰ρ“oκ)
+					RESULTS '= @"ƒgƒ‚"
+				;--- “―‹‰¶E‚»‚Μ‘Ό ---
 				CASE 52
+					;Ξ“μ‚β‚± (΄μƒZƒƒt€‹’)
 					RESULTS '= @"Ξ“μ‚Ώ‚α‚ρ"
-				CASE 56
-					RESULTS '= @"”ª•Η‚Ώ‚α‚ρ"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (_χ©d•΅‰ρ”π)
+					RESULTS '= @"ƒCƒ`"
+CASE 72
+					;‚ ‚ρ‚Έ
+					RESULTS '= @"ƒAƒ“ƒW["
+			ENDSELECT
+		CASE 51
+			;δ‰e‚©‚·‚έ (3-A / —Ώ—¤‹†•”•”’·)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚³‚ρ"
+				;--- ‘oqiΫ’¥“IΔΜj ---
+				CASE 46
+					;‘o—t‚έ‚Γ‚« (‘oq‰®‚³‚ρ)
+					RESULTS '= @"‘oq‰®‚³‚ρ"
+				CASE 47
+					;‘o—t‚έ‚Θ‚Γ‚« (‘oq‰®‚³‚ρ)
+					RESULTS '= @"‘oq‰®‚³‚ρ"
+				;--- “Α•Κ‚Θγ”yi‚²‚­‹H‚Θ¤Μj ---
+				CASE 23
+					;ις–Ψ‚±‚Ν‚ι (•’i‚Ν‚±‚Ν‚ι‰®‚³‚ρAd‘ε‚Θκ–Κ‚Ε‚Μ‚έu‚±‚Ν‚ι‚Ώ‚α‚ρv)
+					RESULTS '= @"‚±‚Ν‚ι‰®‚³‚ρ"
 			ENDSELECT
 		CASE 52
-			;‚β‚±
+			;Ξ“μ‚β‚± (3-A / ‰‰€•”•”’·)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚ ‚ρ‚½"
+				;--- ‰‰€•”γ”yiΫ’¥“IΔΜj ---
 				CASE 36
+					;‰“©‚Ώ‚© (‰‰€•”γ”yEΫ’¥“I¤Μ)
 					RESULTS '= @"ƒgƒ~q"
+				;--- “―‹‰¶ ---
+				CASE 63
+					;”ª‰_‚Ώ‚Γ‚ι (e‚µ‚Ά“―‹‰¶E78‰ρ“oκ)
+					RESULTS '= @"‚Ώ‚Γ‚ι"
+				CASE 38
+					;ƒN[EƒJƒƒA (O‘l–Ό)
+					RESULTS '= @"ƒJƒƒA‚³‚ρ"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (_χ©d•΅‰ρ”π)
+					RESULTS '= @"_χ‚³‚ρ"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"‚Ν‚¶‚ί"
+				CASE 72
+					;‚ ‚ρ‚Έ
+					RESULTS '= @"ƒAƒ“ƒW["
+			ENDSELECT
+		CASE 53
+			;‰Τ‹u‚ά‚θ (3-B / ƒeƒjƒX•”•”’·)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- ƒeƒjƒX•”γ”yi¤Μj ---
+				CASE 18
+					;F‘ς‚Π‚ί‚Μ (ƒeƒjƒX•”γ”y)
+					RESULTS '= @"‚Π‚ί‚Μ‚³‚ρ"
+				CASE 17
+					;¬”µ‚ ‚Έ‚³ (ƒeƒjƒX•”γ”y)
+					RESULTS '= @"‚ ‚Έ‚³‚³‚ρ"
+				CASE 36
+					;‰“©‚Ώ‚©
+					RESULTS '= @"‚Ώ‚©‚³‚ρ"
+				;--- ‚¨μ—lEγ”y‚Φ‚Μu`—lv ---
+CASE 31
+					;–²H‚ά‚θ‚ 
+					RESULTS '= @"‚ά‚θ‚ ‚³‚ρ"
+;--- —c“ιυE“―‹‰¶ ---
+				CASE 48
+					;l•ϋ‚έ‚Β‚ι (‰¤q—l)
+					RESULTS '= @"‚έ‚Β‚ι‚³‚ρ"
 			ENDSELECT
 		CASE 54
-			;‚ ‚β‚ί
+			;‹vβ‚ ‚β‚ί (3-B / ¶•¨•”•”’·Eu–‚‰¤v)
 			SELECTCASE AI
-				CASE 10
-					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
-				CASE 38
-					RESULTS '= @"ƒJƒƒA‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- Εd—v—c“ιυi40‰ρ“oκIj ---
 				CASE 56
+					;”ª•Η‚Π‚©‚ι (Ε¤‚Μ—c“ιυI)
 					RESULTS '= @"‚Π‚©‚ι‚Ώ‚α‚ρ"
+				;--- “Α•Κ¤ΜE“―‹‰¶Eγ”y ---
+				CASE 57
+					;βΛƒTƒ“ (8‰ρ“oκ)
+					RESULTS '= @"βΛ‚³‚ρ"
+				CASE 16
+					;‘εΥ‚Ά‚³‚έ
+					RESULTS '= @"‘εΥ‚³‚ρ"
+CASE 38
+					;ƒN[EƒJƒƒA (O‘l–Ό)
+					RESULTS '= @"ƒJƒƒA‚³‚ρ"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"_χ‚³‚ρ"
 			ENDSELECT
 		CASE 55
-			;‚³‚­‚η
+			;Ι“΅‚³‚­‚η (3-B / ‰€|•”E”ό‰»Ου)
 			SELECTCASE AI
-				CASE 10
-					RESULTS '= @"‚δ‚δ‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚³‚ρ"
+				;--- ’”q‘ΞΫ ---
 				CASE 45
-					RESULTS '= @"‚κ‚Ά‚©‚³‚ρ"
+					;‰~ι›‚κ‚Ά‚© (ƒtƒHƒƒ[‚Ζ‚µ‚Δβ‘Ξ’”q)
+					RESULTS '= @"•Γ‰Ί"
+				;--- tHƒRƒ“ƒrEΕd—ve—Fi΄μ165‰ρ‚·‚Χ‚Δu‚©‚¦‚Ε‚³‚ρvj ---
 				CASE 60
+					;£μ‚©‚¦‚Ε (tHƒRƒ“ƒre—FEβ‘ΞhΜu‚©‚¦‚Ε‚³‚ρv)
 					RESULTS '= @"‚©‚¦‚Ε‚³‚ρ"
+				;--- ¶“k‰ο’·E“―‹‰¶ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ
+					RESULTS '= @"’ίC‚³‚ρ"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"_χ‚³‚ρ"
 				CASE 72
+					;‚ ‚ρ‚Έ (35‰ρ“oκ)
 					RESULTS '= @"‚ ‚ρ‚Έ‚³‚ρ"
 			ENDSELECT
 		CASE 56
-			;‚Π‚©‚ι
+			;”ª•Η‚Π‚©‚ι (3-B / _“Ή•”•”’·E¶“k‰ο‰οv)
 			SELECTCASE AI
-				CASE 41
-					RESULTS '= @"—I–Ψ‚Ώ‚α‚ρ"
-				CASE 43
-					RESULTS '= @"‚έ‚Η‚θ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- Εd—v—c“ιυi72‰ρ“oκEβ‘Ξ“IΔ‚ΡΜ‚Δj ---
+				CASE 54
+					;‹vβ‚ ‚β‚ί (—c“ιυIu‚ ‚β‚ίv)
+					RESULTS '= @"‚ ‚β‚ί"
+				;--- _“Ή•”γ”yEƒ‰ƒCƒoƒ‹ ---
+				CASE 16
+					;‘εΥ‚Ά‚³‚έ (γ”yE30‰ρ“oκ)
+					RESULTS '= @"‘εΥ"
+				CASE 37
+					;—΄ς›ƒƒ“ƒƒ“ (h“Gƒ‰ƒCƒoƒ‹Δ‚ΡΜ‚Δ)
+					RESULTS '= @"—΄ς›"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (_χ©d•΅‰ρ”π)
+					RESULTS '= @"_χ"
 			ENDSELECT
 		CASE 57
-			;ƒTƒ“
+			;βΛƒTƒ“ (3-B / —¤γ•”•”’·E–CΫ“)
 			SELECTCASE AI
-				CASE 42
-					RESULTS '= @"‚ή‚£‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- —¤γ•”iφ®έ’θ–Ύ‹Lj ---
 				CASE 48
+					;l•ϋ‚έ‚Β‚ι (•›•”’·)
 					RESULTS '= @"‚έ‚΅‚­‚ρ"
-				CASE 49
-					RESULTS '= @"‚Ϊ‚½‚Ώ‚α‚ρ"
-				CASE 54
-					RESULTS '= @"‚ ‚β‚Ώ‚α‚ρ"
+			ENDSELECT
+		CASE 58
+			;“V‹{‚ι‚θ (3-B / “V•¶•”•”’· / ‰F’lΟ‘ªÒ)
+			SELECTCASE AI
+				;--- εlφ (ξ–{:u“]Z¶‚Μ‚Π‚Ζv/—‹όΔ‚Ρ:u’ν‚Μ‚Π‚Ζv/‘f:u“]Z¶‚­‚ρv) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚Μ‚Π‚Ζ"
+				;--- Εd—ve—FE—c“ιυi‚Ω‚Ζ‚θ‚Μ‚Π‚Ζ / ‘f:‚Ω‚Ζ‚θ‚Ώ‚α‚ρj ---
+				CASE 70
+					;_–³‚Ω‚Ζ‚θ (Ε¤‚Μ—c“ιυE•›•”’·)
+					RESULTS '= @"‚Ω‚Ζ‚θ‚Μ‚Π‚Ζ"
+				;--- “V•¶•”E•”’‡Τ ---
+				CASE 28
+					;―C‚±‚ζ‚Ά (“V•¶•”γ”yE27‰ρ“oκ)
+					RESULTS '= @"‚±‚ζ‚Ά‚Μ‚Π‚Ζ"
+				CASE 30
+					;’·‹‚δ‚¤ (–ι‹σ‚Μκ“™―)
+					RESULTS '= @"‚δ‚¤‚Μ‚Π‚Ζ"
+				;--- ¶“k‰ο’· ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (¶“k‰ο’·‚Μ‚Π‚ΖE11‰ρ“oκ)
+					RESULTS '= @"¶“k‰ο’·‚Μ‚Π‚Ζ"
+				;--- e‚µ‚Άγ”yE—Fl ---
+				CASE 6
+					;—•”T‚ ‚Ά‚© (23‰ρ“oκ)
+					RESULTS '= @"‚ ‚Ά‚©‚Μ‚Π‚Ζ"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (10‰ρ“oκ)
+					RESULTS '= @"‚Ά‚Ώ‚©‚Μ‚Π‚Ζ"
+				CASE 25
+					;”ªρ‚Β‚δ‚θ
+					RESULTS '= @"‚Β‚δ‚θ‚Μ‚Π‚Ζ"
+				;--- Ε—L–½–ΌΔΜiscenarios®‘S’oj ---
+				CASE 10
+					;–Ψ”V‰Ί‚δ‚δ (•¶|•”)
+					RESULTS '= @"‚δ‚δ‚δ‚Μ‚Π‚Ζ"
+CASE 68
+					;[’Ή‚Σ‚έ (V•·•”‚Μ‚Π‚Ζ)
+					RESULTS '= @"V•·•”‚Μ‚Π‚Ζ"
 			ENDSELECT
 		CASE 59
-			;‚¤‚µ‚¨
+			;…›Έ‚¤‚µ‚¨ (3-B / …‰j•”•”’·)
 			SELECTCASE AI
-				CASE 60
-					RESULTS '= @"£μ‚³‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- Εd—ve—Fi138‰ρ“oκE‚Ώ‚α‚ρ•t‚―Ij ---
+				CASE 46
+					;‘o—t‚έ‚Γ‚« (e—F)
+					RESULTS '= @"‚έ‚Γ‚«‚Ώ‚α‚ρ"
+				;--- …‰j•”‘–_Eγ”yEe‚µ‚Ά—Fl ---
+				CASE 71
+					;¥‚Π‚Ρ‚« (…‰j•”‘–_E69‰ρ“oκ)
+					RESULTS '= @"‚Π‚Ρ‚«‚Ώ‚α‚ρ"
+				CASE 22
+					;ιΝ‚Ά‚©‚θ (…‰j•”γ”yE32‰ρ“oκ)
+					RESULTS '= @"‚Ά‚©‚θ‚Ώ‚α‚ρ"
 				CASE 65
-					RESULTS '= @"‘‚³‚ρ"
+					;‘‚»‚η (14‰ρ“oκ)
+					RESULTS '= @"‚»‚η‚Ώ‚α‚ρ"
+				CASE 61
+					;’ίC‚Π‚ά‚θ (3‰ρ“oκ)
+					RESULTS '= @"‚Π‚ά‚θ‚Ώ‚α‚ρ"
+				CASE 50
+					;R‚¬‚ρ
+					RESULTS '= @"‚¬‚ρ‚Ώ‚α‚ρ"
+				CASE 51
+					;δ‰e‚©‚·‚έ
+					RESULTS '= @"‚©‚·‚έ‚Ώ‚α‚ρ"
+				CASE 60
+					;£μ‚©‚¦‚Ε (hΜ)
+					RESULTS '= @"£μ‚³‚ρ"
 			ENDSELECT
 		CASE 60
-			;‚©‚¦‚Ε
+			;£μ‚©‚¦‚Ε (3-B / ‹|“Ή•”•”’·E‘I‹“Η—Ου’·)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- ’”q‘ΞΫ ---
 				CASE 45
-					RESULTS '= @"•Γ‰Ί"
+					;‰~ι›‚κ‚Ά‚© (β‘Ξ’”qƒtƒHƒƒ[)
+					RESULTS '= @"‚κ‚Ά‚©—l"
+				;--- Εd—ve—FƒtƒHƒƒ[i251‰ρ“oκE‚³‚ρ•t‚―Ij ---
 				CASE 55
+					;Ι“΅‚³‚­‚η (e—F)
 					RESULTS '= @"‚³‚­‚η‚³‚ρ"
+				;--- “Α•Κ¤ΜE“―‹‰¶ ---
+				CASE 56
+					;”ª•Η‚Π‚©‚ι (3‰ρ“oκ)
+					RESULTS '= @"‚Π‚©‚ι‚­‚ρ"
+				CASE 57
+					;βΛƒTƒ“ (5‰ρ“oκ)
+					RESULTS '= @"βΛ‚³‚ρ"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (_χ©d•΅‰ρ”π)
+					RESULTS '= @"‚Ά‚Ώ‚©"
+				CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"‚Ν‚¶‚ί"
 			ENDSELECT
 		CASE 61
-			;‚Π‚ά‚θ
+			;’ίC‚Π‚ά‚θ (3-B / »¶“k‰ο’·E‡¥•” / Σ–Ό•t‚―‚ªο–΅I)
 			SELECTCASE AI
+				;--- εlφ (Σ–Όu‰Ί–l‚­‚ρv΄μ230‰ρ“oκI) ---
+				CASE 0
+					RESULTS '= @"‰Ί–l‚­‚ρ"
+				;--- h¤‚·‚ι‘O‰ο’·iu•Γ‰Ίv΄μ91‰ρ“oκEΕd—vΕ—LΔΜIj ---
+				CASE 45
+					;‰~ι›‚κ‚Ά‚© (h¤‚·‚ι‘O‰ο’·ENεu•Γ‰Ίv)
+					RESULTS '= @"•Γ‰Ί"
+				;--- ¶“k‰ο’·‚ΜΕ—L‚ ‚Ύ–Όiφ®έ’θEscenarios®‘S’oj ---
+				CASE 41
+					;—I–Ψ‚Ζ‚ΰ‚± (•“Ή•”E110‰ρ“oκI)
+					RESULTS '= @"ƒ†ƒbƒL["
+				CASE 48
+					;l•ϋ‚έ‚Β‚ι (¶“k‰ο•›‰ο’·E‰¤q—lE105‰ρ“oκI)
+					RESULTS '= @"ƒ~ƒbƒ`["
+				CASE 24
+					;O”g‚Θ‚Β‚έ (‰‰€•”E34‰ρ“oκI)
+					RESULTS '= @"‚έ‚Θ‚έ‚ρ"
+				CASE 25
+					;”ªρ‚Β‚δ‚θ (‘ε‰‚Β‚δ‚θ‚ρ)
+					RESULTS '= @"‚Β‚δ‚θ‚ρ"
+				CASE 50
+					;R‚¬‚ρ
+					RESULTS '= @"‚¬‚ρ‚¬‚ρ"
+				CASE 56
+					;”ª•Η‚Π‚©‚ι (_“Ή•”)
+					RESULTS '= @"‚Π‚©‚ι‚ρ‚ι‚ρ"
 				CASE 62
+					;•X‚·‚Έ (y‰Ή•”E16‰ρ“oκI)
 					RESULTS '= @"ƒNƒ‚Ώ‚α‚ρ"
+				CASE 67
+					;“ϊ‘κ‚ά‚µ‚λ (V•·•”E‰^“®•”E8‰ρ“oκI)
+					RESULTS '= @"‚ά‚µ‚λ‚ρ"
 				CASE 72
-					RESULTS '= @"‚ ‚ρ‚Έ‚³‚ρ"
+					;‚ ‚ρ‚Έ (‘εe—F¤ΜI17‰ρ“oκ)
+					RESULTS '= @"ƒAƒ“ƒW["
+				;--- e‚µ‚Ά—FlEγ”y‚Φ‚Μ¤Μ ---
+				CASE 6
+					;—•”T‚ ‚Ά‚© (‡¥•”‘–_E168‰ρ“oκI)
+					RESULTS '= @"‚ ‚Ά‚©‚Ώ‚α‚ρ"
+				CASE 10
+					;–Ψ”V‰Ί‚δ‚δ (•¶|•”E27‰ρ“oκI)
+					RESULTS '= @"‚δ‚δ‚Ώ‚α‚ρ"
+				CASE 40
+					;–ι–¶‚Ν‚β‚Δ (5‰ρ“oκI)
+					RESULTS '= @"‚Ν‚β‚Δ‚Ώ‚α‚ρ"
+				CASE 51
+					;δ‰e‚©‚·‚έ (4‰ρ“oκI)
+					RESULTS '= @"‚©‚·‚έ‚Ώ‚α‚ρ"
+				CASE 53
+					;‰Τ‹u‚ά‚θ (50‰ρ“oκI)
+					RESULTS '= @"‚ά‚θ‚Ώ‚α‚ρ"
+				CASE 54
+					;‹vβ‚ ‚β‚ί (80‰ρ“oκI)
+					RESULTS '= @"‚ ‚β‚ί‚Ώ‚α‚ρ"
+				CASE 55
+					;Ι“΅‚³‚­‚η (5‰ρ“oκI)
+					RESULTS '= @"‚³‚­‚η‚Ώ‚α‚ρ"
+				CASE 60
+					;£μ‚©‚¦‚Ε (30‰ρ“oκI)
+					RESULTS '= @"‚©‚¦‚Ε‚Ώ‚α‚ρ"
+				CASE 66
+					;‘]ªƒZƒCƒ‰
+					RESULTS '= @"ƒZƒCƒ‰‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 62
-			;‚·‚Έ
+			;•X‚·‚Έ (3-B / y‰Ή•”ƒx[ƒX’S“–E•”’·)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"ƒLƒ~"
+				;--- y‰Ή•”’‡ΤEΕ—L¤Μiφ®έ’θ–Ύ‹Lj ---
 				CASE 9
+					;‰i‚ι‚© (136‰ρ“oκ)
 					RESULTS '= @"ƒ‹ƒJ"
 				CASE 20
+					;“΅’–‚µ‚Έ‚­ (φ®έ’θ)
 					RESULTS '= @"ƒVƒY"
 				CASE 66
-					RESULTS '= @"ƒZƒ‰"
+					;‘]ªƒZƒCƒ‰ (φ®έ’θ)
+					RESULTS '= @"ƒZƒC"
+				;--- ƒ{ƒN‚Μ“Vgi36‰ρ“oκIj ---
 				CASE 72
-					RESULTS '= @"ƒAƒ“ƒW["
+					;‚ ‚ρ‚Έ (uƒ{ƒN‚Μ“VgIƒAƒ“ƒW[‚¶‚α‚Θ‚­‚Δ‚ ‚ρ‚Έ‚Ώ‚α‚ρIv36‰ρ“oκI)
+					RESULTS '= @"‚ ‚ρ‚Έ‚Ώ‚α‚ρ"
+				;--- _χo–… ---
+CASE 69
+					;_χ‚Ν‚¶‚ί (_χ©d•΅‰ρ”π)
+					RESULTS '= @"‚Ν‚¶‚ί"
 			ENDSELECT
 		CASE 63
-			;‚Ώ‚Γ‚ι
+			;”ª‰_‚Ώ‚Γ‚ι (3-B / ”ό‰»ΟυE‡¥•”)
 			SELECTCASE AI
-				CASE 6
-					RESULTS '= @"—•”T‚³‚ρ"
-				CASE 24
-					RESULTS '= @"O”g‚³‚ρ"
-				CASE 62
-					RESULTS '= @"•X‚Ώ‚α‚ρ"
-				CASE 69
-					RESULTS '= @"_χ‚³‚ρ"
-			ENDSELECT
-		CASE 65
-			;‚»‚η
-			SELECTCASE AI
-				CASE 46
-					RESULTS '= @"‚έ‚Γ‚«‚Ώ‚α‚ρ"
-				CASE 47
-					RESULTS '= @"‚έ‚Θ‚Γ‚«‚Ώ‚α‚ρ"
-			ENDSELECT
-		CASE 66
-			;ƒZƒCƒ‰
-			SELECTCASE AI
-				CASE 9
-					RESULTS '= @"ƒ‹ƒJ‚Ώ‚α‚ρ"
-				CASE 14
-					RESULTS '= @"‰Τ‰Ή‚Ώ‚α‚ρ"
-				CASE 17
-					RESULTS '= @"‚ ‚Έ‚³‚Ώ‚α‚ρ"
-				CASE 20
-					RESULTS '= @"ƒVƒY‚Ώ‚α‚ρ"
-				CASE 24
-					RESULTS '= @"O”g‚³‚ρ"
-				CASE 25
-					RESULTS '= @"‚Β‚δ‚θ‚Ώ‚α‚ρ"
-				CASE 43
-					RESULTS '= @"‚έ‚Η‚θ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- Εd—v•Π‘z‚Άi151‰ρ“oκEu‰¤q—lvj ---
 				CASE 48
+					;l•ϋ‚έ‚Β‚ι (‰¤q—l)
 					RESULTS '= @"‚έ‚Β‚ι‚Ώ‚α‚ρ"
-				CASE 51
-					RESULTS '= @"‚©‚·‚έ‚Ώ‚α‚ρ"
+				;--- Εd—ve—FE«—Fi264‰ρ“oκIj ---
+				CASE 52
+					;Ξ“μ‚β‚± («—Fe—FI)
+					RESULTS '= @"‚β‚±‚Ώ‚α‚ρ"
+				;--- ‰‰€•”γ”yi175‰ρ“oκIj ---
+				CASE 36
+					;‰“©‚Ώ‚© (γ”yI)
+					RESULTS '= @"‚Ώ‚©‚Ώ‚α‚ρ"
+				;--- Δ‚ΡΜ‚Δ“―‹‰¶E¤Μ ---
+				CASE 57
+					;βΛƒTƒ“
+					RESULTS '= @"ƒTƒ“"
 				CASE 62
-					RESULTS '= @"ƒNƒ‚Ώ‚α‚ρ"
-				CASE 63
-					RESULTS '= @"‚Ώ‚Γ‚ι‚Ώ‚α‚ρ"
-				CASE 64
-					RESULTS '= @"‚µ‚¨‚ρ‚Ώ‚α‚ρ"
-				CASE 72
+					;•X‚·‚Έ
+					RESULTS '= @"•X‚Ώ‚α‚ρ"
+				CASE 66
+					;‘]ªƒZƒCƒ‰
+					RESULTS '= @"ƒZƒCƒ‰‚Ώ‚α‚ρ"
+				CASE 6
+					;—•”T‚ ‚Ά‚©
+					RESULTS '= @"—•”T‚³‚ρ"
+				CASE 12
+					;_χ‚Ά‚Ώ‚© (_χ©d•΅‰ρ”π)
+					RESULTS '= @"‚Ά‚Ώ‚©"
+CASE 72
+					;‚ ‚ρ‚Έ (27‰ρ“oκI)
 					RESULTS '= @"‚ ‚ρ‚Έ‚Ώ‚α‚ρ"
 			ENDSELECT
-		CASE 67
-			;‚ά‚µ‚λ
+		CASE 64
+			;•τR‚µ‚¨‚ρ (3-C / ‰Ψ“Ή‰Ζ³—ίμE}‘Ου)
 			SELECTCASE AI
-				CASE 14
-					RESULTS '= @"‚±‚Ζ‚θ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"­”N"
+				;--- •¶|•”γ”yE‘«’·‚¨‚¶‚³‚ργpÒ (46‰ρ“oκI) ---
+				CASE 6
+					;—•”T‚ ‚Ά‚© (“M¤‚·‚ιγ”y)
+					RESULTS '= @"‚ ‚Ά‚©‚­‚ρ"
+				;--- ‰‰€•”γ”y ---
+				CASE 8
+					;‹ΛR‚δ‚δ (•¶’Κγ”yE6‰ρ“oκ)
+					RESULTS '= @"‚δ‚δ‚­‚ρ"
+			ENDSELECT
+		CASE 65
+			;‘‚»‚η (3-C / ƒIƒJƒ‹ƒg¤‹†•”E“V•¶•”•”’·)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- e—FE‘o—to–… (‚Ώ‚α‚ρ•t‚―I) ---
+				CASE 46
+					;‘o—t‚έ‚Γ‚« (e—FE14‰ρ“oκ)
+					RESULTS '= @"‚έ‚Γ‚«‚Ώ‚α‚ρ"
+				CASE 47
+					;‘o—t‚έ‚Θ‚Γ‚« (e—FE37‰ρ“oκ)
+					RESULTS '= @"‚έ‚Θ‚Γ‚«‚Ώ‚α‚ρ"
+				;--- ƒIƒJƒ‹ƒg’”q ---
+				CASE 69
+					;_χ‚Ν‚¶‚ί (¶‚«_‚³‚άE26‰ρ“oκI)
+					RESULTS '= @"_χ‚³‚ρ"
+			ENDSELECT
+		CASE 66
+			;‘]ªƒZƒCƒ‰ (3-C / y‰Ή•”ƒMƒ^[ƒ{[ƒJƒ‹)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚Ώ‚α‚ρ"
+				;--- Ε¤‚Μe—F (151‰ρ“oκI) ---
+				CASE 62
+					;•X‚·‚Έ (Ε¤‚ΜƒNƒ‚Ώ‚α‚ρI)
+					RESULTS '= @"ƒNƒ‚Ώ‚α‚ρ"
+				;--- y‰Ή•”’‡Τ (ƒJƒ^ƒJƒi¤Μ) ---
+				CASE 9
+					;”σR‚ι‚© (y‰Ή•”E26‰ρ“oκ)
+					RESULTS '= @"ƒ‹ƒJ‚Ώ‚α‚ρ"
+				CASE 20
+					;“΅’–‚µ‚Έ‚­ (y‰Ή•”E20‰ρ“oκ)
+					RESULTS '= @"ƒVƒY‚Ώ‚α‚ρ"
+				;--- Ε—L¤Μ ---
+				CASE 35
+					;”~‰€‚©‚Θ (5‰ρ“oκ)
+					RESULTS '= @"”~‚Ώ‚α‚ρ"
+				CASE 3
+					;O‘P‚©‚Θ‚¦ (3‰ρ“oκ)
+					RESULTS '= @"‚έ‚ζ‚Ώ‚α‚ρ"
+			ENDSELECT
+		CASE 67
+			;“ϊ‘κ‚ά‚µ‚λ (3-C / ƒ`ƒAƒ[ƒfƒBƒ“ƒO•”•”’·E‰Θw•”)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- ƒ`ƒA•”•”υ (’c’·‚©‚η‚Μ’cυΔ‚ΡE³“|“II) ---
 				CASE 29
-					RESULTS '= @"‚Θ‚Θ‚Ώ‚α‚ρ"
+					;t•—‚Θ‚Θ (ƒ`ƒA•”‘–_E111‰ρ“oκI)
+					RESULTS '= @"t•—’cυ"
+				CASE 14
+					;‰Τ‰Ή‚±‚Ζ‚θ (ƒ`ƒA•”•”υE51‰ρ“oκI)
+					RESULTS '= @"‰Τ‰Ή’cυ"
+				;--- Ε—L‚Ώ‚α‚ρ•t‚― ---
 				CASE 37
+					;—΄ς›ƒƒ“ƒƒ“
 					RESULTS '= @"ƒƒ“ƒƒ“‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 68
-			;‚Σ‚έ
+			;[’Ή‚Σ‚έ (3-C / V•·•”•”’·)
 			SELECTCASE AI
-				CASE 40
-					RESULTS '= @"‚Ν‚β‚Δ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶"
+				;--- V•·•”Ε¤‚Μ‘–_ (Δ‚ΡΜ‚ΔE195‰ρ“oκI) ---
+				CASE 44
+					;ω‰θ‚Π‚ζ‚Μ (‘–_)
+					RESULTS '= @"‚Π‚ζ‚Μ"
+				;--- h¤‚·‚ι³•”’· (43‰ρ“oκI) ---
 				CASE 64
-					RESULTS '= @"‚µ‚¨‚ρ"
+					;•τR‚µ‚¨‚ρ (‚µ‚¨‚ρ•”’·)
+					RESULTS '= @"‚µ‚¨‚ρ•”’·"
+				;--- ³‹`‚Μ–΅•ϋ ---
+				CASE 40
+					;–ι–¶‚Ν‚β‚Δ (40‰ρ“oκ)
+					RESULTS '= @"‚Ν‚β‚Δ‚Ώ‚α‚ρ"
+				;--- ¶“k‰ο’· ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ
+					RESULTS '= @"¶“k‰ο’·"
 			ENDSELECT
 		CASE 69
-			;‚Ν‚¶‚ί
+			;_χ‚Ν‚¶‚ί (3-C / ‹|“Ή•”E”ό‰»Ου)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- ΐ–… (Δ‚ΡΜ‚ΔE233‰ρ“oκI) ---
 				CASE 12
+					;_χ‚Ά‚Ώ‚© (ΐ–…)
 					RESULTS '= @"‚Ά‚Ώ‚©"
+				;--- —c“ιυe—F (140‰ρ“oκI) ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (‚Π`‚Ώ‚α‚ρ)
+					RESULTS '= @"‚Π`‚Ώ‚α‚ρ"
 			ENDSELECT
 		CASE 70
-			;‚Ω‚Ζ‚θ
+			;_–³‚Ω‚Ζ‚θ (3-C / —¤γ•”E‘–‚’µE}‘Ου)
 			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- —¤γ•”e—F (217‰ρΘγ“oκI) ---
 				CASE 28
+					;―C‚±‚ζ‚Ά (‘–_)
 					RESULTS '= @"―‚Ώ‚α‚ρ"
+				;--- —c“ιυ (Δ‚ΡΜ‚ΔE110‰ρΘγ“oκI) ---
 				CASE 58
+					;“V‹{‚ι‚θ (Δ‚ΡΜ‚Δ)
 					RESULTS '= @"‚ι‚θ"
 			ENDSELECT
 		CASE 71
-			;‚Π‚Ρ‚«
+			;¥‚Π‚Ρ‚« (3-C / …‰j•”•”’·)
 			SELECTCASE AI
-				CASE 32
-					RESULTS '= @"ΐπ‚Ώ‚α‚ρ"
-				CASE 43
-					RESULTS '= @"»‰κ‚Ώ‚α‚ρ"
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"“]Z¶‚­‚ρ"
+				;--- …‰j•”‘–_ (128‰ρ“oκI) ---
+				CASE 22
+					;ιΝ‚Ά‚©‚θ (‘–_)
+					RESULTS '= @"‚µ‚α‚Α‚Ώ‚ρ"
+				;--- …‰j’‡Τ (94‰ρ“oκI) ---
+				CASE 59
+					;…›Έ‚¤‚µ‚¨ (‹ΰ‹›‚Ώ‚ρ)
+					RESULTS '= @"‹ΰ‹›‚Ώ‚ρ"
+				;--- h¤‚·‚ι“―‹‰¶•”’· (22‰ρ“oκI) ---
 				CASE 53
+					;‰Τ‹u‚ά‚θ (‚ά‚θ·‚³‚ρ)
 					RESULTS '= @"‚ά‚θ·‚³‚ρ"
+				;--- …‰juΐEΕ—L‚Ώ‚ρ•t‚― ---
+				CASE 18
+					;F‘ς‚Π‚ί‚Μ (13‰ρ“oκ)
+					RESULTS '= @"F‘ς‚Ώ‚ρ"
+				CASE 8
+					;‹ΛR‚δ‚δ (9‰ρ“oκ)
+					RESULTS '= @"ƒ_ƒjƒGƒ‹‚Ώ‚ρ"
+				CASE 49
+					;¬Ό‚Ϊ‚½‚ρ (8‰ρ“oκ)
+					RESULTS '= @"‚±‚ά‚Α‚Ώ‚ρ"
+				CASE 65
+					;‘‚»‚η (7‰ρ“oκ)
+					RESULTS '= @"‚Ζ‚Α‚«`"
+				CASE 7
+					;–Ψ”V‰Ί‚δ‚Μ (7‰ρ“oκ)
+					RESULTS '= @"–Ψ”V‰Ί‚Ώ‚ρ"
+				CASE 19
+					;”L’Λ‚έ‚― (4‰ρ“oκ)
+					RESULTS '= @"”L’Λ‚Ώ‚ρ"
+				CASE 45
+					;‰~ι›‚κ‚Ά‚© (4‰ρ“oκ)
+					RESULTS '= @"‚κ‚Ά‚©‚Ώ‚ρ"
+				;--- ‰ο’·‚Ώ‚α‚ρE‚¬‚ρ‚Ώ‚α‚ρ ---
+				CASE 61
+					;’ίC‚Π‚ά‚θ (5‰ρ“oκ)
+					RESULTS '= @"‰ο’·‚Ώ‚α‚ρ"
+				CASE 50
+					;R‚¬‚ρ (8‰ρ“oκ)
+					RESULTS '= @"‚¬‚ρ‚Ώ‚α‚ρ"
+			ENDSELECT
+		CASE 72
+			;‚ ‚ρ‚Έ (3-Cµ‚Ά / ’ƒ“Ή•”³•”’·E“]Z¶ƒvƒƒfƒ…[ƒT[)
+			SELECTCASE AI
+				;--- εlφ (“]Z¶) ---
+				CASE 0
+					RESULTS '= @"‚ ‚ρ‚½"
+				;--- —c“ιυ–…•ª (Δ‚ΡΜ‚Δ) ---
+				CASE 24
+					;O”g‚Θ‚Β‚έ (’ν‚Μ—c“ιυ)
+					RESULTS '= @"‚Θ‚Β‚έ"
+				;--- e—F“―‹‰¶ (Δ‚ΡΜ‚Δ) ---
+				CASE 52
+					;Ξ“μ‚β‚± (‘εe—F)
+					RESULTS '= @"‚β‚±"
+				CASE 62
+					;•X‚·‚Έ (“Vg‚Ζ‚µ‚Δ•η‚ν‚κ‚ι)
+					RESULTS '= @"‚·‚Έ"
+				CASE 63
+					;”ª‰_‚Ώ‚Γ‚ι (e—F)
+					RESULTS '= @"‚Ώ‚Γ‚ι"
+				CASE 36
+					;‰“©‚Ώ‚©
+					RESULTS '= @"‚Ώ‚©"
 			ENDSELECT
 	ENDSELECT
 	RETURN
+
+;============================================================
+; w”N”»’θΦ”  @GET_CHARA_GRADE, <ƒLƒƒƒ‰”Τ†>
+;   1: 1”N¶ / 2: 2”N¶ / 3: 3”N¶ (‚ ‚ρ‚Έ=72‚Ν3”Nµ‚Ά)
+;============================================================
+@GET_CHARA_GRADE, ARG
+#FUNCTION
+SELECTCASE ARG
+	; εlφ (ID 0: “]Z¶E2”N¶µ‚Ά)
+	CASE 0
+		RETURNF 2
+	; 1”N¶ (ID 1`23: 1-A/1-B/1-C v23–Ό)
+	CASE 1 TO 23
+		RETURNF 1
+	; 2”N¶ (ID 24`44: 2-A/2-B/2-C v21–Ό)
+	CASE 24 TO 44
+		RETURNF 2
+	; 3”N¶ (ID 45`71: 3-A/3-B/3-C v27–ΌA‚ ‚ρ‚Έ 72 [3”Nµ‚Ά])
+	CASE 45 TO 72
+		RETURNF 3
+	CASEELSE
+		RETURNF 0
+ENDSELECT

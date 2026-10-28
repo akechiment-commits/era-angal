@@ -14,6 +14,94 @@ TFLAG:29 = C + V + A + B + M
 ;主人による調教の経験値
 ;-------------------------------------------------
 @MASTER_FLAG_CHECK
+SIF TARGET < 0
+	RETURN 0
+;気絶中はターン経過しても好感度は上昇しない（非親密時は調教中の行為を累積し、調教終了時に一括低下）
+IF TFLAG:899 || BASE:TARGET:0 <= 0	; 【[気絶継続中] / TARGET:[体力]<=0】
+	; 非常に親密かどうかの判定
+	; 恋慕(85), 妄信(86), 親愛(88), 相愛(89), 恋人(153), 服従(180)のいずれかを所持、
+	; または [親密]Lv10以上 かつ [好感度]3000以上
+	LOCAL:80 = 0
+	SIF TALENT:TARGET:85 || TALENT:TARGET:86 || TALENT:TARGET:88 || TALENT:TARGET:89 || TALENT:TARGET:153 || TALENT:TARGET:180
+		LOCAL:80 = 1
+	SIF ABL:TARGET:0 >= 10 && CFLAG:TARGET:2 >= 3000
+		LOCAL:80 = 1
+
+	; 非常に親密な場合は好感度低下なし（既存仕様通り0変動）
+	IF LOCAL:80 == 1
+		R = 0
+		TFLAG:30 = 0
+		RETURN 0
+	ENDIF
+
+	; --- 非常に親密でない場合：意識のない相手への行為ペナルティを調教終了時用に累積 ---
+	LOCAL:81 = 0
+
+	; 「何もしない(SELECTCOM == 7)」はペナルティなし
+	IF SELECTCOM != 7
+		; 1. 基礎コマンドペナルティ
+		; 性交・道具・苦痛・排泄・羞恥・ハード系コマンドは重いペナルティ
+		IF IS_V_INSERT_COM(SELECTCOM) || IS_A_INSERT_COM(SELECTCOM) || (SELECTCOM >= 60 && SELECTCOM <= 79) || (SELECTCOM >= 40 && SELECTCOM <= 59) || (SELECTCOM >= 80 && SELECTCOM <= 89) || (SELECTCOM >= 140 && SELECTCOM <= 159) || (SELECTCOM >= 280 && SELECTCOM <= 284)
+			LOCAL:81 = 50 + RAND:21
+		ELSE
+			LOCAL:81 = 20 + RAND:11
+		ENDIF
+
+		; 素質補正
+		SIF TALENT:TARGET:30	; 貞操観念
+			TIMES LOCAL:81 , 1.50
+		SIF TALENT:TARGET:11	; 反抗的
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:15	; プライド高い
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:32	; 抑圧
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:34	; 抵抗
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:31	; 貞操無頓着
+			TIMES LOCAL:81 , 0.60
+		SIF TALENT:TARGET:22	; 感情乏しい
+			TIMES LOCAL:81 , 0.80
+		SIF TALENT:TARGET:76	; 淫乱
+			TIMES LOCAL:81 , 0.50
+
+		; 2. 処女喪失ペナルティ（大幅低下）
+		IF TFLAG:3 == 1
+			LOCAL:82 = 700 + RAND:201
+			SIF TALENT:TARGET:30	; 貞操観念
+				LOCAL:82 += 400
+			SIF TALENT:TARGET:31	; 貞操無頓着
+				LOCAL:82 = LOCAL:82 * 6 / 10
+			LOCAL:81 += LOCAL:82
+			TFLAG:896 = 1	; 気絶調教中処女喪失を記録
+		ENDIF
+
+		; 3. 膣内射精ペナルティ（追加低下）
+		IF TFLAG:302 > 0 && (TFLAG:703 == 1 || TFLAG:703 == 9 || (TFLAG:703 == 12 && TFLAG:(40 + ASSIPLAY) == 1))
+			LOCAL:83 = 350 + RAND:151
+			SIF TALENT:TARGET:30	; 貞操観念
+				LOCAL:83 += 200
+			SIF TALENT:TARGET:31	; 貞操無頓着
+				LOCAL:83 = LOCAL:83 * 7 / 10
+			LOCAL:81 += LOCAL:83
+			TFLAG:897 += 1	; 気絶調教中膣内射精回数を記録
+		; アナル射精ペナルティ
+		ELSEIF TFLAG:302 > 0 && (TFLAG:703 == 2 || TFLAG:703 == 10 || (TFLAG:703 == 12 && TFLAG:(40 + ASSIPLAY) == 2))
+			LOCAL:83 = 250 + RAND:101
+			SIF TALENT:TARGET:30	; 貞操観念
+				LOCAL:83 += 150
+			LOCAL:81 += LOCAL:83
+		ENDIF
+
+		; 調教中のターン内では表示・減算せず、TFLAG:895へ累積して調教終了時に一括減算
+		TFLAG:895 += LOCAL:81
+	ENDIF
+
+	R = 0
+	TFLAG:30 = 0
+	RETURN 0
+ENDIF
+
 ;絶頂
 TFLAG:29 += TFLAG:10 + TFLAG:11
 Q = 0
@@ -27,32 +115,32 @@ SIF NOWEX:3 > 0
 	Q += 1
 SIF NOWEX:6 > 0
 	Q += 1
-SIF TFLAG:10 > 0
+SIF TFLAG:10 > 0	; 【[対象射精]>0】
 	Q += 1
-SIF TFLAG:11 > 0
+SIF TFLAG:11 > 0	; 【[噴乳]>0】
 	Q += 1
 TFLAG:30 += TFLAG:29 * Q
 
 ;射精
 REPEAT 5
-	SIF TFLAG:COUNT > 0 && EXP:20 >= EXPLV:3
+	SIF TFLAG:COUNT > 0 && EXP:20 >= EXPLV:3	; 【[精液経験]>=EXPLV:3】
 		TFLAG:30 += TFLAG:COUNT
 REND
-SIF TFLAG:9 > 0 && EXP:20 >= EXPLV:3
+SIF TFLAG:9 > 0 && EXP:20 >= EXPLV:3	; 【[精液経験]>=EXPLV:3 / [素股で射精]>0】
 	TFLAG:30 += TFLAG:9
 
 ;主人と対象の能力を計算
-IF ASSIPLAY == 0 && TEQUIP:90 == 0
+IF ASSIPLAY == 0 && TEQUIP:90 == 0	; 【無[触手プレイ] / 調教者:[主人]】
 	;ABL:従順をみる
-	IF ABL:0 == 0
+	IF ABL:0 == 0	; 【[親密]Lv==0】
 		R = 0
-	ELSEIF ABL:0 <= 3
+	ELSEIF ABL:0 <= 3	; 【[親密]Lv<=3】
 		R = 1
-	ELSEIF ABL:0 <= 7
+	ELSEIF ABL:0 <= 7	; 【[親密]Lv<=7】
 		R = 2
-	ELSEIF ABL:0 <= 10
+	ELSEIF ABL:0 <= 10	; 【[親密]Lv<=10】
 		R = 3
-	ELSEIF ABL:0 <= 15
+	ELSEIF ABL:0 <= 15	; 【[親密]Lv<=15】
 		R = 4
 	ELSE
 		R = 5
@@ -60,46 +148,46 @@ IF ASSIPLAY == 0 && TEQUIP:90 == 0
 
 	;素質による増減
 	;反抗的
-	SIF TALENT:11
+	SIF TALENT:11	; 【[反抗的]】
 		R -= 1
 	;素直
-	SIF TALENT:13
+	SIF TALENT:13	; 【[素直]】
 		R += 1
 	;自制心
-	SIF TALENT:20
+	SIF TALENT:20	; 【[自制心]】
 		R -= 1
 	;無関心
-	SIF TALENT:21
+	SIF TALENT:21	; 【[無関心]】
 		R -= 1
 	;感情乏しい
-	SIF TALENT:22
+	SIF TALENT:22	; 【[感情乏しい]】
 		R -= 1
 	;抵抗
-	SIF TALENT:34
+	SIF TALENT:34	; 【[抵抗]】
 		R -= 1
 	;献身的
-	SIF TALENT:63
+	SIF TALENT:63	; 【[献身的]】
 		R += 1
 	;快感に素直
-	SIF TALENT:70
+	SIF TALENT:70	; 【[快感に素直]】
 		R += 1
 	;快感の否定
-	SIF TALENT:71
+	SIF TALENT:71	; 【[快感の否定]】
 		R -= 1
 	;男嫌い
-	SIF TALENT:82 && TALENT:MASTER:122
+	SIF TALENT:82 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		R -= 1
 	;恋慕
-	SIF TALENT:85
+	SIF TALENT:85	; 【[恋慕]】
 		R += 2
 	;親愛
-	SIF TALENT:88
+	SIF TALENT:88	; 【[親愛]】
 		R += 3
 	;恋人
-	SIF TALENT:153
+	SIF TALENT:153	; 【[恋人]】
 		R += 2
 	;服従
-	SIF TALENT:180
+	SIF TALENT:180	; 【[服従]】
 		R += 2
 	;烙印
 	SIF TALENT:181
@@ -108,19 +196,19 @@ IF ASSIPLAY == 0 && TEQUIP:90 == 0
 	SIF TALENT:182
 		R += 3
 	;妄信
-	SIF TALENT:86
+	SIF TALENT:86	; 【[妄信]】
 		R += 2
 	;主人の魅惑
-	SIF TALENT:MASTER:91
+	SIF TALENT:MASTER:91	; 【MASTER:[魅惑]】
 		R += 1
 	;主人の謎の魅力
-	SIF TALENT:MASTER:92
+	SIF TALENT:MASTER:92	; 【MASTER:[謎の魅力]】
 		R += 1
 	;主人の魅力
-	SIF TALENT:MASTER:113
+	SIF TALENT:MASTER:113	; 【MASTER:[魅力]】
 		R += 1
 	;主人の人気
-	SIF TALENT:MASTER:126
+	SIF TALENT:MASTER:126	; 【MASTER:[人気]】
 		R += 1
 	;幼稚
 	;SIF TALENT:132
@@ -133,7 +221,7 @@ IF ASSIPLAY == 0 && TEQUIP:90 == 0
 	SIF R >= 10
 		R = 10
 
-	IF TFLAG:18 < 0
+	IF TFLAG:18 < 0	; 【[好感触]<0】
 		;コマンドに失敗している場合、TFLAG:30をそのまま使う
 		R = TFLAG:30
 	ELSE
@@ -141,13 +229,13 @@ IF ASSIPLAY == 0 && TEQUIP:90 == 0
 	ENDIF
 
 	;好感度補正
-	IF CFLAG:2 <= 50
+	IF CFLAG:2 <= 50	; 【[好感度]<=50】
 		R += 0
-	ELSEIF CFLAG:2 <= 250
+	ELSEIF CFLAG:2 <= 250	; 【[好感度]<=250】
 		R += 1
-	ELSEIF CFLAG:2 <= 800
+	ELSEIF CFLAG:2 <= 800	; 【[好感度]<=800】
 		R += 2
-	ELSEIF CFLAG:2 <= 3000
+	ELSEIF CFLAG:2 <= 3000	; 【[好感度]<=3000】
 		R += 3
 	ELSE
 		R += 5
@@ -161,11 +249,11 @@ IF ASSIPLAY == 0 && TEQUIP:90 == 0
 	ENDIF
 
 	;パートナー補正
-	SIF TALENT:150
+	SIF TALENT:150	; 【[パートナー]】
 		TIMES R , 1.20
 
 	;あなた様補正
-	SIF TALENT:201
+	SIF TALENT:201	; 【[特別な支配者]】
 		TIMES R , 0.20
 
 	;特殊能力(好感度ボーナス)補正
@@ -174,7 +262,7 @@ IF ASSIPLAY == 0 && TEQUIP:90 == 0
 	ENDIF
 
 	;「何もしない」は好感度上昇量が一律で+0～3 (見つめあう　はこれの影響を受けない）
-	IF SELECTCOM == 7
+	IF SELECTCOM == 7	; 【コマンド:[何もしない]】
 		R = RAND:4
 	ENDIF
 
@@ -191,8 +279,8 @@ TFLAG:30 = 0
 ;-------------------------------------------------
 @MASTER_SKILL_CHECK
 ;主人による調教経験
-IF ASSIPLAY == 0
-	IF CFLAG:2 >= 500
+IF ASSIPLAY == 0	; 【調教者:[主人]】
+	IF CFLAG:2 >= 500	; 【[好感度]>=500】
 		TIMES SOURCE:8 , 0.70
 		TIMES SOURCE:14 , 0.70
 
@@ -203,7 +291,7 @@ IF ASSIPLAY == 0
 		TIMES SOURCE:17 , 1.20
 		TIMES SOURCE:18 , 1.40
 		TIMES SOURCE:24 , 1.20
-	ELSEIF CFLAG:2 >= 300
+	ELSEIF CFLAG:2 >= 300	; 【[好感度]>=300】
 		TIMES SOURCE:8 , 0.80
 		TIMES SOURCE:14 , 0.80
 
@@ -214,7 +302,7 @@ IF ASSIPLAY == 0
 		TIMES SOURCE:17 , 1.10
 		TIMES SOURCE:18 , 1.20
 		TIMES SOURCE:24 , 1.10
-	ELSEIF CFLAG:2 >= 100
+	ELSEIF CFLAG:2 >= 100	; 【[好感度]>=100】
 		TIMES SOURCE:8 , 0.90
 		TIMES SOURCE:14 , 0.90
 
@@ -224,7 +312,7 @@ ENDIF
 
 ;淫乱
 ;主人経験との重複前提で計算
-IF TALENT:76 && ASSIPLAY == 0
+IF TALENT:76 && ASSIPLAY == 0	; 【[淫乱] / 調教者:[主人]】
 	TIMES SOURCE:0 , 1.80
 	TIMES SOURCE:1 , 1.80
 	TIMES SOURCE:2 , 1.80
@@ -234,7 +322,7 @@ ENDIF
 
 ;恋慕
 ;主人経験との重複前提で計算
-IF TALENT:85 && ASSIPLAY == 0
+IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
 	TIMES SOURCE:0 , 1.30
 	TIMES SOURCE:1 , 1.30
 	TIMES SOURCE:2 , 1.30
@@ -242,17 +330,17 @@ IF TALENT:85 && ASSIPLAY == 0
 	TIMES SOURCE:17 , 1.30
 	TIMES SOURCE:18 , 1.50
 	TIMES SOURCE:24 , 1.30
-	IF TALENT:0 && TFLAG:20
+	IF TALENT:0 && TFLAG:20	; 【[処女] / [恋愛処女喪失]】
 		L = 0
 		R = NO:PLAYER
 		SIF (RELATION:R == 0 || RELATION:R >= 100) && SOURCE:6 < 2000 && SOURCE:15 <= 3000
 			L += 1
-		SIF TEQUIP:11 == 0 && TEQUIP:13 == 0 && TEQUIP:14 == 0 && TEQUIP:15 == 0 && TEQUIP:16 == 0
+		SIF TEQUIP:11 == 0 && TEQUIP:13 == 0 && TEQUIP:14 == 0 && TEQUIP:15 == 0 && TEQUIP:16 == 0	; 【無[バイブ] / 無[アナルバイブ] / 無[クリキャップ] / 無[クリップローター] / 無[搾乳機]】
 			L += 1
-		SIF TEQUIP:43 == 0 && TEQUIP:44 == 0 && TEQUIP:45 == 0 && TEQUIP:46 == 0 && TEQUIP:53 == 0 && TEQUIP:54 == 0 && TEQUIP:90 == 0
+		SIF TEQUIP:43 == 0 && TEQUIP:44 == 0 && TEQUIP:45 == 0 && TEQUIP:46 == 0 && TEQUIP:53 == 0 && TEQUIP:54 == 0 && TEQUIP:90 == 0	; 【無[アイマスク] / 無[縄で緊縛] / 無[ボールギャグ] / 無[普通の浣腸] / 無[撮影中] / 無[野外プレイ中] / 無[触手プレイ]】
 			L += 1
 		;親愛時と同じ条件チェックなので表示するのは親愛の方のみ
-		IF L == 3 && FLAG:6 && TALENT:88 == 0
+		IF L == 3 && FLAG:6 && TALENT:88 == 0	; 【[親愛]なし】
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に処女を捧げられた事に幸福を感じているようだ…
 			TFLAG:150 = 1
 		ENDIF
@@ -264,7 +352,7 @@ ENDIF
 
 ;親愛
 ;主人経験との重複前提で計算
-IF TALENT:88 && ASSIPLAY == 0
+IF TALENT:88 && ASSIPLAY == 0	; 【[親愛] / 調教者:[主人]】
 	TIMES SOURCE:0 , 1.50
 	TIMES SOURCE:1 , 1.50
 	TIMES SOURCE:2 , 1.50
@@ -275,14 +363,14 @@ IF TALENT:88 && ASSIPLAY == 0
 	TIMES SOURCE:17 , 1.50
 	TIMES SOURCE:18 , 2.00
 	TIMES SOURCE:24 , 1.50
-	IF TALENT:0 && TFLAG:20
+	IF TALENT:0 && TFLAG:20	; 【[処女] / [恋愛処女喪失]】
 		L = 0
 		R = NO:PLAYER
 		SIF (RELATION:R == 0 || RELATION:R >= 100) && SOURCE:6 < 2000 && SOURCE:15 <= 3000
 			L += 1
-		SIF TEQUIP:11 == 0 && TEQUIP:13 == 0 && TEQUIP:14 == 0 && TEQUIP:15 == 0 && TEQUIP:16 == 0
+		SIF TEQUIP:11 == 0 && TEQUIP:13 == 0 && TEQUIP:14 == 0 && TEQUIP:15 == 0 && TEQUIP:16 == 0	; 【無[バイブ] / 無[アナルバイブ] / 無[クリキャップ] / 無[クリップローター] / 無[搾乳機]】
 			L += 1
-		SIF TEQUIP:43 == 0 && TEQUIP:44 == 0 && TEQUIP:45 == 0 && TEQUIP:46 == 0 && TEQUIP:53 == 0 && TEQUIP:54 == 0 && TEQUIP:90 == 0
+		SIF TEQUIP:43 == 0 && TEQUIP:44 == 0 && TEQUIP:45 == 0 && TEQUIP:46 == 0 && TEQUIP:53 == 0 && TEQUIP:54 == 0 && TEQUIP:90 == 0	; 【無[アイマスク] / 無[縄で緊縛] / 無[ボールギャグ] / 無[普通の浣腸] / 無[撮影中] / 無[野外プレイ中] / 無[触手プレイ]】
 			L += 1
 		IF L == 3 && FLAG:6
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%が初めての相手である事にこの上ない幸せを感じているようだ…
@@ -309,7 +397,7 @@ CALL EVENTCHECK_TALENT_CHANGE
 ;従順10以上、好感度が3000以上で恋慕
 ;欲望10以上、異常経験100以上で淫乱、ただし、初期状態から最低でも10以上増えていないとダメ(好感度は必要なし)
 IF TARGET >= 0
-	IF  ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && TALENT:TARGET:88 == 0
+	IF  ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && TALENT:TARGET:88 == 0	; 【[恋人] / [恋慕] / TARGET:[親愛]なし / [親密]Lv>=15 / [奉仕精神]Lv>=15 / [好感度]>=10000】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目が変わった…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に心からの愛情を感じているようだ…
 			TFLAG:13 = 35
@@ -317,9 +405,9 @@ IF TARGET >= 0
 			PRINTFORMW %NAME:TARGET%は【親愛】を得た
 			TALENT:88 = 1
 	ENDIF
-	IF ABL:0 >= 10 && CFLAG:2 >= 3000 && TALENT:85 == 0
+	IF ABL:0 >= 10 && CFLAG:2 >= 3000 && TALENT:85 == 0	; 【[恋慕]なし / [親密]Lv>=10 / [好感度]>=3000】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		IF TALENT:153
+		IF TALENT:153	; 【[恋人]】
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%への恋心をついに自覚したようだ…
 		ELSE
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%へと恋焦がれるようになった…
@@ -331,7 +419,7 @@ IF TARGET >= 0
 		;堕とした人数＋１
 		FLAG:30 += 1
 	ENDIF
-	IF ABL:1 >= 10 && EXP:50 >= 100 && (EXP:50 - CFLAG:22) >= 10 && TALENT:76 == 0
+	IF ABL:1 >= 10 && EXP:50 >= 100 && (EXP:50 - CFLAG:22) >= 10 && TALENT:76 == 0	; 【[淫乱]なし / [欲望]Lv>=10 / [異常経験]>=100 / [異常経験]あり / [初期異常経験]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に与えられる快楽に溺れているようだ…
 		TFLAG:13 = 34
@@ -342,14 +430,14 @@ IF TARGET >= 0
 	ENDIF
 ENDIF
 ;堕とした人数が5人以上で、謎の魅力が付く
-IF FLAG:30 >= 5 && TALENT:MASTER:92 == 0
+IF FLAG:30 >= 5 && TALENT:MASTER:92 == 0	; 【MASTER:[謎の魅力]なし】
 	PRINTFORMW %NAME:MASTER%は【謎の魅力】を身につけた
 	TALENT:MASTER:92 = 1
 ENDIF
 
 IF TARGET >= 0
 	;被写経験が20以上で、人気が付く
-	IF EXP:92 >= 20 && TALENT:TARGET:126 == 0
+	IF EXP:92 >= 20 && TALENT:TARGET:126 == 0	; 【TARGET:[人気]なし / [被写経験]>=20】
 		PRINTFORMW %CALLNAME:TARGET%のビデオが人気を博しているようだ…
 		TFLAG:13 = 39
 		CALL SELF_KOJO
@@ -358,7 +446,7 @@ IF TARGET >= 0
 	ENDIF
 
 	;ほろ酔い値（TFLAG:47）が180以上で、酒豪が付く
-	IF TALENT:217 == 0 && TFLAG:47 >= 180
+	IF TALENT:217 == 0 && TFLAG:47 >= 180	; 【[酒豪]なし / [酩酊度]>=180】
 		PRINTFORMW %CALLNAME:TARGET%は学院の中でもトップクラスのお酒飲みとして評判になったようだ…
 		TFLAG:13 = 78
 		CALL SELF_KOJO
@@ -368,7 +456,7 @@ IF TARGET >= 0
 
 	;感覚敏感化（C/V/A/B）―― 感覚10以上・対応経験300以上・最中絶頂50回以上で鈍感→敏感に変化
 	;C敏感（自慰経験代用）
-	IF TALENT:102 == 0 && ABL:3 >= 10 && EXP:10 >= 300 && EX:0 >= 50
+	IF TALENT:102 == 0 && ABL:3 >= 10 && EXP:10 >= 300 && EX:0 >= 50	; 【[Ｃ敏感]なし / [Ｃ感覚]Lv>=10 / [自慰経験]>=300】
 		PRINTFORMW %CALLNAME:TARGET%のＣへの反応がずいぶん変わってきた…
 		TFLAG:13 = 80
 		CALL SELF_KOJO
@@ -377,7 +465,7 @@ IF TARGET >= 0
 		TALENT:102 = 1
 	ENDIF
 	;V敏感
-	IF TALENT:104 == 0 && ABL:4 >= 10 && EXP:0 >= 300 && EX:1 >= 50
+	IF TALENT:104 == 0 && ABL:4 >= 10 && EXP:0 >= 300 && EX:1 >= 50	; 【[Ｖ敏感]なし / [Ｖ感覚]Lv>=10 / [Ｖ経験]>=300】
 		PRINTFORMW %CALLNAME:TARGET%のＶへの反応がずいぶん変わってきた…
 		TFLAG:13 = 81
 		CALL SELF_KOJO
@@ -386,7 +474,7 @@ IF TARGET >= 0
 		TALENT:104 = 1
 	ENDIF
 	;A敏感
-	IF TALENT:106 == 0 && ABL:5 >= 10 && EXP:1 >= 300 && EX:2 >= 50
+	IF TALENT:106 == 0 && ABL:5 >= 10 && EXP:1 >= 300 && EX:2 >= 50	; 【[Ａ敏感]なし / [Ａ感覚]Lv>=10 / [Ａ経験]>=300】
 		PRINTFORMW %CALLNAME:TARGET%のＡへの反応がずいぶん変わってきた…
 		TFLAG:13 = 82
 		CALL SELF_KOJO
@@ -395,7 +483,7 @@ IF TARGET >= 0
 		TALENT:106 = 1
 	ENDIF
 	;B敏感（自慰経験代用）
-	IF TALENT:108 == 0 && ABL:14 >= 10 && EXP:10 >= 300 && EX:3 >= 50
+	IF TALENT:108 == 0 && ABL:14 >= 10 && EXP:10 >= 300 && EX:3 >= 50	; 【[Ｂ敏感]なし / [Ｂ感覚]Lv>=10 / [自慰経験]>=300】
 		PRINTFORMW %CALLNAME:TARGET%のＢへの反応がずいぶん変わってきた…
 		TFLAG:13 = 84
 		CALL SELF_KOJO
@@ -405,7 +493,7 @@ IF TARGET >= 0
 	ENDIF
 
 	;自慰しやすい：自慰中毒11以上、一回の調教で自慰経験+50以上
-	IF TALENT:60 == 0 && ABL:10 >= 11 && (EXP:10 - TFLAG:55) >= 50
+	IF TALENT:60 == 0 && ABL:10 >= 11 && (EXP:10 - TFLAG:55) >= 50	; 【[自慰しやすい]なし / [自慰中毒]Lv>=11 / [自慰経験]あり】
 		PRINTFORMW %CALLNAME:TARGET%はある調教の後、自慰への衝動が抑えられなくなってきたようだ…
 		TFLAG:13 = 85
 		CALL SELF_KOJO
@@ -413,7 +501,7 @@ IF TARGET >= 0
 		TALENT:60 = 1
 	ENDIF
 	;両刀：レズ中毒11以上、一回の調教でレズ経験+200以上
-	IF TALENT:81 == 0 && ABL:12 >= 11 && (EXP:40 - TFLAG:56) >= 200
+	IF TALENT:81 == 0 && ABL:12 >= 11 && (EXP:40 - TFLAG:56) >= 200	; 【[両刀]なし / [レズ中毒]Lv>=11 / [レズ経験]あり】
 		PRINTFORMW %CALLNAME:TARGET%はある調教の後、同性への欲求も芽生えてきたようだ…
 		TFLAG:13 = 86
 		CALL SELF_KOJO
@@ -448,9 +536,9 @@ SIF TARGET < 0
 SIF (FLAG:62 & 2048) == 0
 	RETURN 0
 
-IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
-	IF (ABL:0 >= 7 || CFLAG:2 >= 2000)
-		IF TALENT:32 == 1
+IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)	; 【[異常経験]あり / [初期異常経験]】
+	IF (ABL:0 >= 7 || CFLAG:2 >= 2000)	; 【[親密]Lv>=7 / [好感度]>=2000】
+		IF TALENT:32 == 1	; 【[抑圧]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に少しずつ心を開き始めたようだ…
 			TFLAG:13 = 41
@@ -458,7 +546,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【抑圧】が昇華した
 			TALENT:32 = 2
 		ENDIF
-		IF TALENT:34 == 1
+		IF TALENT:34 == 1	; 【[抵抗]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%のことを少しずつ認め始めたようだ…
 			TFLAG:13 = 40
@@ -466,7 +554,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【抵抗】が昇華した
 			TALENT:34 = 2
 		ENDIF
-		IF TALENT:12 == 1
+		IF TALENT:12 == 1	; 【[気丈]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前でだけ、気丈な鎧を脱ぎ始めたようだ…
 			TFLAG:13 = 51
@@ -475,8 +563,8 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			TALENT:12 = 2
 		ENDIF
 	ENDIF
-	IF ABL:0 >= 10 && CFLAG:2 >= 3000
-		IF TALENT:11 == 1
+	IF ABL:0 >= 10 && CFLAG:2 >= 3000	; 【[親密]Lv>=10 / [好感度]>=3000】
+		IF TALENT:11 == 1	; 【[反抗的]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%との行為を受け入れ始めたようだ…
 			TFLAG:13 = 43
@@ -484,7 +572,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【反抗的】が昇華した
 			TALENT:11 = 2
 		ENDIF
-		IF TALENT:16 == 1
+		IF TALENT:16 == 1	; 【[生意気]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の言葉に大人しく頷いている…
 			TFLAG:13 = 44
@@ -492,7 +580,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【生意気】が昇華した
 			TALENT:16 = 2
 		ENDIF
-		IF TALENT:21 == 1
+		IF TALENT:21 == 1	; 【[無関心]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%へ微かに微笑んでいる…
 			TFLAG:13 = 42
@@ -500,7 +588,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【無関心】が昇華した
 			TALENT:21 = 2
 		ENDIF
-		IF TALENT:15 == 1
+		IF TALENT:15 == 1	; 【[プライド高い]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前では、プライドより素直な気持ちが先に立つようになったようだ…
 			TFLAG:13 = 52
@@ -508,7 +596,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【プライド高い】が昇華した
 			TALENT:15 = 2
 		ENDIF
-		IF TALENT:22 == 1
+		IF TALENT:22 == 1	; 【[感情乏しい]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%と過ごすうちに、少しずつ表情が豊かになってきたようだ…
 			TFLAG:13 = 54
@@ -516,7 +604,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【感情乏しい】が昇華した
 			TALENT:22 = 2
 		ENDIF
-		IF TALENT:24 == 1
+		IF TALENT:24 == 1	; 【[保守的]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%と過ごすうちに、新しいことへの壁が低くなってきたようだ…
 			TFLAG:13 = 55
@@ -524,7 +612,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【保守的】が昇華した
 			TALENT:24 = 2
 		ENDIF
-		IF TALENT:87 == 1
+		IF TALENT:87 == 1	; 【[小悪魔]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前では、もう小細工など必要ないと思うようになったようだ…
 			TFLAG:13 = 58
@@ -533,8 +621,8 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			TALENT:87 = 2
 		ENDIF
 	ENDIF
-	IF ABL:2 >= 10 && EXP:21 >= 500
-		IF TALENT:51 == 1
+	IF ABL:2 >= 10 && EXP:21 >= 500	; 【[技巧]Lv>=10 / [奉仕快楽経験]>=500】
+		IF TALENT:51 == 1	; 【[習得遅い]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%との経験を重ねるうちに、体が覚え方を掴んできたようだ…
 			TFLAG:13 = 56
@@ -543,8 +631,8 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			TALENT:51 = 2
 		ENDIF
 	ENDIF
-	IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000
-		IF TALENT:82 == 1 && TALENT:MASTER:122
+	IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000	; 【[恋人] / [恋慕] / [親密]Lv>=15 / [奉仕精神]Lv>=15 / [好感度]>=10000】
+		IF TALENT:82 == 1 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に対する苦手意識が薄れたようだ…
 			TFLAG:13 = 18
@@ -552,7 +640,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【男嫌い】が昇華した
 			TALENT:82 = 2
 		ENDIF
-		IF TALENT:27 == 1
+		IF TALENT:27 == 1	; 【[一線越えない]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の気持ちを受け入れたようだ…
 			TFLAG:13 = 46
@@ -560,7 +648,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【一線越えない】が昇華した
 			TALENT:27 = 2
 		ENDIF
-		IF TALENT:71 == 1
+		IF TALENT:71 == 1	; 【[快感の否定]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に与えられる快楽を受け入れたようだ…
 			TFLAG:13 = 45
@@ -568,7 +656,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【快感の否定】が昇華した
 			TALENT:71 = 2
 		ENDIF
-		IF TALENT:20 == 1
+		IF TALENT:20 == 1	; 【[自制心]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前でだけ、自制の鎧を脱いで身を委ねるようになったようだ…
 			TFLAG:13 = 53
@@ -576,7 +664,7 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【自制心】が昇華した
 			TALENT:20 = 2
 		ENDIF
-		IF TALENT:83 == 1
+		IF TALENT:83 == 1	; 【[サド]】
 			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前では、支配する喜びより与える喜びを感じるようになったようだ…
 			TFLAG:13 = 57
@@ -584,14 +672,15 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)
 			PRINTFORMW %NAME:TARGET%は【サド】が昇華した
 			TALENT:83 = 2
 		ENDIF
-		IF TALENT:13 == 0
-			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
-			TFLAG:13 = 47
-			CALL SELF_KOJO
-			PRINTFORMW %NAME:TARGET%は【素直】を得た
-			TALENT:13 = 1
-		ENDIF
+		; 素直の一律自動取得は停止
+		;IF TALENT:13 == 0	; 【[素直]なし】
+		;	PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
+		;	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
+		;	TFLAG:13 = 47
+		;	CALL SELF_KOJO
+		;	PRINTFORMW %NAME:TARGET%は【素直】を得た
+		;	TALENT:13 = 1
+		;ENDIF
 	ENDIF
 ENDIF
 
@@ -607,12 +696,12 @@ SIF TARGET < 0
 SIF (FLAG:62 & 8388608) == 0
 	RETURN 0
 ;反発感情あったらRETURN
-SIF MARK:3
+SIF MARK:3	; 【[反発感情]】
 	RETURN 0
 
 ;親密7以上または好感度2000以上
-IF (ABL:0 >= 7 || CFLAG:2 >= 2000)
-	IF TALENT:32 == 1
+IF (ABL:0 >= 7 || CFLAG:2 >= 2000)	; 【[親密]Lv>=7 / [好感度]>=2000】
+	IF TALENT:32 == 1	; 【[抑圧]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に少しずつ心を開き始めたようだ…
 		TFLAG:13 = 41
@@ -620,7 +709,7 @@ IF (ABL:0 >= 7 || CFLAG:2 >= 2000)
 		PRINTFORMW %NAME:TARGET%は【抑圧】が昇華した
 		TALENT:32 = 2
 	ENDIF
-	IF TALENT:34 == 1
+	IF TALENT:34 == 1	; 【[抵抗]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%のことを少しずつ認め始めたようだ…
 		TFLAG:13 = 40
@@ -628,7 +717,7 @@ IF (ABL:0 >= 7 || CFLAG:2 >= 2000)
 		PRINTFORMW %NAME:TARGET%は【抵抗】が昇華した
 		TALENT:34 = 2
 	ENDIF
-	IF TALENT:12 == 1
+	IF TALENT:12 == 1	; 【[気丈]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前でだけ、気丈な鎧を脱ぎ始めたようだ…
 		TFLAG:13 = 51
@@ -638,8 +727,8 @@ IF (ABL:0 >= 7 || CFLAG:2 >= 2000)
 	ENDIF
 ENDIF
 ;親密10以上、奉仕精神6以上、好感度3000以上または恋慕あり、かつ愛情経験50以上
-IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
-	IF TALENT:11 == 1
+IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50	; 【[恋慕] / [親密]Lv>=10 / [奉仕精神]Lv>=6 / [愛情経験]>=50 / [好感度]>=3000】
+	IF TALENT:11 == 1	; 【[反抗的]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%との行為を受け入れ始めたようだ…
 		TFLAG:13 = 43
@@ -647,7 +736,7 @@ IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
 		PRINTFORMW %NAME:TARGET%は【反抗的】が昇華した
 		TALENT:11 = 2
 	ENDIF
-	IF TALENT:16 == 1
+	IF TALENT:16 == 1	; 【[生意気]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の言葉に大人しく頷いている…
 		TFLAG:13 = 44
@@ -655,7 +744,7 @@ IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
 		PRINTFORMW %NAME:TARGET%は【生意気】が昇華した
 		TALENT:16 = 2
 	ENDIF
-	IF TALENT:21 == 1
+	IF TALENT:21 == 1	; 【[無関心]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%へ微かに微笑んでいる…
 		TFLAG:13 = 42
@@ -663,7 +752,7 @@ IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
 		PRINTFORMW %NAME:TARGET%は【無関心】が昇華した
 		TALENT:21 = 2
 	ENDIF
-	IF TALENT:15 == 1
+	IF TALENT:15 == 1	; 【[プライド高い]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前では、プライドより素直な気持ちが先に立つようになったようだ…
 		TFLAG:13 = 52
@@ -671,7 +760,7 @@ IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
 		PRINTFORMW %NAME:TARGET%は【プライド高い】が昇華した
 		TALENT:15 = 2
 	ENDIF
-	IF TALENT:22 == 1
+	IF TALENT:22 == 1	; 【[感情乏しい]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%と過ごすうちに、少しずつ表情が豊かになってきたようだ…
 		TFLAG:13 = 54
@@ -679,7 +768,7 @@ IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
 		PRINTFORMW %NAME:TARGET%は【感情乏しい】が昇華した
 		TALENT:22 = 2
 	ENDIF
-	IF TALENT:24 == 1
+	IF TALENT:24 == 1	; 【[保守的]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%と過ごすうちに、新しいことへの壁が低くなってきたようだ…
 		TFLAG:13 = 55
@@ -687,7 +776,7 @@ IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
 		PRINTFORMW %NAME:TARGET%は【保守的】が昇華した
 		TALENT:24 = 2
 	ENDIF
-	IF TALENT:87 == 1
+	IF TALENT:87 == 1	; 【[小悪魔]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前では、もう小細工など必要ないと思うようになったようだ…
 		TFLAG:13 = 58
@@ -696,8 +785,8 @@ IF ((ABL:0 >= 10 && ABL:6 >= 6 && CFLAG:2 >= 3000) || TALENT:85) && EXP:23 >= 50
 		TALENT:87 = 2
 	ENDIF
 ENDIF
-IF ABL:2 >= 10 && EXP:21 >= 500
-	IF TALENT:51 == 1
+IF ABL:2 >= 10 && EXP:21 >= 500	; 【[技巧]Lv>=10 / [奉仕快楽経験]>=500】
+	IF TALENT:51 == 1	; 【[習得遅い]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%との経験を重ねるうちに、体が覚え方を掴んできたようだ…
 		TFLAG:13 = 56
@@ -707,8 +796,8 @@ IF ABL:2 >= 10 && EXP:21 >= 500
 	ENDIF
 ENDIF
 ;親密15以上かつ奉仕精神15以上かつ恋人&恋慕かつ好感度10000以上かつ愛情経験500以上
-IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && EXP:23 >= 500
-	IF TALENT:82 == 1 && TALENT:MASTER:122
+IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && EXP:23 >= 500	; 【[恋人] / [恋慕] / [親密]Lv>=15 / [奉仕精神]Lv>=15 / [愛情経験]>=500 / [好感度]>=10000】
+	IF TALENT:82 == 1 && TALENT:MASTER:122	; 【[男嫌い] / MASTER:[オトコ]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に対する苦手意識が薄れたようだ…
 		TFLAG:13 = 18
@@ -716,7 +805,7 @@ IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && 
 		PRINTFORMW %NAME:TARGET%は【男嫌い】が昇華した
 		TALENT:82 = 2
 	ENDIF
-	IF TALENT:20 == 1
+	IF TALENT:20 == 1	; 【[自制心]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前でだけ、自制の鎧を脱いで身を委ねるようになったようだ…
 		TFLAG:13 = 53
@@ -724,7 +813,7 @@ IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && 
 		PRINTFORMW %NAME:TARGET%は【自制心】が昇華した
 		TALENT:20 = 2
 	ENDIF
-	IF TALENT:83 == 1
+	IF TALENT:83 == 1	; 【[サド]】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の前では、支配する喜びより与える喜びを感じるようになったようだ…
 		TFLAG:13 = 57
@@ -732,21 +821,22 @@ IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && 
 		PRINTFORMW %NAME:TARGET%は【サド】が昇華した
 		TALENT:83 = 2
 	ENDIF
-	IF TALENT:13 == 0
-		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
-		TFLAG:13 = 47
-		CALL SELF_KOJO
-		PRINTFORMW %NAME:TARGET%は【素直】を得た
-		TALENT:13 = 1
-	ENDIF
+	; 素直の一律自動取得は停止
+	;IF TALENT:13 == 0	; 【[素直]なし】
+	;	PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
+	;	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
+	;	TFLAG:13 = 47
+	;	CALL SELF_KOJO
+	;	PRINTFORMW %NAME:TARGET%は【素直】を得た
+	;	TALENT:13 = 1
+	;ENDIF
 ENDIF
 
 ;Ｍ感覚関係
 ;Ｍ感覚8以上、キス経験300以上、今回調教中にＭ絶頂50回以上でＭ敏感
-IF TALENT:597 == 0 && ABL:17 >= 8 && EXP:96 >= 300 && EX:6 >= 50
+IF TALENT:597 == 0 && ABL:17 >= 8 && EXP:96 >= 300 && EX:6 >= 50	; 【[Ｍ敏感]なし / [Ｍ感覚]Lv>=8 / [キス経験]>=300】
 	PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-	IF TALENT:85 == 1 || TALENT:76 == 1
+	IF TALENT:85 == 1 || TALENT:76 == 1	; 【[恋慕] / [淫乱]】
 		PRINTFORML %CALLNAME:TARGET%は行為が終わった後にもかかわらず、%CALLNAME:MASTER%にキスして欲しいとねだってきた…
 	ELSE
 		PRINTFORML %CALLNAME:TARGET%の唇は%CALLNAME:MASTER%によって開発され、敏感になってしまったようだ…
@@ -758,9 +848,9 @@ IF TALENT:597 == 0 && ABL:17 >= 8 && EXP:96 >= 300 && EX:6 >= 50
 	TALENT:596 = 0
 	TALENT:597 = 1
 ;親密10以上、奉仕精神10以上、Ｍ感覚8以上、奉仕快楽経験250以上、愛情経験100以上、キス経験300以上、今回調教中にＭ絶頂50回以上でＭ敏感
-ELSEIF TALENT:589 == 0 && ABL:0 >= 10 && ABL:6 >= 10 && ABL:17 >= 8 && EXP:21 >= 250 && EXP:23 >= 100 && EXP:96 >= 300 && EX:6 >= 50
+ELSEIF TALENT:589 == 0 && ABL:0 >= 10 && ABL:6 >= 10 && ABL:17 >= 8 && EXP:21 >= 250 && EXP:23 >= 100 && EXP:96 >= 300 && EX:6 >= 50	; 【[蕩唇]なし / [親密]Lv>=10 / [奉仕精神]Lv>=10 / [Ｍ感覚]Lv>=8 / [奉仕快楽経験]>=250 / [愛情経験]>=100 / [キス経験]>=300】
 	PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-	IF TALENT:85 == 1 || TALENT:76 == 1
+	IF TALENT:85 == 1 || TALENT:76 == 1	; 【[恋慕] / [淫乱]】
 		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%を抱き寄せて熱いキスを交わし始めた…
 	ELSE
 		PRINTFORML %CALLNAME:TARGET%は一瞬ためらう様な仕草をした後、突如%CALLNAME:MASTER%を押し倒し、これまでに無いような濃密なキスを始めた…
@@ -779,22 +869,22 @@ ENDIF
 ;[キス魔]等部位特化素質は条件を満たせば複数習得可能
 ;必要欲望レベル：10,11,14,19,26,35,46,59,74,91
 A = 1
-SIF TALENT:74
+SIF TALENT:74	; 【[淫壷]】
 	A += 1
-SIF TALENT:75
+SIF TALENT:75	; 【[淫核]】
 	A += 1
-SIF TALENT:77
+SIF TALENT:77	; 【[尻穴狂い]】
 	A += 1
-SIF TALENT:78
+SIF TALENT:78	; 【[淫乳]】
 	A += 1
-SIF TALENT:79
+SIF TALENT:79	; 【[マゾ]】
 	A += 1
-SIF TALENT:155
+SIF TALENT:155	; 【[キス魔]】
 	A += 1
 A = A * A - 2 * A + 11
 ;地の文の整合性のために[サド]と[キス魔]～は同時に起こさない
 ;[サド]：欲望10以上技巧10以上サドっ気6以上、優越が20万以上、主導権を相手に渡してスパンキング/鞭/針を主人に対して三回以上実行
-IF ABL:1 >= 10 && ABL:2 >= 10 && ABL:15 >= 6 && TFLAG:61 >= 3 && PALAM:17 >= 200000 && TALENT:83 == 0 && FLAG:62 & 8
+IF ABL:1 >= 10 && ABL:2 >= 10 && ABL:15 >= 6 && TFLAG:61 >= 3 && PALAM:17 >= 200000 && TALENT:83 == 0 && FLAG:62 & 8	; 【[サド]なし / [欲望]Lv>=10 / [技巧]Lv>=10 / [サドっ気]Lv>=6 / [優越]>=200000 / [サド取得カウント]>=3】
 	PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 	PRINTFORML %CALLNAME:TARGET%は行為が終わり立ち去ろうとした%CALLNAME:MASTER%を押し倒し、嗜虐的な笑みを浮かべ%CALLNAME:MASTER%を見下ろしている…
 	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%に痛めつけることに快感を得るようになったようだ…
@@ -805,7 +895,7 @@ IF ABL:1 >= 10 && ABL:2 >= 10 && ABL:15 >= 6 && TFLAG:61 >= 3 && PALAM:17 >= 200
 	;[サド]にした回数を増やす
 	CFLAG:MASTER:26 += 1
 	;5人堕とすと何かに目覚める
-	IF CFLAG:MASTER:26 >= 5 && TALENT:MASTER:79 == 0
+	IF CFLAG:MASTER:26 >= 5 && TALENT:MASTER:79 == 0	; 【MASTER:[マゾ]なし / MASTER:[サド人数]>=5】
 		PRINTFORMW %CALLNAME:MASTER%は何かに目覚めた
 		;主人の素質取得だけど、口上を呼んでみる
 		;全力で罵倒してやってくれ
@@ -814,9 +904,9 @@ IF ABL:1 >= 10 && ABL:2 >= 10 && ABL:15 >= 6 && TFLAG:61 >= 3 && PALAM:17 >= 200
 		PRINTFORMW %CALLNAME:MASTER%は【マゾ】を得た
 		TALENT:MASTER:79 = 1
 	ENDIF
-ELSEIF ABL:1 >= A
+ELSEIF ABL:1 >= A	; 【[欲望]】
 	;親密15以上技巧10以上キス経験500以上ならばキス魔
-	IF TALENT:155 == 0 && ABL:0 >= 15 && ABL:2 >= 10 && EXP:96 >= 500
+	IF TALENT:155 == 0 && ABL:0 >= 15 && ABL:2 >= 10 && EXP:96 >= 500	; 【[キス魔]なし / [親密]Lv>=15 / [技巧]Lv>=10 / [キス経験]>=500】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
 		PRINTFORMW %CALLNAME:TARGET%は行為が終わり立ち去ろうとした%CALLNAME:MASTER%を抱き寄せ、幾度も口付けを繰り返している…
 		TFLAG:13 = 69
@@ -824,9 +914,9 @@ ELSEIF ABL:1 >= A
 		PRINTFORMW %CALLNAME:TARGET%は【キス魔】を得た
 		TALENT:155 = 1
 	;Ａ感覚4以上、Ａ経験150以上、Ａ快楽経験300以上、今回調教中にA絶頂30回以上で尻穴狂い
-	ELSEIF TALENT:77 == 0 && ABL:5 >= 4 && EXP:1 >= 150 && EXP:32 >= 300 && EX:2 >= 30
+	ELSEIF TALENT:77 == 0 && ABL:5 >= 4 && EXP:1 >= 150 && EXP:32 >= 300 && EX:2 >= 30	; 【[尻穴狂い]なし / [Ａ感覚]Lv>=4 / [Ａ経験]>=150 / [Ａ快楽経験]>=300】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		IF TALENT:85 == 1 || TALENT:76 == 1
+		IF TALENT:85 == 1 || TALENT:76 == 1	; 【[恋慕] / [淫乱]】
 			PRINTFORML %CALLNAME:TARGET%は行為が終わった後にもかかわらず、%CALLNAME:MASTER%にお尻をいじめて欲しいと懇願してきた…
 		ELSE
 			PRINTFORML %CALLNAME:TARGET%は自らのお尻を慰めながら%CALLNAME:MASTER%に物欲しげな視線を送っている…
@@ -836,9 +926,9 @@ ELSEIF ABL:1 >= A
 		PRINTFORMW %NAME:TARGET%は【尻穴狂い】を得た
 		TALENT:77 = 1
 	;Ｂ感覚8以上、自慰中毒・露出癖4以上、今回調教中にＢ絶頂50回以上で淫乳
-	ELSEIF TALENT:78 == 0 && ABL:14 >= 8 && ABL:7 >= 4 && ABL:10 >= 4 && EX:3 >= 50
+	ELSEIF TALENT:78 == 0 && ABL:14 >= 8 && ABL:7 >= 4 && ABL:10 >= 4 && EX:3 >= 50	; 【[淫乳]なし / [Ｂ感覚]Lv>=8 / [露出癖]Lv>=4 / [自慰中毒]Lv>=4】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		IF TALENT:85 == 1 || TALENT:76 == 1
+		IF TALENT:85 == 1 || TALENT:76 == 1	; 【[恋慕] / [淫乱]】
 			PRINTFORML %CALLNAME:TARGET%は行為が終わった後にもかかわらず、%CALLNAME:MASTER%に胸を弄って欲しいとねだってきた…
 		ELSE
 			PRINTFORML %CALLNAME:TARGET%の胸は%CALLNAME:MASTER%によって開発され、敏感になってしまったようだ…
@@ -848,11 +938,11 @@ ELSEIF ABL:1 >= A
 		PRINTFORMW %NAME:TARGET%は【淫乳】を得た
 		TALENT:78 = 1
 	;Ｃ感覚8以上、自慰中毒・露出癖4以上、今回調教中にＣ絶頂50回以上で淫核
-	ELSEIF TALENT:75 == 0 && ABL:3 >= 8 && ABL:7 >= 4 && ABL:10 >= 4 && EX:0 >= 50
+	ELSEIF TALENT:75 == 0 && ABL:3 >= 8 && ABL:7 >= 4 && ABL:10 >= 4 && EX:0 >= 50	; 【[淫核]なし / [Ｃ感覚]Lv>=8 / [露出癖]Lv>=4 / [自慰中毒]Lv>=4】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		IF TALENT:85 == 1 || TALENT:76 == 1
+		IF TALENT:85 == 1 || TALENT:76 == 1	; 【[恋慕] / [淫乱]】
 			PRINTFORM %CALLNAME:TARGET%は行為が終わった後にもかかわらず、%CALLNAME:MASTER%に
-			IF TALENT:121
+			IF TALENT:121	; 【[ふたなり]】
 				PRINT ペニス
 			ELSE
 				PRINT クリトリス
@@ -860,7 +950,7 @@ ELSEIF ABL:1 >= A
 			PRINTL の疼きを鎮めて欲しいとせがんできた…
 		ELSE
 			PRINTFORM %CALLNAME:TARGET%は%CALLNAME:MASTER%のほうをじっと見ながら、手で自分の
-			IF TALENT:121
+			IF TALENT:121	; 【[ふたなり]】
 				PRINT 陰茎
 			ELSE
 				PRINT 陰豆
@@ -872,9 +962,9 @@ ELSEIF ABL:1 >= A
 		PRINTFORMW %NAME:TARGET%は【淫核】を得た
 		TALENT:75 = 1
 	;Ｖ感覚8以上、Ｖ経験300以上、主人がオトコかふたなり、今回調教中にＶ絶頂50回以上で淫壷
-	ELSEIF TALENT:74 == 0 && ABL:4 >= 8 && EXP:0 >= 300 && TALENT:122 == 0 && (TALENT:MASTER:121 || TALENT:MASTER:122) && EX:1 >= 50
+	ELSEIF TALENT:74 == 0 && ABL:4 >= 8 && EXP:0 >= 300 && TALENT:122 == 0 && (TALENT:MASTER:121 || TALENT:MASTER:122) && EX:1 >= 50	; 【[淫壷]なし / [オトコ]なし / MASTER:[ふたなり] / MASTER:[オトコ] / [Ｖ感覚]Lv>=8 / [Ｖ経験]>=300】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		IF TALENT:85 == 1 || TALENT:76 == 1
+		IF TALENT:85 == 1 || TALENT:76 == 1	; 【[恋慕] / [淫乱]】
 			PRINTFORML %CALLNAME:TARGET%は行為が終わった後にもかかわらず、%CALLNAME:MASTER%に子宮の渇きを癒してほしいと縋りついてきた…
 		ELSE
 			PRINTFORML %CALLNAME:TARGET%の蜜壷は開発し尽くされ、すっかり%CALLNAME:MASTER%のモノに順応してしまったようだ…
@@ -884,9 +974,9 @@ ELSEIF ABL:1 >= A
 		PRINTFORMW %NAME:TARGET%は【淫壷】を得た
 		TALENT:74 = 1
 	;マゾっ気と露出癖が共に6以上、苦痛依存3、緊縛経験と苦痛快楽経験が両方とも150以上、異常経験が100以上、今回調教中にPALAM:苦痛が30000以上でマゾ
-	ELSEIF TALENT:79 == 0 && ABL:7 >= 6 && ABL:8 >= 6 && EXP:30 >= 150 && EXP:50 >= 100 && EXP:51 >= 150 && MARK:0 == 3 && PALAM:9 >= 30000
+	ELSEIF TALENT:79 == 0 && ABL:7 >= 6 && ABL:8 >= 6 && EXP:30 >= 150 && EXP:50 >= 100 && EXP:51 >= 150 && MARK:0 == 3 && PALAM:9 >= 30000	; 【[マゾ]なし / [露出癖]Lv>=6 / [マゾっ気]Lv>=6 / [苦痛快楽経験]>=150 / [異常経験]>=100 / [緊縛経験]>=150 / [苦痛]>=30000 / [苦痛依存]Lv==3】
 		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		IF TALENT:85 == 1 || TALENT:76 == 1
+		IF TALENT:85 == 1 || TALENT:76 == 1	; 【[恋慕] / [淫乱]】
 			PRINTFORML %CALLNAME:TARGET%は行為が終わった後にもかかわらず、%CALLNAME:MASTER%にもっと激しく責め立てて欲しいとおねだりしてきた…
 		ELSE
 			PRINTFORML %CALLNAME:TARGET%の身体は%CALLNAME:MASTER%に痛めつけられることに快感を得るようになったようだ…
@@ -904,20 +994,20 @@ ENDIF
 @COMABLE_3P
 ;派生コマンドなので実際には意味はないが、念のため
 ;処女で、従順4以下・レズっ気4以下のASSIの場合3Pはできない（サドならＯＫ）
-IF EXP:0 == 0
-	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0
+IF EXP:0 == 0	; 【[Ｖ経験]==0】
+	SIF (ABL:ASSI:0 <= 4 || ABL:ASSI:9 <= 4) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=4 / ASSI:[レズっ気]Lv<=4】
 		RETURN 0
 ;潤滑不足で、従順3以下・レズっ気3以下のASSIの場合3Pはできない（サドならＯＫ）
-ELSEIF PALAM:3 < PALAMLV:2
-	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0
+ELSEIF PALAM:3 < PALAMLV:2	; 【[潤滑]<PALAMLV:2】
+	SIF (ABL:ASSI:0 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:83 == 0	; 【ASSI:[サド]なし / ASSI:[親密]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ENDIF
 A = 0
 ;MASTERがオトコ、半人半妖、ふたなり
-SIF TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122
+SIF TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ]】
 	A += 1
 ;ASSIがオトコ、半人半妖、ふたなり
-SIF TALENT:ASSI:119 || TALENT:ASSI:121 || TALENT:ASSI:122
+SIF TALENT:ASSI:119 || TALENT:ASSI:121 || TALENT:ASSI:122	; 【ASSI:[半人半妖] / ASSI:[ふたなり] / ASSI:[オトコ]】
 	A += 1
 ;ペニスバンドとあわせて二本ないとだめ
 SIF A + ITEM:PBAND < 2
@@ -926,19 +1016,19 @@ RETURN 1
 
 @COMABLE_66
 ;主人が【魅惑】か【謎の魅力】じゃないとダメ
-SIF TALENT:MASTER:91 == 0 && TALENT:MASTER:92 == 0
+SIF TALENT:MASTER:91 == 0 && TALENT:MASTER:92 == 0	; 【MASTER:[魅惑]なし / MASTER:[謎の魅力]なし】
 	RETURN 0
 RETURN 1
 
 @COMABLE_69
 ;欲望3以下・レズっ気3以下のASSIの場合シックスナインはできない（小悪魔、相性良好ならＯＫ）
 R = NO:PLAYER
-IF ASSIPLAY
-	SIF (ABL:ASSI:1 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0 && RELATION:R < 150
+IF ASSIPLAY	; 【調教者:[助手]】
+	SIF (ABL:ASSI:1 <= 3 || ABL:ASSI:9 <= 3) && TALENT:ASSI:87 == 0 && RELATION:R < 150	; 【ASSI:[小悪魔]なし / ASSI:[欲望]Lv<=3 / ASSI:[レズっ気]Lv<=3】
 		RETURN 0
 ELSE
 ;調教者が助手でないなら従順3以上、奉仕精神3以上必要
-	SIF ABL:0 < 3 || ABL:6 < 3
+	SIF ABL:0 < 3 || ABL:6 < 3	; 【[親密]Lv<3 / [奉仕精神]Lv<3】
 		RETURN 0
 ENDIF
 RETURN 1
@@ -957,14 +1047,14 @@ INPUT
 IF RESULT == 1
 	;前のページ　0ページ以下にはならないようにする
 	TFLAG:100 -= 1
-	SIF TFLAG:100 <= 0
+	SIF TFLAG:100 <= 0	; 【[ページ数]<=0】
 		TFLAG:100 = 0
 	CALL START_CHARA_SHOW
 	GOTO INPUT_LOOP
 ELSEIF RESULT == 9
 	;後のページ 最終ページ以上にはならないようにする
 	TFLAG:100 += 1
-	SIF TFLAG:100 >= 5
+	SIF TFLAG:100 >= 5	; 【[ページ数]>=5】
 		TFLAG:100 = 4
 
 	CALL START_CHARA_SHOW
@@ -988,11 +1078,11 @@ SIF NO:MASTER == 99
 	CALL CHARA_RANDOM_STATE_M
 
 ;最低技巧Lv2　レズっ気Lv3にまで引き上げておく
-IF ABL:MASTER:2 < 2
+IF ABL:MASTER:2 < 2	; 【MASTER:[技巧]Lv<2】
 	ABL:MASTER:2 = 2
 	PRINTFORML ※EXモード特別仕様※　%NAME:MASTER%の%ABLNAME:2%のレベルが{ABL:MASTER:2}になりました
 ENDIF
-IF ABL:MASTER:9 < 3 && TALENT:MASTER:122 == 0
+IF ABL:MASTER:9 < 3 && TALENT:MASTER:122 == 0	; 【MASTER:[オトコ]なし / MASTER:[レズっ気]Lv<3】
 	ABL:MASTER:9 = 3
 	PRINTFORML ※EXモード特別仕様※　%NAME:MASTER%の%ABLNAME:9%のレベルが{ABL:MASTER:9}になりました
 ENDIF
@@ -1011,14 +1101,14 @@ DRAWLINE
 PRINT 　page
 PRINTV TFLAG:100
 ;0ページ目は表示しない
-IF TFLAG:100
+IF TFLAG:100	; 【[ページ数]】
 	PRINT 　[1]前のページ
 ELSE
 	PRINT                
 ENDIF
 PRINTC [0]変更しない
 ;3ページまでしかない
-SIF TFLAG:100 < 3
+SIF TFLAG:100 < 3	; 【[ページ数]<3】
 	PRINTC [9]後のページ
 PRINTL 
 
@@ -1035,14 +1125,14 @@ INPUT
 IF RESULT == 1
 	;前のページ　0ページ以下にはならないようにする
 	TFLAG:100 -= 1
-	SIF TFLAG:100 <= 0
+	SIF TFLAG:100 <= 0	; 【[ページ数]<=0】
 		TFLAG:100 = 0
 	CALL START_PARTNER_SHOW
 	GOTO INPUT_LOOP
 ELSEIF RESULT == 9
 	;後のページ 最終ページ以上にはならないようにする
 	TFLAG:100 += 1
-	SIF TFLAG:100 >= 4
+	SIF TFLAG:100 >= 4	; 【[ページ数]>=4】
 		TFLAG:100 = 3
 
 	CALL START_PARTNER_SHOW
@@ -1078,7 +1168,7 @@ ELSE
 	PRINTFORMW パートナーを「%NAME:TARGET%」に設定します
 
 	;反抗的なキャラはツンデレにすることが可能
-	IF TALENT:11 && TALENT:13 == 0 && TALENT:18 == 0
+	IF TALENT:11 && TALENT:13 == 0 && TALENT:18 == 0	; 【[反抗的] / [素直]なし / [ツンデレ]なし】
 		CALL PLUS_TALENT18
 		RETURN 1
 	ENDIF
@@ -1096,14 +1186,14 @@ DRAWLINE
 PRINT 　page
 PRINTV TFLAG:100
 ;0ページ目は表示しない
-IF TFLAG:100
+IF TFLAG:100	; 【[ページ数]】
 	PRINT 　[1]前のページ
 ELSE
 	PRINT                
 ENDIF
 PRINTC                
 ;3ページまでしかない
-SIF TFLAG:100 < 3
+SIF TFLAG:100 < 3	; 【[ページ数]<3】
 	PRINTC [9]後のページ
 PRINTL 
 
@@ -1111,11 +1201,11 @@ PRINTL
 VARSET LOCAL, 0
 N = 1
 FOR LOCAL, 0, 200
-	IF FLAG:(999+LOCAL) && LOCAL > 120 && TFLAG:100 == 3
+	IF FLAG:(999+LOCAL) && LOCAL > 120 && TFLAG:100 == 3	; 【[ページ数]==3】
 		;番号が飛んでいる特殊なキャラ用の処理
 	ELSE
 		;30キャラずつ表示
-		SIF LOCAL > (30 + (30 * TFLAG:100)) || LOCAL <= (0 + (30 * TFLAG:100))
+		SIF LOCAL > (30 + (30 * TFLAG:100)) || LOCAL <= (0 + (30 * TFLAG:100))	; 【[ページ数]】
 			CONTINUE
 	ENDIF
 

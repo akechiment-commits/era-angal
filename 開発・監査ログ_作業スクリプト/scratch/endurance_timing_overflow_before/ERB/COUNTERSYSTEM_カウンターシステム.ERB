@@ -1,0 +1,232 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+;---------------------------------------------------------
+;BASE:6 快感ゲージとして使用。
+;TFLAG:53  パートナーのターンでのコマンド内容
+;TFLAG:300 口上開始フラグ
+;	1:カウンターなし(現在この口上を呼び出す設定なし)
+;	2:必殺　3:強　4:中　5:弱　6:反撃失敗(現在この口上を呼び出す設定なし)
+;	7:絶頂(現在この口上を呼び出す設定なし)
+;	8:虜、主人を付加するイベント
+;TFLAG:301 体力低下でパートナーと過ごす終了
+;---------------------------------------------------------
+;---------------------------------------------------------
+;耐力減少量の算出
+;---------------------------------------------------------
+@COUNTER_ECSTASY
+;カウンターシステムコンフィグOFFかつREVMODEでもないならRETURN
+SIF (FLAG:62 & 4096) == 0 && TFLAG:34 == 0	; 【無[主導権全委任]】
+	RETURN 0
+;射精していなければRETURN
+SIF TFLAG:302 == 0	; 【無[同時絶頂]】
+	RETURN 0
+;主人公が射精していなければRETURN
+SIF P != MASTER
+	RETURN 0
+
+;通常調教の耐力減少は、絶頂強度確定後に処理する。
+;REVMODEでは従来どおりDOWNBASEへ積み、同じオプションがONの時だけ適用する。
+SIF TFLAG:34	; 【[主導権全委任]】
+	CALL COUNTER_EJAC_DAMAGE
+
+;ソース追加
+;SOURCE:3  情愛(恭順、欲情) 
+;SOURCE:4  性行動(習得、抑鬱)
+;SOURCE:5  達成感(恭順)
+;SOURCE:13 屈従(屈服、抑鬱)
+VARSET LOCAL, 0
+;情愛の計算
+;親密を見る
+IF ABL:0 > 6	; 【[親密]Lv>6】
+	LOCAL:3 = 600+50*ABL:0
+ELSEIF ABL:0 > 3	; 【[親密]Lv>3】
+	LOCAL:3 = 150*ABL:0
+ELSE
+	LOCAL:3 = 100+100*ABL:0
+ENDIF
+;親愛、恋人時ブースト
+IF TALENT:88 && TALENT:153	; 【[親愛] / [恋人]】
+	TIMES LOCAL:3 , 1.5
+ELSEIF TALENT:88 || TALENT:153	; 【[親愛] / [恋人]】
+	TIMES LOCAL:3 , 1.25
+ENDIF
+;性行動,達成感の計算
+;奉仕精神を見る
+IF ABL:6 > 6	; 【[奉仕精神]Lv>6】
+	LOCAL:4 = 600+50*ABL:6
+	LOCAL:5 = 200*ABL:6
+ELSEIF ABL:6 > 3	; 【[奉仕精神]Lv>3】
+	LOCAL:4 = 150*ABL:6
+	LOCAL:5 = 150*ABL:6-200
+ELSE
+	LOCAL:4 = 100+100*ABL:6
+	LOCAL:5 = 50+50*ABL:6
+ENDIF
+;技巧を見る
+LOCAL:4 *= (50+30*ABL:6)/100
+LOCAL:5 *= (50+30*ABL:6)/100
+;屈従の計算
+LOCAL:13 = 1500
+
+;追加行動なので全部軽減する
+;ノーリスクと言えばノーリスクだし・・・
+;バランス取りやすくするためだったり
+;主従関係のときは軽減
+IF TALENT:MASTER:219 == 1	; 【MASTER:[虜]】
+	TIMES LOCAL:3 , 0.8
+	TIMES LOCAL:4 , 0.8
+	TIMES LOCAL:5 , 0.8
+	TIMES LOCAL:13 , 0.8
+ELSE
+	TIMES LOCAL:3 , 0.6
+	TIMES LOCAL:4 , 0.6
+	TIMES LOCAL:5 , 0.6
+	TIMES LOCAL:13 , 0.6
+ENDIF
+
+;強絶頂以上はボーナス有
+IF TFLAG:302 > 1	; 【[同時絶頂]>1】
+	LOCAL:3 = LOCAL:3 * (10 + TFLAG:302) / 10
+	LOCAL:4 = LOCAL:4 * (10 + TFLAG:302) / 10
+	LOCAL:5 = LOCAL:5 * (10 + TFLAG:302) / 10
+	LOCAL:13 = LOCAL:13 * (10 + TFLAG:302) / 10
+ENDIF
+
+SOURCE:3 += LOCAL:3
+SOURCE:4 += LOCAL:4
+SOURCE:5 += LOCAL:5
+SOURCE:13 += LOCAL:13
+
+RETURN 0
+
+;---------------------------------------------------------
+;射精時の体力へのダメージを別に計算
+;---------------------------------------------------------
+@COUNTER_EJAC_DAMAGE
+;REVMODE用。パートナーのターン追加をONにした場合だけ耐力を消費する。
+;通常調教では、絶頂強度まで確定した後にPARTNER_TURN_ENDURANCE_DAMAGEが処理する。
+SIF (FLAG:62 & 1p17) == 0 && TFLAG:997 == 0
+	RETURN 0
+
+;連射倍率は平方根に圧縮し、育成値が伸びても耐力消費だけが暴走しないようにする。
+;射精量区分(1/2/4)と実測mlは従来どおり反映する。
+LOCAL = 600 * TFLAG:302 * SQRT(TFLAG:714)
+LOCAL += TFLAG:719 * TFLAG:302 * 2
+SIF LOCAL < 1
+	LOCAL = 1
+
+;押し倒され中はダメージ倍
+SIF TFLAG:51	; 【[押し倒され]】
+	LOCAL *= 2
+
+DOWNBASE:(TFLAG:996):4 = LOCAL
+
+;---------------------------------------------------------
+;通常調教用。ARG～ARG:4はC/V/A/B/Mそれぞれの絶頂強度。
+;射精量が極端、または強い多重絶頂ほど急激に耐力を失う。
+;耐力0は強制終了条件にしない。
+;---------------------------------------------------------
+@PARTNER_TURN_ENDURANCE_DAMAGE, ARG = 0, ARG:1 = 0, ARG:2 = 0, ARG:3 = 0, ARG:4 = 0
+#DIM DYNAMIC DAMAGE, 1
+#DIM DYNAMIC STRENGTH, 1
+#DIM DYNAMIC BEFORE_ENDURANCE, 1
+
+IF (FLAG:62 & 1p17) == 0 || TFLAG:302 == 0 || TFLAG:994 == 0	; 【無[同時絶頂]】
+	TFLAG:994 = 0
+	RETURN 0
+ENDIF
+
+;連射倍率は平方根に圧縮し、射精量区分と実測mlを加算する。
+DAMAGE = 600 * TFLAG:302 * SQRT(TFLAG:714)
+DAMAGE += TFLAG:719 * TFLAG:302 * 2
+
+;プレイヤーの絶頂強度＝射精ゲージを何回振り切ったか（TFLAG:714）
+STRENGTH = TFLAG:714
+
+;絶頂強度（射精倍率）を反映
+SIF STRENGTH
+	DAMAGE = DAMAGE * (100 + STRENGTH * 2) / 100
+SIF DAMAGE < 1
+	DAMAGE = 1
+;パートナーの追加ターン中は、耐力の実消費量と表示をともに半額にする。
+SIF TFLAG:543	; 【[パートナー主導]】
+	DAMAGE = (DAMAGE + 1) / 2
+
+PRINTFORML %CALLNAME:(TFLAG:996)%の耐力-{DAMAGE}（絶頂強度{STRENGTH}）
+BEFORE_ENDURANCE = BASE:(TFLAG:996):4
+BASE:(TFLAG:996):4 -= DAMAGE
+SIF BASE:(TFLAG:996):4 < 0
+	BASE:(TFLAG:996):4 = 0
+IF BEFORE_ENDURANCE > 0 && BASE:(TFLAG:996):4 == 0
+	;限界まで絞り出された経験は、通常の射精経験より大きく耐力上限を鍛える。
+	IF TFLAG:996 == MASTER
+		CFLAG:MASTER:1152 += 80 + RAND(41)
+	ELSE
+		;絶頂経験とは分けて、耐力枯渇回数だけを別カウンタへ記録する。
+		CFLAG:(TFLAG:996):1153 += 80 + RAND(41)
+	ENDIF
+	SELECTCASE RAND(4)
+	CASE 0
+		PRINTFORML %CALLNAME:TARGET%に何度も搾り立てられ、%CALLNAME:(TFLAG:996)%は最後の一滴まで空にされた……
+	CASE 1
+		PRINTFORML 容赦なく快感を重ねられ、%CALLNAME:(TFLAG:996)%の身体はもう何も残せず震えている……
+	CASE 2
+		PRINTFORML %CALLNAME:TARGET%は限界を悟ってなお手を緩めず、%CALLNAME:(TFLAG:996)%を力尽きるまで弄び抜いた……
+	CASEELSE
+		PRINTFORML 絞り出されたあとの鈍い余韻に、%CALLNAME:(TFLAG:996)%はぐったりと身を委ねた……
+	ENDSELECT
+ENDIF
+TFLAG:994 = 0
+RETURN 0
+
+;---------------------------------------------------------
+;耐力低下でパートナーと過ごすが終了するかどうかの分岐。
+;TFLAG:301 オちたときに1となります。
+;---------------------------------------------------------
+@COUNTER_DOWN
+IF BASE:MASTER:4 <=0	; 【MASTER:[耐力]<=0】
+	CFLAG:31 += 10
+	PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%の与える快感により気絶してしまった……
+ELSEIF BASE:MASTER:4 <= 500	; 【MASTER:[耐力]<=500】
+	CFLAG:31 += 1
+ENDIF
+TFLAG:301 = 1
+
+;絶頂時の体力低下でウフフが終了した際にCFLAG:31に回数を記録。
+;一定数を超えており、かつTARGETが主導権を握っていた際逆調教イベントを発生。
+;MASTERがTARGETの与えてくる快楽に溺れた証（素質を付与）し、特定のクリア時に
+;通常endではなく、逆調教endを表示できるようにする
+
+;TARGETが主導権を握っている+主人公が素質【虜】を持ってない+TARGETのサドっ気がLv5以上
+;+精液経験(主人公を射精させた回数として使用）が1000以上もしくはパートナーが主人公を耐力なくなるまでが100以上
+IF TFLAG:45 == 1 && TALENT:MASTER:219 == 0 && ABL:15 >= 5 && (EXP:20 >= 1000 || CFLAG:31 >= 100)	; 【MASTER:[虜]なし / [サドっ気]Lv>=5 / [精液経験]>=1000 / [主導権]==1 / [主人気絶回数]>=100】
+	;逆調教イベント口上の呼び出し
+	TFLAG:300 = 8
+	CALL COUNTER_KOJO
+	;主人公に【虜】素質を付加
+	TALENT:MASTER:219 = 1
+	PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%のモノとなってしまった……
+ENDIF
+PRINTFORML （%CALLNAME:MASTER%の耐力が限界に来ています。一旦別れました）
+BEGIN AFTERTRAIN
+RETURN 0
+
+
+;調教の実行行動4ターンごとに、その時の調教者の耐力をわずかに回復。
+;通常・追加パートナー行動・完全主導権で共通。表示や設定操作では呼ばない。
+@TRAINER_ENDURANCE_RECOVERY, ARG
+#DIM DYNAMIC RECOVERY, 1
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+TFLAG:111 = (TFLAG:111 + 1) % 4
+SIF TFLAG:111 != 0
+	RETURN 0
+;最大耐力の0.5%（最低1）。満タン・上限超過時は減らさず何もしない。
+SIF MAXBASE:ARG:4 <= 0 || BASE:ARG:4 >= MAXBASE:ARG:4
+	RETURN 0
+RECOVERY = MIN(MAX(1, MAXBASE:ARG:4 / 200), MAXBASE:ARG:4 - BASE:ARG:4)
+BASE:ARG:4 += RECOVERY
+PRINTFORML %CALLNAME:ARG%の耐力+{RECOVERY}（少量回復）
+RETURN 0

@@ -6,19 +6,62 @@
 TFLAG:CALLTRAIN = 0
 
 @SHOW_USERCOM
+;気絶状態および主導権の判定（気絶中は主導権を絶対に相手に移さない）
+IF TARGET >= 0 && BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	TFLAG:899 = 1
+	TFLAG:45 = 0
+	TFLAG:34 = 0
+ELSE
+	TFLAG:899 = 0
+ENDIF
+TFLAG:28 = 0
 VARSET Q, -1
 VARSET C, 0
 ;CALLTRAIN時は表示しない
 SIF TFLAG:CALLTRAIN
 	RETURN 0
+
+;完全にパートナーに主導権を握らせている場合：ステータス表示が完了した直後に相手の行動を描画
+IF TFLAG:34	; 【[主導権全委任]】
+	DRAWLINE
+	IF TFLAG:44	; 【[ウフフ中]】
+		PRINTFORM 【主導権完全委譲中】相手の熱中度:
+		IF TFLAG:108 >= 3	; 【[リバース過熱度]>=3】
+			SETCOLOR 255, 50, 150
+			PRINTFORM ★★★ 陶酔・絶頂狂乱
+		ELSEIF TFLAG:108 == 2	; 【[リバース過熱度]==2】
+			SETCOLOR 255, 100, 200
+			PRINTFORM ★★ 昂揚・本気攻め
+		ELSEIF TFLAG:108 == 1	; 【[リバース過熱度]==1】
+			SETCOLOR 255, 150, 200
+			PRINTFORM ★ 熱気・積極的
+		ELSE
+			PRINTFORM ☆ 探り合い
+		ENDIF
+		RESETCOLOR
+		PRINTFORML  (連続:{TFLAG:109}ターン)
+		;相手の行動を決定し、情熱的な地の文を出力
+		CALL REVMODE_PASSIVEPHASE(TARGET)
+	ELSE
+		PRINTFORML 【主導権完全委譲中】（%CALLNAME:TARGET%が自由に主導権を握っています）
+		CALL PASSIVEMODE_PASSIVEPHASE(TARGET)
+	ENDIF
+	DRAWLINE
+ENDIF
 ;パートナーが[親愛]を持っている場合、異常経験が付くコマンドを表示するコンフィグがONの場合
 ;パートナーが[親愛]を持っていたら異常経験フィルタを一時的にOFFにする
 LOCAL:2 = 0
-IF TALENT:88 && (FLAG:61 & 2)
+IF TALENT:88 && (FLAG:61 & 2)	; 【[親愛]】
 	;異常経験フィルタが元々OFFかLOCAL:2に記憶。コマンド表示後戻す
 	SIF (FLAG:61 & 1) == 0
 		LOCAL:2 = 1
 	FLAG:61 |= 1
+ENDIF
+
+IF TARGET >= 0 && BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	SETCOLOR 0xFF5555
+	PRINTFORML 【状態：気絶中】（%CALLNAME:TARGET%は意識を失っています。一部の一方的なコマンドのみ実行可能です）
+	RESETCOLOR
 ENDIF
 
 LOCAL:1 = -1
@@ -29,7 +72,7 @@ FOR LOCAL, 0, 1000
 		CONTINUE
 	;模擬戦(非ウフフモード時の1番目のコマンド)の初期位置を変える処理
 	;デフォは100、コンフィグで設定している場合、0になる
-	IF LOCAL == 300 && TFLAG:44 == 0
+	IF LOCAL == 300 && TFLAG:44 == 0	; 【無[ウフフ中]】
 		IF FLAG:23 & 8388608
 			LOCAL:1 = -1
 		ELSE
@@ -119,16 +162,16 @@ IF A
 	CALL NEWLINE
 ENDIF
 ;服を脱がせる＝通称ウフフモード突入
-IF TFLAG:44 == 0 && TFLAG:34 == 0
+IF TFLAG:44 == 0 && TFLAG:34 == 0	; 【無[ウフフ中] / 無[主導権全委任]】
 	PRINTC 服を脱がせる[850]
 	CALL NEWLINE
 ENDIF
-IF TFLAG:34 == 0 && (FLAG:23 & 8)
+IF TFLAG:34 == 0 && (FLAG:23 & 8) && (TARGET < 0 || BASE:TARGET:0 > 0)	; 【無[主導権全委任] / TARGET:[体力]>0】
 	PRINTC 主導権を決める[851]
 	CALL NEWLINE
 ENDIF
 ;通常時・ウフフ中のどちらでも、パートナーAIに連続行動を任せられる
-IF TFLAG:34 == 0
+IF TFLAG:34 == 0 && (TARGET < 0 || BASE:TARGET:0 > 0)	; 【無[主導権全委任] / TARGET:[体力]>0】
 	PRINTC パートナーに任せる[852]
 	CALL NEWLINE
 ENDIF
@@ -146,15 +189,15 @@ IF CFLAG:TARGET:独自コマンド使用判定
 	NEXT
 ENDIF
 IF ASSI > 0
-	IF ASSIPLAY && TEQUIP:90 == 0 && TEQUIP:2 == 0 && (TFLAG:44 == 0 || TALENT:152)
+	IF ASSIPLAY && TEQUIP:90 == 0 && TEQUIP:2 == 0 && (TFLAG:44 == 0 || TALENT:152)	; 【[合意] / 無[触手プレイ] / 無[デート中] / 無[ウフフ中] / 調教者:[助手]】
 		PRINTC マスターと交代[900]
-	ELSEIF TEQUIP:90 == 0 && TEQUIP:2 == 0 && (TFLAG:44 == 0 || TALENT:152)
+	ELSEIF TEQUIP:90 == 0 && TEQUIP:2 == 0 && (TFLAG:44 == 0 || TALENT:152)	; 【[合意] / 無[触手プレイ] / 無[デート中] / 無[ウフフ中]】
 		PRINTC 助手と交代[900]
 	ENDIF
 	CALL NEWLINE
 ENDIF
 
-IF ASSIPLAY 
+IF ASSIPLAY	; 【調教者:[助手]】
 	PRINTC 能力表示(助手)[902]
 ELSE
 	PRINTC 能力表示(マスター)[902]
@@ -164,7 +207,7 @@ PRINTC 生徒手帳[910]
 CALL NEWLINE
 PRINTC リセット[950]
 CALL NEWLINE
-IF TALENT:MASTER:998
+IF TALENT:MASTER:998	; 【MASTER:[Debug]】
 	PRINTC デバッグメニュー[998]
 	CALL NEWLINE
 ENDIF
@@ -172,7 +215,7 @@ PRINTC 行動終了[999]
 IF PREVCOM >= 0
 	PRINTL 
 	PRINTFORM < 前回実行コマンド : %STR:0% 
-	SIF TFLAG:50
+	SIF TFLAG:50	; 【[調教者切替]】
 		PRINT (助手) 
 	PRINT >
 ENDIF
@@ -213,25 +256,30 @@ ENDCATCH
 ;ARG:1 元処理のLOCAL:1(表示番号)
 ;---------------------------------------------------------------------------------------------
 @CUSTOM_COMMAND_NAME, ARG, ARG:1
+;気絶中は主導権を相手に移さず名前変更も行わない
+IF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	TFLAG:45 = 0
+	TFLAG:34 = 0
+ENDIF
 ;LOCALSに元のコマンド名を設定
 LOCALS = %TRAINNAME:ARG%
 
 ;パートナーに主導権がある時、パートナー側がプレイヤーへ行動するコマンドの名前変更
 ;スパンキング
-SIF SELECTCOM == 40 && TFLAG:45
+SIF SELECTCOM == 40 && TFLAG:45	; 【コマンド:[スパンキング] / [主導権]】
 	LOCALS = スパンキングされる
 ;鞭
-SIF SELECTCOM == 41 && TFLAG:45
+SIF SELECTCOM == 41 && TFLAG:45	; 【コマンド:[鞭] / [主導権]】
 	LOCALS = 鞭で打たれる
 ;針
-SIF SELECTCOM == 42 && TFLAG:45
+SIF SELECTCOM == 42 && TFLAG:45	; 【コマンド:[針] / [主導権]】
 	LOCALS = 針で刺される
 ;言葉責め
-SIF SELECTCOM == 75 && TFLAG:45
+SIF SELECTCOM == 75 && TFLAG:45	; 【コマンド:[言葉責め] / [主導権]】
 	LOCALS = 言葉責めされる
 
 ;剃毛プレイ
-IF SELECTCOM == 257
+IF SELECTCOM == 257	; 【コマンド:[剃毛プレイ]】
 	;PLAYER主導権時の実行判定
 	CALL COM_ABLE257_PLAYER_MAIN
 	LOCAL:0 = RESULT
@@ -242,22 +290,22 @@ IF SELECTCOM == 257
 	
 	;TARGET主導権時の「剃毛される」を実行可能で、TARGETが主導権をもっている場合名前変更
 	;またPLAYER主導権時の「剃毛プレイ」を実行できない場合も「剃毛される」になるため名前変更
-	SIF LOCAL:1 && (TFLAG:45 || LOCAL:0 == 0)
+	SIF LOCAL:1 && (TFLAG:45 || LOCAL:0 == 0)	; 【[主導権]】
 		LOCALS = 剃毛される
 ENDIF
 
 ;デート中のCOM320名称変更
-IF SELECTCOM == 320 && (TEQUIP:2 == 38 || TEQUIP:2 == 39)
+IF SELECTCOM == 320 && (TEQUIP:2 == 38 || TEQUIP:2 == 39)	; 【コマンド:[学食に行く] / [デート中]==38 / [デート中]==39】
 	LOCALS = 食事をする
-ELSEIF SELECTCOM == 320 && TEQUIP:2
+ELSEIF SELECTCOM == 320 && TEQUIP:2	; 【コマンド:[学食に行く] / [デート中]使用中】
 	LOCALS = 外食をする
 ENDIF
 
 ;浣腸使用前
-SIF SELECTCOM == 46 && TEQUIP:46 == 0
+SIF SELECTCOM == 46 && TEQUIP:46 == 0	; 【コマンド:[浣腸器＋プラグ] / 無[普通の浣腸]】
 	LOCALS = 浣腸
 ;浣腸・触手浣腸使用後
-SIF (SELECTCOM == 46 || SELECTCOM == 107) && TEQUIP:46
+SIF (SELECTCOM == 46 || SELECTCOM == 107) && TEQUIP:46	; 【コマンド:[浣腸器＋プラグ] / [普通の浣腸]使用中】
 	LOCALS = 排泄
 
 ;コマンド名表示
@@ -282,19 +330,43 @@ ELSEIF RESULT == 801
 	CALL STAIN_INFO
 	RETURN 1
 ELSEIF RESULT == 802
-	;新型表示
-	DRAWLINE
-	PRINTFORM ■ %NAME:TARGET%(パートナー)のステータス 
-	SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
-		PRINTFORM (好感度:{CFLAG:2})
-	PRINTL 
-	CALL SHOW_BODY_SIZE
-	CALL SHOW_INFO
-	RETURN 1
+	LOCAL:50 = 1
+	$TRAIN_STATUS_LOOP
+	IF LOCAL:50 == 1
+		W = TARGET
+		DRAWLINE
+		PRINTFORM ■ %NAME:TARGET%(パートナー)のステータス (PAGE 1/2) 
+		SIF ((FLAG:23 & 1p26) == 0) && FLAG:2 != 1
+			PRINTFORM (好感度:{CFLAG:2})
+		PRINTL 
+		CALL SHOW_BODY_SIZE
+		DRAWLINE
+		PRINTL □ 珠
+		CALL NEW_PRINT_JUEL
+		CALL SHOW_INFO_PAGE1
+		PRINTL
+		PRINTFORML [10] 次のページ（詳細記録・個人ログへ）
+		PRINTFORML [0] 戻る
+	ELSE
+		CALL SHOW_CHARA_PAGE2, TARGET
+		PRINTL
+		PRINTFORML [10] 前のページ（基本ステータスへ）
+		PRINTFORML [0] 戻る
+	ENDIF
+	$TRAIN_STATUS_INPUT
+	INPUT
+	IF RESULT == 10
+		LOCAL:50 = (LOCAL:50 == 1) ? 2 # 1
+		GOTO TRAIN_STATUS_LOOP
+	ELSEIF RESULT == 0
+		RETURN 1
+	ELSE
+		GOTO TRAIN_STATUS_INPUT
+	ENDIF
 ELSEIF RESULT == 810 && A
 	;アイテム使用
 	CALL USE_TREASURE_ITEM
-ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
+ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0	; 【無[ウフフ中] / 無[主導権全委任]】
 	IF FLAG:23 & 2
 		PRINTFORML 服を脱がせて(Ｈな事をしようとして)もよろしいですか？
 		PRINTFORML [0] ダメ。手が滑った
@@ -309,14 +381,15 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 	ENDIF
 
 	;[合意]持ちなら判定全スルー
-	IF TALENT:152
+	IF TALENT:152	; 【[合意]】
 		TFLAG:44 = 1
 		TFLAG:600 = 7
 		CALL KOJO_JUN
-		IF TFLAG:44 == 1
+		IF TFLAG:44 == 1	; 【[ウフフ中]==1】
 			;映画館から追い出される
 			CALL GET_OUT_MOVIE
 			TRYCALLFORM CHAR_UNDRESS_{NO:TARGET}
+			CALL AUTO_WEAR_FAVORITE_CLOTH
 			RETURN 1
 		ELSE
 			RETURN 0
@@ -327,8 +400,8 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 		S = 0
 		V = 70
 		W = 100
-		;Stage3クリア後は実行値スルー
-		SIF  FLAG:24 > 3 || TALENT:MASTER:202
+		;既にエンディングを迎えている場合は実行値スルー（周回プレイは2周目以降＝FLAG:26>1）
+		SIF (FLAG:28 & 1) || FLAG:26 > 1 || FLAG:24 > 3 || TALENT:MASTER:202
 			V = -9999
 
 		;すべての命令に共通の要素を考慮
@@ -336,35 +409,35 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 		CALL COM_ORDER
 
 		;ABL:欲望
-		IF ABL:1
+		IF ABL:1	; 【[欲望]】
 			A += ABL:1 * 4
 		ENDIF
 		;ABL:奉仕精神
-		IF ABL:6
+		IF ABL:6	; 【[奉仕精神]】
 			A += ABL:6 * 3
 		ENDIF
 		;男嫌い
-		IF TALENT:82 && TALENT:PLAYER:122
+		IF TALENT:82 && TALENT:PLAYER:122	; 【[男嫌い] / PLAYER:[オトコ]】
 			A -= 7
 		ENDIF
 
 
 		;恋慕
-		IF TALENT:85 && ASSIPLAY == 0
+		IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
 			A += 10
 		ENDIF
 
 		;ムードボーナス
 		B = 0
-		IF TFLAG:37 < 10
+		IF TFLAG:37 < 10	; 【[ムード]<10】
 			B -= 20
-		ELSEIF TFLAG:37 < 30
+		ELSEIF TFLAG:37 < 30	; 【[ムード]<30】
 			B -= 5
-		ELSEIF TFLAG:37 < 50
+		ELSEIF TFLAG:37 < 50	; 【[ムード]<50】
 			B -= 1
-		ELSEIF TFLAG:37 < 100
+		ELSEIF TFLAG:37 < 100	; 【[ムード]<100】
 			B += TFLAG:37 / 10
-		ELSEIF TFLAG:37 < 300
+		ELSEIF TFLAG:37 < 300	; 【[ムード]<300】
 			B += TFLAG:37 / 7
 		ELSE
 			B += TFLAG:37 / 5
@@ -377,13 +450,13 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 
 
 		;好感度
-		IF CFLAG:2 < 700
+		IF CFLAG:2 < 700	; 【[好感度]<700】
 			B = 0
-			IF CFLAG:2 < 50
+			IF CFLAG:2 < 50	; 【[好感度]<50】
 				B = 50
-			ELSEIF CFLAG:2 < 300
+			ELSEIF CFLAG:2 < 300	; 【[好感度]<300】
 				B = 20
-			ELSEIF CFLAG:2 < 500
+			ELSEIF CFLAG:2 < 500	; 【[好感度]<500】
 				B = 10
 			ELSE
 				B = 5
@@ -392,9 +465,9 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 		ENDIF
 
 		;好感度
-		IF CFLAG:2 >= 700
+		IF CFLAG:2 >= 700	; 【[好感度]>=700】
 			B = 0
-			IF CFLAG:2 < 1000
+			IF CFLAG:2 < 1000	; 【[好感度]<1000】
 				B = 5
 			ELSE
 				B = CFLAG:2 / 100
@@ -402,23 +475,23 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 			A += B
 		ENDIF
 		;キス未経験
-		IF TALENT:151
+		IF TALENT:151	; 【[キス未経験]】
 			A -= 20
 		ENDIF
 
 		;一線越えない
-		IF TALENT:27 == 1
+		IF TALENT:27 == 1	; 【[一線越えない]】
 			A -= 15
 		ENDIF
 
 		;酔った勢い
-		IF TFLAG:47 >= 3
+		IF TFLAG:47 >= 3	; 【[酩酊度]>=3】
 			A += TFLAG:47 / 3
 		ENDIF
 
 		IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			;ABL:欲望
-			IF ABL:1
+			IF ABL:1	; 【[欲望]】
 				SIF S
 					PRINT  + 
 				PRINTS ABLNAME:1
@@ -426,7 +499,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 				S = 1
 			ENDIF
 			;ABL:奉仕精神
-			IF ABL:6
+			IF ABL:6	; 【[奉仕精神]】
 				SIF S
 					PRINT  + 
 				PRINTS ABLNAME:6
@@ -434,7 +507,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 				S = 1
 			ENDIF
 			;男嫌い
-			IF TALENT:82 && TALENT:PLAYER:122
+			IF TALENT:82 && TALENT:PLAYER:122	; 【[男嫌い] / PLAYER:[オトコ]】
 				PRINT  - 
 				PRINTS TALENTNAME:82
 				PRINTV '(,7,')
@@ -443,7 +516,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 
 
 			;恋慕
-			IF TALENT:85 && ASSIPLAY == 0
+			IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
 				SIF S
 					PRINT  + 
 				PRINTS TALENTNAME:85
@@ -453,15 +526,15 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 
 			;ムードボーナス
 			B = 0
-			IF TFLAG:37 < 10
+			IF TFLAG:37 < 10	; 【[ムード]<10】
 				B -= 20
-			ELSEIF TFLAG:37 < 30
+			ELSEIF TFLAG:37 < 30	; 【[ムード]<30】
 				B -= 5
-			ELSEIF TFLAG:37 < 50
+			ELSEIF TFLAG:37 < 50	; 【[ムード]<50】
 				B -= 1
-			ELSEIF TFLAG:37 < 100
+			ELSEIF TFLAG:37 < 100	; 【[ムード]<100】
 				B += TFLAG:37 / 10
-			ELSEIF TFLAG:37 < 300
+			ELSEIF TFLAG:37 < 300	; 【[ムード]<300】
 				B += TFLAG:37 / 7
 			ELSE
 				B += TFLAG:37 / 5
@@ -481,14 +554,14 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 
 
 			;好感度
-			IF CFLAG:2 < 700
+			IF CFLAG:2 < 700	; 【[好感度]<700】
 				B = 0
 				PRINT  - 
-				IF CFLAG:2 < 50
+				IF CFLAG:2 < 50	; 【[好感度]<50】
 					B = 50
-				ELSEIF CFLAG:2 < 300
+				ELSEIF CFLAG:2 < 300	; 【[好感度]<300】
 					B = 20
-				ELSEIF CFLAG:2 < 500
+				ELSEIF CFLAG:2 < 500	; 【[好感度]<500】
 					B = 10
 				ELSE
 					B = 5
@@ -499,11 +572,11 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 			ENDIF
 
 			;好感度
-			IF CFLAG:2 >= 700
+			IF CFLAG:2 >= 700	; 【[好感度]>=700】
 				B = 0
 				SIF S
 					PRINT  + 
-				IF CFLAG:2 < 1000
+				IF CFLAG:2 < 1000	; 【[好感度]<1000】
 					B = 5
 				ELSE
 					B = CFLAG:2 / 100
@@ -513,7 +586,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 				S = 1
 			ENDIF
 			;キス未経験
-			IF TALENT:151
+			IF TALENT:151	; 【[キス未経験]】
 				PRINT  - 
 				PRINTS TALENTNAME:151
 				PRINTV '(,20,')
@@ -521,7 +594,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 			ENDIF
 
 			;一線越えない
-			IF TALENT:27
+			IF TALENT:27	; 【[一線越えない]】
 				PRINT  - 
 				PRINTS TALENTNAME:27
 				PRINTV '(,15,')
@@ -529,7 +602,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 			ENDIF
 
 			;酔った勢い
-			IF TFLAG:47 >= 3
+			IF TFLAG:47 >= 3	; 【[酩酊度]>=3】
 				PRINT  + 
 				PRINT 酔った勢い
 				PRINTV '(,TFLAG:47 / 3,')
@@ -568,7 +641,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 		IF A < V
 			TFLAG:600 = 6
 			CALL KOJO_JUN
-			IF TALENT:85 == 0
+			IF TALENT:85 == 0	; 【[恋慕]なし】
 				PRINTFORMW %CALLNAME:TARGET%の好感度が50下がりました
 				CFLAG:2 -= 50
 			ENDIF
@@ -577,7 +650,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 			TFLAG:44 = 1
 			TFLAG:600 = 4
 			CALL KOJO_JUN
-			IF TFLAG:44 == 1
+			IF TFLAG:44 == 1	; 【[ウフフ中]==1】
 				;映画館から追い出される
 				CALL GET_OUT_MOVIE
 				TRYCALLFORM CHAR_UNDRESS_{NO:TARGET}
@@ -587,7 +660,7 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 			ENDIF
 		ELSEIF A >= W
 			;酔ってるお陰で成功の場合
-			IF A < W + TFLAG:47 / 3
+			IF A < W + TFLAG:47 / 3	; 【[酩酊度]】
 				TFLAG:48 = 1
 			ELSE
 				TFLAG:48 = 0
@@ -595,8 +668,8 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 			TFLAG:600 = 5
 			TFLAG:44 = 1
 			CALL KOJO_JUN
-			IF TFLAG:44 == 1
-				IF ASSIPLAY == 0 && TFLAG:48 == 0
+			IF TFLAG:44 == 1	; 【[ウフフ中]==1】
+				IF ASSIPLAY == 0 && TFLAG:48 == 0	; 【無[よっぱウフフ] / 調教者:[主人]】
 					PRINTFORMW %CALLNAME:TARGET%の【合意】を得た
 					TALENT:152 = 1
 				ENDIF
@@ -614,21 +687,21 @@ ELSEIF RESULT == 850 && TFLAG:44 == 0 && TFLAG:34 == 0
 	ENDIF
 
 	RETURN 1
-ELSEIF RESULT == 851 && (FLAG:23 & 8) && TFLAG:34 == 0
+ELSEIF RESULT == 851 && (FLAG:23 & 8) && TFLAG:34 == 0	; 【無[主導権全委任]】
 	PRINT どちらが主導権を握りますか？  現在は
-	IF CFLAG:15 == 0
+	IF CFLAG:15 == 0	; 【[主導権設定]==0】
 		PRINTL 成り行きに任せています
-	ELSEIF CFLAG:15 == 1
+	ELSEIF CFLAG:15 == 1	; 【[主導権設定]==1】
 		PRINTL 自分で握っています
-	ELSEIF CFLAG:15 == 2
-		SIF TFLAG:34
+	ELSEIF CFLAG:15 == 2	; 【[主導権設定]==2】
+		SIF TFLAG:34	; 【[主導権全委任]】
 			PRINT 完全に
 		PRINTFORML %CALLNAME:TARGET%に握らせています
 	ENDIF
 	PRINTL [0] - 成り行きに任せる
-	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153
+	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153	; 【[素直] / [大人しい] / [プライド低い] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		PRINTL [1] - 自分で握る
-	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153
+	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153	; 【[サド] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		PRINTFORML [2] - %CALLNAME:TARGET%に握らせる
 	SIF TALENT:恋慕 && TALENT:恋人
 		PRINTFORML [3] - 完全に%CALLNAME:TARGET%に握らせる
@@ -636,10 +709,10 @@ ELSEIF RESULT == 851 && (FLAG:23 & 8) && TFLAG:34 == 0
 	INPUT
 	IF RESULT == 0
 		CFLAG:15 = 0
-	ELSEIF RESULT == 1 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153)
+	ELSEIF RESULT == 1 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153)	; 【[素直] / [大人しい] / [プライド低い] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		CFLAG:15 = 1
 		TFLAG:45 = 0
-	ELSEIF RESULT == 2 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153)
+	ELSEIF RESULT == 2 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153)	; 【[サド] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		CFLAG:15 = 2
 		TFLAG:45 = 1
 	ELSEIF RESULT == 3 && (TALENT:恋慕 && TALENT:恋人)
@@ -652,7 +725,7 @@ ELSEIF RESULT == 851 && (FLAG:23 & 8) && TFLAG:34 == 0
 	ENDIF
 	
 	RETURN 1
-ELSEIF RESULT == 852 && TFLAG:34 == 0
+ELSEIF RESULT == 852 && TFLAG:34 == 0	; 【無[主導権全委任]】
 	CALL AUTO_TRAIN_SELECT
 	RETURN 1
 ELSEIF RESULT == 860
@@ -660,9 +733,9 @@ ELSEIF RESULT == 860
 	CALL START_CONFIGURE
 ELSEIF (RESULT >= 870 && RESULT < 880) && GETBIT(CFLAG:TARGET:独自コマンド使用判定, (RESULT-860))
 	TRYCALLFORM KOJO_USERCOM_{NO:TARGET}_{RESULT}
-ELSEIF RESULT == 900 && TEQUIP:90 == 0 && ASSI > 0 && TEQUIP:2 == 0 && (TFLAG:44 == 0 || TALENT:152)
+ELSEIF RESULT == 900 && TEQUIP:90 == 0 && ASSI > 0 && TEQUIP:2 == 0 && (TFLAG:44 == 0 || TALENT:152)	; 【[合意] / 無[触手プレイ] / 無[デート中] / 無[ウフフ中]】
 	CALL KOJO_MESSAGE_PLAYERCHANGE
-	IF ASSIPLAY
+	IF ASSIPLAY	; 【調教者:[助手]】
 		ASSIPLAY = 0
 		PLAYER = MASTER
 	ELSE
@@ -674,7 +747,7 @@ ELSEIF RESULT == 902
 	;新型表示
 	W = PLAYER
 	DRAWLINE
-	IF ASSIPLAY
+	IF ASSIPLAY	; 【調教者:[助手]】
 		PRINTFORML ■ %NAME:PLAYER%(助手)のステータス
 	ELSE
 		PRINTFORML ■ %NAME:PLAYER%(マスター)のステータス
@@ -693,17 +766,27 @@ ELSEIF RESULT == 902
 ELSEIF RESULT == 910
 	;実績表示
 	CALL TROPHY
-ELSEIF RESULT == 998 && TALENT:MASTER:998
+ELSEIF RESULT == 998 && TALENT:MASTER:998	; 【MASTER:[Debug]】
 	;デバッグモード用メニュー
 	PRINTL デバッグメニューを呼び出します
 	CALL DEBUG_MENU_TRAIN
 	RETURN 1
 ELSEIF RESULT == 999
-	;襲われ判定
-	IF ASSIPLAY == 0 && (ABL:1 >= 7 || PALAM:3 >= 3000 || PALAM:5 >= 3000 || CFLAG:2 >= 10000)
+	;襲われ判定（気絶時は発生しない）
+	IF ASSIPLAY == 0 && (TARGET < 0 || BASE:TARGET:0 > 0) && (ABL:1 >= 7 || PALAM:3 >= 3000 || PALAM:5 >= 3000 || CFLAG:2 >= 10000)	; 【[欲望]Lv>=7 / [潤滑]>=3000 / [欲情]>=3000 / [好感度]>=10000 / TARGET:[体力]>0 / 調教者:[主人]】
 		CALL PUSH_OVER
 		SIF RESULT
 			RETURN 1
+	ENDIF
+
+	IF TARGET >= 0 && BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+		TFLAG:301 = 1
+		TFLAG:51 = 2
+		PRINTL 
+		SETCOLOR 0xFF6666
+		PRINTFORMW （調教を終了しました。%CALLNAME:TARGET%は意識を失ったまま深く衰弱しています……（体力：{BASE:TARGET:0}））
+		PRINTFORMW （正の値に回復するまで【衰弱療養中（お休み）】となり、パートナーとして活動できません）
+		RESETCOLOR
 	ENDIF
 
 	BEGIN AFTERTRAIN
@@ -754,7 +837,7 @@ CALL NEW_PRINT_JUEL
 IF PREVCOM >= 0
 	PRINT 前回実行コマンド : 
 	PRINTS STR:0
-	SIF TFLAG:50
+	SIF TFLAG:50	; 【[調教者切替]】
 		PRINT (助手)
 	;PRINT (COMF:
 	;PRINTV PREVCOM
@@ -762,32 +845,32 @@ IF PREVCOM >= 0
 	PRINTL  
 ENDIF
 ;日常用
-SIF TEQUIP:7
+SIF TEQUIP:7	; 【[炬燵]使用中】
 	PRINTL [炬燵使用中]
-SIF TEQUIP:36
+SIF TEQUIP:36	; 【[着衣ローター]使用中】
 	PRINTL [ローター装着中]
 
 ;ウフフ時用
-SIF TEQUIP:21
+SIF TEQUIP:21	; 【[媚薬効果発揮中]使用中】
 	PRINTL [媚薬効果発揮中]
-SIF TEQUIP:22
+SIF TEQUIP:22	; 【[利尿剤効果発揮中]使用中】
 	PRINTL [利尿剤効果発揮中]
-SIF TEQUIP:74
+SIF TEQUIP:74	; 【[鈴蘭の毒]使用中】
 	PRINTL [鈴蘭の毒効果発揮中]
-SIF TEQUIP:75
+SIF TEQUIP:75	; 【[昆虫採集セット薬]使用中】
 	PRINTL [昆虫採集セットの薬効果発揮中]
 
-SIF TEQUIP:53
+SIF TEQUIP:53	; 【[撮影中]使用中】
 	PRINTFORML [ビデオ撮影中({TFLAG:70 - 1}/10)]
-SIF TEQUIP:54
+SIF TEQUIP:54	; 【[野外プレイ中]使用中】
 	PRINTL [野外プレイ中]
-SIF TEQUIP:57
+SIF TEQUIP:57	; 【[羞恥（大鏡）プレイ中]使用中】
 	PRINTL [羞恥プレイ中]
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	PRINTL [お風呂場プレイ中]
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	PRINTL [新妻プレイ中]
-SIF TEQUIP:60
+SIF TEQUIP:60	; 【[スク水]使用中】
 	PRINTL [スク水プレイ中]
 
 
@@ -795,65 +878,65 @@ SIF TEQUIP:60
 
 
 
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	PRINTL [サラシ装着中]
 
 
-IF TEQUIP:18
+IF TEQUIP:18	; 【[シャワー]使用中】
 	PRINTL [シャワー使用中]
 ENDIF
 
-	SIF TEQUIP:44
+	SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 		PRINTL [縄で緊縛]
 
 
-	SIF TEQUIP:46
+	SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 		PRINTL [浣腸＋アナルプラグ]
 
 
-SIF TEQUIP:98
+SIF TEQUIP:98	; 【[触手口辱]使用中】
 	PRINTL [触手口辱中]
-SIF TEQUIP:43 && TEQUIP:73 == 0
+SIF TEQUIP:43 && TEQUIP:73 == 0	; 【[アイマスク]使用中 / 無[蜘蛛の糸縛り]】
 	PRINTL [アイマスク装備中]
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	PRINTL [ボールギャグ装備中]
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	PRINTL [アナルビーズ使用中]
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	PRINTL [空気浣腸中]
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	PRINTL [拡張バルーン挿入中]
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	PRINTL [アナル電極挿入中]
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	PRINTL [クスコ挿入中]
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	PRINTL [お医者プレイ中]
-SIF TEQUIP:69
+SIF TEQUIP:69	; 【[女体盛りプレイ中]使用中】
 	PRINTL [女体盛りプレイ中]
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	PRINTL [焼芋挿入中]
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	PRINTL [巨峰挿入中]
-SIF TEQUIP:PLAYER:43
+SIF TEQUIP:PLAYER:43	; 【[アイマスク]使用中】
 	PRINTFORML [アイマスク装備中(%CALLNAME:PLAYER%)]
-SIF TEQUIP:PLAYER:44
+SIF TEQUIP:PLAYER:44	; 【[縄で緊縛]使用中】
 	PRINTFORML [縄で緊縛(%CALLNAME:PLAYER%)]
-SIF TEQUIP:PLAYER:45
+SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 	PRINTFORML [ボールギャグ装備中(%CALLNAME:PLAYER%)]
-IF TEQUIP:79
-	SIF TEQUIP:79 == 1 || TEQUIP:79 == 2
+IF TEQUIP:79	; 【[氷柱]使用中】
+	SIF TEQUIP:79 == 1 || TEQUIP:79 == 2	; 【[氷柱]==1 / [氷柱]==2】
 		PRINTL [氷柱挿入中]
-	SIF TEQUIP:79 == 3
+	SIF TEQUIP:79 == 3	; 【[氷柱]==3】
 		PRINTL [極太氷柱挿入中]
-	SIF TEQUIP:79 >= 4
+	SIF TEQUIP:79 >= 4	; 【[氷柱]>=4】
 		PRINTL [氷塊挿入中]
 ENDIF
-SIF TEQUIP:80
+SIF TEQUIP:80	; 【[暗闇プレイ]使用中】
 	PRINTL [暗闇展開中]
-SIF TEQUIP:92
+SIF TEQUIP:92	; 【[蟲風呂プレイ]使用中】
 	PRINTL [蟲風呂入浴中]
-SIF TEQUIP:78
+SIF TEQUIP:78	; 【[鰻風呂プレイ]使用中】
 	PRINTL [鰻風呂入浴中]
 
 SIF EX:0

@@ -66,7 +66,7 @@ IF NO:MASTER == 0
 	ENDIF
 ENDIF
 
-SIF TALENT:MASTER:122 == 0
+SIF TALENT:MASTER:122 == 0	; 【MASTER:[オトコ]なし】
 	ABL:MASTER:9 = 3
 
 ;主人公のキャラID設定
@@ -153,12 +153,32 @@ BEGIN SHOP
 
 @EVENTCOM
 #PRI
+	;パートナーと一緒に過ごした時間加算
+	IF TARGET >= 1 && TARGET < CHARANUM
+		CFLAG:TARGET:1200 += 1
+		IF TFLAG:44 != 0	; 【[ウフフ中]】
+			CFLAG:TARGET:1212 += 1
+		ELSE
+			CFLAG:TARGET:1211 += 1
+		ENDIF
+		;着用衣装のターン数加算
+		IF TEQUIP:TARGET:65 > 0	; 【[コスプレ]>0】
+			LOCAL:65 = TEQUIP:TARGET:65
+			CFLAG:TARGET:(1300 + LOCAL:65) += 1
+			IF CFLAG:TARGET:(1300 + LOCAL:65) > CFLAG:TARGET:1217	; 【TARGET:[最多衣装着用ターン数]】
+				CFLAG:TARGET:1217 = CFLAG:TARGET:(1300 + LOCAL:65)
+				CFLAG:TARGET:1216 = LOCAL:65
+			ENDIF
+		ENDIF
+	ENDIF
 ;TFLAG:0-29,100,540毎ターンリセット
 REPEAT 30
 	TFLAG:COUNT = 0
 REND
 TFLAG:100 = 0
 TFLAG:540 = 0
+;コマンド開始時の耐力を記録（今回出し切ったか判定用）
+TFLAG:993 = BASE:MASTER:4
 ;自慰・レズ経験のセッション開始値を保存（デルタ判定用）
 SIF TARGET >= 0
 	TFLAG:55 = EXP:10
@@ -166,13 +186,15 @@ SIF TARGET >= 0
 	TFLAG:56 = EXP:40
 
 ;主導権設定
-IF (FLAG:23 & 8) == 0
+IF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	TFLAG:45 = 0
+ELSEIF (FLAG:23 & 8) == 0
 	;主導権を毎回設定
 	PRINTL 今回はどちらが主導権を握りますか？
 	PRINTL [0] - 成り行きに任せる
-	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153
+	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153	; 【[素直] / [大人しい] / [プライド低い] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		PRINTL [1] - 自分で握る
-	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153
+	SIF ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153	; 【[サド] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		PRINTFORML [2] - %CALLNAME:TARGET%に握らせる
 
 	INPUT
@@ -180,12 +202,12 @@ IF (FLAG:23 & 8) == 0
 		RESTART
 	ELSEIF RESULT == 0
 		CFLAG:15 = 0
-	ELSEIF RESULT == 1 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153)
+	ELSEIF RESULT == 1 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:13 || TALENT:14 || TALENT:17 || TALENT:153)	; 【[素直] / [大人しい] / [プライド低い] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		CFLAG:15 = 1
 		TFLAG:45 = 0
 	ELSEIF RESULT == 1
 		RESTART
-	ELSEIF RESULT == 2 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153)
+	ELSEIF RESULT == 2 && (ABL:0 >= 3 || CFLAG:2 >= 300 || TALENT:83 || TALENT:153)	; 【[サド] / [恋人] / [親密]Lv>=3 / [好感度]>=300】
 		CFLAG:15 = 2
 		TFLAG:45 = 1
 	ELSEIF RESULT == 2
@@ -193,7 +215,9 @@ IF (FLAG:23 & 8) == 0
 	ENDIF
 ENDIF
 ;成り行きに任せる場合の判定
-IF CFLAG:15 == 0
+IF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	TFLAG:45 = 0
+ELSEIF CFLAG:15 == 0	; 【[主導権設定]==0】
 	T = TARGET
 	CALL GET_INITIATIVE_RATE
 	A = RAND:101 - 50
@@ -205,7 +229,7 @@ IF CFLAG:15 == 0
 		TFLAG:45 = 0
 	ENDIF
 ;自分で握る場合の判定
-ELSEIF CFLAG:15 == 1
+ELSEIF CFLAG:15 == 1	; 【[主導権設定]==1】
 	TFLAG:45 = 0
 
 	T = TARGET
@@ -223,7 +247,7 @@ ELSEIF CFLAG:15 == 1
 	ENDIF
 
 ;相手に握らせる場合の判定
-ELSEIF CFLAG:15 == 2
+ELSEIF CFLAG:15 == 2	; 【[主導権設定]==2】
 	TFLAG:45 = 1
 
 	T = TARGET
@@ -245,39 +269,85 @@ ENDIF
 
 @EVENTCOMEND
 #PRI
-IF BASE:0 <= 0 && TALENT:128
-	PRINTW ＜リザレクション＞
-	EXP:50 += 3
-	PRINTL 異常経験＋３
-	BASE:0 = 1
-	;体力0での強制終了。廃止済みの感情マークは付与せず、事後行為と追加パートナーターンを止める。
-	TFLAG:301 = 1
+;体力0以下判定（気絶による調教継続はウフフ中 TFLAG:44 に限定）
+IF TFLAG:44 && BASE:0 <= 0	; 【[ウフフ中] / [体力]<=0】
+	;この調教で初めて気絶した時の通知
+	IF TFLAG:898 == 0	; 【無[初回気絶]】
+		TFLAG:898 = 1
+		;主導権解除
+		TFLAG:34 = 0
+		TFLAG:45 = 0
+		;事後行為と追加パートナーターンを止める
+		TFLAG:301 = 1
+		TFLAG:999 = 1
+		SETCOLOR 0xFF4444
+		PRINTFORMW （%CALLNAME:TARGET%は激しい消耗により限界を迎え、意識を失って気絶してしまった……！）
+		RESETCOLOR
+		PRINTFORMW （これ以降は、意識のない相手に対する一部の一方的なコマンドのみ実行可能です）
+		IF TALENT:128	; 【[不死者]】
+			PRINTW ＜リザレクション＞
+			EXP:50 += 1
+			PRINTL 異常経験＋１
+		ENDIF
+		IF ABL:0 > 0 && TALENT:153 == 0	; 【[恋人]なし / [親密]Lv>0】
+			ABL:0 -= 1
+			PRINTFORML %CALLNAME:TARGET%の親密が１下がった
+		ENDIF
+	ELSE
+		;既に気絶中の場合の状況描写
+		PRINTFORML （%CALLNAME:TARGET%はぐったりと気を失ったまま横たわっている……）
+	ENDIF
+	;体力の大幅なマイナス（極度の過負荷・心身損壊）ペナルティ
+	;体力が-1000以下に達している場合、無理な調教の代償として最大体力・最大気力が少しずつ減少
+	IF TARGET >= 0 && BASE:TARGET:0 <= -1000	; 【TARGET:[体力]】
+		LOCAL:80 = 5 + LIMIT(ABS(BASE:TARGET:0) / 200, 1, 20)
+		LOCAL:81 = 5 + LIMIT(ABS(BASE:TARGET:0) / 300, 1, 15)
+		LOCAL:82 = 0
+		IF MAXBASE:TARGET:0 > 500	; 【TARGET:[体力]>500】
+			LOCAL:80 = MIN(LOCAL:80, MAXBASE:TARGET:0 - 500)
+			MAXBASE:TARGET:0 -= LOCAL:80
+			LOCAL:82 = 1
+		ELSE
+			LOCAL:80 = 0
+		ENDIF
+		IF MAXBASE:TARGET:1 > 500	; 【TARGET:[気力]>500】
+			LOCAL:81 = MIN(LOCAL:81, MAXBASE:TARGET:1 - 500)
+			MAXBASE:TARGET:1 -= LOCAL:81
+			LOCAL:82 = 1
+		ELSE
+			LOCAL:81 = 0
+		ENDIF
+		IF LOCAL:82
+			SETCOLOR 0xFF6666
+			PRINTFORML （限界を遥かに超えた調教により、%CALLNAME:TARGET%の心身に過大な負荷がかかっている……）
+			SIF LOCAL:80 > 0
+				PRINTFORML 最大体力－{LOCAL:80}（現在：{MAXBASE:TARGET:0}）
+			SIF LOCAL:81 > 0
+				PRINTFORML 最大気力－{LOCAL:81}（現在：{MAXBASE:TARGET:1}）
+			RESETCOLOR
+		ENDIF
+	ENDIF
+	;※調教は強制終了せず続行可能（行動終了[999]等で終わるまでマイナス方向へ減り続けます）
+ELSEIF TFLAG:44 == 0 && BASE:0 <= 0	; 【無[ウフフ中] / [体力]<=0】
+	;非ウフフ（通常行動中）の体力切れは気絶継続せず終了
 	TFLAG:999 = 1
-	PRINTFORMW （体力が限界に来ています。%CALLNAME:MASTER%は%CALLNAME:TARGET%にゆっくり休むよう伝えてから、一旦別れました）
+	TFLAG:301 = 1
+	TFLAG:51 = 2
+	PRINTFORMW （%CALLNAME:TARGET%は疲労の限界を迎えて倒れ込んでしまった……）
+	PRINTFORMW （%CALLNAME:MASTER%は%CALLNAME:TARGET%を休ませるため、一旦別れました）
+	PRINTFORMW （%CALLNAME:TARGET%は衰弱療養中（お休み）となりました）
 	BEGIN AFTERTRAIN
-ELSEIF BASE:0 <= 0
-	BASE:0 = 1
-	;体力0での強制終了。廃止済みの感情マークは付与せず、事後行為と追加パートナーターンを止める。
-	TFLAG:301 = 1
-	TFLAG:999 = 1
-	PRINTFORMW （%CALLNAME:TARGET%は疲れ果てて気絶してしまった。%CALLNAME:MASTER%は%CALLNAME:TARGET%を寝床まで運び、一旦別れました）
-	IF ABL:0 > 0 && TALENT:153 == 0
-		ABL:0 -= 1
-		PRINTFORML %CALLNAME:TARGET%の親密が１下がった
+ELSEIF TFLAG:44 == 0 && BASE:1 <= 300 && CFLAG:27	; 【無[ウフフ中] / [金稼ぎ実行フラグ] / [気力]<=300】
+	PRINTFORMW （%CALLNAME:TARGET%は何か用事があるようです。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
+	IF BASE:0 <= 0	; 【[体力]<=0】
+		TFLAG:301 = 1
+		TFLAG:51 = 2
+		PRINTFORMW （%CALLNAME:TARGET%は衰弱療養中（お休み）となりました）
 	ENDIF
 	BEGIN AFTERTRAIN
-ELSEIF TFLAG:44 == 0 && BASE:1 <= 300 && CFLAG:27
-	PRINTFORMW （%CALLNAME:TARGET%は何か用事があるようです。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
-	BEGIN AFTERTRAIN
-ELSEIF TFLAG:44 == 0 && BASE:1 <= 0
+ELSEIF TFLAG:44 == 0 && BASE:1 <= 0	; 【無[ウフフ中] / [気力]<=0】
 	;このコマンドで時間終了が確定したため、#LATERのパートナーターンを抑止する。
 	TFLAG:999 = 1
-	;襲われ判定
-	;IF ASSIPLAY == 0 && (ABL:1 >= 7 || PALAM:3 >= 3000 || PALAM:5 >= 3000 || CFLAG:2 >= 10000)
-	;	CALL PUSH_OVER
-	;	SIF RESULT
-	;		RETURN 1
-	;ENDIF
 
 	IF TIME == 0
 		IF DAY:5 <= 4
@@ -287,6 +357,11 @@ ELSEIF TFLAG:44 == 0 && BASE:1 <= 0
 		ENDIF
 	ELSE
 		PRINTFORMW （そろそろ眠る時間です。%CALLNAME:MASTER%は%CALLNAME:TARGET%と一旦別れました）
+	ENDIF
+	IF BASE:0 <= 0	; 【[体力]<=0】
+		TFLAG:301 = 1
+		TFLAG:51 = 2
+		PRINTFORMW （%CALLNAME:TARGET%は衰弱療養中（お休み）となりました）
 	ENDIF
 	BEGIN AFTERTRAIN
 ENDIF
@@ -300,13 +375,18 @@ F = 0
 G = 0
 H = 0
 I = 0
+;待機行動のペア処理フラグ初期化
+FOR LOCAL:10, 0, CHARANUM
+	CFLAG:(LOCAL:10):1290 = 0
+NEXT
+
 REPEAT CHARANUM
 	Y:COUNT = -1
 REND
 
 ;Phモード限定の霧飲まれチェック
 IF FLAG:5 == 10 && TARGET >= 0
-	SIF CFLAG:17
+	SIF CFLAG:17	; 【[臨月・育児中]】
 		CALL SET_TMP_PARTNER
 ENDIF
 
@@ -314,15 +394,15 @@ ENDIF
 IF FLAG:5 == 10 || TALENT:MASTER:淫乱ボーナス || TALENT:MASTER:淫乱ボーナス強化
 	I = 0
 	REPEAT CHARANUM
-		SIF TALENT:COUNT:76
+		SIF TALENT:COUNT:76	; 【COUNT:[淫乱]】
 			I += 1
 	REND
-	SIF TALENT:MASTER:206
+	SIF TALENT:MASTER:206	; 【MASTER:[淫乱ボーナス強化]】
 		TIMES I , 3.00
 ENDIF
 
 ;主人公の体力が残ってるかチェック
-SIF BASE:MASTER:4 > 0
+SIF BASE:MASTER:4 > 0	; 【MASTER:[耐力]>0】
 	H = 1
 
 ;待機行動中に入手した経験や宝珠や好感度を表示する場合PRINTL 
@@ -332,7 +412,7 @@ IF FLAG:23 & 1p25
 ELSE
 	IF FLAG:23 & 1024
 		REPEAT CHARANUM
-			IF CFLAG:COUNT:13 == 12
+			IF CFLAG:COUNT:13 == 12	; 【COUNT:[待機中行動]==12】
 				PRINTL 
 				BREAK
 			ENDIF
@@ -342,7 +422,7 @@ ENDIF
 
 REPEAT CHARANUM
 	;別れているキャラは無視
-	IF CFLAG:COUNT:21
+	IF CFLAG:COUNT:21	; 【COUNT:[別れ]】
 		;……しつつリング資金稼ぎ
 		CALL TURNEND_EARN_MONEY_TM
 		CONTINUE
@@ -359,7 +439,7 @@ REPEAT CHARANUM
 			MAXBASE:COUNT:4 = MAXBASE:COUNT:0 * (1300 + MASTER_ENDURANCE_GROWTH()) / 400
 		ELSE
 			;オーバーフロー対策
-			IF 999999999999999999 / MAXBASE:COUNT:0 <= (1300 + MASTER_ENDURANCE_GROWTH()) / 400
+			IF 999999999999999999 / MAXBASE:COUNT:0 <= (1300 + MASTER_ENDURANCE_GROWTH()) / 400	; 【COUNT:[体力]】
 				MAXBASE:COUNT:4 = 999999999999999999
 			ELSE
 				;オーバーフロー対策に先に100で割っておく
@@ -376,7 +456,7 @@ REPEAT CHARANUM
 			MAXBASE:COUNT:4 = MAXBASE:COUNT:0 * (1300 + FEMALE_ENDURANCE_GROWTH(COUNT)) / 400
 		ELSE
 			;オーバーフロー対策
-			IF 999999999999999999 / MAXBASE:COUNT:0 <= (1300 + FEMALE_ENDURANCE_GROWTH(COUNT)) / 400
+			IF 999999999999999999 / MAXBASE:COUNT:0 <= (1300 + FEMALE_ENDURANCE_GROWTH(COUNT)) / 400	; 【COUNT:[体力]】
 				MAXBASE:COUNT:4 = 999999999999999999
 			ELSE
 				;オーバーフロー対策に先に100で割っておく
@@ -387,15 +467,15 @@ REPEAT CHARANUM
 
 	IF COUNT == MASTER
 		;主人公限定で魔力＝気力の約3%を基準値として、射精経験で増加
-		IF EXP:COUNT:3 <= 100
+		IF EXP:COUNT:3 <= 100	; 【COUNT:[射精経験]<=100】
 			MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 30 * (50 + EXP:COUNT:3) / 50
-		ELSEIF EXP:COUNT:3 <= 400
+		ELSEIF EXP:COUNT:3 <= 400	; 【COUNT:[射精経験]<=400】
 			MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 30 * (EXP:COUNT:3 - 25) / 25
-		ELSEIF EXP:COUNT:3 <= 1000000
+		ELSEIF EXP:COUNT:3 <= 1000000	; 【COUNT:[射精経験]<=1000000】
 			MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 30 * (EXP:COUNT:3 - 250) / 10
 		ELSE
 			;オーバーフロー対策
-			IF 999999999999999999 / MAXBASE:COUNT:1 <= (EXP:COUNT:3 - 250) / 300
+			IF 999999999999999999 / MAXBASE:COUNT:1 <= (EXP:COUNT:3 - 250) / 300	; 【COUNT:[射精経験]あり / COUNT:[気力]】
 				MAXBASE:COUNT:5 = 999999999999999999
 			ELSE
 				;オーバーフロー対策に先に100で割っておく
@@ -404,15 +484,15 @@ REPEAT CHARANUM
 		ENDIF
 	ELSE
 		;魔力＝気力の10%を基準値として、精液経験で増加
-		IF EXP:COUNT:20 <= 100
+		IF EXP:COUNT:20 <= 100	; 【COUNT:[精液経験]<=100】
 			MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 10 * (50 + EXP:COUNT:20) / 50
-		ELSEIF EXP:COUNT:20 <= 400
+		ELSEIF EXP:COUNT:20 <= 400	; 【COUNT:[精液経験]<=400】
 			MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 10 * (EXP:COUNT:20 - 25) / 25
-		ELSEIF EXP:COUNT:20 <= 1000000
+		ELSEIF EXP:COUNT:20 <= 1000000	; 【COUNT:[精液経験]<=1000000】
 			MAXBASE:COUNT:5 = MAXBASE:COUNT:1 / 10 * (EXP:COUNT:20 - 250) / 10
 		ELSE
 			;オーバーフロー対策
-			IF 999999999999999999 / MAXBASE:COUNT:1 <= (EXP:COUNT:20 - 250) / 100
+			IF 999999999999999999 / MAXBASE:COUNT:1 <= (EXP:COUNT:20 - 250) / 100	; 【COUNT:[精液経験]あり / COUNT:[気力]】
 				MAXBASE:COUNT:5 = 999999999999999999
 			ELSE
 				;オーバーフロー対策に先に100で割っておく
@@ -423,7 +503,7 @@ REPEAT CHARANUM
 
 	;Phモード限定の淫乱ボーナス
 	IF FLAG:5 == 10 || TALENT:MASTER:淫乱ボーナス || TALENT:MASTER:淫乱ボーナス強化
-		IF 999999999999999999 / (5 + I) * 5 <= MAXBASE:COUNT:4
+		IF 999999999999999999 / (5 + I) * 5 <= MAXBASE:COUNT:4	; 【COUNT:[耐力]】
 			MAXBASE:COUNT:4 = 999999999999999999
 		ELSE
 			MAXBASE:COUNT:4 = MAXBASE:COUNT:4 * (5 + I) / 5
@@ -439,14 +519,13 @@ REPEAT CHARANUM
 	D = 0
 ;体力の回復
 	IF COUNT == MASTER
-		;主人公: 体力は昼10%、夜20%。耐力は昼夜切替20%、日付切替50%。
+		;主人公: 体力は昼10%、夜20%。耐力は昼夜切替(TIME==0)20%、日付切替(TIME==1)50%。
 		IF TIME == 0
 			A = MAXBASE:COUNT:0 / 10
-			;TIME==0は新しい日が始まる側。
-			B = MAXBASE:COUNT:4 / 2
+			B = MAXBASE:COUNT:4 / 5
 		ELSE
 			A = MAXBASE:COUNT:0 / 5
-			B = MAXBASE:COUNT:4 / 5
+			B = MAXBASE:COUNT:4 / 2
 		ENDIF
 	ELSE
 		;女の子: 昼25%、夜50%
@@ -460,41 +539,41 @@ REPEAT CHARANUM
 	ENDIF
 
 	;回復早い、回復遅い、吸血鬼、不死者
-	IF TALENT:COUNT:128
+	IF TALENT:COUNT:128	; 【COUNT:[不死者]】
 		A *= 3
 		B *= 3
-	ELSEIF TALENT:COUNT:111 || (TALENT:COUNT:114 && TALENT:COUNT:218 == 0)
+	ELSEIF TALENT:COUNT:111 || (TALENT:COUNT:114 && TALENT:COUNT:218 == 0)	; 【COUNT:[回復早い] / COUNT:[吸血鬼] / COUNT:[眷属]なし】
 		A *= 2
 		B *= 2
-	ELSEIF TALENT:COUNT:114 && TALENT:COUNT:218
+	ELSEIF TALENT:COUNT:114 && TALENT:COUNT:218	; 【COUNT:[吸血鬼] / COUNT:[眷属]】
 		TIMES A , 1.5
 		TIMES B , 1.5
-	ELSEIF TALENT:COUNT:112
+	ELSEIF TALENT:COUNT:112	; 【COUNT:[回復遅い]】
 		A /= 2
 		B /= 2
 	ENDIF
 	
 	;日光浴、月光浴、吸血鬼
 	IF TIME == 0
-		IF TALENT:COUNT:115 && TIME:5 == 1
+		IF TALENT:COUNT:115 && TIME:5 == 1	; 【COUNT:[日光浴]】
 			A += 400
 			B += 400
-		ELSEIF TALENT:COUNT:115 && (TIME:5 == 0 || TIME:5 == 7)
+		ELSEIF TALENT:COUNT:115 && (TIME:5 == 0 || TIME:5 == 7)	; 【COUNT:[日光浴]】
 			A += 200
 			B += 200
 		ENDIF
 	ELSE
-		IF (TALENT:COUNT:114 || TALENT:COUNT:116) && TIME:5 == 1
+		IF (TALENT:COUNT:114 || TALENT:COUNT:116) && TIME:5 == 1	; 【COUNT:[吸血鬼] / COUNT:[月光浴]】
 			A += 400
 			B += 400
-			IF TALENT:COUNT:114 && TALENT:COUNT:218
+			IF TALENT:COUNT:114 && TALENT:COUNT:218	; 【COUNT:[吸血鬼] / COUNT:[眷属]】
 				A -= 200
 				B -= 200
 			ENDIF
-		ELSEIF (TALENT:COUNT:114 || TALENT:COUNT:116) && TIME:5 == 0
+		ELSEIF (TALENT:COUNT:114 || TALENT:COUNT:116) && TIME:5 == 0	; 【COUNT:[吸血鬼] / COUNT:[月光浴]】
 			A += 200
 			B += 200
-			IF TALENT:COUNT:114 && TALENT:COUNT:218
+			IF TALENT:COUNT:114 && TALENT:COUNT:218	; 【COUNT:[吸血鬼] / COUNT:[眷属]】
 				A -= 100
 				B -= 100
 			ENDIF
@@ -503,12 +582,12 @@ REPEAT CHARANUM
 
 	;治療
 	IF ASSI >= 0
-		IF (TALENT:ASSI:117 || TALENT:MASTER:117)
+		IF (TALENT:ASSI:117 || TALENT:MASTER:117)	; 【ASSI:[治療] / MASTER:[治療]】
 			A += 100
 			B += 100
 		ENDIF
 	ELSE
-		IF TALENT:MASTER:117
+		IF TALENT:MASTER:117	; 【MASTER:[治療]】
 			A += 100
 			B += 100
 		ENDIF
@@ -528,44 +607,44 @@ REPEAT CHARANUM
 	IF FLAG:0 && COUNT == TARGET
 		A += 100
 		TIMES B , 1.20
-		SIF TALENT:153
+		SIF TALENT:153 && BASE:COUNT:0 > 0	; 【[恋人] / COUNT:[体力]>0】
 			CFLAG:2 += 1
 	ENDIF
 	IF FLAG:0 && COUNT == ASSI
 		A += 100
 		TIMES B , 1.20
-		SIF TALENT:ASSI:153
+		SIF TALENT:ASSI:153 && BASE:ASSI:0 > 0	; 【ASSI:[恋人] / ASSI:[体力]>0】
 			CFLAG:ASSI:2 += 1
 	ENDIF
 
 	;維持費算出
-	IF ABL:COUNT:97 == 0
+	IF ABL:COUNT:97 == 0	; 【COUNT:[浪費癖]Lv==0】
 		;浪費癖未設定＝Lv50相当
 		C = 2000
 		;戦闘技能レベルによって増加
 		C += ABL:COUNT:88 * 100
 	ELSE
-		IF ABL:COUNT:97 < 30
+		IF ABL:COUNT:97 < 30	; 【COUNT:[浪費癖]Lv<30】
 			;安い
 			C = ABL:COUNT:97 * 5
 			;戦闘技能レベルによって増加
 			C += ABL:COUNT:88 * 40
-		ELSEIF ABL:COUNT:97 < 50
+		ELSEIF ABL:COUNT:97 < 50	; 【COUNT:[浪費癖]Lv<50】
 			;普通
 			C = ABL:COUNT:97 * 20
 			;戦闘技能レベルによって増加
 			C += ABL:COUNT:88 * 75
-		ELSEIF ABL:COUNT:97 < 75
+		ELSEIF ABL:COUNT:97 < 75	; 【COUNT:[浪費癖]Lv<75】
 			;高い
 			C = ABL:COUNT:97 * 40
 			;戦闘技能レベルによって増加
 			C += ABL:COUNT:88 * 100
-		ELSEIF ABL:COUNT:97 < 90
+		ELSEIF ABL:COUNT:97 < 90	; 【COUNT:[浪費癖]Lv<90】
 			;非常に高い
 			C = ABL:COUNT:97 * 60
 			;戦闘技能レベルによって増加
 			C += ABL:COUNT:88 * 150
-		ELSEIF ABL:COUNT:97 < 100
+		ELSEIF ABL:COUNT:97 < 100	; 【COUNT:[浪費癖]Lv<100】
 			;詐欺のように高い
 			C = ABL:COUNT:97 * 100
 			;戦闘技能レベルによって増加
@@ -610,10 +689,11 @@ REPEAT CHARANUM
 		TIMES C , 0.60
 
 	;霧に飲まれかけているキャラは維持費無し
-	SIF CFLAG:COUNT:17
+	SIF CFLAG:COUNT:17	; 【COUNT:[臨月・育児中]】
 		C = 0
 
 	;待機中指示コマンド実行はSHOP_COM_ACT.ERBに移動
+	D = 0
 	CALL TURNEND_COM
 
 	;回復処理
@@ -628,12 +708,26 @@ REPEAT CHARANUM
 	ELSE
 		B = B / 100 * (100 + ABL:COUNT:90 * 3)
 	ENDIF
+	LOCAL:97 = BASE:COUNT:0
 	BASE:COUNT:0 += A
-	SIF BASE:COUNT:0 > MAXBASE:COUNT:0
+	SIF BASE:COUNT:0 > MAXBASE:COUNT:0	; 【COUNT:[体力]>MAXBASE:COUNT:0】
 		BASE:COUNT:0 = MAXBASE:COUNT:0
+	;おあずけ事後暴走(@SELF_OAZUKE_RAMPAGE_CHECK)・定期戦祝勝会(@DECK_BATTLE_HAREM_AFTER)・行事後イチャイチャ(@SCHOOL_EVENT_AFTER_ICHA)発生時は、
+	;直後のBEGIN TURNEND(@EVENTTURNEND)で耐力が即座に回復してしまわないよう、そのターンの耐力自動回復を0に抑止する
+	IF COUNT == MASTER && CFLAG:MASTER:1286 > 0	; 【MASTER:[事後暴走消耗フラグ]>0】
+		B = 0
+		CFLAG:MASTER:1286 = 0	; 【MASTER:[事後暴走消耗フラグ]リセット】
+	ENDIF
 	BASE:COUNT:4 += B
-	SIF BASE:COUNT:4 > MAXBASE:COUNT:4
+	SIF BASE:COUNT:4 > MAXBASE:COUNT:4	; 【COUNT:[耐力]>MAXBASE:COUNT:4】
 		BASE:COUNT:4 = MAXBASE:COUNT:4
+
+	;衰弱療養（お休み）からの回復通知
+	IF COUNT > 0 && LOCAL:97 <= 0 && BASE:COUNT:0 > 0	; 【COUNT:[体力]>0】
+		SETCOLOR 0x66FF66
+		PRINTFORML %CALLNAME:COUNT%の体力が回復し、療養（お休み）から復帰しました！（体力：{BASE:COUNT:0}）
+		RESETCOLOR
+	ENDIF
 
 	;気力の回復
 	IF COUNT == MASTER
@@ -643,7 +737,7 @@ REPEAT CHARANUM
 		ELSE
 			BASE:COUNT:1 += MAXBASE:COUNT:1 / 5
 		ENDIF
-		SIF BASE:COUNT:1 > MAXBASE:COUNT:1
+		SIF BASE:COUNT:1 > MAXBASE:COUNT:1	; 【COUNT:[気力]>MAXBASE:COUNT:1】
 			BASE:COUNT:1 = MAXBASE:COUNT:1
 	ELSE
 		;女の子: 全回復
@@ -652,37 +746,38 @@ REPEAT CHARANUM
 	BASE:COUNT:5 = MAXBASE:COUNT:5
 
 	;金銭感覚による維持費軽減
-	IF ABL:COUNT:89 == 0
+	IF ABL:COUNT:89 == 0	; 【COUNT:[金銭感覚]Lv==0】
 		;何もしない
-	ELSEIF ABL:COUNT:89 <= 5
+	ELSEIF ABL:COUNT:89 <= 5	; 【COUNT:[金銭感覚]Lv<=5】
 		C = C * (100 - ABL:COUNT:89 * 7) / 100
-	ELSEIF ABL:COUNT:89 <= 10
+	ELSEIF ABL:COUNT:89 <= 10	; 【COUNT:[金銭感覚]Lv<=10】
 		C = C * (65 - (ABL:COUNT:89 - 5) * 3) / 100
-	ELSEIF ABL:COUNT:89 <= 100
+	ELSEIF ABL:COUNT:89 <= 100	; 【COUNT:[金銭感覚]Lv<=100】
 		C = C * (50 - (ABL:COUNT:89 - 10) / 2) / 100
-	ELSEIF ABL:COUNT:89 > 100
+	ELSEIF ABL:COUNT:89 > 100	; 【COUNT:[金銭感覚]Lv>100】
 		C = C / 100
 	ENDIF
 	
 
 	;リフレッシュ(2)とイチャイチャ(7)のみ生活費発生
-	IF CFLAG:COUNT:13 == 2 || CFLAG:COUNT:13 == 7 || CFLAG:COUNT:13 == 8 || CFLAG:COUNT:13 == 11
+	IF CFLAG:COUNT:13 == 2 || CFLAG:COUNT:13 == 7 || CFLAG:COUNT:13 == 8 || CFLAG:COUNT:13 == 10 || CFLAG:COUNT:13 == 11 || CFLAG:COUNT:13 == 12 || CFLAG:COUNT:13 == 13
 		LOCAL:0 += C
 	ENDIF
 	LOCAL:1 += D
 
 	;霧に飲まれているとランダムで色々増える
-	IF CFLAG:COUNT:17
+	IF CFLAG:COUNT:17	; 【COUNT:[臨月・育児中]】
 		A = RAND:100
 		;1%で処女喪失
-		IF TALENT:COUNT:0 && RAND:100 == 0
+		IF TALENT:COUNT:0 && RAND:100 == 0	; 【COUNT:[処女]】
 			TALENT:COUNT:0 = 0
 			EXP:COUNT:0 += 1
 			CFLAG:COUNT:2 -= 100
+			CFLAG:COUNT:1245 = 1
 		ENDIF
 
-		IF CFLAG:COUNT:2 > 0
-			IF CFLAG:COUNT:2 > 30000
+		IF CFLAG:COUNT:2 > 0	; 【COUNT:[好感度]>0】
+			IF CFLAG:COUNT:2 > 30000	; 【COUNT:[好感度]>30000】
 				CFLAG:COUNT:2 -= 750
 			ELSE
 				CFLAG:COUNT:2 -= CFLAG:COUNT:2 / 40
@@ -704,13 +799,13 @@ REPEAT CHARANUM
 		
 			JUEL:COUNT:6 += RAND:500 + 500
 			JUEL:COUNT:7 += RAND:500 + 500
-			IF TALENT:COUNT:121
+			IF TALENT:COUNT:121	; 【COUNT:[ふたなり]】
 				EXP:COUNT:3 += RAND:10 + 3
 				JUEL:COUNT:8 += RAND:200 + 200
 			ENDIF
 
 		;20％で精液
-		ELSEIF TALENT:COUNT:0
+		ELSEIF TALENT:COUNT:0	; 【COUNT:[処女]】
 			EXP:COUNT:2 += RAND:3 + 1
 			EXP:COUNT:20 += RAND:20 + 10
 			JUEL:COUNT:5 += RAND:500 + 500
@@ -727,6 +822,11 @@ REPEAT CHARANUM
 	ENDIF
 REND
 
+;待機行動のペア処理フラグをクリア
+FOR LOCAL:10, 0, CHARANUM
+	CFLAG:(LOCAL:10):1290 = 0
+NEXT
+
 ;待機行動中に入手した経験や宝珠や好感度を表示する場合確認用に最後に1回だけWAIT
 ;それが無くても宝探し詳細報告アリなら、確認用に最後に1回だけWAIT
 IF FLAG:23 & 1p25
@@ -734,7 +834,7 @@ IF FLAG:23 & 1p25
 ELSE
 	IF FLAG:23 & 1024
 		REPEAT CHARANUM
-			IF CFLAG:COUNT:13 == 12
+			IF CFLAG:COUNT:13 == 12	; 【COUNT:[待機中行動]==12】
 				WAIT
 				BREAK
 			ENDIF
@@ -747,27 +847,27 @@ CALL KOJO_TAIKI_CHECK
 
 ;パートナーの金銭感覚による全体維持費の軽減
 IF TARGET >= 0
-	IF ABL:TARGET:89 == 0
+	IF ABL:TARGET:89 == 0	; 【TARGET:[金銭感覚]Lv==0】
 		;何もしない
-	ELSEIF ABL:TARGET:89 <= 5
+	ELSEIF ABL:TARGET:89 <= 5	; 【TARGET:[金銭感覚]Lv<=5】
 		LOCAL:0 = LOCAL:0 * (100 - ABL:TARGET:89 * 5) / 100
-	ELSEIF ABL:TARGET:89 <= 10
+	ELSEIF ABL:TARGET:89 <= 10	; 【TARGET:[金銭感覚]Lv<=10】
 		LOCAL:0 = LOCAL:0 * (75 - (ABL:TARGET:89 - 5) * 2) / 100
-	ELSEIF ABL:TARGET:89 <= 100
+	ELSEIF ABL:TARGET:89 <= 100	; 【TARGET:[金銭感覚]Lv<=100】
 		LOCAL:0 = LOCAL:0 * (65 - (ABL:TARGET:89 - 10) / 2) / 100
-	ELSEIF ABL:TARGET:89 > 100
+	ELSEIF ABL:TARGET:89 > 100	; 【TARGET:[金銭感覚]Lv>100】
 		LOCAL:0 = LOCAL:0 / 100
 	ENDIF
 ENDIF
 
 ;生活費軽減
-SIF ABL:MASTER:82 >= 1
+SIF ABL:MASTER:82 >= 1	; 【MASTER:[生活費軽減]Lv>=1】
 	LOCAL:0 = LOCAL:0 * (100 - ABL:MASTER:82) / 100
 
 ;獲得資金増加ボーナス
-IF ABL:MASTER:86 == 1
+IF ABL:MASTER:86 == 1	; 【MASTER:[獲得資金増加]Lv==1】
 	TIMES LOCAL:1 , 1.50
-ELSEIF ABL:MASTER:86 > 1
+ELSEIF ABL:MASTER:86 > 1	; 【MASTER:[獲得資金増加]Lv>1】
 	LOCAL:1 *= ABL:MASTER:86
 ENDIF
 
@@ -775,12 +875,12 @@ ENDIF
 IF (FLAG:62 & 4) && TARGET > -1
 	;パートナーが装備中のアクセサリで補正
 	;アクセサリから浪費癖を算出
-	IF CFLAG:TARGET:23 > 0
+	IF CFLAG:TARGET:23 > 0	; 【TARGET:[アクセサリ1]>0】
 		CSVABL CFLAG:TARGET:23, 97, 0
 		;例えば浪費癖が30のキャラのアクセサリを付けていた場合0.80倍になる
 		LOCAL:0 = LOCAL:0 * (50 + RESULT) / 100
 	ENDIF
-	IF CFLAG:TARGET:24 > 0
+	IF CFLAG:TARGET:24 > 0	; 【TARGET:[アクセサリ2]>0】
 		CSVABL CFLAG:TARGET:24, 97, 0
 		;例えば浪費癖が30のキャラのアクセサリを付けていた場合0.80倍になる
 		LOCAL:0 = LOCAL:0 * (50 + RESULT) / 100
@@ -797,9 +897,10 @@ IF LOCAL:0 > 0
 	PRINTFORML 生活費として${LOCAL:0}支出しました
 ENDIF
 
+
 MONEY += LOCAL:1
 SIF LOCAL:1 > 0
-	PRINTFORML バイトで${LOCAL:1}入手しました
+	PRINTFORML 待機中の仲間のバイトで${LOCAL:1}入手しました
 
 ;キャラ独自イベント
 ;恋慕等取得
@@ -820,6 +921,22 @@ IF TIME == 1
 	CALL EVENT_DANGERDAY
 	DAY = DAY+1
 	DAY:7 = DAY:7+1
+;月替わりの裏カジノ借金利息（月利50％）
+IF CFLAG:MASTER:785 > 0 && DAY % 10 == 0
+	LOCAL:5 = MAX(1, CFLAG:MASTER:785 / 2)
+	; 64bit整数オーバーフロー防止（上限100兆）
+	IF CFLAG:MASTER:785 > 100000000000000
+		CFLAG:MASTER:785 = 100000000000000
+	ELSE
+		CFLAG:MASTER:785 += LOCAL:5
+	ENDIF
+	SETCOLOR 0xFF5555
+	PRINTFORML カジノ借金に利息50％が加算されました。（借金総額：${CFLAG:MASTER:785}）
+	RESETCOLOR
+ELSEIF CFLAG:MASTER:785 < 0
+	CFLAG:MASTER:785 = 9000000000000000000
+ENDIF
+
 	PRINTW 一日が終わった・・・
 
 	TFLAG:79 = 0
@@ -859,7 +976,7 @@ FOR LOCAL, 0, CHARANUM
 	TARGET = LOCAL
 	TRYCCALLFORM KOJO_TAIKI_K{NO:LOCAL}
 		;口上がある＆別れていない場合
-		IF TFLAG:120 && CFLAG:LOCAL:21 == 0
+		IF TFLAG:120 && CFLAG:LOCAL:21 == 0 && BASE:LOCAL:0 > 0	; 【[特殊ボス戦用フラグ] / LOCAL:[別れ]==0 / LOCAL:[体力]>0】
 			Y:(LOCAL:3) = LOCAL
 			LOCAL:3 += 1
 		ENDIF
@@ -926,26 +1043,6 @@ ENDIF
 
 ;v1.05.7でFLAG:63 == 4使用
 IF FLAG:63 == 4
-	REPEAT CHARANUM
-		;響子のCSV変更に伴う調整
-		IF NO:COUNT == 101
-			IF MAXBASE:COUNT:0 <= 2000
-				MAXBASE:COUNT:0 = 2000
-				BASE:COUNT:0 = MAXBASE:COUNT:0
-			ENDIF
-			IF MAXBASE:COUNT:1 <= 1200
-				MAXBASE:COUNT:1 = 1200
-				BASE:COUNT:1 = MAXBASE:COUNT:1
-			ENDIF
-		;芳香のCSV変更に伴う調整
-		ELSEIF NO:COUNT == 102
-			MAXBASE:COUNT:0 = 2500
-			BASE:COUNT:0 = MAXBASE:COUNT:0
-			MAXBASE:COUNT:1 = 1000
-			BASE:COUNT:1 = MAXBASE:COUNT:1
-			TALENT:COUNT:86 = 0
-		ENDIF
-	REND
 	FLAG:63 = 5
 ENDIF
 
@@ -990,7 +1087,7 @@ ENDIF
 IF FLAG:63 == 8
 	;スペカを設定する
 	REPEAT CHARANUM
-		IF CFLAG:COUNT:0 == 0 && CSTR:COUNT:22 == ""
+		IF CFLAG:COUNT:0 == 0 && CSTR:COUNT:22 == ""	; 【COUNT:[EXフラグ]==0】
 			CSVCSTR NO:COUNT, 21, 0
 			CSTR:COUNT:21 = %RESULTS%
 			CSVCSTR NO:COUNT, 22, 0
@@ -999,7 +1096,7 @@ IF FLAG:63 == 8
 			CSTR:COUNT:23 = %RESULTS%
 			CSVCSTR NO:COUNT, 24, 0
 			CSTR:COUNT:24 = %RESULTS%
-		ELSEIF CFLAG:COUNT:0 && CSTR:COUNT:22 == ""
+		ELSEIF CFLAG:COUNT:0 && CSTR:COUNT:22 == ""	; 【COUNT:[EXフラグ]】
 			CSVCSTR NO:COUNT, 21, 1
 			CSTR:COUNT:21 = %RESULTS%
 			CSVCSTR NO:COUNT, 22, 1
@@ -1093,14 +1190,14 @@ IF FLAG:63 == 12
 	CALL TALENT_INTERCHANGE
 
 	;主人公のキャラIDがなければキャラIDを設定する
-	IF CFLAG:MASTER:81 == 0
+	IF CFLAG:MASTER:81 == 0	; 【MASTER:[キャラID]==0】
 		CFLAG:MASTER:81 = 1
 		FLAG:998 = 2
 	ENDIF
 
 	;キャラIDがないキャラにはキャラIDを設定する
 	FOR LOCAL, 0, CHARANUM
-		IF CFLAG:LOCAL:81 == 0
+		IF CFLAG:LOCAL:81 == 0	; 【LOCAL:[キャラID]==0】
 			;キャラID設定
 			CFLAG:LOCAL:81 = FLAG:998
 			FLAG:998 += 1
@@ -1120,7 +1217,7 @@ IF FLAG:63 == 14
 	;回復素質記録互換（妊娠時に付加される回復遅い等を元々持っているか記録するフラグ）
 	REPEAT CHARANUM
 		;妊娠、もしくは臨月or育児中のキャラでCFLAG:98が1か2
-		IF (TALENT:COUNT:134 || TALENT:COUNT:135 || MARK:COUNT:90) && (CFLAG:COUNT:98 == 1 || CFLAG:COUNT:98 == 2)
+		IF (TALENT:COUNT:134 || TALENT:COUNT:135 || MARK:COUNT:90) && (CFLAG:COUNT:98 == 1 || CFLAG:COUNT:98 == 2)	; 【COUNT:[妊娠] / COUNT:[育児中] / COUNT:[夜イベントカットフラグ]==1 / COUNT:[夜イベントカットフラグ]==2】
 			CFLAG:COUNT:96 = CFLAG:COUNT:98
 			CFLAG:COUNT:98 = 0
 		ENDIF
@@ -1204,8 +1301,7 @@ ENDIF
 ;J+ v1.02.7でFLAG:63 == 18使用
 IF FLAG:63 == 18
 	FOR LOCAL, 0, CHARANUM
-		SIF NO:LOCAL != 102
-			TALENT:LOCAL:596 = 0
+		TALENT:LOCAL:596 = 0
 	NEXT
 	FLAG:63 = 19
 ENDIF
@@ -1214,9 +1310,9 @@ ENDIF
 IF FLAG:63 == 19
 	FOR LOCAL, 0, CHARANUM
 		;あなたの97,浪費癖 98,戦闘素質を設定なし（0）から50に変更
-		SIF NO:LOCAL == 0 && ABL:LOCAL:97 == 0
+		SIF NO:LOCAL == 0 && ABL:LOCAL:97 == 0	; 【LOCAL:[浪費癖]Lv==0】
 			ABL:LOCAL:97 = 50
-		SIF NO:LOCAL == 0 && ABL:LOCAL:98 == 0
+		SIF NO:LOCAL == 0 && ABL:LOCAL:98 == 0	; 【LOCAL:[学力素質]Lv==0】
 			ABL:LOCAL:98 = 50
 	NEXT
 	FLAG:63 = 20
@@ -1242,69 +1338,8 @@ SIF DAY:4 == 0
 ;素質関連互換
 ;-------------------------------------------------
 @TALENT_INTERCHANGE
-REPEAT CHARANUM
-	;素質[淫具知識]を設定したため互換処理
-	;にとり
-	SIF NO:COUNT == 40
-		TALENT:COUNT:58 = 1
-
-	;NO参照から潜在能力参照へ変更のため潜在能力互換処理
-	;50,料理素質
-	;51,撮影素質
-	;52,歌唱素質
-	;53,探索素質
-	
-	;50,料理素質
-	;料理の達人(かなり主観入ってます)
-	;イメージでメイドさん、藍様、ゆかりん、夢子辺り
-	SIF NO:COUNT == 9 || NO:COUNT == 21 || NO:COUNT == 22 || NO:COUNT == 61
-		ABL:COUNT:50 = 2
-	;料理上手(かなり主観入ってます)
-	;イメージであなた、大精霊、美鈴、妖夢、アリス、ミスティア、鈴仙、三月精辺り
-	SIF NO:COUNT == 1 || NO:COUNT == 4 || NO:COUNT == 6 || NO:COUNT == 14 || NO:COUNT == 19 || NO:COUNT == 25 || NO:COUNT == 28  || NO:COUNT == 45 || NO:COUNT == 46 || NO:COUNT == 47 || NO:COUNT == 198
-		ABL:COUNT:50 = 1
-	;不器用(かなり主観入ってます)
-	;イメージでルーミア、チルノ、橙、妹様、お嬢様、芳香
-	SIF NO:COUNT == 3 || NO:COUNT == 5 || NO:COUNT == 10 || NO:COUNT == 11 || NO:COUNT == 13 || NO:COUNT == 102
-		ABL:COUNT:50 = -1
-
-	;51,撮影素質
-	;あやや はたて
-	SIF NO:COUNT == 32 || NO:COUNT == 98
-		ABL:COUNT:51 = 2
-	;ゆかりん にとり 巫女さん
-	SIF NO:COUNT == 22 || NO:COUNT == 40 || NO:COUNT == 42
-		ABL:COUNT:51 = 1
-
-	;52,歌唱素質
-	;騒霊三姉妹、みすちー、yahoo!!
-	SIF NO:COUNT == 16 || NO:COUNT == 17 || NO:COUNT == 18 || NO:COUNT == 25 || NO:COUNT == 101
-		ABL:COUNT:52 = 3
-	;メイドさん、りぐるん、巫女さん
-	SIF NO:COUNT == 9 || NO:COUNT == 24 || NO:COUNT == 42
-		ABL:COUNT:52 = 2
-	;ゆゆ様、輝夜、妹紅、神奈子様、ケロちゃん、華扇
-	SIF NO:COUNT == 20 || NO:COUNT == 30 || NO:COUNT == 31 || NO:COUNT == 39 || NO:COUNT == 43 || NO:COUNT == 44 || NO:COUNT == 100
-		ABL:COUNT:52 = 1
-	;歌うのが苦手そうな方(個人的主観入ってます)
-	;魔法使い、天子
-	SIF NO:COUNT == 2 || NO:COUNT == 63
-		ABL:COUNT:52 = -1
-	;パチュリー、阿求(体が弱い方々)
-	SIF NO:COUNT == 8 || NO:COUNT == 48
-		ABL:COUNT:52 = -2
-
-	;53,探索素質
-	;てゐ
-	SIF NO:COUNT == 27
-		ABL:COUNT:52 = 3
-	;ナズーリン
-	SIF NO:COUNT == 91
-		ABL:COUNT:52 = 2
-	;;魔法使い 星ちゃん
-	SIF NO:COUNT == 2 || NO:COUNT == 95
-		ABL:COUNT:52 = 1
-REND
+;現行の素質はCSVおよび個別の移行処理で管理
+RETURN 0
 
 @EVENTSHOP
 #PRI
@@ -1323,26 +1358,29 @@ ENDIF
 #LATER
 
 IF TIME == 0 && DAY
+	;裏カジノ入場条件達成チェック（所持金一千万以上で日数経過時にアナウンス・恒久解放）
+	CALL CHECK_UNDERGROUND_CASINO_UNLOCK
 	CALL EVENT_NEWDAY
 	;結婚記念日メッセージ
 	IF TIME:4 & 2 && FLAG:29 > 0
 		T = FLAG:29
 		N = 1
 		CALL GET_CHARA_NAME
-		DRAWLINE
 		SETCOLOR 255, 220, 100
 		PRINTFORML ★ 今日は%STR:1%との結婚記念日です！
 		RESETCOLOR
 		WAIT
 	ENDIF
-	DRAWLINE
-	IF TFLAG:121 == 0 && TARGET > -1
-		CALL EVENT_RING
-		DRAWLINE
+	IF TFLAG:121 == 0 && TARGET > -1	; 【無[朝イベントスキップフラグ]】
+		IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+			;衰弱療養中はお休み
+		ELSE
+			CALL EVENT_RING
+			DRAWLINE
+			TRYCALLFORM CHAR_MORNING_GREETING_{NO:TARGET}
+		ENDIF
 	ELSE
 		TFLAG:121 = 1
 	ENDIF
-	SIF TARGET >= 0
-		TRYCALLFORM CHAR_MORNING_GREETING_{NO:TARGET}
 ENDIF
 

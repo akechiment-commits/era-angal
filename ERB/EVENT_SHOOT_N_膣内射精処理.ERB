@@ -9,34 +9,22 @@
 ;ほとんど他の射精と一緒だが、TFLAGを立てず（膣射阻止）、精液経験も増やさない
 ;---------------------------------------------------------
 @CONDOM_CHECK
-IF ASSIPLAY == 0
-	IF TEQUIP:MASTER:85 == 1
-		PRINTL コンドーム射精
-		CFLAG:105 = 1
-		;射精時の共通処理
-		CALL SAMEN_SHOOT_CALC
-		;コンドームに精液溜まる
+;SAMEN_SHOOTで確定した実際の射精者の装備を見る。
+IF TEQUIP:P:85 == 1
+	PRINTL コンドーム射精
+	CFLAG:105 = 1
+	CALL SAMEN_SHOOT_CALC
+	IF P == MASTER
 		CFLAG:107 |= 1
-		RETURN 1
-	ENDIF
-ELSE
-	IF TEQUIP:ASSI:85 == 1
-		PRINTL コンドーム射精(助手)
-		CFLAG:105 = 1
-		;射精時の共通処理
-		CALL SAMEN_SHOOT_CALC
-		;コンドームに精液溜まる
+	ELSEIF P == ASSI
 		CFLAG:107 |= 2
-		RETURN 1
+	ELSE
+		CFLAG:107 |= 4
 	ENDIF
+	RETURN 1
 ENDIF
 RETURN 0
 
-;---------------------------------------------------------
-;プレイや及び助手の各コマンドでの中田氏チェック
-;各コマンドへの影響を小さくするのが目的（関数を呼ぶ、もしくはオミットするだけで良い）
-;TFLAG:302（中田氏）とTEQUIP:85（コンドーム）を条件に膣射を増やす処理を持つ
-;---------------------------------------------------------
 @IN_VAGINA_CHECK
 ;妊娠機能がOFFならRETURN
 SIF (FLAG:62 & 1) == 0
@@ -48,87 +36,96 @@ L = 40 + ASSIPLAY
 VARSET LOCAL, 0
 LOCAL = TFLAG:302
 ;挿入子宮口責めの場合、膣射精液にボーナス有
-SIF SELECTCOM == 256
+SIF SELECTCOM == 256	; 【コマンド:[挿入子宮口責め]】
 	LOCAL = TFLAG:302 * 2
 
-IF TFLAG:703 == 1 || TFLAG:703 == 9 || TFLAG:703 == 6 || TFLAG:703 == 8 || (TFLAG:703 == 12 && TFLAG:L == 1)
-	IF TFLAG:302 > 0
+IF TFLAG:703 == 1 || TFLAG:703 == 9 || TFLAG:703 == 6 || TFLAG:703 == 8 || (TFLAG:703 == 12 && TFLAG:L == 1)	; 【[射精箇所]==1 / [射精箇所]==9 / [射精箇所]==6 / [射精箇所]==8 / [射精箇所]==12】
+	IF TFLAG:302 > 0	; 【[同時絶頂]>0】
 		PRINT 膣内
-		IF TFLAG:302 >= 4
+		IF TFLAG:302 >= 4	; 【[同時絶頂]>=4】
 			PRINT 超大量
-		ELSEIF TFLAG:302 >= 2
+		ELSEIF TFLAG:302 >= 2	; 【[同時絶頂]>=2】
 			PRINT 大量
 		ENDIF
 		PRINTL 射精
 	ENDIF
 	;子供体型/小柄に大量中出しすると小さな腹がわずかに膨れて見える（対象が受け手のときのみ・描写のみ）
-	IF TFLAG:302 >= 2 && (TFLAG:703 == 1 || TFLAG:703 == 9 || (TFLAG:703 == 12 && TFLAG:L == 1))
-		IF TALENT:149 && TFLAG:302 >= 4
+	IF TFLAG:302 >= 2 && (TFLAG:703 == 1 || TFLAG:703 == 9 || (TFLAG:703 == 12 && TFLAG:L == 1))	; 【[同時絶頂]>=2 / [射精箇所]==1 / [射精箇所]==9 / [射精箇所]==12】
+		IF TALENT:149 && TFLAG:302 >= 4	; 【[子供体型] / [同時絶頂]>=4】
 			PRINTFORMW 大人の半分ほどしかない小さなお腹は注ぎ込まれた精液を抱えきれず、内側からぽっこりと押し上げられて膨らんでいる…
-		ELSEIF TALENT:149
+		ELSEIF TALENT:149	; 【[子供体型]】
 			PRINTFORMW 幼く薄い下腹が、流し込まれた子種でぽってりとふくらんでいる…
-		ELSEIF TALENT:100 && TFLAG:302 >= 4
+		ELSEIF TALENT:100 && TFLAG:302 >= 4	; 【[小柄体型] / [同時絶頂]>=4】
 			PRINTFORMW 小柄な下腹が大量の精液を湛えて、ふっくらと張り出して見える…
 		ENDIF
 	ENDIF
 ENDIF
 
+;意識あり時／気絶中の膣内射精フラグ記録（気絶妊娠発覚時の事前性交有無区別用）
+L = 40 + ASSIPLAY
+IF TFLAG:302 > 0 && (TFLAG:703 == 1 || TFLAG:703 == 9 || (TFLAG:703 == 12 && TFLAG:L == 1))
+	IF TARGET >= 0 && (TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0)
+		TFLAG:117 = 1
+	ELSE
+		TFLAG:116 = 1
+	ENDIF
+ENDIF
+
 ;コマンドごとの分岐
 ;通常セックス系
-L = 40 + ASSIPLAY
-IF (TFLAG:703 == 1 || TFLAG:703 == 9)
+IF (TFLAG:703 == 1 || TFLAG:703 == 9)	; 【[射精箇所]==1 / [射精箇所]==9】
 	;マスターによる奴隷への中田氏
-	IF ASSIPLAY == 0
-		IF TFLAG:302 > 0
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF TFLAG:302 > 0	; 【[同時絶頂]>0】
 			PRINTFORML 膣射精液+{LOCAL}
 			CFLAG:101 += LOCAL
 		ENDIF
 	;助手による奴隷への中田氏
 	ELSE
-		IF TFLAG:302 > 0
+		IF TFLAG:302 > 0	; 【[同時絶頂]>0】
 			PRINTFORML 膣射精液（助手）+{LOCAL}
 			CFLAG:102 += LOCAL
 		ENDIF
 	ENDIF
 ;素股
-ELSEIF TFLAG:703 == 5
+ELSEIF TFLAG:703 == 5	; 【[射精箇所]==5】
 	;排卵誘発剤使用時+大量射精以上の時のみわずかに増加
 	;マスターによる奴隷への中田氏
-	IF ASSIPLAY == 0
-		IF TFLAG:302 >= 2 && TEQUIP:86
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF TFLAG:302 >= 2 && TEQUIP:86	; 【[排卵誘発剤効果発揮中]使用中 / [同時絶頂]>=2】
 			PRINTFORML 膣射精液+{TFLAG:302 / 2}
 			CFLAG:101 += TFLAG:302 / 2
 		ENDIF
 	;助手による奴隷への中田氏
 	ELSE
-		IF TFLAG:302 >= 2 && TEQUIP:86
+		IF TFLAG:302 >= 2 && TEQUIP:86	; 【[排卵誘発剤効果発揮中]使用中 / [同時絶頂]>=2】
 			PRINTFORML 膣射精液（助手）+{TFLAG:302 / 2}
 			CFLAG:102 += TFLAG:302 / 2
 		ENDIF
 	ENDIF
 ;助手を犯す
-ELSEIF TFLAG:703 == 6
-	IF TFLAG:302 > 0
+ELSEIF TFLAG:703 == 6	; 【[射精箇所]==6】
+	IF TFLAG:302 > 0	; 【[同時絶頂]>0】
 		PRINTFORML 膣射精液+{TFLAG:302}（助手）
 		CFLAG:ASSI:101 += TFLAG:302
 	ENDIF
 ;助手を犯させる
-ELSEIF TFLAG:703 == 8
-	IF TFLAG:302 > 0
+ELSEIF TFLAG:703 == 8	; 【[射精箇所]==8】
+	IF TFLAG:302 > 0	; 【[同時絶頂]>0】
 		PRINTFORML 膣射精液（%CALLNAME:P%）+{TFLAG:302}（助手）
-		CFLAG:ASSI:101 += TFLAG:302
+		CFLAG:ASSI:103 += TFLAG:302
 	ENDIF
 ;3P
-ELSEIF (TFLAG:703 == 12 && TFLAG:L == 1)
+ELSEIF (TFLAG:703 == 12 && TFLAG:L == 1)	; 【[射精箇所]==12】
 	;マスターによる奴隷への中田氏
-	IF ASSIPLAY == 0
-		IF TFLAG:302 > 0
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF TFLAG:302 > 0	; 【[同時絶頂]>0】
 			PRINTFORML 膣射精液+{LOCAL}
 			CFLAG:101 += LOCAL
 		ENDIF
 	;助手による奴隷への中田氏
 	ELSE
-		IF TFLAG:302 > 0
+		IF TFLAG:302 > 0	; 【[同時絶頂]>0】
 			PRINTFORML 膣射精液（助手）+{LOCAL}
 			CFLAG:102 += LOCAL
 		ENDIF
@@ -145,20 +142,27 @@ SIF (FLAG:62 & 1) == 0
 	RETURN 0
 
 ;まずコンドームで分岐
-IF TEQUIP:85 == 1
+IF TEQUIP:85 == 1	; 【[コンドーム]==1】
 	PRINTL パートナーコンドーム射精
 	CFLAG:107 |= 4
 	TEQUIP:TARGET:85 = 0
 ;;妊娠モードであり、コンドームをしてないかつセックス系コマンドなら中出し
 ;コンドームをしてないかつセックス系コマンドなら中出し
-ELSEIF (SELECTCOM == 23 || SELECTCOM == 65 || SELECTCOM == 171 || SELECTCOM == 188 || SELECTCOM == 193 || SELECTCOM == 194 || SELECTCOM == 195)
+ELSEIF (SELECTCOM == 23 || SELECTCOM == 65 || SELECTCOM == 171 || SELECTCOM == 188 || SELECTCOM == 193 || SELECTCOM == 194 || SELECTCOM == 195)	; 【コマンド:[逆レイプ] / コマンド:[助手を犯させる] / コマンド:[相互挿入] / コマンド:[正常位させる] / コマンド:[後背位させる] / コマンド:[騎乗位する]】
 	IF E > 0
 		PRINT 膣内
 		SIF E >= 2
 			PRINT 大量
 		PRINTL 射精
 		PRINTFORML パートナー精液+{E}
-		CFLAG:PLAYER:103 += E
+		IF SELECTCOM == 65
+			;パートナーが助手に挿入する場合、受け手は調教者ではない。
+			SIF ASSI < 0 || ASSI >= CHARANUM
+				RETURN 0
+			CFLAG:ASSI:103 += E
+		ELSE
+			CFLAG:PLAYER:103 += E
+		ENDIF
 	ENDIF
 	CALL SAMEN_SHOOTINGH_SOURCE
 ENDIF
@@ -187,28 +191,28 @@ IF E == 2
 ENDIF
 
 ;恋慕＋恋人、妄信、服従、親愛、相愛、淫乱
-IF (TALENT:85 && TALENT:153) || TALENT:86 || TALENT:180 || TALENT:88 || TALENT:89 || TALENT:76
+IF (TALENT:85 && TALENT:153) || TALENT:86 || TALENT:180 || TALENT:88 || TALENT:89 || TALENT:76	; 【[恋慕] / [恋人] / [妄信] / [服従] / [親愛] / [相愛] / [淫乱]】
 	C = 0
 	D = 0
 	GOTO ADDING1
 ENDIF
 
 ;貞操観念、貞操無頓着
-IF TALENT:30 && (TALENT:TARGET:89 && ASSIPLAY == 0) == 0
+IF TALENT:30 && (TALENT:TARGET:89 && ASSIPLAY == 0) == 0	; 【[貞操観念] / TARGET:[相愛] / 調教者:[主人]】
 	TIMES C , 3.00
 	TIMES D , 3.00
-ELSEIF TALENT:31
+ELSEIF TALENT:31	; 【[貞操無頓着]】
 	TIMES C , 0.50
 	TIMES D , 0.50
 ENDIF
 
 ;月経関係
 ;危険日
-IF TALENT:137
+IF TALENT:137	; 【[危険日]】
 	TIMES C , 3.00
 	TIMES D , 3.00
 ;生理中
-ELSEIF TALENT:138
+ELSEIF TALENT:138	; 【[生理]】
 	TIMES C , 1.50
 	TIMES D , 1.50
 ;通常
@@ -220,17 +224,17 @@ ENDIF
 D:1 = D
 
 ;ABL:親密をみる
-IF ABL:0 < 3
+IF ABL:0 < 3	; 【[親密]Lv<3】
 	TIMES D, 1.00
-ELSEIF ABL:0 < 5
+ELSEIF ABL:0 < 5	; 【[親密]Lv<5】
 	TIMES D , 0.95
-ELSEIF ABL:0 < 10
+ELSEIF ABL:0 < 10	; 【[親密]Lv<10】
 	TIMES D , 0.90
-ELSEIF ABL:0 < 13 && TALENT:TARGET:85 == 0
+ELSEIF ABL:0 < 13 && TALENT:TARGET:85 == 0	; 【TARGET:[恋慕]なし / [親密]Lv<13】
 	TIMES D , 0.80
-ELSEIF ABL:0 < 15
+ELSEIF ABL:0 < 15	; 【[親密]Lv<15】
 	TIMES D , 0.40
-ELSEIF ABL:0 >= 18 && TALENT:TARGET:88
+ELSEIF ABL:0 >= 18 && TALENT:TARGET:88	; 【TARGET:[親愛] / [親密]Lv>=18】
 	TIMES D , 0.00
 ELSE
 	TIMES D , 0.20
@@ -262,53 +266,53 @@ IF E == 2
 ENDIF
 
 ;恋慕＋恋人、妄信、服従、親愛、相愛、淫乱
-IF (TALENT:85 && TALENT:153) || TALENT:86 || TALENT:180 || TALENT:88 || TALENT:89 || TALENT:76
+IF (TALENT:85 && TALENT:153) || TALENT:86 || TALENT:180 || TALENT:88 || TALENT:89 || TALENT:76	; 【[恋慕] / [恋人] / [妄信] / [服従] / [親愛] / [相愛] / [淫乱]】
 	C = 0
 	D = 0
 	GOTO ADDING2
 ENDIF
 
 ;ABL:親密をみる
-IF ABL:0 < 3
+IF ABL:0 < 3	; 【[親密]Lv<3】
 	TIMES D, 1.00
-ELSEIF ABL:0 < 5
+ELSEIF ABL:0 < 5	; 【[親密]Lv<5】
 	TIMES D , 0.95
-ELSEIF ABL:0 < 10
+ELSEIF ABL:0 < 10	; 【[親密]Lv<10】
 	TIMES D , 0.90
-ELSEIF ABL:0 < 13 && TALENT:TARGET:85 == 0
+ELSEIF ABL:0 < 13 && TALENT:TARGET:85 == 0	; 【TARGET:[恋慕]なし / [親密]Lv<13】
 	TIMES D , 0.80
-ELSEIF ABL:0 < 15
+ELSEIF ABL:0 < 15	; 【[親密]Lv<15】
 	TIMES D , 0.40
-ELSEIF ABL:0 >= 18 && TALENT:TARGET:88
+ELSEIF ABL:0 >= 18 && TALENT:TARGET:88	; 【TARGET:[親愛] / [親密]Lv>=18】
 	TIMES D , 0.00
 ELSE
 	TIMES D , 0.20
 ENDIF
 
 ;貞操観念、貞操無頓着
-IF TALENT:30 && (TALENT:TARGET:89 && ASSIPLAY == 0) == 0
+IF TALENT:30 && (TALENT:TARGET:89 && ASSIPLAY == 0) == 0	; 【[貞操観念] / TARGET:[相愛] / 調教者:[主人]】
 	TIMES C , 3.00
 	TIMES D , 3.00
-ELSEIF TALENT:31
+ELSEIF TALENT:31	; 【[貞操無頓着]】
 	TIMES C , 0.50
 	TIMES D , 0.50
 ENDIF
 
 ;小悪魔
-SIF TALENT:87
+SIF TALENT:87	; 【[小悪魔]】
 	TIMES D , 0.25
 
 ;サド
-SIF TALENT:83
+SIF TALENT:83	; 【[サド]】
 	TIMES D , 0.50
 
-IF TFLAG:45
+IF TFLAG:45	; 【[主導権]】
 	;反発感情
-	IF MARK:3 == 1
+	IF MARK:3 == 1	; 【[反発感情]Lv==1】
 		TIMES B , 1.20
-	ELSEIF MARK:3 == 2
+	ELSEIF MARK:3 == 2	; 【[反発感情]Lv==2】
 		TIMES B , 1.80
-	ELSEIF MARK:3 >= 3
+	ELSEIF MARK:3 >= 3	; 【[反発感情]Lv>=3】
 		TIMES B , 2.50
 	ENDIF
 	SOURCE:20 += B

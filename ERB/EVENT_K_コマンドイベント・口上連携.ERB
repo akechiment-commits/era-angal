@@ -65,6 +65,9 @@ TRYCALLFORM KOJO_MESSAGE_PLAYERCHANGE_{NO:ASSI}
 ;コマンド実行時に出力されます
 ;--------------------------------------------------
 @KOJO_MESSAGE_COM
+;気絶中は口上を一切出力しない
+SIF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	RETURN 0
 SIF FLAG:7 <= 0
 	RETURN 0
 
@@ -97,6 +100,12 @@ ENDCATCH
 SIF FLAG:7 <= 0
 	RETURN 0
 
+;気絶中判定：意識を失っている場合は口上をスキップし、気絶絶頂・射精地の文を出力
+IF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	CALL FAINT_CLIMAX_MESSAGE
+	RETURN 0
+ENDIF
+
 ;キャラ別
 TRYCALLFORM KOJO_MESSAGE_PALAMCNG_{NO:TARGET}
 
@@ -108,6 +117,8 @@ TRYCALLFORM KOJO_MESSAGE_PALAMCNG_{NO:TARGET}
 @KOJO_MESSAGE_MARKCNG
 SIF FLAG:7 <= 0
 	RETURN 0
+SIF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	RETURN 0
 
 ;キャラ別
 TRYCALLFORM KOJO_MESSAGE_MARKCNG_{NO:TARGET}
@@ -118,6 +129,8 @@ TRYCALLFORM KOJO_MESSAGE_MARKCNG_{NO:TARGET}
 ;口上をOFFにしても実行する
 ;--------------------------------------------------
 @KOJO_EVENT_COM
+SIF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	RETURN 0
 
 ;キャラ別
 TRYCALLFORM KOJO_EVENT_COM_{NO:TARGET}
@@ -134,9 +147,11 @@ ENDIF
 
 SIF TARGET < 0
 	RETURN 0
+SIF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	RETURN 0
 
 ;妊娠・出産・育児系イベント（TFLAG:13 = 20/21/22/23/25/94/98）
-IF TFLAG:13 == 20 || TFLAG:13 == 21 || TFLAG:13 == 22 || TFLAG:13 == 23 || TFLAG:13 == 25 || TFLAG:13 == 94 || TFLAG:13 == 98
+IF TFLAG:13 == 20 || TFLAG:13 == 21 || TFLAG:13 == 22 || TFLAG:13 == 23 || TFLAG:13 == 25 || TFLAG:13 == 94 || TFLAG:13 == 98	; 【[イベント口上]==20 / [イベント口上]==21 / [イベント口上]==22 / [イベント口上]==23 / [イベント口上]==25 / [イベント口上]==94 / [イベント口上]==98】
 	TRYCALLFORM KOJO_NINSIN_K{NO:TARGET}
 	RETURN 0
 ENDIF
@@ -217,7 +232,7 @@ SIF FLAG:7 == 0
 SIF FLAG:7 < 0
 	RETURN 0
 
-IF TARGET < 0 && (TFLAG:600 >= 28 && TFLAG:600 <= 31)
+IF TARGET < 0 && (TFLAG:600 >= 28 && TFLAG:600 <= 31)	; 【[純愛口上]>=28 / [純愛口上]<=31】
 	;攻略ルート選択時、口上表示時だけ難易度変更
 	LOCAL = FLAG:5
 	FLAG:5 = FLAG:3
@@ -228,6 +243,9 @@ IF TARGET < 0 && (TFLAG:600 >= 28 && TFLAG:600 <= 31)
 ENDIF
 
 SIF TARGET < 0
+	RETURN 0
+; 衰弱療養中のキャラは口上を発声しない
+SIF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
 	RETURN 0
 
 ;攻略ルート選択時、口上表示時だけ難易度変更
@@ -337,6 +355,8 @@ TRYCALLFORM MAEKOJO_LUNCH_EXERCISE_K{NO:TARGET}
 ;コミュニケーション時の地の文をカット可能にさせる
 ;-------------------------------------------------
 @KOJO_TRAIN_MESSAGE
+SIF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	RETURN 0
 
 ;キャラ別
 TRYCCALLFORM KOJO_TRAIN_MESSAGE_K{NO:TARGET}
@@ -376,6 +396,8 @@ ENDIF
 @COUNTER_KOJO
 SIF FLAG:7 <= 0
 	RETURN 0
+SIF TARGET >= 0 && (TFLAG:899 || BASE:TARGET:0 <= 0)	; 【[気絶継続中] / TARGET:[体力]<=0】
+	RETURN 0
 
 ;キャラ別
 TRYCALLFORM COUNTER_KOJO_K{NO:TARGET}
@@ -407,7 +429,7 @@ C = 0
 ;愛撫・性交系は欲情が大きいと喘ぎ数が+3まで増えます
 ;愛撫・性交系
 ;最も軽い　愛撫・胸愛撫・アナル愛撫・アナル舐め・素股・200,乳の揉み合い
-IF SELECTCOM == 0 || SELECTCOM == 5 || SELECTCOM == 2 || SELECTCOM == 9 || SELECTCOM == 33 || SELECTCOM == 166 || SELECTCOM == 200
+IF SELECTCOM == 0 || SELECTCOM == 5 || SELECTCOM == 2 || SELECTCOM == 9 || SELECTCOM == 33 || SELECTCOM == 166 || SELECTCOM == 200	; 【コマンド:[愛撫] / コマンド:[胸愛撫] / コマンド:[アナル愛撫] / コマンド:[アナル舐め] / コマンド:[素股] / コマンド:[乳の揉み合い]】
 	A = 1
 	B = 0
 	SIF PALAMLV:2 > 1
@@ -417,17 +439,17 @@ IF SELECTCOM == 0 || SELECTCOM == 5 || SELECTCOM == 2 || SELECTCOM == 9 || SELEC
 	SIF PALAMLV:2 > 4
 		A += 1
 ;最も軽い　非ウフフ時のスキンシップ系
-ELSEIF SELECTCOM == 303 || (TFLAG:45 == 0 && SELECTCOM == 306) || (TFLAG:45 == 0 && SELECTCOM == 307) || SELECTCOM == 312 || SELECTCOM == 360 || SELECTCOM == 361 || SELECTCOM == 370
+ELSEIF SELECTCOM == 303 || (TFLAG:45 == 0 && SELECTCOM == 306) || (TFLAG:45 == 0 && SELECTCOM == 307) || SELECTCOM == 312 || SELECTCOM == 360 || SELECTCOM == 361 || SELECTCOM == 370	; 【コマンド:[スキンシップ] / コマンド:[髪梳き] / コマンド:[櫛で梳かす] / コマンド:[頭を撫でる] / コマンド:[胸愛撫] / コマンド:[愛撫] / コマンド:[抱き合う] / 無[主導権]】
 	A = 1
 	B = 0
 	;現在の好感度か歓楽ソースが0以下かつ大成功でないなら感じていない口上へ
-	IF (TFLAG:30<= 0 || SOURCE:18 <= 0) && TFLAG:18 != 1
+	IF (TFLAG:30<= 0 || SOURCE:18 <= 0) && TFLAG:18 != 1	; 【[現在の好感度]<=0 / [好感触]!=1】
 		C = 0
 	ELSE
 		C = 1
 	ENDIF
 ;軽め　クンニ・ローター・指挿入れ・フェラする・泡踊り・岩清水・自慰・
-ELSEIF SELECTCOM < 4 || SELECTCOM == 10 || SELECTCOM == 8 || SELECTCOM == 4 || SELECTCOM == 35 || SELECTCOM == 87 || SELECTCOM == 3 || SELECTCOM == 362
+ELSEIF SELECTCOM < 4 || SELECTCOM == 10 || SELECTCOM == 8 || SELECTCOM == 4 || SELECTCOM == 35 || SELECTCOM == 87 || SELECTCOM == 3 || SELECTCOM == 362	; 【コマンド:[ローター] / コマンド:[指挿入れ] / コマンド:[フェラする] / コマンド:[泡踊り] / コマンド:[自慰]】
 	A = 2
 	B = 1
 	SIF PALAMLV:2 > 1
@@ -437,7 +459,7 @@ ELSEIF SELECTCOM < 4 || SELECTCOM == 10 || SELECTCOM == 8 || SELECTCOM == 4 || S
 	SIF PALAMLV:2 > 4
 		A += 1
 ;ちょい重め　Ｇスポット刺激・Ｅマッサージャー・191,手淫する-195,騎乗位する・204,アナルに入れさせる
-ELSEIF SELECTCOM == 84 || SELECTCOM == 12 || (SELECTCOM >= 191 && SELECTCOM <= 195) || SELECTCOM == 204 || SELECTCOM == 364
+ELSEIF SELECTCOM == 84 || SELECTCOM == 12 || (SELECTCOM >= 191 && SELECTCOM <= 195) || SELECTCOM == 204 || SELECTCOM == 364	; 【コマンド:[Ｇスポット刺激] / コマンド:[アナルに入れさせる] / コマンド:[着衣Ｇスポット刺激]】
 	A = 3
 	B = 2
 	SIF PALAMLV:2 > 1
@@ -447,7 +469,7 @@ ELSEIF SELECTCOM == 84 || SELECTCOM == 12 || (SELECTCOM >= 191 && SELECTCOM <= 1
 	SIF PALAMLV:2 > 4
 		A += 1
 ;本番　セックス系全部・196,ペニバン挿入・非ウフフ時のセックス系全部
-ELSEIF (SELECTCOM > 19 && SELECTCOM < 30) || SELECTCOM == 64 || SELECTCOM == 34 || SELECTCOM == 36 || SELECTCOM == 167 || SELECTCOM == 168 || SELECTCOM == 196 || SELECTCOM == 255 || SELECTCOM == 256 || SELECTCOM == 363 || SELECTCOM == 365 || SELECTCOM == 366
+ELSEIF (SELECTCOM > 19 && SELECTCOM < 30) || SELECTCOM == 64 || SELECTCOM == 34 || SELECTCOM == 36 || SELECTCOM == 167 || SELECTCOM == 168 || SELECTCOM == 196 || SELECTCOM == 255 || SELECTCOM == 256 || SELECTCOM == 363 || SELECTCOM == 365 || SELECTCOM == 366	; 【コマンド:[騎乗位] / コマンド:[騎乗位アナル] / コマンド:[ペニバン挿入] / コマンド:[挿入Ｇスポ責め] / コマンド:[挿入子宮口責め] / コマンド:[着衣挿入] / コマンド:[着衣後背位] / コマンド:[着衣騎乗位]】
 	A = 3
 	B = 3
 	SIF PALAMLV:2 > 1
@@ -460,15 +482,15 @@ ENDIF
 
 ;玩具装備・解除系
 ;クリップ系　クリキャップ・ニプルキャップ
-IF SELECTCOM == 14 || SELECTCOM == 15 || SELECTCOM == 103 || SELECTCOM == 104
+IF SELECTCOM == 14 || SELECTCOM == 15 || SELECTCOM == 103 || SELECTCOM == 104	; 【コマンド:[クリキャップ] / コマンド:[二プルキャップ]】
 	A = 1
 	B = 1
 ;重め系　搾乳機・アナルビーズ・オナホール・アナル電極
-ELSEIF SELECTCOM == 16 || SELECTCOM == 17 || SELECTCOM == 19 || SELECTCOM == 49 || SELECTCOM == 105 || SELECTCOM == 109
+ELSEIF SELECTCOM == 16 || SELECTCOM == 17 || SELECTCOM == 19 || SELECTCOM == 49 || SELECTCOM == 105 || SELECTCOM == 109	; 【コマンド:[搾乳機] / コマンド:[オナホール] / コマンド:[アナルビーズ]】
 	A = 2
 	B = 3
 ;挿入系　バイブ・アナルバイブ・クスコ
-ELSEIF SELECTCOM == 11 || SELECTCOM == 13 || SELECTCOM == 110 || SELECTCOM == 101 || SELECTCOM == 102
+ELSEIF SELECTCOM == 11 || SELECTCOM == 13 || SELECTCOM == 110 || SELECTCOM == 101 || SELECTCOM == 102	; 【コマンド:[バイブ] / コマンド:[アナルバイブ] / コマンド:[クスコ]】
 	A = 1
 	B = 2
 ENDIF
@@ -476,21 +498,21 @@ ENDIF
 ;どれくらい感じてるかチェック
 ;ソースに対応した感覚が2以上なら1、4以上なら2。高い方を優先
 IF A
-	SIF SOURCE:0 && ABL:3 > 1
+	SIF SOURCE:0 && ABL:3 > 1	; 【[Ｃ感覚]Lv>1】
 		C = 1
-	SIF SOURCE:0 && ABL:3 > 3
+	SIF SOURCE:0 && ABL:3 > 3	; 【[Ｃ感覚]Lv>3】
 		C = 2
-	SIF SOURCE:1 && ABL:4 > 1 && C == 0
+	SIF SOURCE:1 && ABL:4 > 1 && C == 0	; 【[Ｖ感覚]Lv>1】
 		C = 1
-	SIF SOURCE:1 && ABL:4 > 3
+	SIF SOURCE:1 && ABL:4 > 3	; 【[Ｖ感覚]Lv>3】
 		C = 2
-	SIF SOURCE:2 && ABL:5 > 1 && C == 0
+	SIF SOURCE:2 && ABL:5 > 1 && C == 0	; 【[Ａ感覚]Lv>1】
 		C = 1
-	SIF SOURCE:2 && ABL:5 > 3
+	SIF SOURCE:2 && ABL:5 > 3	; 【[Ａ感覚]Lv>3】
 		C = 2
-	SIF SOURCE:17 && ABL:14 > 1 && C == 0
+	SIF SOURCE:17 && ABL:14 > 1 && C == 0	; 【[Ｂ感覚]Lv>1】
 		C = 1
-	SIF SOURCE:17 && ABL:14 > 3
+	SIF SOURCE:17 && ABL:14 > 3	; 【[Ｂ感覚]Lv>3】
 		C = 2
 	;感じていない口上へ
 	IF C == 0
@@ -517,19 +539,19 @@ ENDIF
 
 ;奉仕系
 ;キスする
-IF SELECTCOM == 6
+IF SELECTCOM == 6	; 【コマンド:[キスする]】
 	A = 6
 	B = 3
 ;手淫
-ELSEIF SELECTCOM == 30
+ELSEIF SELECTCOM == 30	; 【コマンド:[手淫]】
 	A = 3
 	B = 0
 ;パイズリ
-ELSEIF SELECTCOM == 32
+ELSEIF SELECTCOM == 32	; 【コマンド:[パイズリ]】
 	A = 4
 	B = 1
 ;フェラ・シックスナイン・Ｗフェラ・指フェラ
-ELSEIF SELECTCOM == 31 || SELECTCOM == 69 ||SELECTCOM == 68 ||SELECTCOM == 66 || SELECTCOM == 201 || SELECTCOM == 373
+ELSEIF SELECTCOM == 31 || SELECTCOM == 69 ||SELECTCOM == 68 ||SELECTCOM == 66 || SELECTCOM == 201 || SELECTCOM == 373	; 【コマンド:[フェラチオ] / コマンド:[シックスナイン] / コマンド:[ダブルフェラ] / コマンド:[Ｗフェラ] / コマンド:[指フェラ]】
 	A = 6
 	B = 2
 ENDIF
@@ -545,13 +567,13 @@ ENDIF
 
 ;苦痛系
 ;痛いの
-IF TFLAG:45 == 0 && (SELECTCOM == 40 || SELECTCOM == 41 || SELECTCOM == 42)
+IF TFLAG:45 == 0 && (SELECTCOM == 40 || SELECTCOM == 41 || SELECTCOM == 42)	; 【コマンド:[スパンキング] / コマンド:[鞭] / コマンド:[針] / 無[主導権]】
 	A = 3
 	B = 1
-	SIF SELECTCOM == 42
+	SIF SELECTCOM == 42	; 【コマンド:[針]】
 		B += 1
 ;苦しいの　;46,浣腸器＋プラグ・80,イラマチオ・392,衣装破り
-ELSEIF SELECTCOM == 46 || SELECTCOM == 80 || SELECTCOM == 107 || SELECTCOM == 108 || SELECTCOM == 392
+ELSEIF SELECTCOM == 46 || SELECTCOM == 80 || SELECTCOM == 107 || SELECTCOM == 108 || SELECTCOM == 392	; 【コマンド:[浣腸器＋プラグ] / コマンド:[イラマチオ] / コマンド:[衣装破り]】
 	A = 2
 	B = 3
 ENDIF
@@ -573,7 +595,7 @@ RETURN 0
 PRINT 「
 
 ;お尻判定
-IF SOURCE:2 && SELECTCOM != 3
+IF SOURCE:2 && SELECTCOM != 3	; 【コマンド:[自慰]以外】
 	P = RAND:3
 	SIF P == 0
 		PRINT 後ろ……？　
@@ -689,7 +711,7 @@ RETURN 0
 PRINT 「
 
 ;お尻判定
-IF SOURCE:2 && SELECTCOM != 3
+IF SOURCE:2 && SELECTCOM != 3	; 【コマンド:[自慰]以外】
 	P = RAND:3
 	SIF P == 0
 		PRINT そ、そっちは違っ、
@@ -730,9 +752,9 @@ SIF A < 1
 		PRINT まだ……？
 	SIF P == 4 && SOURCE:6
 		PRINT ん、あ、痛っ
-	SIF P == 4 && SOURCE:6 == 0 && TFLAG:44 == 1
+	SIF P == 4 && SOURCE:6 == 0 && TFLAG:44 == 1	; 【[ウフフ中]==1】
 		PRINT ぬるって……
-	SIF P == 4 && SOURCE:6 == 0 && TFLAG:44 == 0
+	SIF P == 4 && SOURCE:6 == 0 && TFLAG:44 == 0	; 【無[ウフフ中]】
 		PRINT ううっ……
 PRINTW 」
 A = 0
@@ -892,3 +914,50 @@ PRINTW 」
 A = 0
 B = 0
 RETURN 0
+
+;-------------------------------------------------
+;気絶中絶頂・射精専用メッセージ
+;意識のないパートナーが快楽の波や射精を迎えた時の地の文
+;-------------------------------------------------
+@FAINT_CLIMAX_MESSAGE
+#DIM CLIMAX_COUNT
+CLIMAX_COUNT = NOWEX:0 + NOWEX:1 + NOWEX:2 + NOWEX:3 + NOWEX:6
+
+;絶頂がない場合はスキップ
+SIF CLIMAX_COUNT == 0
+	RETURN 0
+
+PRINTL
+SETCOLOR 0xFF88BB
+IF CLIMAX_COUNT >= 2
+	PRINTFORML 意識を失ったままの%CALLNAME:TARGET%の身体は、抑えきれない快楽の奔流に激しく弓なりとなって跳ね起きた！
+	PRINTFORML 虚ろな瞳のまま涙をこぼし、全身の筋肉を硬直させて震えている……
+	PRINTFORML 本人の意思とは無関係に達した強烈な絶頂に、脱力した四肢はピクピクと痙攣し続けている……
+ELSEIF CLIMAX_COUNT == 1
+	IF NOWEX:0 > 0
+		PRINTFORML 意識のない%CALLNAME:TARGET%の秘所の突起が、不意に跳ねて痙攣する。
+		PRINTFORML 完全に脱力したまま声も漏らせず、無言のまま絶頂の波に打ち震えている……
+	ELSEIF NOWEX:1 > 0
+		PRINTFORML 気絶した%CALLNAME:TARGET%の膣孔が、内壁の余韻で不規則にヒクつき、締め付けを繰り返す。
+		PRINTFORML 意識のない身体はシーツを掴むように微かに震え、無自覚の絶頂に達している……
+	ELSEIF NOWEX:2 > 0
+		PRINTFORML 意識のない%CALLNAME:TARGET%のアナルが、不意にキュッと収縮を繰り返す。
+		PRINTFORML 括約筋が無意識の快感に震え、脱力した身体を痙攣させている……
+	ELSEIF NOWEX:3 > 0
+		PRINTFORML 気絶した%CALLNAME:TARGET%の乳頭がピンと尖り立ち、浅い呼吸で小刻みに上下する。
+		PRINTFORML 意識のない身体に快感が走り、微かに身体を震わせている……
+	ELSEIF NOWEX:6 > 0
+		PRINTFORML だらしなく開いた%CALLNAME:TARGET%の口元が、微かに快感に震えている……
+	ENDIF
+ENDIF
+RESETCOLOR
+
+@FAINT_SHOOT_MESSAGE
+SIF TARGET < 0 || (TALENT:TARGET:121 == 0 && TALENT:TARGET:122 == 0)	; 【TARGET:[ふたなり]なし / TARGET:[オトコ]なし】
+	RETURN 0
+PRINTL
+SETCOLOR 0xFF88BB
+PRINTFORML 意識のない%CALLNAME:TARGET%の%PENIS_DESC(TARGET)%ペニスが根元まで怒張を極め、本人の意思とは無関係にドクドクと脈打った！
+PRINTFORML 脱力した身体の先端から勢いよく白濁が噴き出し、無防備に晒された腹部やシーツを汚していく……
+PRINTFORML 本人は射精したことすら知覚できず、力なく横たわっている……
+RESETCOLOR

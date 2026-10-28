@@ -26,7 +26,7 @@ IF FLAG:5 == 10
 	REPEAT CHARANUM
 		IF COUNT == 0
 			CONTINUE
-		ELSEIF CFLAG:COUNT:17 == 0
+		ELSEIF CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 			A += 1
 		ENDIF
 	REND
@@ -47,7 +47,7 @@ IF FLAG:5 == 10
 		ELSEIF RESULT == 0
 			PRINTFORMW それでは1日目、1年生の4月に戻ります。次は頑張って下さい
 			REPEAT CHARANUM
-				SIF TALENT:COUNT:134 || MARK:COUNT:90
+				SIF TALENT:COUNT:134 || MARK:COUNT:90	; 【COUNT:[妊娠]】
 					CFLAG:COUNT:110 -= DAY
 			REND
 			DAY = 0
@@ -84,6 +84,9 @@ ELSEIF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 3
 	LOCAL:6 = DAY % 10 + 1
 	SIF TARGET < 0
 		TARGET = 1
+	;旧セーブで周回前の月が残っている場合も、現在月へ補正する。
+	SIF FLAG:207 > DAY / 10
+		FLAG:207 = DAY / 10
 	;月次定期戦（毎ターン通るここで確実に発火）
 	SIF DAY / 10 > FLAG:207
 		CALL MONTHLY_DECK_RESULT
@@ -130,6 +133,11 @@ ELSEIF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 3
 		IF FLAG:24 > 3
 			PRINTFORMW おめでとう！ 3年間の学院生活を終え、卒業しました！
 			TRYCALL GAME_CONTINUE
+			IF TARGET >= 1 && TARGET < CHARANUM
+				CALL EXECUTE_PARTNER_ENDING, TARGET
+			ELSEIF CHARANUM > 1
+				CALL ENDING_PLAYER
+			ENDIF
 		ELSE
 			FLAG:27 = 0
 			DAY = (DAY / 120 + 1) * 120
@@ -151,7 +159,7 @@ CALL KOJO_JUN
 A = 0
 ;恋慕キャラカウント
 REPEAT CHARANUM
-	SIF TALENT:COUNT:85
+	SIF TALENT:COUNT:85	; 【COUNT:[恋慕]】
 		A += 1
 REND
 
@@ -185,7 +193,7 @@ IF TARGET > 0
 	PRINTFORMW 何を今更、と恥ずかしがる%CALLNAME:TARGET%だったが、満更でも無さそうだ
 	PRINTL  
 
-	IF TALENT:153
+	IF TALENT:153	; 【[恋人]】
 		PRINTFORMW そうして、きっかけは兎も角として恋人となった二人は、仲良く%CALLNAME:MASTER%の家へと帰っていった……
 		PRINTFORML  
 		PRINTFORMW  
@@ -211,7 +219,7 @@ PRINTL
 A = 0
 ;恋慕キャラカウント
 REPEAT CHARANUM
-	SIF TALENT:COUNT:85
+	SIF TALENT:COUNT:85	; 【COUNT:[恋慕]】
 		A += 1
 REND
 
@@ -288,48 +296,29 @@ FLAG:46 |= 2
 RETURN 1
 
 
+;--------------------------------------------------
+; 追加エンディング No.3（ハーレムエンディング呼び出し）
+;--------------------------------------------------
 @ADDITIONAL_ENDING_3
-
-A = 0
-
-PRINTFORMW %CALLNAME:MASTER%達が異変の元凶を退治してから数日後……
-PRINTL  
-PRINTFORML %CALLNAME:MASTER%の家の前では、今日も少女達が%CALLNAME:MASTER%と一緒に過ごす時間を賭けて勝負を繰り広げていた
-PRINTFORML これだけ多くの少女達に好かれていると言うのは確かに嬉しい物ではあるのだが、
-PRINTFORMW 流石にこう毎日引っ張りだこにされていては体力が持たない
-PRINTL  
-PRINTFORML たまには自分も休ませてくれ……そう%CALLNAME:MASTER%が言おうとすると、
-PRINTFORM 勝負を制した
-REPEAT CHARANUM
-	IF A == 0 && TALENT:COUNT:85
-		A = COUNT
-		PRINTFORM %CALLNAME:A%
-	ENDIF
-REND
-PRINTFORML が、満面の笑顔で%CALLNAME:MASTER%に抱きついてきた
-PRINTFORMW ……その笑顔を見た%CALLNAME:MASTER%は結局何も言えなくなってしまい、今日も%CALLNAME:A%と、ヘトヘトになるまで一緒に過ごすのだった
-PRINTL  
-PRINTFORMW  
-PRINTFORMW 　　　　　　　　―― Additional Ending No.3 ～秘密の花園～
-PRINTL  
-PRINTL  
-
-RETURN 1
-
-
-;==================================================
-; エンディングシステム（あんガル版）
-;==================================================
+CALL EXECUTE_HAREM_ENDING
+RETURN RESULT
 
 ;--------------------------------------------------
-; エンディングメイン（任意コマンド[127]から呼ばれる）
+; エンディングメニュー（ショップコマンド[127]より）
 ;--------------------------------------------------
 @ENDING_PLAYER
-;ロード済みキャラが主人公だけならスキップ
+;ロード済みキャラ居ないならスキップ
 IF CHARANUM <= 1
-	PRINTFORMW パートナーを選んでからエンディングを見てください
+	PRINTFORMW パートナーを選んでエンディングを見てください
 	RETURN 0
 ENDIF
+
+; 特別な絆（恋慕・親愛・相愛・恋人）を持つ生徒数をカウント
+LOCAL:99 = 0
+FOR A, 1, CHARANUM
+	SIF TALENT:A:85 || TALENT:A:88 || TALENT:A:89 || TALENT:A:153
+		LOCAL:99++
+NEXT
 
 DRAWLINE
 PRINTL 【エンディング - 誰とのエンディングを迎えますか？】
@@ -337,64 +326,96 @@ PRINTL
 
 ;スロット0はMASTER(主人公)なのでスキップして表示
 FOR A, 1, CHARANUM
-	PRINTFORML [{A}] %NAME:A%（%CALLNAME:A%）
+	LOCALS = 
+	IF TALENT:A:89
+		LOCALS = 【相愛】
+	ELSEIF TALENT:A:88
+		LOCALS = 【親愛】
+	ELSEIF TALENT:A:153
+		LOCALS = 【恋人】
+	ELSEIF TALENT:A:85
+		LOCALS = 【恋慕】
+	ENDIF
+	
+	IF LOCALS != ""
+		SETCOLOR 255, 180, 200
+		PRINTFORML [{A, 2}] %NAME:A, 16, LEFT%（%CALLNAME:A, 10, LEFT%）%LOCALS%
+		RESETCOLOR
+	ELSE
+		PRINTFORML [{A, 2}] %NAME:A, 16, LEFT%（%CALLNAME:A, 10, LEFT%）
+	ENDIF
 NEXT
 PRINTL
+
+; 好意キャラが3名以上いればハーレムエンドの選択肢を表示
+IF LOCAL:99 >= 3
+	SETCOLOR 255, 215, 0
+	PRINTFORML [999] 【ハーレムエンド】愛するすべての生徒たちと迎える大団円（該当：{LOCAL:99}名）
+	RESETCOLOR
+	PRINTL
+ENDIF
+
 PRINTFORML [0] 戻る
 
 $ED_SELECT_LOOP
 INPUT
 IF RESULT == 0
 	RETURN 0
+ELSEIF RESULT == 999 && LOCAL:99 >= 3
+	CALL EXECUTE_HAREM_ENDING
+	RETURN RESULT
 ELSEIF RESULT >= 1 && RESULT < CHARANUM
 	A = RESULT
 ELSE
 	GOTO ED_SELECT_LOOP
 ENDIF
 
-;選択キャラのNOを取得・TARGETを切り替え
-B = NO:A
-TARGET = A
-DRAWLINE
+CALL EXECUTE_PARTNER_ENDING, A
+RETURN RESULT
 
-;結婚エンド判定: 素質89（妻）持ちのみ
-IF TALENT:A:89
+@EXECUTE_PARTNER_ENDING, ARG
+IF ARG <= 0 || ARG >= CHARANUM
+	CALL ENDING_PLAYER
+	RETURN RESULT
+ENDIF
+
+LOCAL = NO:ARG
+TARGET = ARG
+DRAWLINE
+PRINTL
+PRINTFORMW ―― 卒業式当日 ――
+PRINTFORML 桜の花びらが舞う中、3年間の学院生活の最後を飾る卒業式が執り行われた。
+PRINTFORML %CALLNAME:MASTER%の隣には、かけがえのない日々を共に歩んできた%CALLNAME:ARG%の姿がある。
+PRINTFORMW 式典を終えた二人は、思い出の詰まった校舎を抜け、静かに言葉を交わした……
+PRINTL
+
+;結婚エンド判定: 素質89（相愛）持ちのみ
+IF TALENT:ARG:89	; 【ARG:[相愛]】
 	;相愛 → 結婚エンド
 	SETCOLOR 255, 220, 100
-	PRINTFORML ――― %CALLNAME:A% との 結婚エンド ―――
+	PRINTFORML ――― %CALLNAME:ARG% との 結婚エンド ―――
 	RESETCOLOR
 	PRINTL
-	TRYCALLFORM ENDING_MARRIAGE_{B}
+	TRYCALLFORM ENDING_MARRIAGE_{LOCAL}
 	CALL ENDING_MARRIAGE_DEFAULT
 ELSE
 	;相愛でない → 卒業エンド
 	SETCOLOR 150, 220, 255
-	PRINTFORML ――― %CALLNAME:A% との 卒業エンド ―――
+	PRINTFORML ――― %CALLNAME:ARG% との 卒業エンド ―――
 	RESETCOLOR
 	PRINTL
-	TRYCALLFORM ENDING_GRADUATE_{B}
+	TRYCALLFORM ENDING_GRADUATE_{LOCAL}
 	CALL ENDING_GRADUATE_DEFAULT
 ENDIF
 
 PRINTL
 DRAWLINE
 
-;解禁処理
-IF FLAG:1071 == 0
-	FLAG:1071 = 2
-	SETCOLOR 255, 200, 100
-	PRINTFORML 　※ 謎の転校生「あんず」がパートナー候補に現れた
-	RESETCOLOR
-ENDIF
-IF (FLAG:28 & 1) == 0
-	FLAG:28 |= 1
-	PRINTFORML 　※ 強くてニューゲームが解禁されました
-ENDIF
-PRINTL
+CALL UNLOCK_ENDING_REWARDS
 
 PRINTFORML このエンディングを見た後、どうしますか？
 PRINTFORML [0] 周回プレイ（1年生4月へ・データ全引継ぎ）
-PRINTFORML [1] そのまま続ける
+PRINTFORML [1] そのまま続ける（卒業後の自由時間・エンドレス）
 $INPUT_END_CHOICE
 INPUT
 IF RESULT == 0
@@ -442,6 +463,8 @@ RETURN 1
 ; 周回処理（全データ引継ぎ・1年生4月へ）
 ;--------------------------------------------------
 @ENDING_NEW_CYCLE
+;巻き戻す前の未補充分を受け取り、在庫自体は引き継ぐ。
+CALL TICKET_BUDGET_CHECK
 PRINTFORMW それでは1年生の4月に戻ります。これまでのデータは全て引き継がれます。
 DAY = 0
 TIME = 0
@@ -449,6 +472,8 @@ FLAG:24 = 1	;1年生に戻る
 FLAG:25 = 0
 FLAG:26 += 1	;周回カウンター
 FLAG:27 = 0	;試験ビットマスクリセット
+FLAG:207 = 0	;月次定期戦を新しい周回の4月へ戻す
+FLAG:15081 = 1	;在庫を保持したまま、補充済み月だけ4月へ戻す
 FLAG:15050 = 0	;すごろく盤面位置リセット
 FLAG:67 = 0	;イベントボード月次検出リセット
 FLAG:69 = 0	;イベント通知リセット
@@ -457,3 +482,242 @@ ASSI = -1
 ;育成データを保持したままパートナー再選択
 CALL START_PARTNER_SELECT
 RETURN 0
+
+;==================================================
+; 君咲学院 ハーレムエンディング
+;==================================================
+@EXECUTE_HAREM_ENDING
+#DIM DYNAMIC HAREM_COUNT, 1
+#DIM DYNAMIC HAREM_LIST, 100
+#DIM DYNAMIC CID, 1
+#DIM DYNAMIC CCOUNT, 1
+#DIM DYNAMIC ANZ_ID, 1
+
+VARSET HAREM_LIST, 0
+HAREM_COUNT = 0
+ANZ_ID = 0
+
+; 恋慕(85)・親愛(88)・相愛(89)・恋人(153)を持つ生徒をカウント
+FOR CID, 1, CHARANUM
+	IF TALENT:CID:85 || TALENT:CID:88 || TALENT:CID:89 || TALENT:CID:153
+		HAREM_LIST:HAREM_COUNT = CID
+		HAREM_COUNT++
+		SIF NO:CID == 72
+			ANZ_ID = CID
+	ENDIF
+NEXT
+
+IF HAREM_COUNT < 3
+	PRINTFORMW ハーレムエンディングを迎えるには、特別な絆（恋慕・親愛・相愛・恋人）を持つ生徒が3名以上必要です。（現在：{HAREM_COUNT}名）
+	RETURN 0
+ENDIF
+
+DRAWLINE
+PRINTL
+SETCOLOR 255, 182, 193
+PRINTFORMW ―― 卒業式、そして百花繚乱の君咲学院 ――
+RESETCOLOR
+PRINTL
+
+PRINTFORML 暖かな春の陽光が降り注ぐ中、君咲学院の卒業式は厳かに幕を閉じた。
+PRINTFORML 満開を迎えた桜が枝を揺らし、校庭や中庭には淡い花びらが絶え間なく舞い散っている。
+PRINTFORML 式典を終えた生徒たちが別れを惜しみ、記念撮影や歓談の声があちこちから響く校舎。
+PRINTFORML %CALLNAME:MASTER%が中庭のベンチの近くまで歩いていくと、
+PRINTFORML 背後からいくつもの足音が重なり合いながら駆け寄ってきた。
+PRINTL
+PRINTFORMW 振り返ると、そこには息を切らしながらこちらへ駆け寄ってくる少女たちの姿があった。
+PRINTL
+
+; 生徒たちのリスト表示
+PRINTFORML %CALLNAME:MASTER%の元へ、特別な絆で結ばれた生徒たちが次々と集まってくる……。
+PRINTL
+SETCOLOR 255, 215, 0
+FOR CCOUNT, 0, HAREM_COUNT
+	CID = HAREM_LIST:CCOUNT
+	LOCALS = 
+	IF TALENT:CID:89
+		LOCALS = 【相愛】
+	ELSEIF TALENT:CID:88
+		LOCALS = 【親愛】
+	ELSEIF TALENT:CID:153
+		LOCALS = 【恋人】
+	ELSE
+		LOCALS = 【恋慕】
+	ENDIF
+	PRINTFORM   ・%CALLNAME:CID, 12, LEFT% %LOCALS%
+	IF (CCOUNT + 1) % 3 == 0
+		PRINTL
+	ENDIF
+NEXT
+SIF HAREM_COUNT % 3 != 0
+	PRINTL
+RESETCOLOR
+PRINTL
+PRINTFORMW 総勢 {HAREM_COUNT}名もの生徒たちが、満面の笑みで%CALLNAME:MASTER%の周りを取り囲んだ。
+PRINTL
+
+; 人数・規模に応じた地の文描写（台詞一切なし）
+IF HAREM_COUNT >= 20
+	PRINTFORML 学院の半数近くに及ぶ少女たちが一堂に会した中庭は、華やかな熱気と甘い香りで満たされている。
+	PRINTFORML 我先にと%CALLNAME:MASTER%の腕を取り、服の裾を引き、背中に抱きついてくる少女たち。
+	PRINTFORML 互いに視線を交わしては困ったように苦笑しつつも、その瞳には誰一人として譲る気配はない。
+	PRINTFORML これほど多くの少女たちから一身に愛を向けられる重みと歓びを噛み締めながら、
+	PRINTFORML %CALLNAME:MASTER%は誰一人欠かすことなく、全員を包み込むように優しく微笑み返した。
+	PRINTL
+	PRINTFORMW 誰か一人だけを選ぶことなど、とうにできるはずもなかった。
+	PRINTFORMW ここにいる全員を等しく愛し、全員を幸せにする――その無言の決意が伝わったかのように、
+	PRINTFORMW 少女たちは示し合わせたように顔を見合わせ、満足そうに満面の笑みを咲かせた。
+ELSEIF HAREM_COUNT >= 10
+	PRINTFORML 少女たちは互いに牽制し合うように視線を交わしながらも、嬉しそうに%CALLNAME:MASTER%へと身を寄せる。
+	PRINTFORML 手を取る者、腕にすがりつく者、照れくさそうに背中へ手を添える者。
+	PRINTFORML それぞれが異なる形で好意を示しながら、自然と%CALLNAME:MASTER%を中心とした温かな輪が形作られていく。
+	PRINTFORML 一人ひとりと紡いできた大切な思い出が胸を去来し、どの瞳にも嘘偽りのない純粋な情愛が宿っていた。
+	PRINTL
+	PRINTFORMW 卒業という節目を迎えても、誰一人として離れるつもりはないのだと、少女たちの仕草が物語っている。
+	PRINTFORMW %CALLNAME:MASTER%が一人ひとりの手をそっと握り返すと、彼女たちは安堵に満ちた幸福な表情を浮かべた。
+ELSE
+	PRINTFORML 少女たちは少し照れくさそうに顔を見合わせながらも、穏やかな笑みを浮かべて歩み寄ってきた。
+	PRINTFORML そっと差し出された手、重ね合わされる温もり、かけがえのない三年間の重み。
+	PRINTFORML 互いに惹かれ合い、絆を結んだ日々は、卒業証書を手にした今も色褪せることはない。
+	PRINTL
+	PRINTFORMW 一人だけを選ぶのではなく、全員と共に新しい季節へ踏み出したい――
+	PRINTFORMW %CALLNAME:MASTER%の真摯な眼差しを受け止め、少女たちは静かに頷き、その温もりを分かち合った。
+ENDIF
+PRINTL
+
+; 姉・あんずの分岐演出（恋人・ハーレム参加時と、見守り時）
+LOCAL:72 = GETCHARA(72)
+IF ANZ_ID > 0
+	PRINTFORML 実の姉であり、同時に深い愛で結ばれたあんずもまた、少女たちの中に混じって身を寄せている。
+	PRINTFORML 弟であり、何より最愛の相手でもある%CALLNAME:MASTER%の腕へそっと手を絡め、
+	PRINTFORML どこか照れくさそうにはにかみながらも、その表情には隠しようのない幸福感が満ちていた。
+	PRINTL
+	PRINTFORML 通りかかった生徒が立ち止まり、微笑ましげにカメラのシャッターを引き受けてくれる。
+	PRINTFORML あんずも他の少女たちと肩を寄せ合い、%CALLNAME:MASTER%の隣でレンズへ向けて満面の笑顔を向けた。
+	PRINTL
+	PRINTFORMW 穏やかな春風が吹き抜ける中、全員が寄り添い合い、幸せな瞬間がファインダーに収まる。
+ELSEIF LOCAL:72 >= 0
+	PRINTFORML 少し離れた場所から、姉のあんずが苦笑交じりの柔らかな笑みを浮かべてその光景を見守っている。
+	PRINTFORML 大勢の少女たちに囲まれる弟の姿に、どこか誇らしげな眼差しを向けながら、
+	PRINTFORML 彼女は持っていたカメラを構え、全員がファインダーに収まるよう手招きをして見せた。
+	PRINTL
+	PRINTFORMW 少女たちはさらに身を寄せ合い、%CALLNAME:MASTER%を中心にぎゅっと固まる。
+ELSE
+	PRINTFORML 舞い散る桜吹雪の中、少女たちは互いに肩を寄せ合い、%CALLNAME:MASTER%を中心に固まった。
+	PRINTFORML 通りかかった生徒が立ち止まり、微笑ましげにカメラのシャッターを引き受けてくれる。
+	PRINTL
+	PRINTFORMW 全員が寄り添い合い、レンズへ向けてとびきりの笑顔を向けた。
+ENDIF
+PRINTL
+
+; 記念撮影とエンディング余韻
+PRINTFORML カシャリ、と心地よいシャッター音が中庭に響き渡った。
+PRINTFORML レンズの向こうには、照れくさそうに佇む%CALLNAME:MASTER%と、
+PRINTFORML その身体に寄り添い、花のように咲き誇る少女たちの眩しい笑顔が焼き付けられた。
+PRINTL
+PRINTFORML 学院生活はこれで一区切りを迎える。
+PRINTFORML けれど、幾千の時間を重ねて紡ぎ上げた絆は、決して途切れることはない。
+PRINTFORML これからも、愛するすべての少女たちと共に歩み、愛し、愛され続ける日々が続いていくのだ――。
+PRINTL
+PRINTL
+
+; エンディング称号画面
+DRAWLINE
+SETCOLOR 255, 215, 0
+PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IF HAREM_COUNT >= 25
+	PRINTFORML      ★★★★★ 君咲学院 百花繚乱・全校覇者ハーレムグランドエンド ★★★★★
+ELSEIF HAREM_COUNT >= 10
+	PRINTFORML      ★★★★☆ 君咲学院 百花繚乱・至高の大団円ハーレムエンド ★★★★☆
+ELSE
+	PRINTFORML      ★★★☆☆ 君咲学院 永遠の誓い・ハーレムグッドエンド ★★★☆☆
+ENDIF
+PRINTFORML                       ―― Happy Harem Ending ――
+PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESETCOLOR
+PRINTL
+PRINTFORMW 達成愛好人数：{HAREM_COUNT}名
+PRINTL
+
+;受取履歴の旧セーブ移行は、今回のクリアフラグを立てる前に行う。
+CALL HAREM_ENDING_REWARD
+FLAG:46 |= 4
+CALL UNLOCK_ENDING_REWARDS
+PRINTFORML  ・クリア実績【ハーレムエンド】が記録されました。
+PRINTL
+DRAWLINE
+PRINTL
+
+; クリア後の進路選択
+PRINTFORML このエンディングの後、どうしますか？
+PRINTFORML [0] 強くてニューゲーム（1年生4月へ・全データ引き継ぎ）
+PRINTFORML [1] このまま学園生活を続ける（卒業後の自由時間・エンドレス）
+
+$INPUT_HAREM_END_CHOICE
+INPUT
+IF RESULT == 0
+	CALL ENDING_NEW_CYCLE
+	RETURN 1
+ELSEIF RESULT == 1
+	RETURN 0
+ELSE
+	GOTO INPUT_HAREM_END_CHOICE
+ENDIF
+
+RETURN 0
+
+@UNLOCK_ENDING_REWARDS
+;解禁処理
+IF FLAG:1071 == 0
+	FLAG:1071 = 2
+	SETCOLOR 255, 200, 100
+	PRINTFORML 　※ 謎の転校生「あんず」がパートナー候補に現れた
+	RESETCOLOR
+ENDIF
+IF (FLAG:28 & 1) == 0
+	FLAG:28 |= 1
+	PRINTFORML 　※ 強くてニューゲームが解禁されました
+ENDIF
+PRINTL
+
+RETURN 1
+
+;カードセレクトチケットは人数の節目ごとに一度だけ支給する。
+;FLAG:15089のbit0～7 = 5・10・20・30・40・50・60・70名の受取済み。
+;旧金銭・好感度報酬の履歴は保持するが、新しいチケットの受取判定には使用しない。
+@HAREM_ENDING_REWARD
+#DIM DYNAMIC CID, 1
+#DIM DYNAMIC HAREM_COUNT, 1
+#DIM DYNAMIC STEP, 1
+#DIM DYNAMIC MILESTONE, 1
+#DIM DYNAMIC REWARD_BIT, 1
+#DIM DYNAMIC REWARD_COUNT, 1
+HAREM_COUNT = 0
+REWARD_COUNT = 0
+REWARD_BIT = 1
+FOR CID, 1, CHARANUM
+	SIF TALENT:CID:85 || TALENT:CID:88 || TALENT:CID:89 || TALENT:CID:153
+		HAREM_COUNT += 1
+NEXT
+SETCOLOR 255, 200, 100
+PRINTFORML 【ハーレムエンド達成特典】：
+FOR STEP, 0, 8
+	MILESTONE = 5
+	SIF STEP > 0
+		MILESTONE = STEP * 10
+	IF HAREM_COUNT >= MILESTONE && (FLAG:15089 & REWARD_BIT) == 0
+		FLAG:15089 |= REWARD_BIT
+		REWARD_COUNT += 1
+		PRINTFORML  ・{MILESTONE}名達成：カードセレクトチケット1枚！
+	ENDIF
+	REWARD_BIT *= 2
+NEXT
+ITEM:96 += REWARD_COUNT
+IF REWARD_COUNT > 0
+	PRINTFORML カードセレクトチケットを計{REWARD_COUNT}枚入手しました。（所持{ITEM:96}枚）
+	PRINTFORML ガチャ画面から、好きな未所持カードを選んで入手できます。
+ELSE
+	PRINTFORML 今回の追加報酬はありません。（5名・10名・以降10名ごとに各1枚、各節目で一度限り）
+ENDIF
+RESETCOLOR
+RETURN REWARD_COUNT

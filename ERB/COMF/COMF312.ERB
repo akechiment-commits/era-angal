@@ -9,7 +9,7 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中は無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 RETURN 1
 
@@ -21,7 +21,6 @@ RETURN RESULT
 @COM_HEAD_PAT_CORE, ARG
 ;頭を撫でる／頭を撫でてもらう
 ;使用変数をAとその配列、Lのみに絞る
-;うにゅほさん用コマンド！では無いので好きに使って下さい
 ;お子様なキャラだと効果が高いです。
 ;幼児退行、幼稚持ちでも嫌がるようにする場合は口上側でTFLAG:18 = -1（失敗状態）にするか、
 ;台詞だけ嫌がらせたい場合は地の文カットを利用してください。
@@ -40,7 +39,7 @@ SIF A:2 > 99
 	A:2 = 99
 A:1 = RAND:100
 ;幼児退行、幼稚持ちは5%確率ボーナス(マイナスにすると処理が面倒なので5以上の時のみ補正する)
-SIF (TALENT:131 != 0 || TALENT:132 != 0) && A:1 >= 5
+SIF (TALENT:131 != 0 || TALENT:132 != 0) && A:1 >= 5	; 【[幼児]あり / [幼稚]あり】
 	A:1 -= 5
 IF A:1 <= 9
 	;10％で大成功
@@ -53,12 +52,11 @@ ELSE
 	TFLAG:18 = 0
 ENDIF
 
-;うにゅほさんは失敗せず
-IF NAME_CSV(NO:TARGET, 0) == "空"
-	TFLAG:18 += 1
-	SIF TFLAG:18 == 2
-		TFLAG:18 = 1
-ENDIF
+
+;実行値による合意判定
+CALL COM_ORDER_COMMON
+SIF RESULT == 0
+	RETURN 0
 
 ;実行値による合意判定
 CALL COM_ORDER_COMMON
@@ -67,10 +65,10 @@ SIF RESULT == 0
 
 TFLAG:17 = 0
 ;幼稚or幼児退行はデフォで強化版とする
-IF (TALENT:131 != 0 || TALENT:132 != 0)
+IF (TALENT:131 != 0 || TALENT:132 != 0)	; 【[幼児]あり / [幼稚]あり】
 	TFLAG:17 = 1
 ;親密4以上or好感度150以上なら実行判定を行い、強化版とする
-ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
+ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150	; 【[親密]Lv>=4 / [好感度]>=150】
 
 	A:1 = 0
 	A:3 = 0
@@ -95,7 +93,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 	; パートナー能力値による強化版移行値算出
 	;----------------------------------
 	;ABL:親密
-	IF ABL:0 != 0
+	IF ABL:0 != 0	; 【[親密]Lv!=0】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += ABL:0 * 3
@@ -103,7 +101,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;ABL:欲望
-	IF ABL:1 != 0
+	IF ABL:1 != 0	; 【[欲望]Lv!=0】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += ABL:1 * 3
@@ -115,21 +113,21 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 	; パートナー素質による強化版移行値補正
 	;----------------------------------
 	;臆病
-	IF TALENT:10 != 0
+	IF TALENT:10 != 0	; 【[臆病]あり】
 		PRINT  - 
 		A:1 -= 5
 		PRINTFORM %TALENTNAME:10%(5)
 		A:3 = 1
 	ENDIF
 	;反抗的
-	IF TALENT:11 != 0
+	IF TALENT:11 != 0	; 【[反抗的]あり】
 		PRINT  - 
 		A:1 -= 7
 		PRINTFORM %TALENTNAME:11%(7)
 		A:3 = 1
 	ENDIF
 	;素直
-	IF TALENT:13 != 0
+	IF TALENT:13 != 0	; 【[素直]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 10
@@ -137,7 +135,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;大人しい
-	IF TALENT:14 != 0
+	IF TALENT:14 != 0	; 【[大人しい]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 7
@@ -145,21 +143,21 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;プライド高い
-	IF TALENT:15 != 0
+	IF TALENT:15 != 0	; 【[プライド高い]あり】
 		PRINT  - 
 		A:1 -= 10
 		PRINTFORM %TALENTNAME:15%(10)
 		A:3 = 1
 	ENDIF
 	;生意気
-	IF TALENT:16 != 0
+	IF TALENT:16 != 0	; 【[生意気]あり】
 		PRINT  - 
 		A:1 -= 8
 		PRINTFORM %TALENTNAME:16%(8)
 		A:3 = 1
 	ENDIF
 	;無関心
-	IF TALENT:21 != 0
+	IF TALENT:21 != 0	; 【[無関心]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 8
@@ -167,14 +165,14 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;感情乏しい
-	IF TALENT:22 != 0
+	IF TALENT:22 != 0	; 【[感情乏しい]あり】
 		PRINT  - 
 		A:1 -= 8
 		PRINTFORM %TALENTNAME:22%(8)
 		A:3 = 1
 	ENDIF
 	;解放
-	IF TALENT:33 != 0
+	IF TALENT:33 != 0	; 【[解放]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 10
@@ -182,21 +180,21 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;抵抗
-	IF TALENT:34 != 0
+	IF TALENT:34 != 0	; 【[抵抗]あり】
 		PRINT  - 
 		A:1 -= 8
 		PRINTFORM %TALENTNAME:34%(8)
 		A:3 = 1
 	ENDIF
 	;恥じらい
-	IF TALENT:35 != 0
+	IF TALENT:35 != 0	; 【[恥じらい]あり】
 		PRINT  - 
 		A:1 -= 5
 		PRINTFORM %TALENTNAME:35%(5)
 		A:3 = 1
 	ENDIF
 	;恥薄い
-	IF TALENT:36 != 0
+	IF TALENT:36 != 0	; 【[恥薄い]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 10
@@ -204,14 +202,14 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;弱味 強化版判定の為、マイナスとして扱う
-	IF TALENT:37 != 0
+	IF TALENT:37 != 0	; 【[弱味]あり】
 		PRINT  - 
 		A:1 -= 5
 		PRINTFORM %TALENTNAME:37%(5)
 		A:3 = 1
 	ENDIF
 	;献身的
-	IF TALENT:63 != 0
+	IF TALENT:63 != 0	; 【[献身的]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 9
@@ -219,7 +217,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;快感に素直
-	IF TALENT:70 != 0
+	IF TALENT:70 != 0	; 【[快感に素直]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 8
@@ -227,14 +225,14 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;快感の否定
-	IF TALENT:71 != 0
+	IF TALENT:71 != 0	; 【[快感の否定]あり】
 		PRINT  - 
 		A:1 -= 8
 		PRINTFORM %TALENTNAME:71%(8)
 		A:3 = 1
 	ENDIF
 	;即落ち
-	IF TALENT:73 != 0
+	IF TALENT:73 != 0	; 【[即落ち]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 20
@@ -242,7 +240,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;マゾ
-	IF TALENT:79 != 0
+	IF TALENT:79 != 0	; 【[マゾ]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 8
@@ -250,14 +248,14 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;男嫌い
-	IF TALENT:82 != 0 && TALENT:PLAYER:122 != 0
+	IF TALENT:82 != 0 && TALENT:PLAYER:122 != 0	; 【[男嫌い]あり / PLAYER:[オトコ]あり】
 		PRINT  - 
 		A:1 -= 7
 		PRINTFORM %TALENTNAME:82%(7)
 		A:3 = 1
 	ENDIF
 	;恋慕
-	IF TALENT:85 != 0
+	IF TALENT:85 != 0	; 【[恋慕]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 10
@@ -265,7 +263,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;妄信
-	IF TALENT:86 != 0
+	IF TALENT:86 != 0	; 【[妄信]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 15
@@ -273,7 +271,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;親愛
-	IF TALENT:88 != 0
+	IF TALENT:88 != 0	; 【[親愛]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 15
@@ -281,7 +279,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;相愛
-	IF TALENT:89 != 0
+	IF TALENT:89 != 0	; 【[相愛]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 20
@@ -289,7 +287,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;母性（撫でられる時はマイナス、撫でる時はプラス）
-	IF TALENT:136 != 0
+	IF TALENT:136 != 0	; 【[母性]あり】
 		IF ARG == 0
 			PRINT  - 
 			A:1 -= 10
@@ -302,7 +300,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;子供体型
-	IF TALENT:149 != 0
+	IF TALENT:149 != 0	; 【[子供体型]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 12
@@ -310,7 +308,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;合意
-	IF TALENT:152 != 0
+	IF TALENT:152 != 0	; 【[合意]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 10
@@ -318,7 +316,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;恋人
-	IF TALENT:153 != 0
+	IF TALENT:153 != 0	; 【[恋人]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 12
@@ -326,7 +324,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;服従
-	IF TALENT:180 != 0
+	IF TALENT:180 != 0	; 【[服従]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 12
@@ -354,7 +352,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 	; 主人公素質による強化版移行値補正
 	;----------------------------------
 	;魅力
-	IF TALENT:PLAYER:91 != 0
+	IF TALENT:PLAYER:91 != 0	; 【PLAYER:[魅惑]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 8
@@ -362,7 +360,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;謎の魅力
-	IF TALENT:PLAYER:92 != 0
+	IF TALENT:PLAYER:92 != 0	; 【PLAYER:[謎の魅力]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 12
@@ -370,7 +368,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;鼓舞
-	IF TALENT:PLAYER:118 != 0
+	IF TALENT:PLAYER:118 != 0	; 【PLAYER:[鼓舞]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 5
@@ -378,7 +376,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:3 = 1
 	ENDIF
 	;プレイヤーの母性は、自分が撫でる時だけ有効
-	IF TALENT:PLAYER:136 != 0 && ARG == 0
+	IF TALENT:PLAYER:136 != 0 && ARG == 0	; 【PLAYER:[母性]あり】
 		SIF A:3 != 0
 			PRINT  + 
 		A:1 += 10
@@ -402,7 +400,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 	; 好感度による強化版移行値補正
 	;----------------------------------
 	;好感度不足
-	IF CFLAG:2 < 200
+	IF CFLAG:2 < 200	; 【[好感度]<200】
 		PRINT  - 
 		A:1 -= 10
 		PRINTFORM 好感度不足(10)
@@ -412,7 +410,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 		A:2 = 0
 		SIF A:3 != 0
 			PRINT  + 
-		IF CFLAG:2 < 1000
+		IF CFLAG:2 < 1000	; 【[好感度]<1000】
 			A:2 = 5
 		ELSE
 			A:2 = CFLAG:2 / 100
@@ -428,7 +426,7 @@ ELSEIF ABL:0 >= 4 || CFLAG:2 >= 150
 	; 強化版実行判定
 	;----------------------------------
 	;デート中は子ども扱いされたと誤解される為、強化版になり辛い
-	SIF TEQUIP:2 != 0
+	SIF TEQUIP:2 != 0	; 【[デート中]使用中】
 		A:4 += 15
 	IF A:1 < A:4
 		PRINTFORM  < 強化版移行値{A:4}
@@ -451,7 +449,7 @@ ENDIF
 CALL TRAIN_MESSAGE_B
 
 ;幼児退行、幼稚持ちは気力消費が減るが体力消費が若干増える
-IF (TALENT:131 == 1 || TALENT:132 == 1)
+IF (TALENT:131 == 1 || TALENT:132 == 1)	; 【[幼児] / [幼稚]】
 	LOSEBASE:0 += 15
 	LOSEBASE:1 += 50
 ELSE
@@ -465,17 +463,17 @@ SOURCE:9 = 10
 SOURCE:18 = 100
 
 ;ABL:親密をみる
-IF ABL:0 <= 1
+IF ABL:0 <= 1	; 【[親密]Lv<=1】
 	SOURCE:18 += 200 + (ABL:0 * 20)
-ELSEIF ABL:0 <= 3
+ELSEIF ABL:0 <= 3	; 【[親密]Lv<=3】
 	SOURCE:18 += 400 + (ABL:0 * 40)
-ELSEIF ABL:0 <= 5
+ELSEIF ABL:0 <= 5	; 【[親密]Lv<=5】
 	SOURCE:18 += 500 + (ABL:0 * 50)
 	SOURCE:9 += 400 + (ABL:0 * 30)
-ELSEIF ABL:0 <= 8
+ELSEIF ABL:0 <= 8	; 【[親密]Lv<=8】
 	SOURCE:18 += 700 + (ABL:0 * 60)
 	SOURCE:9 += 600 + (ABL:0 * 40)
-ELSEIF ABL:0 <= 11
+ELSEIF ABL:0 <= 11	; 【[親密]Lv<=11】
 	SOURCE:18 += 1200 + (ABL:0 * 80)
 	SOURCE:9 += 800 + (ABL:0 * 40)
 ELSE
@@ -484,9 +482,9 @@ ELSE
 ENDIF
 
 ;好感度をみる
-IF CFLAG:2 <= 300
+IF CFLAG:2 <= 300	; 【[好感度]<=300】
 	SOURCE:18 += CFLAG:2
-ELSEIF CFLAG:2 <= 3000
+ELSEIF CFLAG:2 <= 3000	; 【[好感度]<=3000】
 	SOURCE:18 += 500 + (CFLAG:2 - 300) / 3
 ELSE
 	SOURCE:18 += 2000 + (CFLAG:2 - 3000) / 5
@@ -498,15 +496,15 @@ SIF SOURCE:18 < 0
 IF ARG == 0
 	;主導権が主人公側
 	;ABL:親密をみる
-	IF ABL:0 == 0
+	IF ABL:0 == 0	; 【[親密]Lv==0】
 		SOURCE:21 = 150 + (ABL:0 * 5)
-	ELSEIF ABL:0 <= 1
+	ELSEIF ABL:0 <= 1	; 【[親密]Lv<=1】
 		SOURCE:21 = 300 + (ABL:0 * 10)
-	ELSEIF ABL:0 <= 3
+	ELSEIF ABL:0 <= 3	; 【[親密]Lv<=3】
 		SOURCE:21 = 400 + (ABL:0 * 20)
-	ELSEIF ABL:0 <= 5
+	ELSEIF ABL:0 <= 5	; 【[親密]Lv<=5】
 		SOURCE:21 = 550 + (ABL:0 * 40)
-	ELSEIF ABL:0 <= 7
+	ELSEIF ABL:0 <= 7	; 【[親密]Lv<=7】
 		SOURCE:21 = 700 + (ABL:0 * 50)
 	ELSE
 		SOURCE:21 = 1000 + (ABL:0 * 100)
@@ -514,21 +512,21 @@ IF ARG == 0
 ELSE
 	;主導権が相手側
 	;奉仕精神ををみる
-	IF ABL:6 == 0
+	IF ABL:6 == 0	; 【[奉仕精神]Lv==0】
 		SOURCE:5 = 150
 		SOURCE:20 = 300
-	ELSEIF ABL:6 <= 2
+	ELSEIF ABL:6 <= 2	; 【[奉仕精神]Lv<=2】
 		SOURCE:5 = 300
 		SOURCE:20 = 280
-	ELSEIF ABL:6 <= 4
+	ELSEIF ABL:6 <= 4	; 【[奉仕精神]Lv<=4】
 		SOURCE:5 = 500
 		SOURCE:7 = 100
 		SOURCE:20 = 260
-	ELSEIF ABL:6 <= 6
+	ELSEIF ABL:6 <= 6	; 【[奉仕精神]Lv<=6】
 		SOURCE:5 = 700
 		SOURCE:7 = 300
 		SOURCE:20 = 240
-	ELSEIF ABL:6 <= 8
+	ELSEIF ABL:6 <= 8	; 【[奉仕精神]Lv<=8】
 		SOURCE:5 = 900
 		SOURCE:7 = 500
 		SOURCE:20 = 120
@@ -537,9 +535,9 @@ ELSE
 		SOURCE:7 = 900
 	ENDIF
 	;母性所持の場合、愛情経験を＋
-	IF TALENT:136
+	IF TALENT:136	; 【[母性]】
 		EXP:23 += 1
-		SIF TFLAG:17 == 0
+		SIF TFLAG:17 == 0	; 【無[コマンド内容]】
 			PRINTFORML %EXPNAME:23%+1
 		TIMES SOURCE:5, 1.50
 	ENDIF
@@ -549,26 +547,26 @@ ENDIF
 A:1 = RAND:7 + 1
 
 ;パワーアップ版ならソースを追加
-IF TFLAG:17 != 0
+IF TFLAG:17 != 0	; 【[コマンド内容]】
 	TIMES SOURCE:18 , 1.20
 	TIMES SOURCE:9 , 2.00
 	TIMES SOURCE:5 , 1.50
 	TIMES SOURCE:21 , 1.50
 	A:1 += 2
 	;幼児退行or幼稚持ちは更にボーナス
-	SIF (TALENT:131 != 0 || TALENT:132 != 0)
+	SIF (TALENT:131 != 0 || TALENT:132 != 0)	; 【[幼児]あり / [幼稚]あり】
 		A:1 += 2
 
 	;主導権があなた
 	IF ARG == 0
 		;幼児退行、幼稚所持の場合、愛情経験を＋
-		IF (TALENT:131 != 0 || TALENT:132 != 0)
+		IF (TALENT:131 != 0 || TALENT:132 != 0)	; 【[幼児]あり / [幼稚]あり】
 			PRINTFORML %EXPNAME:23%+1
 			EXP:23 += 1
 		ENDIF
 	ELSE
 		;母性所持の場合、愛情経験を＋
-		IF TALENT:136 != 0
+		IF TALENT:136 != 0	; 【[母性]あり】
 			TIMES SOURCE:5 , 1.50
 			PRINTFORML %EXPNAME:23%+2
 			EXP:23 += 1
@@ -577,17 +575,17 @@ IF TFLAG:17 != 0
 ENDIF
 
 ;親密が低いと好感度低下
-IF ABL:0 == 0
+IF ABL:0 == 0	; 【[親密]Lv==0】
 	A:1 -= 2
-ELSEIF ABL:0 <= 1
+ELSEIF ABL:0 <= 1	; 【[親密]Lv<=1】
 	A:1 -= 1
 ENDIF
 ;好感度が低いと好感度低下
-IF CFLAG:2 <= 20
+IF CFLAG:2 <= 20	; 【[好感度]<=20】
 	A:1 -= 3
-ELSEIF CFLAG:2 <= 80
+ELSEIF CFLAG:2 <= 80	; 【[好感度]<=80】
 	A:1 -= 2
-ELSEIF CFLAG:2 <= 150
+ELSEIF CFLAG:2 <= 150	; 【[好感度]<=150】
 	A:1 -= 1
 ENDIF
 
@@ -595,7 +593,7 @@ ENDIF
 ;好感度変化
 TFLAG:30 += A:1
 
-IF TFLAG:18 == -1
+IF TFLAG:18 == -1	; 【[好感触]】
 	TIMES SOURCE:18 , 0.10
 	TIMES SOURCE:9 , 0.50
 	TIMES SOURCE:5 , 0.50
@@ -603,7 +601,7 @@ IF TFLAG:18 == -1
 	TIMES SOURCE:3 , 0.50
 	TFLAG:30 -= 10
 	TFLAG:37 -= 5
-ELSEIF TFLAG:18 == 0
+ELSEIF TFLAG:18 == 0	; 【無[好感触]】
 	TIMES SOURCE:18 , 1.00
 	TIMES SOURCE:9 , 1.00
 	TIMES SOURCE:5 , 1.00
@@ -622,9 +620,9 @@ ENDIF
 
 ;デート中はムードダウン
 ;子供扱いしないでよね！ってやつです
-IF TEQUIP:2 > 0
+IF TEQUIP:2 > 0	; 【[デート中]>0】
 	;幼児、幼稚持ちは純粋に喜ぶ
-	IF (TALENT:131 != 0 || TALENT:132 != 0)
+	IF (TALENT:131 != 0 || TALENT:132 != 0)	; 【[幼児]あり / [幼稚]あり】
 		TFLAG:37 += RAND:3+5
 	ELSE
 		TFLAG:37 -= RAND:3+5
@@ -637,25 +635,25 @@ RETURN 1
 ;書き過ぎ？ 気にしたらそこで試合終了ですよ
 @TRAIN_MESSAGE_COM312
 PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%の頭を
-SIF TFLAG:17 != 0
+SIF TFLAG:17 != 0	; 【[コマンド内容]】
 	PRINTFORM 何度も
 PRINTFORMW 撫でた
 
-IF TFLAG:18 == 1
+IF TFLAG:18 == 1	; 【[好感触]==1】
 	;幼児退行or幼稚所持
-	IF (TALENT:131 == 1 || TALENT:132)
+	IF (TALENT:131 == 1 || TALENT:132)	; 【[幼児] / [幼稚]】
 		PRINTFORML %CALLNAME:TARGET%は眼を細め、心地良さそうにしている…
 	ELSE
 		PRINTFORML %CALLNAME:TARGET%は照れ臭そうに、笑みを浮かべている…
 	ENDIF
-ELSEIF TFLAG:18 == 0
+ELSEIF TFLAG:18 == 0	; 【無[好感触]】
 	;幼児退行or幼稚所持
-	IF (TALENT:131 == 1 || TALENT:132)
+	IF (TALENT:131 == 1 || TALENT:132)	; 【[幼児] / [幼稚]】
 		PRINTFORML %CALLNAME:TARGET%は嬉しそうにしている…
 	ELSE
 		PRINTFORML %CALLNAME:TARGET%は頬を紅潮させ、恥ずかしそうにしている…
 	ENDIF
-ELSEIF TFLAG:18 == -1
+ELSEIF TFLAG:18 == -1	; 【[好感触]】
 	PRINTFORML %CALLNAME:TARGET%は子供扱いした事に怒ったようだ…
 ENDIF
 
@@ -673,20 +671,20 @@ V = 25
 CALL COM_ORDER_DAILY
 
 ;男嫌い
-IF TALENT:82 && TALENT:PLAYER:122
+IF TALENT:82 && TALENT:PLAYER:122	; 【[男嫌い] / PLAYER:[オトコ]】
 	A -= 7
 ENDIF
 ;恋慕
-IF TALENT:85 && ASSIPLAY == 0
+IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
 	A += 5
 	S = 5
 ENDIF
 ;好感度不足
-IF CFLAG:2 < 300
+IF CFLAG:2 < 300	; 【[好感度]<300】
 	B = 0
-	IF CFLAG:2 < 0
+	IF CFLAG:2 < 0	; 【[好感度]<0】
 		B = 20
-	ELSEIF CFLAG:2 < 100
+	ELSEIF CFLAG:2 < 100	; 【[好感度]<100】
 		B = 10
 	ELSE
 		B = 5
@@ -694,31 +692,31 @@ IF CFLAG:2 < 300
 	A -= B
 ENDIF
 ;好感度
-IF CFLAG:2 >= 400
+IF CFLAG:2 >= 400	; 【[好感度]>=400】
 	B = CFLAG:2 / 30
 	A += B
 ENDIF
 
 IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
-	IF TALENT:82 && TALENT:PLAYER:122
+	IF TALENT:82 && TALENT:PLAYER:122	; 【[男嫌い] / PLAYER:[オトコ]】
 		PRINT  - 
 		PRINTS TALENTNAME:82
 		PRINTV '(,7,')
 		S = 1
 	ENDIF
-	IF TALENT:85 && ASSIPLAY == 0
+	IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
 		SIF S
 			PRINT  + 
 		PRINTS TALENTNAME:85
 		PRINTV '(,5,')
 		S = 1
 	ENDIF
-	IF CFLAG:2 < 300
+	IF CFLAG:2 < 300	; 【[好感度]<300】
 		B = 0
 		PRINT  - 
-		IF CFLAG:2 < 0
+		IF CFLAG:2 < 0	; 【[好感度]<0】
 			B = 20
-		ELSEIF CFLAG:2 < 100
+		ELSEIF CFLAG:2 < 100	; 【[好感度]<100】
 			B = 10
 		ELSE
 			B = 5
@@ -727,7 +725,7 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 		PRINTV '(,B,')
 		S = 1
 	ENDIF
-	IF CFLAG:2 >= 400
+	IF CFLAG:2 >= 400	; 【[好感度]>=400】
 		B = CFLAG:2 / 30
 		SIF S
 			PRINT  + 

@@ -1,0 +1,2439 @@
+;============================================================
+; 【超高レート・青天井・破滅泥沼裏カジノシステム】
+;============================================================
+; CFLAG:MASTER:785 = 地下裏カジノ借金総額
+; CFLAG:TARGET:786 = パートナー担保差し出し回数
+; TFLAG:110 = 担保ペナルティ進行段階 (Level 1～4)
+
+@UNDERGROUND_CASINO_MAIN
+#DIM VIP_CHIP
+#DIM BORROW_AMOUNT
+#DIM INITIAL_CHIP
+IF TARGET <= 0 || TARGET >= CHARANUM
+	PRINTW パートナーを選択してから利用してください。
+	RETURN 0
+ENDIF
+
+; 借金負数・オーバーフローの自己修復
+IF CFLAG:MASTER:785 < 0
+	CFLAG:MASTER:785 = 9000000000000000000
+ENDIF
+
+
+VIP_CHIP = 0
+BORROW_AMOUNT = 0
+INITIAL_CHIP = 0
+	;裏カジノ同伴回数加算
+	SIF TARGET >= 1 && TARGET < CHARANUM
+		CFLAG:TARGET:1209 += 1
+
+DRAWLINE
+SETCOLOR 0xFF2222
+PRINTL ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+PRINTL ┃　　　　　　　◆◆◆　地下特設フロア・ＶＩＰ裏カジノ　◆◆◆　　　　　　　┃
+PRINTL ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+RESETCOLOR
+PRINTL
+PRINTFORML 従業員用通路の頑丈な鉄扉をくぐり、薄暗い螺旋階段を深く降りていく……
+PRINTFORML 地上の喧騒とはかけ離れた、紫煙と欲望、そして異様な熱気が肌にまとわりつく。
+PRINTFORML 分厚い防音扉が開いた先には、豪華なシャンデリアの下で巨額の札束が飛び交う秘密の賭場が広がっていた。
+PRINTL
+IF TALENT:TARGET:76	; 【TARGET:[淫乱]】
+	PRINTFORML %CALLNAME:TARGET%は怪しげな熱気を感じ取ったのか、頬をうっすら上気させ、背徳的な空間に瞳を潤ませながら周囲を見渡している……
+ELSEIF TALENT:TARGET:85	; 【TARGET:[恋慕]】
+	PRINTFORML %CALLNAME:TARGET%は本能的な危険を察知したのか、怯えるように%CALLNAME:MASTER%の腕に縋り付き、引き返したいように袖を引いている……
+ELSE
+	PRINTFORML %CALLNAME:TARGET%は周囲を取り囲む屈強な男たちの視線に晒され、警戒と不安に身を竦ませている……
+ENDIF
+PRINTL
+
+$UNDERGROUND_MENU
+
+; 破産トリガー判定（借金300万以上かつ返済不能、または資金ゼロで借金あり）
+IF (CFLAG:MASTER:785 >= 3000000 && MONEY + VIP_CHIP * 10000 < CFLAG:MASTER:785) || (VIP_CHIP <= 0 && MONEY <= 0 && CFLAG:MASTER:785 > 0)
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		PRINTL 
+		SETCOLOR 0xFF2222
+		PRINTFORML 支配人「お客様……未返済の借金が ${CFLAG:MASTER:785} ございますね。手持ちの金もチップも尽きたようです」
+		PRINTFORML 支配人「お連れのパートナー様は既に担保価値がございませんが……タダで見逃すわけにはまいりません」
+		PRINTFORML 支配人「借金の利息の代わりとして、廃棄処分ステージで観客を楽しませていただきましょうか！」
+		RESETCOLOR
+		PRINTFORMW 逃げようとする%CALLNAME:MASTER%を押さえつけ、黒服たちが%CALLNAME:TARGET%を強引にステージへと引きずり込んでいく……
+		CALL UNDERGROUND_BANKRUPTCY_EVENT, VIP_CHIP
+		PRINTL 
+		SETCOLOR 0xFF2222
+		PRINTFORML 支配人「さて……ステージは大いに湧きましたが、お伝えした通り借金の帳消しには応じられませんよ」
+		PRINTFORML 支配人「未返済借金（${CFLAG:MASTER:785}）は残ったままです。金を用意して期日までに耳を揃えて返しなさい……追い出しなさい！」
+		RESETCOLOR
+		PRINTFORMW 黒服たちによって裏カジノから叩き出された……（未返済借金：${CFLAG:MASTER:785}）
+		CALL UNDERGROUND_SETTLEMENT, VIP_CHIP, 1
+		RETURN 1
+	ENDIF
+	CALL UNDERGROUND_BANKRUPTCY_EVENT, VIP_CHIP
+	VIP_CHIP = RESULT
+	IF RESULT:1 == 1
+		CALL UNDERGROUND_SETTLEMENT, VIP_CHIP, 1
+		RETURN 1
+	ENDIF
+ENDIF
+
+DRAWLINE
+PRINTFORML 【所持VIPチップ】: {VIP_CHIP}枚 (1枚 ＝ $10,000)
+PRINTFORML 【現在の所持金】: ${MONEY}
+IF CFLAG:MASTER:785 > 0
+	SETCOLOR 0xFF4444
+	PRINTFORML 【未返済の借金】: ${CFLAG:MASTER:785} (月利50％の利息)
+	RESETCOLOR
+ENDIF
+PRINTFORML 【本日の担保状況】: Level {TFLAG:110} / 5
+PRINTL
+PRINTL [0] VIPチップを購入する (1枚 $10,000)
+IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+	SETCOLOR 0x888888
+	PRINTL [1] 特別融資を受ける (借金をしてチップを借りる) ※担保価値なし・利用不可
+	RESETCOLOR
+ELSE
+	PRINTL [1] 特別融資を受ける (借金をしてチップを借りる)
+ENDIF
+PRINTL [2] 【VIPブラックジャック】（超高レート・青天井ツケ勝負）
+PRINTL [3] 【アンダーグラウンド・ダイス】（超高レート・倍率勝負）
+IF CFLAG:MASTER:785 > 0 || VIP_CHIP <= 0 || IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		SETCOLOR 0xCC3333
+		PRINTL [4] 【廃棄処分・生贄執行】（壊れきったパートナーを差し出し、さらに徹底的に破壊する）※借金清算なし
+		RESETCOLOR
+	ELSE
+		PRINTL [4] 【破産宣告・担保差し入れ】（自らパートナーを担保に差し出し、救済チップを得る）
+	ENDIF
+ENDIF
+PRINTL [9] 精算して裏カジノを退出する
+PRINTL
+
+INPUT
+IF RESULT == 0
+	PRINTL 購入するVIPチップの枚数を入力してください (1枚 = $10,000、0でキャンセル)
+	INPUT
+	IF RESULT <= 0
+		GOTO UNDERGROUND_MENU
+	ELSEIF RESULT * 10000 > MONEY
+		PRINTW 所持金が足りません。
+		GOTO UNDERGROUND_MENU
+	ELSE
+		VIP_CHIP += RESULT
+		MONEY -= RESULT * 10000
+		INITIAL_CHIP += RESULT
+		PRINTFORMW VIPチップを{RESULT}枚購入しました。（残金: ${MONEY}）
+		GOTO UNDERGROUND_MENU
+	ENDIF
+ELSEIF RESULT == 1
+	CALL UNDERGROUND_BORROW, VIP_CHIP
+	VIP_CHIP = RESULT
+	GOTO UNDERGROUND_MENU
+ELSEIF RESULT == 2
+	CALL VIP_BLACK_JACK, VIP_CHIP
+	VIP_CHIP = RESULT
+	IF RESULT:1 == 1
+		CALL UNDERGROUND_SETTLEMENT, VIP_CHIP, 1
+		RETURN 1
+	ENDIF
+	GOTO UNDERGROUND_MENU
+ELSEIF RESULT == 3
+	CALL VIP_DICE_GAME, VIP_CHIP
+	VIP_CHIP = RESULT
+	IF RESULT:1 == 1
+		CALL UNDERGROUND_SETTLEMENT, VIP_CHIP, 1
+		RETURN 1
+	ENDIF
+	GOTO UNDERGROUND_MENU
+ELSEIF RESULT == 4 && (CFLAG:MASTER:785 > 0 || VIP_CHIP <= 0 || IS_UNDERGROUND_PARTNER_BROKEN(TARGET))
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		PRINTL 
+		SETCOLOR 0x990000
+		PRINTFORML 支配人「おや……？ このお嬢様は既に心身ともに限界まで壊れきっており、当カジノでの担保価値はございませんよ」
+		PRINTFORML 支配人「それでも更なる破壊の余興として、廃棄処分ステージに差し出すとおっしゃるなら……喜んでお引き受けいたしましょう」
+		PRINTFORML 支配人「ただし担保価値がございませんので、借金の帳消しにも救済チップの支給にも応じられません。それでもよろしいので？」
+		RESETCOLOR
+		PRINTL [0] ステージに差し出し、さらに破壊する
+		PRINTL [1] 思いとどまる
+		INPUT
+		IF RESULT != 0
+			GOTO UNDERGROUND_MENU
+		ENDIF
+		CALL UNDERGROUND_DISPOSAL_STAGE_EVENT, VIP_CHIP
+		VIP_CHIP = RESULT
+		GOTO UNDERGROUND_MENU
+	ENDIF
+	CALL UNDERGROUND_BANKRUPTCY_EVENT, VIP_CHIP
+	VIP_CHIP = RESULT
+	IF RESULT:1 == 1
+		CALL UNDERGROUND_SETTLEMENT, VIP_CHIP, 1
+		RETURN 1
+	ENDIF
+	GOTO UNDERGROUND_MENU
+ELSEIF RESULT == 9
+	CALL UNDERGROUND_SETTLEMENT, VIP_CHIP
+	RETURN 1
+ELSE
+	GOTO UNDERGROUND_MENU
+ENDIF
+
+;-------------------------------------------------
+; 特別融資（借金）
+;-------------------------------------------------
+@UNDERGROUND_BORROW, ARG
+#DIM BORROW_UNITS
+IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+	PRINTL 
+	SETCOLOR 0xFF5555
+	PRINTFORML 支配人「おや……？ 残念ながら、お連れのパートナー様は既に限界まで壊れきっておりますね」
+	PRINTFORML 支配人「これ以上担保価値のないお身体では、追加のご融資（ツケ）には応じかねます」
+	PRINTFORMW 担保となるパートナーが下限まで衰弱しているため、特別融資は受けられません…
+	RESETCOLOR
+	RETURN ARG
+ENDIF
+PRINTL 
+PRINTFORML 黒服の支配人が冷酷な笑みを浮かべ、%CALLNAME:MASTER%の前に一枚の契約書を差し出してきた。
+PRINTFORML 支配人「ツケの枠に付きましては、パートナー様のお身体と信用を担保に幾らでもご融資いたしますよ……」
+PRINTFORML 期日までに返済できない場合は、どのような形であれ【身体で清算】していただくことになると淡々と告げられた。
+PRINTL 
+PRINTL [0] 融資を受けない（やめておく）
+PRINTL [1] 10枚（$100,000）借りる
+PRINTL [2] 30枚（$300,000）借りる
+PRINTL [3] 50枚（$500,000）借りる
+PRINTL [4] 100枚（$1,000,000）借りる
+PRINTL [5] 500枚（$5,000,000）借りる（超高額融資）
+INPUT
+IF RESULT >= 1 && RESULT <= 5
+	SELECTCASE RESULT
+		CASE 1
+			BORROW_UNITS = 10
+		CASE 2
+			BORROW_UNITS = 30
+		CASE 3
+			BORROW_UNITS = 50
+		CASE 4
+			BORROW_UNITS = 100
+		CASE 5
+			BORROW_UNITS = 500
+	ENDSELECT
+	CFLAG:MASTER:785 += BORROW_UNITS * 10000
+	ARG += BORROW_UNITS
+	SETCOLOR 0xFF3333
+	PRINTFORML 借用書にサインし、VIPチップ{BORROW_UNITS}枚を受け取った……
+	PRINTFORMW （借金加算: ${BORROW_UNITS * 10000} ／ 総借金高: ${CFLAG:MASTER:785}）
+	RESETCOLOR
+	IF TALENT:TARGET:76 == 0	; 【TARGET:[淫乱]なし】
+		PRINTFORMW %CALLNAME:TARGET%は冷徹にサインを交わす%CALLNAME:MASTER%の手を見つめ、絶望に顔を青ざめさせながら震えている……
+	ENDIF
+ENDIF
+RETURN ARG
+
+;-------------------------------------------------
+; 支配人の強制取り立て・破産宣告イベント
+;-------------------------------------------------
+;-------------------------------------------------
+
+; 廃棄処分・生贄執行ステージイベント（壊れきったパートナー専用）
+
+;-------------------------------------------------
+
+@UNDERGROUND_DISPOSAL_STAGE_EVENT, ARG
+
+DRAWLINE
+
+SETCOLOR 0x990000
+
+PRINTL ┌─────────────────────────────────┐
+
+PRINTL │     ◆◆◆ 廃棄処分・生贄執行ステージ ◆◆◆     │
+
+PRINTL └─────────────────────────────────┘
+
+RESETCOLOR
+
+PRINTL 
+
+PRINTFORML %CALLNAME:MASTER%が合図を出すと、支配人は嗜虐的な笑みを深く刻んだ。
+
+PRINTFORML 支配人「素晴らしいご決断です。壊れきったお嬢様がさらに徹底的に蹂躙され、壊れゆく様……観客たちも狂喜することでしょう」
+
+PRINTFORML 支配人「黒服たち！ このお嬢様を廃棄処分ステージの壇上へお連れしなさい！」
+
+PRINTL 
+
+PRINTFORML 屈強な黒服の男たちが現れ、すでに抵抗する力もなくぐったりとした%CALLNAME:TARGET%を両脇から抱え上げる。
+
+PRINTFORMW 虚ろな瞳の%CALLNAME:TARGET%は、歓声と欲望が渦巻く狂乱のステージの中央へと連行されていく……
+
+
+
+IF CFLAG:TARGET:786 >= 5
+
+	TFLAG:110 = MAX(TFLAG:110, 5) + 1
+
+ELSE
+
+	TFLAG:110 += 1
+
+ENDIF
+
+CFLAG:TARGET:786 += 1
+
+CALL UNDERGROUND_STAGE_PENALTY, TFLAG:110
+
+
+
+PRINTL 
+
+SETCOLOR 0xFF5555
+
+PRINTFORML 支配人「ふふふ……観客は大いに狂喜いたしましたが、前述の通り担保価値のないお身体ですので借金の帳消しも救済チップの支給もございません」
+
+PRINTFORMW 既に限界まで壊れきったパートナーのため、借金（${CFLAG:MASTER:785}）は帳消しにならず、救済チップも支払われませんでした。
+
+RESETCOLOR
+
+PRINTL 
+
+PRINTFORMW %CALLNAME:MASTER%は限界を超えてさらに徹底的に破壊され、動かない人形のようになった%CALLNAME:TARGET%を抱き起こした……
+
+RETURN ARG
+
+
+
+@UNDERGROUND_BANKRUPTCY_EVENT, ARG, ARG:1 = 0
+#DIM WAS_BROKEN
+#DIM RESCUE_CHIP
+;RESULT:1 = 1 は地下フロアからの退出要求。ARG:1 = 1 は精算中。
+RESULT:1 = 0
+WAS_BROKEN = IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+DRAWLINE
+SETCOLOR 0xFF1111
+PRINTL ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+PRINTL ┃　　　　　　　◆◆◆　破産宣告・支配人の強制取り立て　◆◆◆　　　　　　┃
+PRINTL ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+RESETCOLOR
+PRINTL
+PRINTFORML 背後から屈強な黒服の男たちが音もなく現れ、テーブルと部屋の出口を塞いだ。
+PRINTFORML 冷徹な支配人が分厚い帳簿を開き、冷ややかな視線を%CALLNAME:MASTER%と%CALLNAME:TARGET%に投げかける。
+PRINTL
+SETCOLOR 0xFF5555
+PRINTFORML 支配人「お客様……ツケの総額が ${CFLAG:MASTER:785} に達しておりますね」
+PRINTFORML 支配人「当カジノの規則により、即時一括返済が不可能な場合、契約書に基づき【お連れのパートナー様】を担保としてお預かりすることになっております」
+RESETCOLOR
+PRINTL
+IF TALENT:TARGET:76	; 【TARGET:[淫乱]】
+	PRINTFORML %CALLNAME:TARGET%は自分が見世物として売られる状況に、背筋を淫らに震わせ、恍惚とした吐息を漏らしながらステージを見つめている……
+ELSEIF TALENT:TARGET:85	; 【TARGET:[恋慕]】
+	PRINTFORML %CALLNAME:TARGET%は信じられないものを見る目で%CALLNAME:MASTER%を見つめ、大粒の涙を零しながら必死に首を横に振っている……
+ELSE
+	PRINTFORML %CALLNAME:TARGET%は怒りと恐怖に顔を引きつらせ、激しく後ずさりしながら必死に拒絶の意思を示している……
+ENDIF
+PRINTL
+PRINTFORML 【現在の借金高】: ${CFLAG:MASTER:785}
+PRINTFORML 【パートナー担保進行度】: Level {TFLAG:110} / 5
+PRINTL
+IF WAS_BROKEN
+	PRINTFORML すでに心身ともに限界まで壊れきった%CALLNAME:TARGET%に、もはや抗う力は残されていない……
+	PRINTFORMW 黒服の男たちに無造作に抱え上げられ、%CALLNAME:TARGET%は狂乱のステージへと連行されていく……
+ELSE
+	PRINTL [0] パートナーを担保としてステージに差し出す
+	PRINTL [1] 必死に土下座して許しを乞う
+	INPUT
+	IF RESULT == 1
+		PRINTFORML %CALLNAME:MASTER%は床に頭を擦り付け、どうかそれだけはと必死に哀願した……
+		PRINTFORML 支配人は冷酷な笑みを浮かべ、見下すように靴の先で%CALLNAME:MASTER%の顎を持ち上げる。
+		PRINTFORML 支配人「それだけは困りますね。ですが……客席にステージで歓声を上げていただければ、救済チップをお渡しする用意もございますがね」
+		PRINTFORMW 屈強な黒服たちが%CALLNAME:TARGET%を取り押さえ、ステージへと引きずり込んでいく……
+	ELSE
+		PRINTFORML %CALLNAME:MASTER%は震える手でサインをし、%CALLNAME:TARGET%の身柄を支配人へと引き渡した……
+		PRINTFORMW 屈強な黒服に両腕を掴まれ、%CALLNAME:TARGET%はステージへと連行されていく……
+	ENDIF
+ENDIF
+
+IF CFLAG:TARGET:786 >= 5
+	TFLAG:110 = MAX(TFLAG:110, 5) + 1
+ELSE
+	TFLAG:110 += 1
+ENDIF
+CFLAG:TARGET:786 += 1
+CALL UNDERGROUND_STAGE_PENALTY, TFLAG:110
+
+; 既に壊れきったパートナーの場合は救済チップなし
+IF WAS_BROKEN
+	PRINTL 
+	SETCOLOR 0xFF5555
+	PRINTFORML 支配人「ふふふ……観客は大いに狂乱しましたが、お伝えした通り担保価値のないお身体ですので救済チップはお渡しできません」
+	PRINTFORMW 既に下限まで壊れきったパートナーでは救済チップは支給されませんでした。（借金：${CFLAG:MASTER:785}）
+	RESETCOLOR
+	PRINTL 
+	PRINTFORMW %CALLNAME:MASTER%は限界を超えてさらに破壊され、動かない人形のようになった%CALLNAME:TARGET%を抱き起こした……
+	RESULT:1 = 0
+	RETURN ARG
+ENDIF
+
+; ステージ終了後の救済チップ付与
+RESCUE_CHIP = 20 + (TFLAG:110 * 15)
+ARG += RESCUE_CHIP
+PRINTL
+SETCOLOR 0xFFFF00
+PRINTFORMW 観客たちの熱狂的な歓声と拍手の中、支配人から救済チップとしてVIPチップ{RESCUE_CHIP}枚（${RESCUE_CHIP * 10000}相当）が投げ渡された！
+RESETCOLOR
+PRINTFORML 支配人「ふふふ、お嬢様のおかげでフロアは大盛況でしたよ。さあ、このチップで一発逆転を狙いましょうか……？」
+PRINTL
+;既に精算中なら再勝負は選ばせず、残チップを換金して退出する。
+IF ARG:1 == 1
+	RESULT:1 = 1
+	RETURN ARG
+ENDIF
+PRINTL [0] 救済チップで更なる勝負に挑む！（泥沼へ）
+PRINTL [1] これ以上の破滅を恐れ、退散する
+INPUT
+IF RESULT == 0
+	PRINTFORMW %CALLNAME:MASTER%は渡されたチップを握りしめ、再びテーブルへと向かった……
+	RESULT:1 = 0
+	RETURN ARG
+ELSE
+	PRINTFORMW %CALLNAME:MASTER%はボロボロになった%CALLNAME:TARGET%を抱き起こし、命からがら裏カジノを後にした……
+	RESULT:1 = 1
+	RETURN ARG
+ENDIF
+
+;-------------------------------------------------
+; チップ切れ時の担保ペナルティチェック
+;-------------------------------------------------
+@UNDERGROUND_PENALTY_CHECK, ARG
+IF ARG > 0
+	RETURN ARG
+ENDIF
+CALL UNDERGROUND_BANKRUPTCY_EVENT, ARG
+RETURN RESULT
+
+@UNDERGROUND_STAGE_PENALTY, ARG
+#DIM PENALTY_SUB
+#DIM PENALTY_JUEL
+#DIM IS_PERFECT_LOVE
+#DIM CAN_LUST
+#DIM IS_REPEAT_SACRIFICE
+#DIM TEXT_PATTERN
+#DIM HP_CORRECTION
+#DIM DMG_MAX_HP
+#DIM DMG_MAX_MP
+#DIM REPEAT_TIER
+#DIM ADD_JUEL_V
+#DIM ADD_JUEL_A
+#DIM ADD_JUEL_LUST
+#DIM ADD_JUEL_SUBMIT
+#DIM ADD_JUEL_SHAME
+#DIM ADD_JUEL_PAIN
+#DIM ADD_JUEL_FEAR
+#DIM ADD_JUEL_DENY
+#DIM WAS_BROKEN
+
+WAS_BROKEN = IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+
+;裏カジノ身代わり回数加算（TARGETの個人ログCFLAG:1210に正確に加算）
+SIF TARGET >= 1 && TARGET < CHARANUM
+	CFLAG:TARGET:1210 += 1
+
+; 調教完璧判定（相愛/親愛、好感度8000以上、親密5以上、欲望または奉仕精神5以上）
+IS_PERFECT_LOVE = 0
+IF (TALENT:TARGET:89 || TALENT:TARGET:88) && CFLAG:TARGET:2 >= 8000 && ABL:TARGET:0 >= 5 && (ABL:TARGET:1 >= 5 || ABL:TARGET:6 >= 5)	; 【TARGET:[相愛] / TARGET:[親愛] / TARGET:[親密]Lv>=5 / TARGET:[欲望]Lv>=5 / TARGET:[奉仕精神]Lv>=5 / TARGET:[好感度]>=8000】
+	IS_PERFECT_LOVE = 1
+ENDIF
+
+; 欲情可能判定（淫乱、快感に素直、マゾ、倒錯的、欲望LV4以上、マゾっ気LV3以上のいずれか）
+CAN_LUST = 0
+IF TALENT:TARGET:76 || TALENT:TARGET:70 || TALENT:TARGET:79 || TALENT:TARGET:80 || ABL:TARGET:1 >= 4 || ABL:TARGET:8 >= 3	; 【TARGET:[淫乱] / TARGET:[快感に素直] / TARGET:[マゾ] / TARGET:[倒錯的] / TARGET:[欲望]Lv>=4 / TARGET:[マゾっ気]Lv>=3】
+	CAN_LUST = 1
+ENDIF
+
+; 生贄リピート判定（既に過去に生贄執行されている、またはARGが5超）
+IS_REPEAT_SACRIFICE = 0
+IF ARG > 5 || CFLAG:TARGET:786 > 5
+	IS_REPEAT_SACRIFICE = 1
+ENDIF
+
+; キャラ素質による体力消耗補正（基準100%）
+HP_CORRECTION = 100
+SIF TALENT:TARGET:149 ; 子供体型
+	HP_CORRECTION += 30
+SIF TALENT:TARGET:100 ; 小柄体型
+	HP_CORRECTION += 20
+SIF TALENT:TARGET:131 || TALENT:TARGET:132 ; 幼児/幼稚
+	HP_CORRECTION += 20
+SIF TALENT:TARGET:112 ; 回復遅い
+	HP_CORRECTION += 25
+SIF TALENT:TARGET:111 ; 回復早い
+	HP_CORRECTION -= 20
+SIF TALENT:TARGET:220 ; 怪力
+	HP_CORRECTION -= 20
+SIF TALENT:TARGET:221 ; 運動音痴
+	HP_CORRECTION += 20
+SIF TALENT:TARGET:40 ; 痛みに弱い
+	HP_CORRECTION += 25
+SIF TALENT:TARGET:41 ; 痛みに強い
+	HP_CORRECTION -= 20
+SIF TALENT:TARGET:79 ; マゾ
+	HP_CORRECTION -= 15
+SIF TALENT:TARGET:12 ; 気丈
+	HP_CORRECTION -= 15
+SIF TALENT:TARGET:10 ; 臆病
+	HP_CORRECTION += 20
+SIF TALENT:TARGET:114 ; 吸血鬼
+	HP_CORRECTION -= 30
+SIF TALENT:TARGET:128 ; 不死者
+	HP_CORRECTION -= 50
+SIF HP_CORRECTION < 30
+	HP_CORRECTION = 30
+
+DMG_MAX_HP = 0
+DMG_MAX_MP = 0
+
+DRAWLINE
+SELECTCASE ARG
+	CASE 1
+		SETCOLOR 0xFF6699
+		PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+		PRINTFORML 【Phase 1: 羞恥の衣装剥奪・ランウェイステージ】
+		PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+		RESETCOLOR
+		
+		TEXT_PATTERN = RAND:3
+		IF TEXT_PATTERN == 0
+			PRINTFORML 黒服たちに両腕を掴まれた%CALLNAME:TARGET%は、中央の眩いランウェイへと引きずり出された！
+			PRINTFORML 司会者の下卑たアナウンスと共に着ていた衣服を一枚ずつ乱暴に剥ぎ取られ、下着姿を無数の観客たちの前に晒される！
+			PRINTFORML 浴びせられる無数のフラッシュと下卑た口笛、好奇の目に晒され、%CALLNAME:TARGET%は必死に腕で肌を隠そうと身を縮めている…
+		ELSEIF TEXT_PATTERN == 1
+			PRINTFORML 円形ステージの中心に立たされた%CALLNAME:TARGET%に、容赦のないスポットライトが一斉に浴びせられた！
+			PRINTFORML 群がる黒服たちに衣服の布地をハサミで切り刻まれ、悲鳴をあげる間もなく無惨に引き裂かれて下着姿を白日の下に晒される！
+			PRINTFORML 「いいぞ！もっと見せろ！」と怒号のような歓声が響き、あまりの羞恥に%CALLNAME:TARGET%は真っ赤になって震えている…
+		ELSE
+			PRINTFORML ゆっくりと回転するステージの台座に乗せられた%CALLNAME:TARGET%は、大勢のVIP客たちに取り囲まれた！
+			PRINTFORML 逃げ場のない視線の中、一枚一枚衣服を剥ぎ取られ、最後の下着までも冷酷に奪い去られそうになり必死で身悶えする！
+			PRINTFORML 四方八方から品定めするように舐め回す視線を浴びせられ、%CALLNAME:TARGET%は屈辱に唇を噛み締め、涙を浮かべている…
+		ENDIF
+		
+		; 経験加算
+		LOCAL = 5 + RAND:6
+		EXP:TARGET:92 += LOCAL
+		SETCOLOR 0x88FF88
+		PRINTFORML %EXPNAME:92%＋{LOCAL}
+		RESETCOLOR
+		
+		; 珠の動的計算（露出癖・羞恥・拒絶・素質判定）
+		ADD_JUEL_SHAME = 3000 + (ABL:TARGET:7 * 1000) + RAND:2000
+		SIF TALENT:TARGET:35	; 【TARGET:[恥じらい]】
+			TIMES ADD_JUEL_SHAME, 1.50
+		SIF TALENT:TARGET:36	; 【TARGET:[恥薄い]】
+			TIMES ADD_JUEL_SHAME, 0.50
+		
+		ADD_JUEL_FEAR = 2000 + RAND:1500
+		SIF TALENT:TARGET:10	; 【TARGET:[臆病]】
+			TIMES ADD_JUEL_FEAR, 1.50
+		SIF TALENT:TARGET:12	; 【TARGET:[気丈]】
+			TIMES ADD_JUEL_FEAR, 0.60
+		
+		ADD_JUEL_DENY = 0
+		ADD_JUEL_LUST = 0
+		
+		IF TALENT:TARGET:76 || (CAN_LUST && ABL:TARGET:7 >= 3)	; 【TARGET:[淫乱] / TARGET:[露出癖]Lv>=3】
+			PRINTFORML %CALLNAME:TARGET%は無数の視線に晒されるうちに、背徳の快感に頬を染め始めている…
+			PENALTY_SUB = 20 + RAND:30
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+			ADD_JUEL_LUST = 4000 + (ABL:TARGET:1 * 1000) + RAND:2000
+			ADD_JUEL_DENY = 18000 + RAND:5000
+		ELSE
+			PRINTFORML %CALLNAME:TARGET%は裏切られた屈辱と絶望に涙を流し、激しい嫌悪と憎悪に震えている…
+			PENALTY_SUB = 400 + RAND:300
+			SIF IS_PERFECT_LOVE
+				PENALTY_SUB /= 3
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+			ADD_JUEL_DENY = 15000 + RAND:5000
+			SIF TALENT:TARGET:30 || TALENT:TARGET:85	; 【TARGET:[貞操観念] / TARGET:[恋慕]】
+				TIMES ADD_JUEL_DENY, 1.50
+		ENDIF
+		
+		JUEL:TARGET:8 += ADD_JUEL_SHAME
+		JUEL:TARGET:10 += ADD_JUEL_FEAR
+		JUEL:TARGET:100 += ADD_JUEL_DENY
+		SIF ADD_JUEL_LUST > 0
+			JUEL:TARGET:5 += ADD_JUEL_LUST
+		
+		SETCOLOR 0x88DDFF
+		PRINTFORML 恥情の珠＋{ADD_JUEL_SHAME}
+		PRINTFORML 恐怖の珠＋{ADD_JUEL_FEAR}
+		SIF ADD_JUEL_LUST > 0
+			PRINTFORML 欲情の珠＋{ADD_JUEL_LUST}
+		SIF ADD_JUEL_DENY > 0
+			PRINTFORML 否定の珠＋{ADD_JUEL_DENY}
+		RESETCOLOR
+		
+		; 体力・気力消費（素質補正）
+		LOCAL:80 = (300 + RAND:200) * HP_CORRECTION / 100
+		LOCAL:81 = 500 + RAND:300
+		BASE:TARGET:0 -= LOCAL:80
+		BASE:TARGET:1 -= LOCAL:81
+		SIF BASE:TARGET:1 < 0	; 【TARGET:[気力]<0】
+			BASE:TARGET:1 = 0
+		PRINTFORML 体力－{LOCAL:80}（現在：{BASE:TARGET:0}）
+		PRINTFORML 気力－{LOCAL:81}（現在：{BASE:TARGET:1}）
+		IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+			SETCOLOR 0xFF4444
+			PRINTFORML （%CALLNAME:TARGET%は消耗し、意識が朦朧としている…）
+			RESETCOLOR
+		ENDIF
+
+	CASE 2
+		SETCOLOR 0xFF3377
+		PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+		PRINTFORML 【Phase 2: 屈辱の緊縛拘束・愛撫見せものショー】
+		PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+		RESETCOLOR
+		
+		TEXT_PATTERN = RAND:3
+		IF TEXT_PATTERN == 0
+			PRINTFORML 逃げ場のないステージ中央の台座に押し倒された%CALLNAME:TARGET%は、太い革ベルトで四肢を大の字に固定された！
+			PRINTFORML 逃げることも隠すことも許されない無防備な全身を、至近距離から集まったVIP客たちにじっくりと観察される。
+			PRINTFORML 黒服の手袋が容赦なく肌を這い、敏感な箇所を執拗に弄ばれるたび、屈辱に唇を噛みながらも身体がびくびくと跳ねた…
+		ELSEIF TEXT_PATTERN == 1
+			PRINTFORML 天井から垂れ下がった太い麻縄で両手首を固く縛られ、%CALLNAME:TARGET%は爪先立ちの吊るし拘束台へと固定された！
+			PRINTFORML 張り詰めた肌に縄が容赦なく食い込み、無防備に晒された柔肌を、群がるVIP客たちが代わる代わる冷笑を浮かべながら指先で弄ぶ！
+			PRINTFORML 逃げようと身を捩るたびに縄が擦れて激痛が走り、%CALLNAME:TARGET%は痛痒さに甘い嬌声と悲鳴を混じらせて悶えている…
+		ELSE
+			PRINTFORML 木造の拘束台に押し付けられ、手足と首を冷たい鉄の枷でガッチリと締め上げられた%CALLNAME:TARGET%！
+			PRINTFORML 敏感な突起や肌に電極端子を取り付けられ、司会者の合図と共に微弱な電流が全身を容赦なく駆け巡る！
+			PRINTFORML 激しく全身を跳ねさせて悲鳴をあげながら、観衆の下卑た好奇の視線に晒され、屈辱と激痛に涙を零している…
+		ENDIF
+		
+		; 経験加算
+		LOCAL:0 = 5 + RAND:6
+		LOCAL:1 = 5 + RAND:6
+		LOCAL:2 = 1 + RAND:2
+		EXP:TARGET:51 += LOCAL:0
+		EXP:TARGET:92 += LOCAL:1
+		EXP:TARGET:50 += LOCAL:2
+		SETCOLOR 0x88FF88
+		PRINTFORML %EXPNAME:51%＋{LOCAL:0}
+		PRINTFORML %EXPNAME:92%＋{LOCAL:1}
+		PRINTFORML %EXPNAME:50%＋{LOCAL:2}
+		RESETCOLOR
+		
+		; 珠の動的計算
+		ADD_JUEL_PAIN = 3000 + RAND:2000
+		SIF TALENT:TARGET:40	; 【TARGET:[痛みに弱い]】
+			TIMES ADD_JUEL_PAIN, 1.50
+		SIF TALENT:TARGET:41	; 【TARGET:[痛みに強い]】
+			TIMES ADD_JUEL_PAIN, 0.70
+		
+		ADD_JUEL_FEAR = 4000 + RAND:2000
+		SIF TALENT:TARGET:10	; 【TARGET:[臆病]】
+			TIMES ADD_JUEL_FEAR, 1.50
+		SIF TALENT:TARGET:12	; 【TARGET:[気丈]】
+			TIMES ADD_JUEL_FEAR, 0.60
+		
+		ADD_JUEL_SHAME = 5000 + RAND:3000
+		ADD_JUEL_SUBMIT = 3000 + (ABL:TARGET:0 * 1000) + RAND:2000
+		ADD_JUEL_LUST = 0
+		ADD_JUEL_DENY = 0
+		
+		IF TALENT:TARGET:76 || TALENT:TARGET:79 || (CAN_LUST && ABL:TARGET:8 >= 2)	; 【TARGET:[淫乱] / TARGET:[マゾ] / TARGET:[マゾっ気]Lv>=2】
+			PRINTFORML 衆人環視の中で身体を弄ばれる快楽に、%CALLNAME:TARGET%は自ら腰を浮かせて甘い声を漏らしている…
+			PENALTY_SUB = 50 + RAND:50
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+			ADD_JUEL_LUST = 12000 + (ABL:TARGET:1 * 2000) + RAND:5000
+			ADD_JUEL_DENY = 50000 + RAND:15000
+		ELSE
+			PRINTFORML 見世物にされる耐え難い恥辱に、%CALLNAME:TARGET%の瞳から光が消え、憎悪と恐怖が深く刻み込まれていく…
+			PENALTY_SUB = 800 + RAND:500
+			SIF IS_PERFECT_LOVE
+				PENALTY_SUB /= 3
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+			ADD_JUEL_DENY = 65000 + RAND:20000
+			SIF TALENT:TARGET:30 || TALENT:TARGET:85	; 【TARGET:[貞操観念] / TARGET:[恋慕]】
+				TIMES ADD_JUEL_DENY, 1.50
+			ADD_JUEL_LUST = 0
+		ENDIF
+		
+		JUEL:TARGET:9 += ADD_JUEL_PAIN
+		JUEL:TARGET:10 += ADD_JUEL_FEAR
+		JUEL:TARGET:8 += ADD_JUEL_SHAME
+		JUEL:TARGET:6 += ADD_JUEL_SUBMIT
+		JUEL:TARGET:100 += ADD_JUEL_DENY
+		SIF ADD_JUEL_LUST > 0
+			JUEL:TARGET:5 += ADD_JUEL_LUST
+		
+		SETCOLOR 0x88DDFF
+		PRINTFORML 苦痛の珠＋{ADD_JUEL_PAIN}
+		PRINTFORML 恐怖の珠＋{ADD_JUEL_FEAR}
+		PRINTFORML 恥情の珠＋{ADD_JUEL_SHAME}
+		PRINTFORML 屈服の珠＋{ADD_JUEL_SUBMIT}
+		SIF ADD_JUEL_LUST > 0
+			PRINTFORML 欲情の珠＋{ADD_JUEL_LUST}
+		SIF ADD_JUEL_DENY > 0
+			PRINTFORML 否定の珠＋{ADD_JUEL_DENY}
+		RESETCOLOR
+		
+		; 刻印判定（未所持・未満の場合のみ表示）
+		IF MARK:TARGET:0 < 1	; 【[苦痛依存]Lv<1】
+			MARK:TARGET:0 = 1
+			SETCOLOR 0xFFFF00
+			PRINTFORML %CALLNAME:TARGET%は苦痛依存LV1を得た
+			RESETCOLOR
+		ENDIF
+		
+		; 体力・気力消費（素質補正）
+		LOCAL:80 = (600 + RAND:300) * HP_CORRECTION / 100
+		LOCAL:81 = 1000 + RAND:500
+		BASE:TARGET:0 -= LOCAL:80
+		BASE:TARGET:1 -= LOCAL:81
+		SIF BASE:TARGET:1 < 0	; 【TARGET:[気力]<0】
+			BASE:TARGET:1 = 0
+		PRINTFORML 体力－{LOCAL:80}（現在：{BASE:TARGET:0}）
+		PRINTFORML 気力－{LOCAL:81}（現在：{BASE:TARGET:1}）
+		IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+			SETCOLOR 0xFF4444
+			PRINTFORML （%CALLNAME:TARGET%は激しい消耗により気絶してしまった…）
+			RESETCOLOR
+		ENDIF
+
+	CASE 3
+		SETCOLOR 0xFF0066
+		PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+		PRINTFORML 【Phase 3: 公開秘所開帳・強制自慰オークション】
+		PRINTFORML ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+		RESETCOLOR
+		
+		TEXT_PATTERN = RAND:3
+		IF TEXT_PATTERN == 0
+			PRINTFORML 熱狂渦巻くフロアの中央、マイクを突きつけられた%CALLNAME:TARGET%に冷酷な命令が下る。
+			PRINTFORML 自らの手で秘所を押し広げ、指で弄んで悦ぶ姿を客たちに見せろと強要される…
+			PRINTFORML 観客席から札束が投げ込まれ、狂気の歓声が響く中、%CALLNAME:TARGET%は震える指先を秘唇へと伸ばした…
+			PRINTFORML 涙を流しながら自らの痴態を開帳し、指を抜き差しして感じている姿を晒し上げる…！
+		ELSEIF TEXT_PATTERN == 1
+			PRINTFORML 透明なガラス板のステージへと仰向けに押し倒され、下から無数の男たちが覗き込む異様な舞台！
+			PRINTFORML 司会者の脅迫を受け、%CALLNAME:TARGET%は両脚を大きくＭ字に開いて、下から見上げる観衆に秘裂を完全開帳させられる！
+			PRINTFORML 「ほら、もっと指を奥まで突っ込んで声を出せ！」と野次が飛び、屈辱に震えながら自ら蜜孔を掻き回す姿を見せつけさせられる…！
+		ELSE
+			PRINTFORML 競売台の上で椅子に固定された%CALLNAME:TARGET%の秘唇に、強烈なバイブレーションを放つ電動器具が押し当てられた！
+			PRINTFORML 客たちの入札額が吊り上がるたびに振動の出力が引き上げられ、逃げ場のない強制快楽に全身がビクビクと激しく痙攣する！
+			PRINTFORML 涙をボロボロと零しながら、自ら嬌声を漏らして悶え狂う痴態を、フロア中の視線とカメラに晒され続ける…！
+		ENDIF
+		
+		; 経験加算（必ず自慰経験 >= 強制自慰経験）
+		LOCAL:1 = 5 + RAND:6 ; 強制自慰経験
+		LOCAL:0 = LOCAL:1 + RAND:6 ; 自慰経験
+		LOCAL:2 = 10 + RAND:10 ; 被写経験
+		LOCAL:3 = 2 + RAND:2 ; 異常経験
+		EXP:TARGET:10 += LOCAL:0
+		EXP:TARGET:11 += LOCAL:1
+		EXP:TARGET:92 += LOCAL:2
+		EXP:TARGET:50 += LOCAL:3
+		SETCOLOR 0x88FF88
+		PRINTFORML %EXPNAME:11%＋{LOCAL:1}
+		PRINTFORML %EXPNAME:10%＋{LOCAL:0}
+		PRINTFORML %EXPNAME:92%＋{LOCAL:2}
+		PRINTFORML %EXPNAME:50%＋{LOCAL:3}
+		RESETCOLOR
+		
+		; 珠の動的計算
+		ADD_JUEL_SHAME = 15000 + (ABL:TARGET:7 * 3000) + RAND:5000
+		ADD_JUEL_SUBMIT = 8000 + (ABL:TARGET:0 * 2000) + RAND:4000
+		ADD_JUEL_FEAR = 6000 + RAND:3000
+		ADD_JUEL_LUST = 0
+		ADD_JUEL_DENY = 0
+		
+		IF TALENT:TARGET:76	; 【TARGET:[淫乱]】
+			PRINTFORML もはや理性をかなぐり捨てた%CALLNAME:TARGET%は、歓声に煽られるまま狂ったように自慰に耽っている…！
+			PENALTY_SUB = 100 + RAND:80
+			ADD_JUEL_LUST = 30000 + (ABL:TARGET:1 * 5000) + (ABL:TARGET:10 * 5000) + RAND:10000
+			ADD_JUEL_DENY = 90000 + RAND:20000
+			
+			; 自慰しやすい(TALENT:60)や自慰中毒(ABL:10)所持時のさらなるペナルティ軽減・珠増加
+			IF TALENT:TARGET:60	; 【TARGET:[自慰しやすい]】
+				PENALTY_SUB = MAX(10, PENALTY_SUB / 2)
+				TIMES ADD_JUEL_LUST, 1.30
+				TIMES ADD_JUEL_SHAME, 1.30
+			ENDIF
+			SIF ABL:TARGET:10 >= 2	; 【TARGET:[自慰中毒]Lv>=2】
+				PENALTY_SUB = MAX(10, PENALTY_SUB * 8 / 10)
+			
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+		ELSE
+			PRINTFORML 心を激しく損なわれた%CALLNAME:TARGET%は、絶望に声を震わせ、深いトラウマを刻み込まれた…
+			PENALTY_SUB = 1500 + RAND:1000
+			SIF IS_PERFECT_LOVE
+				PENALTY_SUB /= 3
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+			ADD_JUEL_DENY = 130000 + RAND:30000
+			SIF TALENT:TARGET:30 || TALENT:TARGET:85	; 【TARGET:[貞操観念] / TARGET:[恋慕]】
+				TIMES ADD_JUEL_DENY, 1.50
+			ADD_JUEL_LUST = 0
+		ENDIF
+		
+		JUEL:TARGET:8 += ADD_JUEL_SHAME
+		JUEL:TARGET:6 += ADD_JUEL_SUBMIT
+		JUEL:TARGET:10 += ADD_JUEL_FEAR
+		JUEL:TARGET:100 += ADD_JUEL_DENY
+		SIF ADD_JUEL_LUST > 0
+			JUEL:TARGET:5 += ADD_JUEL_LUST
+		
+		SETCOLOR 0x88DDFF
+		PRINTFORML 恥情の珠＋{ADD_JUEL_SHAME}
+		PRINTFORML 屈服の珠＋{ADD_JUEL_SUBMIT}
+		PRINTFORML 恐怖の珠＋{ADD_JUEL_FEAR}
+		SIF ADD_JUEL_LUST > 0
+			PRINTFORML 欲情の珠＋{ADD_JUEL_LUST}
+		SIF ADD_JUEL_DENY > 0
+			PRINTFORML 否定の珠＋{ADD_JUEL_DENY}
+		RESETCOLOR
+		
+		; 刻印判定（未所持・未満の場合のみ表示）
+		IF MARK:TARGET:2 < 1	; 【[既成事実]Lv<1】
+			MARK:TARGET:2 = 1
+			SETCOLOR 0xFFFF00
+			PRINTFORML %CALLNAME:TARGET%は既成事実LV1を得た
+			RESETCOLOR
+		ENDIF
+		
+		; 体力・気力消費（素質補正）
+		LOCAL:80 = (1200 + RAND:500) * HP_CORRECTION / 100
+		LOCAL:81 = BASE:TARGET:1
+		BASE:TARGET:0 -= LOCAL:80
+		BASE:TARGET:1 = 0
+		PRINTFORML 体力－{LOCAL:80}（現在：{BASE:TARGET:0}）
+		PRINTFORML 気力－{LOCAL:81}（現在：0）
+		IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+			SETCOLOR 0xFF4444
+			PRINTFORML （%CALLNAME:TARGET%は度重なる辱めに力尽き、気を失って倒れ込んだ…）
+			RESETCOLOR
+		ENDIF
+
+	CASE 4
+		SETCOLOR 0xCC0033
+		PRINTFORML ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+		PRINTFORML ┃ 【Phase 4: 完全敗北・背徳のＶＩＰ乱交フィナーレ】     ┃
+		PRINTFORML ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+		RESETCOLOR
+		
+		TEXT_PATTERN = RAND:3
+		IF TEXT_PATTERN == 0
+			PRINTFORML もはや後戻りのできない最悪の狂乱。莫大な負債の最終代償として、%CALLNAME:TARGET%はVIP客たちに引き渡された！
+			PRINTFORML 壇上に群がる男たちの手に委ねられ、口も、前も、後ろの窄まりも同時に容赦なく貫かれる！
+			PRINTFORML 押し寄せる肉棒に次々と中出しされ、尻穴をも抉られ、喉奥にまで白濁を注ぎ込まれる極限の乱交ショー！
+			PRINTFORML 全身の穴を蹂躙され尽くしながら、%CALLNAME:TARGET%は白目を剥いて狂ったように嬌声をあげ続けた…！
+		ELSEIF TEXT_PATTERN == 1
+			PRINTFORML 最奥のVIPルームへと投げ込まれた%CALLNAME:TARGET%を取り囲むのは、欲情にギラついた富豪たち！
+			PRINTFORML 四肢を乱暴に押さえつけられ、抵抗する間もなく複数の男たちに一斉に身体の穴へと挿入される！
+			PRINTFORML 「最高だ、担保の女の肉壺は極上だぜ！」と下卑た笑い声が響く中、休みなく腰を打ち付けられ、幾度も中出しを受け止める！
+			PRINTFORML 激しいピストン運動の衝撃に頭を揺らしながら、%CALLNAME:TARGET%は抗えない快楽と絶望の濁流に呑み込まれていく…！
+		ELSE
+			PRINTFORML 特設ステージの十字架台に押し付けられ、逃げ場のない四つん這いの姿勢で固定された%CALLNAME:TARGET%！
+			PRINTFORML 前の蜜孔と後ろの窄まりに同時に極太の肉棒が押し込まれ、二穴を同時に引き裂かんばかりの衝撃に絶叫が響き渡る！
+			PRINTFORML 男たちが代わる代わる列をなし、次から次へと白濁を注ぎ込み続け、床にまで精液が水たまりとなって滴り落ちる！
+			PRINTFORML 終わりの見えない暴力的な輪姦に、%CALLNAME:TARGET%の瞳は焦点を失い、ただ壊れたように痙攣を繰り返している…！
+		ENDIF
+		
+		; 処女喪失チェック
+		IF TALENT:TARGET:0	; 【TARGET:[処女]】
+			SETCOLOR 0xFF3333
+			PRINTFORMW 処女喪失
+			RESETCOLOR
+			TALENT:TARGET:0 = 0
+			CALL SET_VIRGINITY_RECORD, TARGET, -1
+			TFLAG:3 = 1
+			TFLAG:31 = 1
+			EXP:TARGET:50 += 5
+			JUEL:TARGET:100 += 100000
+			PRINTFORML 名も知らぬ男たちに純潔を踏みにじられた…
+		ENDIF
+		
+		; A処女チェック
+		IF EXP:TARGET:1 == 0	; 【TARGET:[Ａ経験]==0】
+			EXP:TARGET:50 += 2
+			JUEL:TARGET:100 += 60000
+			PRINTFORML 初めての後ろの穴までも情け容赦なく穿たれた…
+		ENDIF
+		
+		; 経験加算
+		LOCAL:0 = 8 + RAND:8
+		LOCAL:1 = 30 + RAND:30
+		LOCAL:2 = 10 + RAND:15
+		LOCAL:3 = 10 + RAND:10
+		LOCAL:4 = 10 + RAND:15
+		LOCAL:5 = 10 + RAND:15
+		LOCAL:6 = 10 + RAND:15
+		LOCAL:7 = 5 + RAND:10
+		LOCAL:8 = 1 + RAND:3
+		LOCAL:9 = 15 + RAND:15
+		LOCAL:10 = 15 + RAND:15
+		
+		EXP:TARGET:50 += LOCAL:0
+		EXP:TARGET:20 += LOCAL:1
+		EXP:TARGET:26 += LOCAL:2
+		EXP:TARGET:22 += LOCAL:3
+		EXP:TARGET:24 += LOCAL:4
+		EXP:TARGET:0  += LOCAL:5
+		EXP:TARGET:1  += LOCAL:6
+		EXP:TARGET:32 += LOCAL:7
+		EXP:TARGET:53 += LOCAL:8
+		EXP:TARGET:21 += LOCAL:9
+		EXP:TARGET:2  += LOCAL:10
+		
+		SETCOLOR 0x88FF88
+		PRINTFORML %EXPNAME:50%＋{LOCAL:0}
+		PRINTFORML %EXPNAME:20%＋{LOCAL:1}
+		PRINTFORML %EXPNAME:26%＋{LOCAL:2}
+		PRINTFORML %EXPNAME:22%＋{LOCAL:3}
+		PRINTFORML %EXPNAME:24%＋{LOCAL:4}
+		PRINTFORML %EXPNAME:0%＋{LOCAL:5}
+		PRINTFORML %EXPNAME:1%＋{LOCAL:6}
+		PRINTFORML %EXPNAME:32%＋{LOCAL:7}
+		PRINTFORML %EXPNAME:53%＋{LOCAL:8}
+		PRINTFORML %EXPNAME:21%＋{LOCAL:9}
+		PRINTFORML %EXPNAME:2%＋{LOCAL:10}
+		RESETCOLOR
+		
+		; 妊娠の可能性チェック
+		IF TALENT:TARGET:122 == 0 && TALENT:TARGET:134 == 0 && TEQUIP:TARGET:86 == 0 && TALENT:TARGET:137 == 0	; 【TARGET:[オトコ]なし / TARGET:[妊娠]なし / TARGET:[危険日]なし / 無[排卵誘発剤効果発揮中]】
+			CFLAG:TARGET:104 = 99
+			CFLAG:TARGET:111 = -1
+			SETCOLOR 0xFF5555
+			PRINTFORML 無数の見知らぬ男たちから大量の精液を注ぎ込まれた%CALLNAME:TARGET%の胎内は、
+			PRINTFORMW 誰のものとも知れぬ種を受け止めてしまったかもしれない…
+			RESETCOLOR
+			CALL GET_CHILD_MOB
+		ENDIF
+		
+		; 珠の動的計算（開発度・素質判定）
+		ADD_JUEL_V = 0
+		IF ABL:TARGET:4 > 0	; 【TARGET:[Ｖ感覚]Lv>0】
+			IF ABL:TARGET:4 == 1	; 【TARGET:[Ｖ感覚]Lv==1】
+				ADD_JUEL_V = 3000 + RAND:2000
+			ELSEIF ABL:TARGET:4 == 2	; 【TARGET:[Ｖ感覚]Lv==2】
+				ADD_JUEL_V = 8000 + RAND:4000
+			ELSE
+				ADD_JUEL_V = 20000 + (ABL:TARGET:4 - 3) * 6000 + RAND:8000
+			ENDIF
+			SIF TALENT:TARGET:104	; 【TARGET:[Ｖ敏感]】
+				TIMES ADD_JUEL_V, 1.50
+			SIF TALENT:TARGET:103	; 【TARGET:[Ｖ鈍感]】
+				TIMES ADD_JUEL_V, 0.50
+			SIF TALENT:TARGET:74	; 【TARGET:[淫壷]】
+				TIMES ADD_JUEL_V, 1.50
+		ENDIF
+		
+		ADD_JUEL_A = 0
+		IF ABL:TARGET:5 > 0 && EXP:TARGET:1 >= 5	; 【TARGET:[Ａ感覚]Lv>0 / TARGET:[Ａ経験]>=5】
+			IF ABL:TARGET:5 == 1	; 【TARGET:[Ａ感覚]Lv==1】
+				ADD_JUEL_A = 2000 + RAND:1500
+			ELSEIF ABL:TARGET:5 == 2	; 【TARGET:[Ａ感覚]Lv==2】
+				ADD_JUEL_A = 6000 + RAND:3000
+			ELSE
+				ADD_JUEL_A = 15000 + (ABL:TARGET:5 - 3) * 5000 + RAND:6000
+			ENDIF
+			SIF TALENT:TARGET:106	; 【TARGET:[Ａ敏感]】
+				TIMES ADD_JUEL_A, 1.50
+			SIF TALENT:TARGET:105	; 【TARGET:[Ａ鈍感]】
+				TIMES ADD_JUEL_A, 0.50
+			SIF TALENT:TARGET:77	; 【TARGET:[尻穴狂い]】
+				TIMES ADD_JUEL_A, 1.50
+		ENDIF
+		
+		ADD_JUEL_PAIN = 20000 + RAND:10000
+		SIF TALENT:TARGET:40	; 【TARGET:[痛みに弱い]】
+			TIMES ADD_JUEL_PAIN, 1.50
+		SIF TALENT:TARGET:41	; 【TARGET:[痛みに強い]】
+			TIMES ADD_JUEL_PAIN, 0.70
+		
+		ADD_JUEL_FEAR = 30000 + RAND:15000
+		ADD_JUEL_SUBMIT = 50000 + RAND:25000
+		ADD_JUEL_SHAME = 40000 + RAND:20000
+		ADD_JUEL_LUST = 0
+		ADD_JUEL_DENY = 0
+		
+		IF TALENT:TARGET:76	; 【TARGET:[淫乱]】
+			PRINTFORML 全身を汚され尽くした%CALLNAME:TARGET%は、極限の背徳に完全に脳を焼かれ、歓喜の笑みを浮かべて横たわっている…
+			PENALTY_SUB = 200 + RAND:150
+			ADD_JUEL_LUST = 100000 + (ABL:TARGET:1 * 15000) + RAND:40000
+			ADD_JUEL_DENY = 350000 + RAND:80000
+			
+			; マゾ(TALENT:79)やマゾっ気(ABL:8)所持時のさらなるペナルティ軽減・珠増加
+			IF TALENT:TARGET:79	; 【TARGET:[マゾ]】
+				PENALTY_SUB = MAX(20, PENALTY_SUB / 2)
+				TIMES ADD_JUEL_LUST, 1.30
+			ENDIF
+			SIF ABL:TARGET:8 >= 3	; 【TARGET:[マゾっ気]Lv>=3】
+				PENALTY_SUB = MAX(20, PENALTY_SUB * 8 / 10)
+			
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+		ELSE
+			SETCOLOR 0xFF3333
+			PRINTFORML 尊厳のすべてを徹底的に粉砕された%CALLNAME:TARGET%は、瞳の光を完全に失い、人形のように力なく崩れ落ちた…
+			RESETCOLOR
+			PENALTY_SUB = 3000 + RAND:2000
+			SIF IS_PERFECT_LOVE
+				PENALTY_SUB /= 4
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			RESETCOLOR
+			ADD_JUEL_DENY = 500000 + RAND:150000
+			SIF TALENT:TARGET:30 || TALENT:TARGET:85	; 【TARGET:[貞操観念] / TARGET:[恋慕]】
+				TIMES ADD_JUEL_DENY, 1.50
+			ADD_JUEL_LUST = 0
+			
+			IF IS_PERFECT_LOVE
+				SETCOLOR 0xFF99BB
+				PRINTFORMW ……底知れぬ地獄に落とされながらも、%CALLNAME:TARGET%の胸の%CALLNAME:MASTER%への想いだけは消えていない……！
+				RESETCOLOR
+			ELSEIF TALENT:TARGET:85	; 【TARGET:[恋慕]】
+				SETCOLOR 0xFF3333
+				PRINTFORMW ……信じていた絆を引き裂かれた%CALLNAME:TARGET%の心に、決して癒えない決定的な亀裂が入った…
+				RESETCOLOR
+			ENDIF
+		ENDIF
+		
+		SIF ADD_JUEL_V > 0
+			JUEL:TARGET:1 += ADD_JUEL_V
+		SIF ADD_JUEL_A > 0
+			JUEL:TARGET:2 += ADD_JUEL_A
+		JUEL:TARGET:9 += ADD_JUEL_PAIN
+		JUEL:TARGET:10 += ADD_JUEL_FEAR
+		JUEL:TARGET:6 += ADD_JUEL_SUBMIT
+		JUEL:TARGET:8 += ADD_JUEL_SHAME
+		JUEL:TARGET:100 += ADD_JUEL_DENY
+		SIF ADD_JUEL_LUST > 0
+			JUEL:TARGET:5 += ADD_JUEL_LUST
+		
+		SETCOLOR 0x88DDFF
+		SIF ADD_JUEL_V > 0
+			PRINTFORML 快Ｖの珠＋{ADD_JUEL_V}
+		SIF ADD_JUEL_A > 0
+			PRINTFORML 快Ａの珠＋{ADD_JUEL_A}
+		PRINTFORML 屈服の珠＋{ADD_JUEL_SUBMIT}
+		PRINTFORML 恥情の珠＋{ADD_JUEL_SHAME}
+		PRINTFORML 苦痛の珠＋{ADD_JUEL_PAIN}
+		PRINTFORML 恐怖の珠＋{ADD_JUEL_FEAR}
+		SIF ADD_JUEL_LUST > 0
+			PRINTFORML 欲情の珠＋{ADD_JUEL_LUST}
+		SIF ADD_JUEL_DENY > 0
+			PRINTFORML 否定の珠＋{ADD_JUEL_DENY}
+		RESETCOLOR
+		
+		; 刻印判定（未所持・未満の場合のみ表示）
+		IF MARK:TARGET:0 < 2	; 【[苦痛依存]Lv<2】
+			MARK:TARGET:0 = 2
+			SETCOLOR 0xFFFF00
+			PRINTFORML %CALLNAME:TARGET%は苦痛依存LV2を得た
+			RESETCOLOR
+		ENDIF
+		IF MARK:TARGET:2 < 2	; 【[既成事実]Lv<2】
+			MARK:TARGET:2 = 2
+			SETCOLOR 0xFFFF00
+			PRINTFORML %CALLNAME:TARGET%は既成事実LV2を得た
+			RESETCOLOR
+		ENDIF
+		
+		; 最大体力・気力の損壊（Phase 4から損壊開始、回数・素質補正）
+		DMG_MAX_HP = (40 + RAND:40 + (CFLAG:TARGET:786 * 15)) * HP_CORRECTION / 100
+		DMG_MAX_MP = (50 + RAND:50 + (CFLAG:TARGET:786 * 20)) * HP_CORRECTION / 100
+		SIF IS_PERFECT_LOVE
+			DMG_MAX_HP /= 2
+		SIF IS_PERFECT_LOVE
+			DMG_MAX_MP /= 2
+		
+		IF DMG_MAX_HP > 0 && MAXBASE:TARGET:0 > 500	; 【TARGET:[体力]>500】
+			DMG_MAX_HP = MIN(DMG_MAX_HP, MAXBASE:TARGET:0 - 500)
+			MAXBASE:TARGET:0 -= DMG_MAX_HP
+			SETCOLOR 0xFF8888
+			PRINTFORML 最大体力－{DMG_MAX_HP}（現在：{MAXBASE:TARGET:0}） 【肉体損壊】
+			RESETCOLOR
+		ENDIF
+		IF DMG_MAX_MP > 0 && MAXBASE:TARGET:1 > 500	; 【TARGET:[気力]>500】
+			DMG_MAX_MP = MIN(DMG_MAX_MP, MAXBASE:TARGET:1 - 500)
+			MAXBASE:TARGET:1 -= DMG_MAX_MP
+			SETCOLOR 0xFF8888
+			PRINTFORML 最大気力－{DMG_MAX_MP}（現在：{MAXBASE:TARGET:1}） 【精神損壊】
+			RESETCOLOR
+		ENDIF
+		
+		; 体力・気力消費（ランダム＋素質・回数補正）
+		LOCAL:80 = (2500 + RAND:1500 + (CFLAG:TARGET:786 * 200)) * HP_CORRECTION / 100
+		SIF IS_PERFECT_LOVE
+			LOCAL:80 /= 2
+		LOCAL:81 = BASE:TARGET:1
+		BASE:TARGET:0 -= LOCAL:80
+		BASE:TARGET:1 = 0
+		PRINTFORML 体力－{LOCAL:80}（現在：{BASE:TARGET:0}）
+		PRINTFORML 気力－{LOCAL:81}（現在：0）
+		IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+			SETCOLOR 0xFF4444
+			PRINTFORML （%CALLNAME:TARGET%は限界を遥かに超えて衰弱し、深い気絶状態に陥っている…）
+			RESETCOLOR
+		ENDIF
+		
+		IF CFLAG:MASTER:785 > 0
+			IF WAS_BROKEN
+				SETCOLOR 0xFF5555
+				PRINTFORML 支配人「おや……？ このお嬢様は既に心身ともに限界まで壊れきっており、これ以上の担保価値がございませんね……」
+				PRINTFORML 支配人「使い潰された肉人形をいくら差し出されようと、当カジノとして借金の帳消しには応じられませんよ」
+				PRINTFORMW 既に下限まで壊れきったパートナーでは担保価値がなく、借金（${CFLAG:MASTER:785}）は帳消しになりませんでした…
+				RESETCOLOR
+			ELSE
+				SETCOLOR 0x66FF66
+				PRINTFORMW パートナーを極限の余興として捧げた代償に、借金が全額帳消しとなった！
+				RESETCOLOR
+				CFLAG:MASTER:785 = 0
+			ENDIF
+		ENDIF
+
+	CASEELSE
+		IF IS_REPEAT_SACRIFICE
+			; ====================================================
+			; Phase 5+ : 壊れかけの肉玩具・無制限廃棄処分調教（完全肉塊化）
+			; ====================================================
+			SETCOLOR 0x660000
+			PRINTFORML 
+			PRINTFORML ◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆
+			PRINTFORML 　【Phase 5+: 壊れかけの肉玩具・無制限廃棄処分調教（完全肉塊化）】
+			PRINTFORML ◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆
+			PRINTFORML 
+			RESETCOLOR
+			
+			REPEAT_TIER = MAX(1, CFLAG:TARGET:786 - 4)
+			TEXT_PATTERN = RAND:6
+			IF TEXT_PATTERN == 0
+				PRINTFORML 既に瞳から光を失い、焦点の合わない目で虚空を見つめるだけの%CALLNAME:TARGET%が、物言わぬ肉塊として再び地下最深部の処刑台へと転がされた！
+				PRINTFORML 「ぎゃははは！ またあの壊れた担保女を差し出してきたぞ！」「もう言葉も話せねえし抵抗もしねえ、最高の肉オモチャだ！」
+				PRINTFORML 飢えた男たちが我先にと群がり、人間としての尊厳など微塵も残さぬ残虐な掃き溜めとして、身体の穴という穴に同時に極太の器具と肉棒がねじ込まれる！
+				PRINTFORML 激痛にもはや悲鳴すらあげられず、喉奥から壊れた機械のような呻き声を漏らしながら、ただ受動的に大量の白濁を注ぎ込まれ続ける……！
+				PRINTFORML 尿も涎も精液も止め処なく溢れ返り、床一面をドロドロに汚しながら、ただ呼吸を刻むだけの肉塊へと徹底的に蹂躙され尽くした……！
+			ELSEIF TEXT_PATTERN == 1
+				PRINTFORML 限界を超えてボロボロに擦り切れた%CALLNAME:TARGET%の首に太い鉄鎖が巻かれ、犬のように床を引きずられて闇VIP客たちの足元へと投げ出された！
+				PRINTFORML 涎と涙でまみれた虚ろな顔を靴の先で無慈悲に踏みつけられながら、塞がることのない前後の穴へと荒々しいピストンが休みなく叩き込まれる！
+				PRINTFORML 「ほら見ろよ、完全に脳ミソが溶けちまってやがる！ どんなに犯しても文句一つ言わねえぜ！」
+				PRINTFORML 男たちの欲望のままに弄ばれ、痙攣する四肢からは最後の生命力までもが根こそぎ吸い取られていく……！
+				PRINTFORML もはや女としての輪郭すら崩れ落ち、ただ体液を垂れ流すだけの廃棄玩具として、地下の暗闇に放置された……！
+			ELSEIF TEXT_PATTERN == 2
+				PRINTFORML 四方を強固なガラス壁に囲まれた特設の『自動観察槽』へと、身動き一つ取れない%CALLNAME:TARGET%がクレーンで吊り降ろされた！
+				PRINTFORML 「おい見ろ、地下カジノ名物の廃棄ショーだ！」「スイッチ一つでいくらでも絶頂を撒き散らす自動オモチャだぜ！」
+				PRINTFORML 壁一面から伸びた冷たい機械アームと電動器具が、無抵抗な四肢を拘束し、秘所や胸元へと無慈悲に吸着して高速駆動を始める！
+				PRINTFORML 思考を奪われた頭部をガクガクと揺らし、声帯から掠れた吐息を漏らしながら、ただ電気信号と快楽の過負荷に肉体をビクビクと痙攣させ続ける……！
+				PRINTFORML ガラス越しに歓声をあげる観客たちの眼前で、濁った体液を水槽の床へ撒き散らす無残な見世物として晒し上げられた……！
+			ELSEIF TEXT_PATTERN == 3
+				PRINTFORML 贅沢な酒香と煙草の煙が立ち込める最奥VIPラウンジ。豪華な長テーブルの上へと、物言わぬ%CALLNAME:TARGET%が粗雑に寝かせられた！
+				PRINTFORML 「これだけ壊れてりゃ文句のつけようがねえ」「酒の肴には最高の肉人形だな、どれ、一杯注いでやれ！」
+				PRINTFORML 富豪たちが冷笑を浮かべながら胸元や秘裂へと冷えたシャンパンを注ぎ込み、濡れそぼった柔肌を代わる代わる下品に貪り始める！
+				PRINTFORML 身体の自由も恥じらいも完全に消え失せた%CALLNAME:TARGET%は、酒の混じった白濁を口や下腹からダラダラと滴らせながら、ただ玩具として回され続ける……！
+				PRINTFORML 贅を尽くした闇の宴のただ中で、一人の人間であった面影すら踏みにじられ、狂乱の余興として弄ばれ尽くした……！
+			ELSEIF TEXT_PATTERN == 4
+				PRINTFORML 地下闘技場の中央に聳え立つ鋼鉄の磔台へと、完全に脱力した%CALLNAME:TARGET%の両手足が無造作に鎖で打ち付けられた！
+				PRINTFORML 「さあ並べ並べ！ 今夜は無制限の解放ショーだ！」「いくら注ぎ込んでも壊れねえ極上の肉穴だぞ！」
+				PRINTFORML 飢えたVIP客や粗暴な労働者たちが次々と長蛇の列を作り、塞がることのない前の蜜孔と後ろの窄まりへ代わる代わる激しく腰を叩きつけていく！
+				PRINTFORML 耐え難い衝撃に頭を揺らし、子宮の奥まで幾重にも白濁を叩き込まれ、受け止めきれぬ熱量が内腿を白く染め上げて滝のように滴り落ちる……！
+				PRINTFORML 終わることのない輪姦の嵐の中、焦点の合わない虚ろな瞳は天井の一点を虚無に見つめたまま、ただの肉穴として機能し続けた……！
+			ELSE
+				PRINTFORML 冷え切った石造りの地下暗渠。幾度もの破壊を経て感覚すら麻痺しきった%CALLNAME:TARGET%が、無造作に冷たい石畳へと転がされた！
+				PRINTFORML 苦痛と快楽の境界すら失われたその肉体は、男たちに乱暴に貫かれ、弄ばれるたびに、虚ろな笑みすら浮かべて甘く壊れた嬌声を漏らす……！
+				PRINTFORML 「おい、見ろよ……あいつ、壊れすぎて犯されるだけで笑ってやがるぞ……！」「もう完全にイカれちまってら、正真正銘の肉奴隷だ！」
+				PRINTFORML その異様で痛々しい痴態に男たちはさらに興奮を煽られ、競うように肉棒を押し込み、子宮の最奥へ止まることのない熱い雫を注ぎ込んでいく！
+				PRINTFORML 魂の抜け殻となった身体を幾重にも犯し尽くされ、狂気と白濁の泥沼の中へと、底知れず沈み込んでいった……！
+			ENDIF
+			
+			; 連続執行深度3以上（身代わり7回目以降）の場合、さらなる深淵の地の文を追加
+			IF REPEAT_TIER >= 3
+				PRINTL 
+				SETCOLOR 0x990000
+				SELECTCASE RAND:3
+				CASE 0
+					PRINTFORML （幾度となくこの地獄へ売られた%CALLNAME:TARGET%の肉体は、完全にこの狂乱の地下に順応し、もはや元に戻ることのない狂気の色に染まりきっている……！）
+				CASE 1
+					PRINTFORML （幾重もの絶頂と暴力に晒され続けた%CALLNAME:TARGET%の瞳には、かつて宿っていた光の欠片すら残されておらず、ただ無機質な体液の排出口と化している……！）
+				CASE 2
+					PRINTFORML （終わりのない欲望の掃き溜めとして差し出され続けた結果、%CALLNAME:TARGET%の存在そのものが、地下カジノの伝説的な『壊れた玩具』として定着しつつあった……！）
+				ENDSELECT
+				RESETCOLOR
+			ENDIF
+			DRAWLINE
+			; 狂気の上位素質【崩壊】の獲得判定（繰り返される身代わり執行による完全精神崩壊）
+			SETCOLOR 0xFF0000
+			IF TALENT:TARGET:9 == 0	; 【TARGET:[崩壊]なし】
+				TALENT:TARGET:9 = 1
+				PRINTFORML %CALLNAME:TARGET%は【崩壊】を得た
+			ENDIF
+			RESETCOLOR
+			
+			; 刻印判定
+			SETCOLOR 0xFFFF00
+			IF MARK:TARGET:0 < 3	; 【[苦痛依存]Lv<3】
+				MARK:TARGET:0 = 3
+				PRINTFORML %CALLNAME:TARGET%は苦痛依存LV3を得た
+			ENDIF
+			IF MARK:TARGET:1 < 3	; 【[快楽依存]Lv<3】
+				MARK:TARGET:1 = 3
+				PRINTFORML %CALLNAME:TARGET%は快楽依存LV3を得た
+			ENDIF
+			IF MARK:TARGET:2 < 3	; 【[既成事実]Lv<3】
+				MARK:TARGET:2 = 3
+				PRINTFORML %CALLNAME:TARGET%は既成事実LV3を得た
+			ENDIF
+			RESETCOLOR
+			
+			; リピート執行による更なる極限経験加算
+			PRINTL 
+			SETCOLOR 0x88FF88
+			REPEAT_TIER = MAX(1, CFLAG:TARGET:786 - 4)
+			PRINTL
+			SETCOLOR 0xFFFF88
+			PRINTFORML 【身代わり執行第{CFLAG:TARGET:786}回目 (Phase 5+ 深度{REPEAT_TIER})：連続執行により獲得経験・珠が{100 + REPEAT_TIER * 20}％に増大！】
+			RESETCOLOR
+			PRINTL
+			SETCOLOR 0x88FF88
+			LOCAL:30 = (120 + RAND:80) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:51 = (120 + RAND:80) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:52 = (50 + RAND:30) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:53 = (50 + RAND:30) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:31 = (40 + RAND:30) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:92 = (100 + RAND:50) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:11 = (60 + RAND:30) * (100 + REPEAT_TIER * 20) / 100 ; 強制自慰
+			LOCAL:10 = LOCAL:11 + (RAND:30 * (100 + REPEAT_TIER * 20) / 100) ; 自慰
+			LOCAL:20 = (400 + RAND:150) * (100 + REPEAT_TIER * 25) / 100
+			LOCAL:24 = (150 + RAND:80) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:26 = (120 + RAND:60) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:22 = (120 + RAND:60) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:21 = (80 + RAND:50) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:0  = (150 + RAND:80) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:1  = (150 + RAND:80) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:2  = (120 + RAND:60) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:32 = (80 + RAND:40) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:96 = (60 + RAND:40) * (100 + REPEAT_TIER * 20) / 100
+			LOCAL:50 = (100 + RAND:50) * (100 + REPEAT_TIER * 20) / 100
+			
+			EXP:TARGET:30 += LOCAL:30
+			EXP:TARGET:51 += LOCAL:51
+			EXP:TARGET:52 += LOCAL:52
+			EXP:TARGET:53 += LOCAL:53
+			EXP:TARGET:31 += LOCAL:31
+			EXP:TARGET:92 += LOCAL:92
+			EXP:TARGET:11 += LOCAL:11
+			EXP:TARGET:10 += LOCAL:10
+			EXP:TARGET:20 += LOCAL:20
+			EXP:TARGET:24 += LOCAL:24
+			EXP:TARGET:26 += LOCAL:26
+			EXP:TARGET:22 += LOCAL:22
+			EXP:TARGET:21 += LOCAL:21
+			EXP:TARGET:0  += LOCAL:0
+			EXP:TARGET:1  += LOCAL:1
+			EXP:TARGET:2  += LOCAL:2
+			EXP:TARGET:32 += LOCAL:32
+			EXP:TARGET:96 += LOCAL:96
+			EXP:TARGET:50 += LOCAL:50
+			
+			PRINTFORML 苦痛快楽経験 ＋{LOCAL:30}
+			PRINTFORML 緊縛経験 ＋{LOCAL:51}
+			PRINTFORML Ｖ拡張経験 ＋{LOCAL:52}
+			PRINTFORML Ａ拡張経験 ＋{LOCAL:53}
+			PRINTFORML 放尿経験 ＋{LOCAL:31}
+			PRINTFORML 被写経験 ＋{LOCAL:92}
+			PRINTFORML 強制自慰経験 ＋{LOCAL:11}
+			PRINTFORML 自慰経験 ＋{LOCAL:10}
+			PRINTFORML 精液経験 ＋{LOCAL:20}
+			PRINTFORML 膣射経験 ＋{LOCAL:24}
+			PRINTFORML 精飲経験 ＋{LOCAL:26}
+			PRINTFORML フェラ経験 ＋{LOCAL:22}
+			PRINTFORML 奉仕快楽経験 ＋{LOCAL:21}
+			PRINTFORML Ｖ経験 ＋{LOCAL:0}
+			PRINTFORML Ａ経験 ＋{LOCAL:1}
+			PRINTFORML 絶頂経験 ＋{LOCAL:2}
+			PRINTFORML Ａ快楽経験 ＋{LOCAL:32}
+			PRINTFORML キス経験 ＋{LOCAL:96}
+			PRINTFORML 異常経験 ＋{LOCAL:50}
+			RESETCOLOR
+			
+			; 珠の加算（更に極大）
+			ADD_JUEL_V = 0
+			SIF ABL:TARGET:4 > 0	; 【TARGET:[Ｖ感覚]Lv>0】
+				ADD_JUEL_V = 50000 + (ABL:TARGET:4 * 20000) + RAND:30000
+			ADD_JUEL_A = 0
+			SIF ABL:TARGET:5 > 0	; 【TARGET:[Ａ感覚]Lv>0】
+				ADD_JUEL_A = 50000 + (ABL:TARGET:5 * 20000) + RAND:30000
+			ADD_JUEL_LUST = 0
+			SIF CAN_LUST
+				ADD_JUEL_LUST = 300000 + (ABL:TARGET:1 * 40000) + RAND:150000
+			
+			ADD_JUEL_SUBMIT = (600000 + RAND:300000) + (REPEAT_TIER * 50000)
+			ADD_JUEL_SHAME = (400000 + RAND:200000) + (REPEAT_TIER * 30000)
+			ADD_JUEL_PAIN = (600000 + RAND:300000) + (REPEAT_TIER * 50000)
+			ADD_JUEL_FEAR = (600000 + RAND:300000) + (REPEAT_TIER * 50000)
+			; 否定の珠：他の全獲得珠の総和（約200万～250万）を確実に相殺し、十分な否定の珠を残す適正値
+			ADD_JUEL_DENY = 3200000 + (REPEAT_TIER * 300000) + RAND:500000
+			
+			SIF ADD_JUEL_V > 0
+				JUEL:TARGET:1 += ADD_JUEL_V
+			SIF ADD_JUEL_A > 0
+				JUEL:TARGET:2 += ADD_JUEL_A
+			SIF ADD_JUEL_LUST > 0
+				JUEL:TARGET:5 += ADD_JUEL_LUST
+			JUEL:TARGET:6 += ADD_JUEL_SUBMIT
+			JUEL:TARGET:8 += ADD_JUEL_SHAME
+			JUEL:TARGET:9 += ADD_JUEL_PAIN
+			JUEL:TARGET:10 += ADD_JUEL_FEAR
+			JUEL:TARGET:100 += ADD_JUEL_DENY
+			
+			PRINTL 
+			SETCOLOR 0x88DDFF
+			SIF ADD_JUEL_V > 0
+				PRINTFORML 快Ｖの珠 ＋{ADD_JUEL_V}
+			SIF ADD_JUEL_A > 0
+				PRINTFORML 快Ａの珠 ＋{ADD_JUEL_A}
+			SIF ADD_JUEL_LUST > 0
+				PRINTFORML 欲情の珠 ＋{ADD_JUEL_LUST}
+			PRINTFORML 屈服の珠 ＋{ADD_JUEL_SUBMIT}
+			PRINTFORML 恥情の珠 ＋{ADD_JUEL_SHAME}
+			PRINTFORML 苦痛の珠 ＋{ADD_JUEL_PAIN}
+			PRINTFORML 恐怖の珠 ＋{ADD_JUEL_FEAR}
+			PRINTFORML 否定の珠 ＋{ADD_JUEL_DENY}
+			RESETCOLOR
+			
+			; 最大体力・気力の壊滅的損壊（回数・素質補正）
+			DMG_MAX_HP = (200 + RAND:150 + (CFLAG:TARGET:786 * 50)) * HP_CORRECTION / 100
+			DMG_MAX_MP = (250 + RAND:150 + (CFLAG:TARGET:786 * 60)) * HP_CORRECTION / 100
+			SIF IS_PERFECT_LOVE
+				DMG_MAX_HP /= 2
+			SIF IS_PERFECT_LOVE
+				DMG_MAX_MP /= 2
+			
+			IF DMG_MAX_HP > 0 && MAXBASE:TARGET:0 > 300	; 【TARGET:[体力]>300】
+				DMG_MAX_HP = MIN(DMG_MAX_HP, MAXBASE:TARGET:0 - 300)
+				MAXBASE:TARGET:0 -= DMG_MAX_HP
+				SETCOLOR 0xFF4444
+				PRINTFORML 最大体力－{DMG_MAX_HP}（現在：{MAXBASE:TARGET:0}） 【肉体壊滅損壊】
+				RESETCOLOR
+			ENDIF
+			IF DMG_MAX_MP > 0 && MAXBASE:TARGET:1 > 300	; 【TARGET:[気力]>300】
+				DMG_MAX_MP = MIN(DMG_MAX_MP, MAXBASE:TARGET:1 - 300)
+				MAXBASE:TARGET:1 -= DMG_MAX_MP
+				SETCOLOR 0xFF4444
+				PRINTFORML 最大気力－{DMG_MAX_MP}（現在：{MAXBASE:TARGET:1}） 【精神壊滅損壊】
+				RESETCOLOR
+			ENDIF
+			IF MAXBASE:TARGET:0 <= 300 && MAXBASE:TARGET:1 <= 300
+				SETCOLOR 0x990000
+				PRINTFORML （%CALLNAME:TARGET%の最大体力・気力は既に下限値(300)に達していますが、容赦のない破壊により心身の崩壊深度がさらに深まりました……）
+				RESETCOLOR
+			ENDIF
+			
+			; 体力・好感度の壊滅的減少（ランダム＋素質・回数補正）
+			PRINTL 
+			PENALTY_SUB = 50000 + RAND:25000 + (CFLAG:TARGET:786 * 5000)
+			SIF IS_PERFECT_LOVE
+				PENALTY_SUB = 5000 + RAND:2500
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			
+			LOCAL:80 = (7500 + RAND:3000 + (CFLAG:TARGET:786 * 500)) * HP_CORRECTION / 100
+			SIF IS_PERFECT_LOVE
+				LOCAL:80 /= 2
+			LOCAL:81 = BASE:TARGET:1
+			BASE:TARGET:0 -= LOCAL:80
+			BASE:TARGET:1 = 0
+			PRINTFORML 体力－{LOCAL:80}（現在：{BASE:TARGET:0}） 【重篤衰弱療養】
+			PRINTFORML 気力－{LOCAL:81}（現在：0）
+			RESETCOLOR
+			
+			; 妊娠判定
+			IF TALENT:TARGET:122 == 0 && TALENT:TARGET:134 == 0 && TEQUIP:TARGET:86 == 0 && TALENT:TARGET:137 == 0	; 【TARGET:[オトコ]なし / TARGET:[妊娠]なし / TARGET:[危険日]なし / 無[排卵誘発剤効果発揮中]】
+				CFLAG:TARGET:104 = 99
+				CFLAG:TARGET:111 = -1
+				SETCOLOR 0xFF5555
+				PRINTFORML 浴びせられる無制限の射精により、子宮は完全に他人の精液で満たされた……！
+				PRINTFORMW 誰のものとも知れぬ種を受け止め、確実に受精してしまった……！
+				RESETCOLOR
+				CALL GET_CHILD_MOB
+			ENDIF
+			
+			; 借金精算
+			IF CFLAG:MASTER:785 > 0
+				IF WAS_BROKEN
+					SETCOLOR 0xFF5555
+					PRINTFORML 支配人「おや……？ このお嬢様は既に心身ともに限界まで壊れきっており、これ以上の担保価値がございませんね……」
+					PRINTFORML 支配人「使い潰された肉人形をいくら差し出されようと、当カジノとして借金の帳消しには応じられませんよ」
+					PRINTFORMW 既に下限まで壊れきったパートナーでは担保価値がなく、借金（${CFLAG:MASTER:785}）は帳消しになりませんでした…
+					RESETCOLOR
+				ELSE
+					SETCOLOR 0x66FF66
+					PRINTFORMW 壊れたパートナーを差し出した代償に、借金全額（${CFLAG:MASTER:785}）が清算されました！
+					RESETCOLOR
+					CFLAG:MASTER:785 = 0
+				ENDIF
+			ENDIF
+			
+			SETCOLOR 0xAA0000
+			PRINTFORMW （%CALLNAME:TARGET%は生命活動の限界までボロボロに破壊され、動かない人形のように横たわっている……）
+			RESETCOLOR
+		ELSE
+			; ====================================================
+			; Phase 5 (初回生贄) : 終末の肉人形・絶対生贄の儀式
+			; ====================================================
+			SETCOLOR 0x990000
+			PRINTFORML 
+			PRINTFORML ◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆
+			PRINTFORML 　【Phase 5: 終末の肉人形・絶対生贄の儀式（人格崩壊・廃人）】
+			PRINTFORML ◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆
+			PRINTFORML 
+			RESETCOLOR
+			
+			TEXT_PATTERN = RAND:3
+			IF TEXT_PATTERN == 0
+				PRINTFORML 最奥の重厚な鉄扉が軋んだ音を立てて開き、%CALLNAME:TARGET%は地下カジノの最深部「生贄の檻」へと引きずり込まれた！
+				PRINTFORML 冷たい石造りの部屋の中央、逃げ場のない磔台へと押し倒され、両手両足を太い鉄枷と鎖で固く締め上げられて完全な大の字で固定される。
+				PRINTFORML 口には無慈悲な開口器を噛まされ、舌を抜かれ喉奥まで晒されて、声にならない悲鳴しか上げられない。
+				PRINTFORML 
+				PRINTFORML 「ぎゃははは！ これが最後の担保、極上の生贄の女だ！」
+				PRINTFORML 「おい見ろよ、すっかり怯えきってやがるぜ！ 最高の肉人形にしてやる！」
+				PRINTFORML 
+				PRINTFORML 群がる闇VIP客や粗暴な裏労働者たちの下卑た嘲笑と怒号が響き渡り、容赦なく焚かれるフラッシュとシャッター音が肌を晒し上げる！
+				PRINTFORML 最初の余興として、電流発生器や鞭による執拗な拷問が全身を襲い、激痛に%CALLNAME:TARGET%は鉄枷を軋ませて激しく身悶えする。
+				PRINTFORML 耐え難い激痛と恐怖の極限に括約筋のコントロールを失い、温かい尿が太ももを伝って台座へと滴り落ちていく……！
+				PRINTFORML その無残な失禁の痴態に観衆はさらに熱狂し、狂気の歓声と野次が地下空間を埋め尽くす！
+				PRINTFORML 
+				PRINTFORML 息つく間もなく、開かれた喉奥へと強烈な媚薬が無理やり流し込まれる。
+				PRINTFORML 激痛に苛まれながらも強制的に性感帯が激しく脈打ち始め、快楽と苦痛の二重の過負荷に脳を灼かれていく。
+				PRINTFORML 極太の異物や器具による前後の同時拡張責めが行われ、狭い蜜孔と後孔が限界を超えて押し広げられる。
+				PRINTFORML そして、興奮が沸点に達した無数の男たちが次々と台上へと殺到し、終わりのない暴力的な輪姦が幕を開けた！
+				PRINTFORML 
+				PRINTFORML 喉奥を肉棒で蹂躙され、前と後ろの穴を同時に荒々しく貫かれ、激痛と強制快楽の奔流に何度も何度も白目を剥いて強制絶頂へと追い込まれる。
+				PRINTFORML 「おい、完全に目がイッちまったぞ！」「もう言葉も出ねえ、ただの肉人形だ！」
+				PRINTFORML 子宮の最奥にも腸内にも、浴びせられるように大量の白濁が注ぎ込まれ続け、もはや数えることもできない。
+				PRINTFORML 幾度もの激痛、幾度もの強制絶頂、信じていた%CALLNAME:MASTER%に売られたという底知れぬ絶望の果てに、%CALLNAME:TARGET%の精神の糸は完全に千切れ去った――！
+				PRINTFORML 痙攣していた四肢から力が抜け、焦点の合わない虚ろな瞳は天井を虚無に見つめたまま二度と動かない。
+				PRINTFORML 涙と涎、尿と精液に塗れ、ただ呼吸を続けるだけの『壊れた肉人形』へと完全に成り果ててしまった……！
+			ELSEIF TEXT_PATTERN == 1
+				PRINTFORML 「地下祭壇」と呼ばれる血痕の染み付いた冷酷な拘束台の上へ、%CALLNAME:TARGET%は荒々しく投げ出された！
+				PRINTFORML 太い革ベルトと鉄の鋲で自由を完全に奪われ、喉元には器具が嵌められて甲高い悲鳴すら押し殺される。
+				PRINTFORML 「さあ、今宵最高の生贄ショーの始まりだ！」と司会者が叫ぶと、飢えた群衆から地鳴りのような歓声が上がる！
+				PRINTFORML 鞭打たれ、焼けた蝋を肌に垂らされる激痛拷問に、%CALLNAME:TARGET%は涙を流して激しく身体を跳ねさせるが、誰も手を緩めない。
+				PRINTFORML 恐怖と苦痛の極限で太ももを濡らす失禁の音すらも観客の興奮を煽る呼び水となり、無数のカメラがその屈辱を記録していく。
+				PRINTFORML 続けて巨大な器具が前後の窄まりを情け容赦なく抉り広げ、引き裂かれるような苦悶に喘ぐ隙もなく、男たちが次々と肉棒を突き刺していく！
+				PRINTFORML 「最高だぜ、生贄の女を徹底的に壊してやる！」と下卑た哄笑が響く中、何人もの男たちに同時に貫かれ、中出しを重ねられる。
+				PRINTFORML 耐え難い苦痛と無理やりの連続絶頂の末、%CALLNAME:TARGET%の瞳から感情のすべてが失われ、ただの人形のように動かなくなった……！
+			ELSE
+				PRINTFORML 暗く冷たい最深部の地下室、鎖で天井から吊り上げられた%CALLNAME:TARGET%を取り囲むのは、黒づくめのVIP客たち！
+				PRINTFORML 無力な身体を開口器で晒され、全身に電極と刺激器具を仕掛けられ、スイッチが入るたびに激しい電流が肉体を灼く！
+				PRINTFORML 声にならない絶叫をあげ、失禁しながら痙攣する痴態を、観客たちは酒を煽りながら愉悦の笑みで眺めている。
+				PRINTFORML さらに強烈な媚薬を無理やり注ぎ込まれ、激痛と発情の極限過負荷によって狂乱の淵へと突き落とされる。
+				PRINTFORML そこへ男たちが一斉に雪崩れ込み、吊るされた無防備な肉体へ、口へ、前へ、後ろへと容赦なく肉棒を突き立てていく！
+				PRINTFORML 幾度もの乱暴な射精を受け止めさせられ、子宮の奥まで見知らぬ精液で汚され尽くした頃、%CALLNAME:TARGET%の心は完全に砕け散っていた。
+				PRINTFORML 光を失った瞳にはもはや何も映らず、ただ垂れ流すだけの生贄の肉塊として、冷たい床へと崩れ落ちた……！
+			ENDIF
+			
+			DRAWLINE
+			; 処女喪失
+			IF TALENT:TARGET:0	; 【TARGET:[処女]】
+				SETCOLOR 0xFF3333
+				PRINTFORMW 【処女喪失】
+				RESETCOLOR
+				TALENT:TARGET:0 = 0
+				CALL SET_VIRGINITY_RECORD, TARGET, -1
+				TFLAG:3 = 1
+				TFLAG:31 = 1
+			ENDIF
+			
+			; 素質変動（調教完璧時は相愛・親愛・恋慕の消滅を回避、精神崩壊も回避）
+			IF IS_PERFECT_LOVE
+				SETCOLOR 0xFF99BB
+				PRINTFORML どれほど地獄の底で蹂躙され、尊厳を粉砕されようとも――
+				PRINTFORMW %CALLNAME:TARGET%の魂の最奥にある%CALLNAME:MASTER%への【相愛】の光だけは、決して消え去ることはなかった！
+				PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%への想いによって、かろうじて完全な精神崩壊を免れた……！
+				RESETCOLOR
+				; 後遺症としてのマゾ・倒錯的・おもらし癖のみ獲得
+				SETCOLOR 0xFF0000
+				IF TALENT:TARGET:79 == 0	; 【TARGET:[マゾ]なし】
+					TALENT:TARGET:79 = 1
+					PRINTFORML %CALLNAME:TARGET%は【マゾ】を得た
+				ENDIF
+				IF TALENT:TARGET:80 == 0	; 【TARGET:[倒錯的]なし】
+					TALENT:TARGET:80 = 1
+					PRINTFORML %CALLNAME:TARGET%は【倒錯的】を得た
+				ENDIF
+				IF TALENT:TARGET:57 == 0	; 【TARGET:[おもらし癖]なし】
+					TALENT:TARGET:57 = 1
+					PRINTFORML %CALLNAME:TARGET%は【おもらし癖】を得た
+				ENDIF
+				RESETCOLOR
+			ELSE
+				; 通常：好意系素質を喪失
+				IF TALENT:TARGET:85	; 【TARGET:[恋慕]】
+					TALENT:TARGET:85 = 0
+					SETCOLOR 0xFF6666
+					PRINTFORML %CALLNAME:TARGET%は【恋慕】を失った……
+					RESETCOLOR
+				ENDIF
+				IF TALENT:TARGET:88	; 【TARGET:[親愛]】
+					TALENT:TARGET:88 = 0
+					SETCOLOR 0xFF6666
+					PRINTFORML %CALLNAME:TARGET%は【親愛】を失った……
+					RESETCOLOR
+				ENDIF
+				IF TALENT:TARGET:89	; 【TARGET:[相愛]】
+					TALENT:TARGET:89 = 0
+					SETCOLOR 0xFF6666
+					PRINTFORML %CALLNAME:TARGET%は【相愛】を失った……
+					RESETCOLOR
+				ENDIF
+				IF TALENT:TARGET:153	; 【TARGET:[恋人]】
+					TALENT:TARGET:153 = 0
+					SETCOLOR 0xFF6666
+					PRINTFORML %CALLNAME:TARGET%は【恋人】を失った……
+					RESETCOLOR
+				ENDIF
+				IF TALENT:TARGET:152	; 【TARGET:[合意]】
+					TALENT:TARGET:152 = 0
+					SETCOLOR 0xFF6666
+					PRINTFORML %CALLNAME:TARGET%は【合意】を失った……
+					RESETCOLOR
+				ENDIF
+				
+				; 狂気・感情乏しい・マゾ・倒錯的・おもらし癖を獲得（服従は獲得しない）
+				SETCOLOR 0xFF0000
+				IF TALENT:TARGET:123 == 0	; 【TARGET:[狂気]なし】
+					TALENT:TARGET:123 = 1
+					PRINTFORML %CALLNAME:TARGET%は【狂気】を得た
+				ELSEIF TALENT:TARGET:9 == 0	; 【TARGET:[崩壊]なし】（すでに狂気の場合は上位素質の崩壊へ）
+					TALENT:TARGET:9 = 1
+					PRINTFORML %CALLNAME:TARGET%は【崩壊】を得た
+				ENDIF
+				IF TALENT:TARGET:22 == 0	; 【TARGET:[感情乏しい]なし】
+					TALENT:TARGET:22 = 1
+					PRINTFORML %CALLNAME:TARGET%は【感情乏しい】を得た
+				ENDIF
+				IF TALENT:TARGET:79 == 0	; 【TARGET:[マゾ]なし】
+					TALENT:TARGET:79 = 1
+					PRINTFORML %CALLNAME:TARGET%は【マゾ】を得た
+				ENDIF
+				IF TALENT:TARGET:80 == 0	; 【TARGET:[倒錯的]なし】
+					TALENT:TARGET:80 = 1
+					PRINTFORML %CALLNAME:TARGET%は【倒錯的】を得た
+				ENDIF
+				IF TALENT:TARGET:57 == 0	; 【TARGET:[おもらし癖]なし】
+					TALENT:TARGET:57 = 1
+					PRINTFORML %CALLNAME:TARGET%は【おもらし癖】を得た
+				ENDIF
+				RESETCOLOR
+			ENDIF
+			
+			; 刻印判定（未所持・未満の場合のみ表示）
+			SETCOLOR 0xFFFF00
+			IF MARK:TARGET:0 < 3	; 【[苦痛依存]Lv<3】
+				MARK:TARGET:0 = 3
+				PRINTFORML %CALLNAME:TARGET%は苦痛依存LV3を得た
+			ENDIF
+			IF MARK:TARGET:1 < 3	; 【[快楽依存]Lv<3】
+				MARK:TARGET:1 = 3
+				PRINTFORML %CALLNAME:TARGET%は快楽依存LV3を得た
+			ENDIF
+			IF MARK:TARGET:2 < 3	; 【[既成事実]Lv<3】
+				MARK:TARGET:2 = 3
+				PRINTFORML %CALLNAME:TARGET%は既成事実LV3を得た
+			ENDIF
+			RESETCOLOR
+			
+			; 獲得経験（必ず自慰経験 >= 強制自慰経験）
+			PRINTL 
+			SETCOLOR 0x88FF88
+			LOCAL:30 = 80 + RAND:50
+			LOCAL:51 = 80 + RAND:50
+			LOCAL:52 = 30 + RAND:20
+			LOCAL:53 = 30 + RAND:20
+			LOCAL:31 = 20 + RAND:20
+			LOCAL:92 = 80 + RAND:40
+			LOCAL:11 = 40 + RAND:20 ; 強制自慰経験
+			LOCAL:10 = LOCAL:11 + RAND:20 ; 自慰経験（必ず LOCAL:10 >= LOCAL:11）
+			LOCAL:20 = 250 + RAND:100
+			LOCAL:24 = 100 + RAND:50
+			LOCAL:26 = 80 + RAND:40
+			LOCAL:22 = 80 + RAND:40
+			LOCAL:21 = 60 + RAND:40
+			LOCAL:0  = 100 + RAND:50
+			LOCAL:1  = 100 + RAND:50
+			LOCAL:2  = 80 + RAND:40
+			LOCAL:32 = 60 + RAND:30
+			LOCAL:96 = 50 + RAND:30
+			LOCAL:50 = 60 + RAND:40
+			
+			EXP:TARGET:30 += LOCAL:30
+			EXP:TARGET:51 += LOCAL:51
+			EXP:TARGET:52 += LOCAL:52
+			EXP:TARGET:53 += LOCAL:53
+			EXP:TARGET:31 += LOCAL:31
+			EXP:TARGET:92 += LOCAL:92
+			EXP:TARGET:11 += LOCAL:11
+			EXP:TARGET:10 += LOCAL:10
+			EXP:TARGET:20 += LOCAL:20
+			EXP:TARGET:24 += LOCAL:24
+			EXP:TARGET:26 += LOCAL:26
+			EXP:TARGET:22 += LOCAL:22
+			EXP:TARGET:21 += LOCAL:21
+			EXP:TARGET:0  += LOCAL:0
+			EXP:TARGET:1  += LOCAL:1
+			EXP:TARGET:2  += LOCAL:2
+			EXP:TARGET:32 += LOCAL:32
+			EXP:TARGET:96 += LOCAL:96
+			EXP:TARGET:50 += LOCAL:50
+			
+			PRINTFORML 苦痛快楽経験 ＋{LOCAL:30}
+			PRINTFORML 緊縛経験 ＋{LOCAL:51}
+			PRINTFORML Ｖ拡張経験 ＋{LOCAL:52}
+			PRINTFORML Ａ拡張経験 ＋{LOCAL:53}
+			PRINTFORML 放尿経験 ＋{LOCAL:31}
+			PRINTFORML 被写経験 ＋{LOCAL:92}
+			PRINTFORML 強制自慰経験 ＋{LOCAL:11}
+			PRINTFORML 自慰経験 ＋{LOCAL:10}
+			PRINTFORML 精液経験 ＋{LOCAL:20}
+			PRINTFORML 膣射経験 ＋{LOCAL:24}
+			PRINTFORML 精飲経験 ＋{LOCAL:26}
+			PRINTFORML フェラ経験 ＋{LOCAL:22}
+			PRINTFORML 奉仕快楽経験 ＋{LOCAL:21}
+			PRINTFORML Ｖ経験 ＋{LOCAL:0}
+			PRINTFORML Ａ経験 ＋{LOCAL:1}
+			PRINTFORML 絶頂経験 ＋{LOCAL:2}
+			PRINTFORML Ａ快楽経験 ＋{LOCAL:32}
+			PRINTFORML キス経験 ＋{LOCAL:96}
+			PRINTFORML 異常経験 ＋{LOCAL:50}
+			RESETCOLOR
+			
+			; 珠の動的計算（開発度・素質判定）
+			ADD_JUEL_V = 0
+			IF ABL:TARGET:4 > 0	; 【TARGET:[Ｖ感覚]Lv>0】
+				IF ABL:TARGET:4 == 1	; 【TARGET:[Ｖ感覚]Lv==1】
+					ADD_JUEL_V = 10000 + RAND:5000
+				ELSEIF ABL:TARGET:4 == 2	; 【TARGET:[Ｖ感覚]Lv==2】
+					ADD_JUEL_V = 30000 + RAND:10000
+				ELSEIF ABL:TARGET:4 == 3	; 【TARGET:[Ｖ感覚]Lv==3】
+					ADD_JUEL_V = 60000 + RAND:20000
+				ELSE
+					ADD_JUEL_V = 80000 + (ABL:TARGET:4 - 4) * 20000 + RAND:40000
+				ENDIF
+				SIF TALENT:TARGET:104	; 【TARGET:[Ｖ敏感]】
+					TIMES ADD_JUEL_V, 1.50
+				SIF TALENT:TARGET:103	; 【TARGET:[Ｖ鈍感]】
+					TIMES ADD_JUEL_V, 0.50
+				SIF TALENT:TARGET:74	; 【TARGET:[淫壷]】
+					TIMES ADD_JUEL_V, 1.50
+			ENDIF
+			
+			ADD_JUEL_A = 0
+			IF ABL:TARGET:5 > 0 && EXP:TARGET:1 >= 10	; 【TARGET:[Ａ感覚]Lv>0 / TARGET:[Ａ経験]>=10】
+				IF ABL:TARGET:5 == 1	; 【TARGET:[Ａ感覚]Lv==1】
+					ADD_JUEL_A = 10000 + RAND:5000
+				ELSEIF ABL:TARGET:5 == 2	; 【TARGET:[Ａ感覚]Lv==2】
+					ADD_JUEL_A = 30000 + RAND:10000
+				ELSEIF ABL:TARGET:5 == 3	; 【TARGET:[Ａ感覚]Lv==3】
+					ADD_JUEL_A = 60000 + RAND:20000
+				ELSE
+					ADD_JUEL_A = 80000 + (ABL:TARGET:5 - 4) * 20000 + RAND:40000
+				ENDIF
+				SIF TALENT:TARGET:106	; 【TARGET:[Ａ敏感]】
+					TIMES ADD_JUEL_A, 1.50
+				SIF TALENT:TARGET:105	; 【TARGET:[Ａ鈍感]】
+					TIMES ADD_JUEL_A, 0.50
+				SIF TALENT:TARGET:77	; 【TARGET:[尻穴狂い]】
+					TIMES ADD_JUEL_A, 1.50
+			ENDIF
+			
+			ADD_JUEL_LUST = 0
+			IF CAN_LUST
+				ADD_JUEL_LUST = 200000 + (ABL:TARGET:1 * 30000) + RAND:100000
+				SIF TALENT:TARGET:76	; 【TARGET:[淫乱]】
+					TIMES ADD_JUEL_LUST, 1.50
+				SIF TALENT:TARGET:79	; 【TARGET:[マゾ]】
+					TIMES ADD_JUEL_LUST, 1.30
+			ENDIF
+			
+			ADD_JUEL_SUBMIT = 400000 + (ABL:TARGET:0 * 20000) + RAND:200000
+			SIF TALENT:TARGET:15	; 【TARGET:[プライド高い]】
+				TIMES ADD_JUEL_SUBMIT, 0.50
+			SIF TALENT:TARGET:17	; 【TARGET:[プライド低い]】
+				TIMES ADD_JUEL_SUBMIT, 1.30
+			
+			ADD_JUEL_SHAME = 300000 + RAND:150000
+			SIF TALENT:TARGET:35	; 【TARGET:[恥じらい]】
+				TIMES ADD_JUEL_SHAME, 1.50
+			SIF TALENT:TARGET:36	; 【TARGET:[恥薄い]】
+				TIMES ADD_JUEL_SHAME, 0.50
+			
+			ADD_JUEL_PAIN = 400000 + RAND:200000
+			SIF TALENT:TARGET:40	; 【TARGET:[痛みに弱い]】
+				TIMES ADD_JUEL_PAIN, 1.50
+			SIF TALENT:TARGET:41	; 【TARGET:[痛みに強い]】
+				TIMES ADD_JUEL_PAIN, 0.70
+			
+			ADD_JUEL_FEAR = 400000 + RAND:200000
+			SIF TALENT:TARGET:10	; 【TARGET:[臆病]】
+				TIMES ADD_JUEL_FEAR, 1.50
+			SIF TALENT:TARGET:12	; 【TARGET:[気丈]】
+				TIMES ADD_JUEL_FEAR, 0.60
+			
+			ADD_JUEL_DENY = 2200000 + RAND:400000
+			IF CAN_LUST == 0
+				ADD_JUEL_DENY += 300000
+				ADD_JUEL_FEAR += 150000
+				ADD_JUEL_PAIN += 100000
+			ENDIF
+			SIF TALENT:TARGET:30 || TALENT:TARGET:85 || TALENT:TARGET:89	; 【TARGET:[貞操観念] / TARGET:[恋慕] / TARGET:[相愛]】
+				ADD_JUEL_DENY += 300000
+			
+			SIF ADD_JUEL_V > 0
+				JUEL:TARGET:1 += ADD_JUEL_V
+			SIF ADD_JUEL_A > 0
+				JUEL:TARGET:2 += ADD_JUEL_A
+			SIF ADD_JUEL_LUST > 0
+				JUEL:TARGET:5 += ADD_JUEL_LUST
+			JUEL:TARGET:6 += ADD_JUEL_SUBMIT
+			JUEL:TARGET:8 += ADD_JUEL_SHAME
+			JUEL:TARGET:9 += ADD_JUEL_PAIN
+			JUEL:TARGET:10 += ADD_JUEL_FEAR
+			JUEL:TARGET:100 += ADD_JUEL_DENY
+			
+			PRINTL 
+			SETCOLOR 0x88DDFF
+			SIF ADD_JUEL_V > 0
+				PRINTFORML 快Ｖの珠 ＋{ADD_JUEL_V}
+			SIF ADD_JUEL_A > 0
+				PRINTFORML 快Ａの珠 ＋{ADD_JUEL_A}
+			SIF ADD_JUEL_LUST > 0
+				PRINTFORML 欲情の珠 ＋{ADD_JUEL_LUST}
+			PRINTFORML 屈服の珠 ＋{ADD_JUEL_SUBMIT}
+			PRINTFORML 恥情の珠 ＋{ADD_JUEL_SHAME}
+			PRINTFORML 苦痛の珠 ＋{ADD_JUEL_PAIN}
+			PRINTFORML 恐怖の珠 ＋{ADD_JUEL_FEAR}
+			SIF ADD_JUEL_DENY > 0
+				PRINTFORML 否定の珠 ＋{ADD_JUEL_DENY}
+			RESETCOLOR
+			
+			; 最大体力・気力の深刻損壊（回数・素質補正）
+			DMG_MAX_HP = (120 + RAND:80 + (CFLAG:TARGET:786 * 30)) * HP_CORRECTION / 100
+			DMG_MAX_MP = (150 + RAND:100 + (CFLAG:TARGET:786 * 40)) * HP_CORRECTION / 100
+			SIF IS_PERFECT_LOVE
+				DMG_MAX_HP /= 2
+			SIF IS_PERFECT_LOVE
+				DMG_MAX_MP /= 2
+			
+			IF DMG_MAX_HP > 0 && MAXBASE:TARGET:0 > 500	; 【TARGET:[体力]>500】
+				DMG_MAX_HP = MIN(DMG_MAX_HP, MAXBASE:TARGET:0 - 500)
+				MAXBASE:TARGET:0 -= DMG_MAX_HP
+				SETCOLOR 0xFF5555
+				PRINTFORML 最大体力－{DMG_MAX_HP}（現在：{MAXBASE:TARGET:0}） 【肉体深刻損壊】
+				RESETCOLOR
+			ENDIF
+			IF DMG_MAX_MP > 0 && MAXBASE:TARGET:1 > 500	; 【TARGET:[気力]>500】
+				DMG_MAX_MP = MIN(DMG_MAX_MP, MAXBASE:TARGET:1 - 500)
+				MAXBASE:TARGET:1 -= DMG_MAX_MP
+				SETCOLOR 0xFF5555
+				PRINTFORML 最大気力－{DMG_MAX_MP}（現在：{MAXBASE:TARGET:1}） 【精神深刻損壊】
+				RESETCOLOR
+			ENDIF
+			
+			; 体力・好感度の減少（ランダム＋素質・回数補正）
+			PRINTL 
+			IF IS_PERFECT_LOVE
+				PENALTY_SUB = 3000 + RAND:1500
+				LOCAL:80 = (2500 + RAND:1000) * HP_CORRECTION / 100
+			ELSE
+				PENALTY_SUB = 30000 + RAND:15000 + (CFLAG:TARGET:786 * 3000)
+				LOCAL:80 = (4500 + RAND:2000 + (CFLAG:TARGET:786 * 300)) * HP_CORRECTION / 100
+			ENDIF
+			CFLAG:TARGET:2 -= PENALTY_SUB
+			SETCOLOR 0xFF8888
+			PRINTFORML 好感度－{PENALTY_SUB}（現在：{CFLAG:TARGET:2}）
+			LOCAL:81 = BASE:TARGET:1
+			BASE:TARGET:0 -= LOCAL:80
+			BASE:TARGET:1 = 0
+			PRINTFORML 体力－{LOCAL:80}（現在：{BASE:TARGET:0}） 【衰弱療養】
+			PRINTFORML 気力－{LOCAL:81}（現在：0）
+			RESETCOLOR
+			
+			IF TALENT:TARGET:122 == 0 && TALENT:TARGET:134 == 0 && TEQUIP:TARGET:86 == 0 && TALENT:TARGET:137 == 0	; 【TARGET:[オトコ]なし / TARGET:[妊娠]なし / TARGET:[危険日]なし / 無[排卵誘発剤効果発揮中]】
+				CFLAG:TARGET:104 = 99
+				CFLAG:TARGET:111 = -1
+				SETCOLOR 0xFF5555
+				PRINTFORML 無数の男たちに子宮最奥まで無差別に種付けされた%CALLNAME:TARGET%は、
+				PRINTFORMW 誰のものとも知れぬ受精卵を確実に宿してしまった……！
+				RESETCOLOR
+				CALL GET_CHILD_MOB
+			ENDIF
+			
+			IF CFLAG:MASTER:785 > 0
+				IF WAS_BROKEN
+					SETCOLOR 0xFF5555
+					PRINTFORML 支配人「おや……？ このお嬢様は既に心身ともに限界まで壊れきっており、これ以上の担保価値がございませんね……」
+					PRINTFORML 支配人「使い潰された肉人形をいくら差し出されようと、当カジノとして借金の帳消しには応じられませんよ」
+					PRINTFORMW 既に下限まで壊れきったパートナーでは担保価値がなく、借金（${CFLAG:MASTER:785}）は帳消しになりませんでした！
+					RESETCOLOR
+				ELSE
+					SETCOLOR 0x66FF66
+					PRINTFORMW パートナーを完全な生贄として捧げた代償に、借金全額（${CFLAG:MASTER:785}）が清算されました！
+					RESETCOLOR
+					CFLAG:MASTER:785 = 0
+				ENDIF
+			ENDIF
+			
+			SETCOLOR 0xFF4444
+			IF IS_PERFECT_LOVE
+				PRINTFORMW （%CALLNAME:TARGET%は極度の衰弱により意識を失っているが、その寝顔には確かな光が残されている……）
+			ELSE
+				PRINTFORMW （%CALLNAME:TARGET%は完全に心神喪失し、生ける屍となって横たわっている……）
+			ENDIF
+			RESETCOLOR
+		ENDIF
+ENDSELECT
+
+DRAWLINE
+WAIT
+
+;-------------------------------------------------
+@UNDERGROUND_SETTLEMENT, ARG, ARG:1 = 0
+;ARG:1 = 1 は取り立て済み。退出のために再度ペナルティを発生させない。
+DRAWLINE
+PRINTL ＼カジノの精算を行います／
+CALL UNDERGROUND_CASH_OUT, ARG
+
+; 借金が残っており、現金でも払えない場合
+IF CFLAG:MASTER:785 > 0
+	IF MONEY >= CFLAG:MASTER:785
+		PRINTFORML 手持ちの現金から残りの借金${CFLAG:MASTER:785}を一括返済しますか？
+		PRINTL [0] 返済する
+		PRINTL [1] 返済しない（月利50%の利息がつきます）
+		INPUT
+		IF RESULT == 0
+			MONEY -= CFLAG:MASTER:785
+			CFLAG:MASTER:785 = 0
+			PRINTFORMW 借金を全額完済しました！（残金: ${MONEY}）
+		ENDIF
+	ENDIF
+ENDIF
+
+IF CFLAG:MASTER:785 > 0 && ARG:1 == 0
+	SETCOLOR 0xFF5555
+	PRINTFORMW 　未返済の借金（${CFLAG:MASTER:785}）が残っています。月利50％の利息が加算されます……
+	RESETCOLOR
+	PRINTL 
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		PRINTFORML 出口に向かおうとした%CALLNAME:MASTER%の前に、黒服の支配人が立ちはだかった。
+		PRINTFORML 支配人「おや……借金を残したまま手ぶらでお帰りですか？ 担保価値のないお身体とはいえ、タダで帰すわけにはいきませんねぇ」
+		PRINTFORML 支配人「借金の利息の代わりに、廃棄処分ステージでひと暴れしていただきましょうか！」
+		PRINTFORMW 抵抗する気力すら残っていない%CALLNAME:TARGET%が強引にステージへと引きずり込まれていく……
+		CALL UNDERGROUND_BANKRUPTCY_EVENT, 0, 1
+		CALL UNDERGROUND_CASH_OUT, RESULT
+		PRINTFORMW 徹底的に破壊された%CALLNAME:TARGET%を引きずり、借金（${CFLAG:MASTER:785}）を残したままカジノを後にした……
+	ELSE
+		PRINTFORML 出口に向かおうとした%CALLNAME:MASTER%を、黒服の男たちが取り囲んだ！
+		PRINTFORMW 支配人「おや……借金を残したまま手ぶらでお帰りですか？ それは困りますねぇ……」
+		CALL UNDERGROUND_BANKRUPTCY_EVENT, 0, 1
+		CALL UNDERGROUND_CASH_OUT, RESULT
+	ENDIF
+ENDIF
+PRINTW 重い防音扉を抜け、地上へと戻りました……
+RETURN 1
+
+;-------------------------------------------------
+; VIPブラックジャック（超高レート・青天井ツケ勝負）
+;-------------------------------------------------
+@VIP_BLACK_JACK, ARG
+#DIM BET_MONEY
+#DIM P_SCORE
+#DIM D_SCORE
+#DIM P_CARD, 5
+#DIM D_CARD, 5
+#DIM P_CNT
+#DIM D_CNT
+#DIM DOUBLE_DOWN
+#DIM LAST_LOSS
+
+RESULT:1 = 0
+LAST_LOSS = 0
+
+$V_BJ_LOOP
+
+IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET) && ARG <= 0
+	PRINTL 
+	SETCOLOR 0xFF5555
+	PRINTFORML 支配人「おや、VIPチップをお持ちでないようですね」
+	PRINTFORML 支配人「お連れのパートナー様ではツケの融資もできませんので、チップをご購入の上でお越しください」
+	RESETCOLOR
+	PRINTW カジノロビーに戻ります。
+	RESULT:1 = 0
+	RETURN ARG
+ENDIF
+
+; 破産ライン判定
+IF (CFLAG:MASTER:785 >= 3000000 && MONEY + ARG * 10000 < CFLAG:MASTER:785) || (ARG <= 0 && MONEY <= 0 && CFLAG:MASTER:785 > 0)
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		PRINTL 
+		SETCOLOR 0xFF2222
+		PRINTFORML 支配人「お客様……未返済の借金が ${CFLAG:MASTER:785} ございますね。手持ちのチップも尽きたようです」
+		PRINTFORML 支配人「担保価値のないパートナー様ですが、ツケの利息の代わりとして廃棄処分ステージに上がっていただきましょうか！」
+		RESETCOLOR
+		PRINTFORMW 黒服たちによって%CALLNAME:TARGET%がステージへと連行されていく……
+		CALL UNDERGROUND_BANKRUPTCY_EVENT, ARG
+		PRINTL 
+		SETCOLOR 0xFF2222
+		PRINTFORML 支配人「ステージは大盛況でしたが、当然ながら借金の帳消しにはなりませんよ。借金は必ず返していただきます」
+		RESETCOLOR
+		PRINTFORMW テーブルから締め出され、カジノロビーに戻されました……（未返済借金：${CFLAG:MASTER:785}）
+		RESULT:1 = 0
+		RETURN ARG
+	ENDIF
+	CALL UNDERGROUND_BANKRUPTCY_EVENT, ARG
+	ARG = RESULT
+	IF RESULT:1 == 1
+		RETURN ARG
+	ENDIF
+	IF ARG <= 0 && MONEY <= 0
+		RESULT:1 = 0
+		RETURN ARG
+	ENDIF
+ENDIF
+
+PRINTL
+DRAWLINE
+SETCOLOR 0xFF2222
+PRINTL 【VIPハイステークス・ブラックジャック】（青天井ツケ勝負）
+RESETCOLOR
+PRINTFORML 　所持VIPチップ: {ARG}枚 (${ARG * 10000})　所持金: ${MONEY}　借金: ${CFLAG:MASTER:785}
+PRINTL
+PRINTL 賭け金を選択してください（チップ・所持金不足分は自動ツケ借金となります）:
+PRINTL [1] レギュラーVIP ($100,000 / チップ10枚相当)
+PRINTL [2] ハイステークス ($500,000 / チップ50枚相当)
+PRINTL [3] エグゼクティブ ($2,000,000 / チップ200枚相当)
+PRINTL [4] 青天井・破滅レート ($10,000,000 / チップ1000枚相当)
+PRINTL [5] 自由金額入力 ($10,000～)
+IF !IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+	PRINTL [6] 全財産オールイン（所持金全額 ＋ $1,000,000のツケ）
+ENDIF
+IF LAST_LOSS > 0
+	SETCOLOR 0xFF4444
+	PRINTFORML [7] ★デス・倍プッシュ★（前回の負け額の倍額: ${LAST_LOSS * 2} をツケ賭け！）
+	RESETCOLOR
+ENDIF
+PRINTL [0] カジノロビーに戻る
+INPUT
+IF RESULT <= 0
+	RETURN ARG
+ELSEIF RESULT == 1
+	BET_MONEY = 100000
+ELSEIF RESULT == 2
+	BET_MONEY = 500000
+ELSEIF RESULT == 3
+	BET_MONEY = 2000000
+ELSEIF RESULT == 4
+	BET_MONEY = 10000000
+ELSEIF RESULT == 5
+	PRINTL 賭け金（ドル）を入力してください:
+	INPUT
+	IF RESULT < 10000
+		PRINTW 最低賭け金は$10,000です。
+		GOTO V_BJ_LOOP
+	ENDIF
+	BET_MONEY = RESULT
+ELSEIF RESULT == 6 && !IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+	BET_MONEY = MONEY + (ARG * 10000) + 1000000
+ELSEIF RESULT == 7 && LAST_LOSS > 0
+	BET_MONEY = LAST_LOSS * 2
+ELSE
+	GOTO V_BJ_LOOP
+ENDIF
+
+; 壊れきったパートナーの場合はチップ保有分を超える賭け金を拒否
+IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET) && BET_MONEY > ARG * 10000
+	SETCOLOR 0xFF5555
+	PRINTFORML 担保となるパートナーが既に壊れきっているため、手持ち（VIPチップ{ARG}枚）を超えるツケ賭けはできません！
+	PRINTFORMW 手持ちチップの範囲内（最大 ${ARG * 10000}）で賭け金を設定してください。
+	RESETCOLOR
+	GOTO V_BJ_LOOP
+ENDIF
+
+; 支払い処理（チップ優先 → 所持金 → 自動ツケ借金）
+LOCAL:1 = BET_MONEY
+; チップ充当
+LOCAL:2 = MIN(ARG, LOCAL:1 / 10000)
+ARG -= LOCAL:2
+LOCAL:1 -= LOCAL:2 * 10000
+
+; 現金充当
+IF LOCAL:1 > 0
+	IF MONEY >= LOCAL:1
+		MONEY -= LOCAL:1
+		LOCAL:1 = 0
+	ELSE
+		LOCAL:1 -= MONEY
+		MONEY = 0
+		; 不足分は自動ツケ！
+		CFLAG:MASTER:785 += LOCAL:1
+		SETCOLOR 0xFF4444
+		PRINTFORMW 【ツケ承諾】手持ち不足分 ${LOCAL:1} はパートナー様を担保として借金に計上されました！（総借金：${CFLAG:MASTER:785}）
+		RESETCOLOR
+		LOCAL:1 = 0
+	ENDIF
+ENDIF
+
+DOUBLE_DOWN = 0
+
+; カード配布
+P_CARD:0 = RAND:13 + 1
+P_CARD:1 = RAND:13 + 1
+D_CARD:0 = RAND:13 + 1
+D_CARD:1 = RAND:13 + 1
+P_CNT = 2
+D_CNT = 2
+
+PRINTFORMW あなたのカード：[{MIN(P_CARD:0, 10)}] [{MIN(P_CARD:1, 10)}]
+PRINTFORMW ディーラーのカード：[{MIN(D_CARD:0, 10)}] [ ? ]
+
+; プレイヤーターン
+$P_TURN
+P_SCORE = 0
+FOR LOCAL, 0, P_CNT
+	P_SCORE += MIN(P_CARD:LOCAL, 10)
+NEXT
+PRINTFORML あなたの現在の合計：{P_SCORE}（賭け金: ${BET_MONEY}）
+IF P_SCORE > 21
+	SETCOLOR 0xFF5555
+	PRINTFORMW バースト！21を超えてしまいました……！
+	IF !IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		PRINTFORML 裏カジノ特別ルールにより、バースト罰金として負け額の50％（${BET_MONEY / 2}）が借金に加算されます！
+		RESETCOLOR
+		CFLAG:MASTER:785 += BET_MONEY / 2
+		LAST_LOSS = BET_MONEY + (BET_MONEY / 2)
+	ELSE
+		PRINTFORMW 掛け金 ${BET_MONEY} を失いました……！
+		RESETCOLOR
+		LAST_LOSS = BET_MONEY
+	ENDIF
+	GOTO V_BJ_LOOP
+ENDIF
+
+; ディーラーからのレイズ（吊り上げ）煽り（手が19～21の時に確率で発生）
+IF P_SCORE >= 19 && P_SCORE <= 21 && RAND:3 == 0 && DOUBLE_DOWN == 0 && !IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+	SETCOLOR 0xFF4444
+	PRINTFORML ディーラー「ふふふ……素晴らしい手ですね。どうでしょう、掛け金をさらに倍（+${BET_MONEY}）に吊り上げ（レイズ）ませんか？ もちろんツケで構いませんよ」
+	RESETCOLOR
+	PRINTL [0] 断る
+	PRINTL [1] 誘いに乗って倍プッシュ！（賭け金2倍）
+	INPUT
+	IF RESULT == 1
+		CFLAG:MASTER:785 += BET_MONEY
+		BET_MONEY *= 2
+		PRINTFORMW 掛け金を倍に吊り上げました！（現在の賭け金: ${BET_MONEY}）
+	ENDIF
+ENDIF
+
+PRINTL [0] スタンド（勝負）
+PRINTL [1] ヒット（もう1枚引く）
+IF P_CNT == 2 && DOUBLE_DOWN == 0
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		SIF ARG >= BET_MONEY / 10000
+			PRINTFORML [2] ダブルダウン（チップ{BET_MONEY / 10000}枚を追加し、掛け金を倍の ${BET_MONEY * 2} にして1枚だけ引く！）
+	ELSE
+		PRINTFORML [2] ダブルダウン（掛け金を倍の ${BET_MONEY * 2} にして1枚だけ引く！不足分はツケ）
+	ENDIF
+ENDIF
+INPUT
+IF RESULT == 1 && P_CNT < 5
+	P_CARD:P_CNT = RAND:13 + 1
+	PRINTFORMW カード：[{MIN(P_CARD:P_CNT, 10)}]
+	P_CNT += 1
+	GOTO P_TURN
+ELSEIF RESULT == 2 && P_CNT == 2 && DOUBLE_DOWN == 0
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		IF ARG < BET_MONEY / 10000
+			PRINTFORMW チップが不足しており、担保価値のないパートナーではツケでのダブルダウンはできません！
+			GOTO P_TURN
+		ENDIF
+		ARG -= BET_MONEY / 10000
+		DOUBLE_DOWN = 1
+		BET_MONEY *= 2
+		PRINTFORMW ダブルダウン！チップ{BET_MONEY / 20000}枚を追加し、掛け金が ${BET_MONEY} になりました！
+	ELSE
+		DOUBLE_DOWN = 1
+		CFLAG:MASTER:785 += BET_MONEY
+		BET_MONEY *= 2
+		PRINTFORMW ダブルダウン！掛け金が ${BET_MONEY} に跳ね上がりました！
+	ENDIF
+	P_CARD:P_CNT = RAND:13 + 1
+	PRINTFORMW 最後のカード：[{MIN(P_CARD:P_CNT, 10)}]
+	P_CNT += 1
+	P_SCORE = 0
+	FOR LOCAL, 0, P_CNT
+		P_SCORE += MIN(P_CARD:LOCAL, 10)
+	NEXT
+	PRINTFORML 最終合計：{P_SCORE}
+	IF P_SCORE > 21
+		SETCOLOR 0xFF5555
+		PRINTFORMW バースト！21を超えてしまいました……！
+		IF !IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+			PRINTFORML 裏カジノ特別ルールにより、バースト罰金として負け額の50％（${BET_MONEY / 2}）が借金に加算されます！
+			RESETCOLOR
+			CFLAG:MASTER:785 += BET_MONEY / 2
+			LAST_LOSS = BET_MONEY + (BET_MONEY / 2)
+		ELSE
+			PRINTFORMW 掛け金 ${BET_MONEY} を失いました……！
+			RESETCOLOR
+			LAST_LOSS = BET_MONEY
+		ENDIF
+		GOTO V_BJ_LOOP
+	ENDIF
+ENDIF
+
+; ディーラーターン
+$D_TURN
+D_SCORE = 0
+FOR LOCAL, 0, D_CNT
+	D_SCORE += MIN(D_CARD:LOCAL, 10)
+NEXT
+IF D_SCORE < 17 && D_CNT < 5
+	D_CARD:D_CNT = RAND:13 + 1
+	D_CNT += 1
+	GOTO D_TURN
+ENDIF
+
+PRINTFORMW ディーラーの合計：{D_SCORE}
+IF D_SCORE > 21 || P_SCORE > D_SCORE
+	SETCOLOR 0xFFFF00
+	PRINTFORMW あなたの勝ちです！
+	RESETCOLOR
+	LOCAL:3 = BET_MONEY * 2
+	; 借金があればまず借金返済に充当
+	IF CFLAG:MASTER:785 > 0
+		IF LOCAL:3 >= CFLAG:MASTER:785
+			LOCAL:3 -= CFLAG:MASTER:785
+			PRINTFORML 配当から借金 ${CFLAG:MASTER:785} を全額完済しました！
+			CFLAG:MASTER:785 = 0
+		ELSE
+			CFLAG:MASTER:785 -= LOCAL:3
+			PRINTFORML 配当全額を借金返済に充当しました。（残借金: ${CFLAG:MASTER:785}）
+			LOCAL:3 = 0
+		ENDIF
+	ENDIF
+	IF LOCAL:3 > 0
+		ARG += LOCAL:3 / 10000
+		MONEY += LOCAL:3 % 10000
+		PRINTFORMW 残り配当として VIPチップ{LOCAL:3 / 10000}枚 を獲得しました！
+	ENDIF
+	LAST_LOSS = 0
+ELSEIF P_SCORE == D_SCORE
+	PRINTFORMW 引き分けです。賭け金が全額返却されます。
+	ARG += BET_MONEY / 10000
+	MONEY += BET_MONEY % 10000
+ELSE
+	SETCOLOR 0xFF5555
+	PRINTFORMW ディーラーの勝ちです……！ 賭け金 ${BET_MONEY} を失いました……！
+	RESETCOLOR
+	LAST_LOSS = BET_MONEY
+ENDIF
+
+GOTO V_BJ_LOOP
+
+;-------------------------------------------------
+; アンダーグラウンド・ダイス（超高レート・倍率勝負）
+;-------------------------------------------------
+@VIP_DICE_GAME, ARG
+#DIM BET_MONEY
+#DIM P_DICE, 2
+#DIM D_DICE, 2
+#DIM P_VAL
+#DIM D_VAL
+#DIM BET_TYPE
+#DIM LAST_LOSS_DICE
+
+RESULT:1 = 0
+LAST_LOSS_DICE = 0
+
+$V_DICE_LOOP
+
+IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET) && ARG <= 0
+	PRINTL 
+	SETCOLOR 0xFF5555
+	PRINTFORML 支配人「おや、VIPチップをお持ちでないようですね」
+	PRINTFORML 支配人「お連れのパートナー様ではツケの融資もできませんので、チップをご購入の上でお越しください」
+	RESETCOLOR
+	PRINTW カジノロビーに戻ります。
+	RESULT:1 = 0
+	RETURN ARG
+ENDIF
+
+; 破産ライン判定
+IF (CFLAG:MASTER:785 >= 3000000 && MONEY + ARG * 10000 < CFLAG:MASTER:785) || (ARG <= 0 && MONEY <= 0 && CFLAG:MASTER:785 > 0)
+	IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+		PRINTL 
+		SETCOLOR 0xFF2222
+		PRINTFORML 支配人「お客様……未返済の借金が ${CFLAG:MASTER:785} ございますね。手持ちのチップも尽きたようです」
+		PRINTFORML 支配人「担保価値のないパートナー様ですが、ツケの利息の代わりとして廃棄処分ステージに上がっていただきましょうか！」
+		RESETCOLOR
+		PRINTFORMW 黒服たちによって%CALLNAME:TARGET%がステージへと連行されていく……
+		CALL UNDERGROUND_BANKRUPTCY_EVENT, ARG
+		PRINTL 
+		SETCOLOR 0xFF2222
+		PRINTFORML 支配人「ステージは大盛況でしたが、当然ながら借金の帳消しにはなりませんよ。借金は必ず返していただきます」
+		RESETCOLOR
+		PRINTFORMW テーブルから締め出され、カジノロビーに戻されました……（未返済借金：${CFLAG:MASTER:785}）
+		RESULT:1 = 0
+		RETURN ARG
+	ENDIF
+	CALL UNDERGROUND_BANKRUPTCY_EVENT, ARG
+	ARG = RESULT
+	IF RESULT:1 == 1
+		RETURN ARG
+	ENDIF
+	IF ARG <= 0 && MONEY <= 0
+		RESULT:1 = 0
+		RETURN ARG
+	ENDIF
+ENDIF
+
+PRINTL
+DRAWLINE
+SETCOLOR 0xFF2222
+PRINTL 【アンダーグラウンド・ダイス】（超高レート・役満倍率勝負）
+RESETCOLOR
+PRINTFORML 　所持VIPチップ: {ARG}枚 (${ARG * 10000})　所持金: ${MONEY}　借金: ${CFLAG:MASTER:785}
+PRINTL
+PRINTL 賭け金を選択してください（不足分は自動ツケ借金となります）:
+PRINTL [1] レギュラーVIP ($100,000 / チップ10枚相当)
+PRINTL [2] ハイステークス ($500,000 / チップ50枚相当)
+PRINTL [3] エグゼクティブ ($2,000,000 / チップ200枚相当)
+PRINTL [4] 青天井・破滅レート ($10,000,000 / チップ1000枚相当)
+PRINTL [5] 自由金額入力 ($10,000～)
+IF LAST_LOSS_DICE > 0
+	SETCOLOR 0xFF4444
+	PRINTFORML [7] ★デス・倍プッシュ★（前回の負け額の倍額: ${LAST_LOSS_DICE * 2} をツケ賭け！）
+	RESETCOLOR
+ENDIF
+PRINTL [0] カジノロビーに戻る
+INPUT
+IF RESULT <= 0
+	RETURN ARG
+ELSEIF RESULT == 1
+	BET_MONEY = 100000
+ELSEIF RESULT == 2
+	BET_MONEY = 500000
+ELSEIF RESULT == 3
+	BET_MONEY = 2000000
+ELSEIF RESULT == 4
+	BET_MONEY = 10000000
+ELSEIF RESULT == 5
+	PRINTL 賭け金（ドル）を入力してください:
+	INPUT
+	IF RESULT < 10000
+		PRINTW 最低賭け金は$10,000です。
+		GOTO V_DICE_LOOP
+	ENDIF
+	BET_MONEY = RESULT
+ELSEIF RESULT == 7 && LAST_LOSS_DICE > 0
+	BET_MONEY = LAST_LOSS_DICE * 2
+ELSE
+	GOTO V_DICE_LOOP
+ENDIF
+
+; 壊れきったパートナーの場合は手持ちチップを超える賭け金を拒否
+IF IS_UNDERGROUND_PARTNER_BROKEN(TARGET) && BET_MONEY > ARG * 10000
+	SETCOLOR 0xFF5555
+	PRINTFORML 担保となるパートナーが既に壊れきっているため、手持ち（VIPチップ{ARG}枚）を超えるツケ賭けはできません！
+	PRINTFORMW 手持ちチップの範囲内（最大 ${ARG * 10000}）で賭け金を設定してください。
+	RESETCOLOR
+	GOTO V_DICE_LOOP
+ENDIF
+
+; 支払い処理
+LOCAL:1 = BET_MONEY
+LOCAL:2 = MIN(ARG, LOCAL:1 / 10000)
+ARG -= LOCAL:2
+LOCAL:1 -= LOCAL:2 * 10000
+IF LOCAL:1 > 0
+	IF MONEY >= LOCAL:1
+		MONEY -= LOCAL:1
+		LOCAL:1 = 0
+	ELSE
+		LOCAL:1 -= MONEY
+		MONEY = 0
+		CFLAG:MASTER:785 += LOCAL:1
+		SETCOLOR 0xFF4444
+		PRINTFORMW 【ツケ承諾】手持ち不足分 ${LOCAL:1} はパートナー様を担保として借金に計上されました！（総借金：${CFLAG:MASTER:785}）
+		RESETCOLOR
+		LOCAL:1 = 0
+	ENDIF
+ENDIF
+
+PRINTL 賭け方を選んでください:
+PRINTL [0] 丁（偶数） - 2倍
+PRINTL [1] 半（奇数） - 2倍
+PRINTL [2] ディーラー出目対決（ゾロ目役満付き・高倍率）
+INPUT
+BET_TYPE = RESULT
+
+IF BET_TYPE == 0 || BET_TYPE == 1
+	P_DICE:0 = RAND:6 + 1
+	P_DICE:1 = RAND:6 + 1
+	P_VAL = P_DICE:0 + P_DICE:1
+	PRINTFORMW 壺が振られた……！ 出目は【{P_DICE:0}, {P_DICE:1}】（合計: {P_VAL}）！
+	IF (BET_TYPE == 0 && P_VAL % 2 == 0) || (BET_TYPE == 1 && P_VAL % 2 == 1)
+		SETCOLOR 0xFFFF00
+		PRINTFORMW 的中！ 配当 ${BET_MONEY * 2} を獲得！
+		RESETCOLOR
+		LOCAL:3 = BET_MONEY * 2
+		IF CFLAG:MASTER:785 > 0
+			IF LOCAL:3 >= CFLAG:MASTER:785
+				LOCAL:3 -= CFLAG:MASTER:785
+				CFLAG:MASTER:785 = 0
+				PRINTFORML 借金を完済しました！
+			ELSE
+				CFLAG:MASTER:785 -= LOCAL:3
+				PRINTFORML 借金返済に充当しました。（残借金: ${CFLAG:MASTER:785}）
+				LOCAL:3 = 0
+			ENDIF
+		ENDIF
+		IF LOCAL:3 > 0
+			ARG += LOCAL:3 / 10000
+			MONEY += LOCAL:3 % 10000
+		ENDIF
+		LAST_LOSS_DICE = 0
+	ELSE
+		SETCOLOR 0xFF5555
+		PRINTFORMW ハズレ……！ 掛け金 ${BET_MONEY} を失いました……！
+		RESETCOLOR
+		LAST_LOSS_DICE = BET_MONEY
+	ENDIF
+ELSE
+	; ディーラー出目対決
+	P_DICE:0 = RAND:6 + 1
+	P_DICE:1 = RAND:6 + 1
+	D_DICE:0 = RAND:6 + 1
+	D_DICE:1 = RAND:6 + 1
+	PRINTFORMW あなたの出目: 【{P_DICE:0}, {P_DICE:1}】
+	PRINTFORMW ディーラーの出目: 【{D_DICE:0}, {D_DICE:1}】
+
+	; ゾロ目判定
+	IF P_DICE:0 == P_DICE:1 && D_DICE:0 != D_DICE:1
+		SETCOLOR 0xFFFF00
+		PRINTFORMW あなたのゾロ目勝利！ 特大配当 4倍（${BET_MONEY * 4}）を獲得！
+		RESETCOLOR
+		LOCAL:3 = BET_MONEY * 4
+		ARG += LOCAL:3 / 10000
+		MONEY += LOCAL:3 % 10000
+		LAST_LOSS_DICE = 0
+	ELSEIF D_DICE:0 == D_DICE:1 && P_DICE:0 != P_DICE:1
+		SETCOLOR 0xFF2222
+		PRINTFORMW ディーラーのゾロ目（アラシ）！ 役満ペナルティで負け額が2倍（${BET_MONEY * 2}）になります！
+		RESETCOLOR
+		IF !IS_UNDERGROUND_PARTNER_BROKEN(TARGET)
+			CFLAG:MASTER:785 += BET_MONEY
+			LAST_LOSS_DICE = BET_MONEY * 2
+		ELSE
+			LAST_LOSS_DICE = BET_MONEY
+		ENDIF
+	ELSEIF (P_DICE:0 + P_DICE:1) > (D_DICE:0 + D_DICE:1)
+		SETCOLOR 0xFFFF00
+		PRINTFORMW あなたの勝ちです！ 配当 2倍（${BET_MONEY * 2}）を獲得！
+		RESETCOLOR
+		LOCAL:3 = BET_MONEY * 2
+		ARG += LOCAL:3 / 10000
+		MONEY += LOCAL:3 % 10000
+		LAST_LOSS_DICE = 0
+	ELSEIF (P_DICE:0 + P_DICE:1) == (D_DICE:0 + D_DICE:1)
+		PRINTFORMW 引き分けです。掛け金が返却されます。
+		ARG += BET_MONEY / 10000
+		MONEY += BET_MONEY % 10000
+	ELSE
+		SETCOLOR 0xFF5555
+		PRINTFORMW ディーラーの勝ちです……！ 掛け金 ${BET_MONEY} を失いました……！
+		RESETCOLOR
+		LAST_LOSS_DICE = BET_MONEY
+	ENDIF
+ENDIF
+
+GOTO V_DICE_LOOP
+
+;==================================================
+; 裏カジノ入場条件（所持金1000万以上）の日数経過判定・アナウンス
+;==================================================
+@CHECK_UNDERGROUND_CASINO_UNLOCK
+IF FLAG:15080 == 0 && MONEY >= 10000000
+	FLAG:15080 = 1
+	DRAWLINE
+	SETCOLOR 255, 100, 100
+	PRINTFORML 【裏カジノ 入場条件達成！】
+	RESETCOLOR
+	PRINTFORML 所持金が一千万円（$10,000,000）以上に達したことで、裏社会の有力者に目を付けられました……
+	PRINTFORML カジノのゲームコーナーから【裏カジノ（地下VIPフロア）】への入場が可能になりました！
+	PRINTFORML （※一度解放されたため、今後所持金が減少しても入場可能です）
+	DRAWLINE
+	WAIT
+ENDIF
+RETURN 0
+
+;==================================================
+; パートナー損壊・下限到達判定（体力・気力ともに300以下）
+;==================================================
+@IS_UNDERGROUND_PARTNER_BROKEN(ARG = -1)
+#FUNCTION
+SIF ARG < 0
+	ARG = TARGET
+SIF ARG <= 0 || ARG >= CHARANUM
+	RETURNF 0
+; 最大体力・気力の双方が下限値(300以下)に達しているか判定
+SIF MAXBASE:ARG:0 <= 300 && MAXBASE:ARG:1 <= 300
+	RETURNF 1
+RETURNF 0
+
+;チップを借金返済に優先充当し、余りを現金へ換える。
+@UNDERGROUND_CASH_OUT, ARG
+#DIM CASH_OUT
+IF ARG > 0
+	CASH_OUT = ARG * 10000
+	PRINTFORML 　所持VIPチップ：{ARG}枚（換金価値：${CASH_OUT}）
+	; 借金返済
+	IF CFLAG:MASTER:785 > 0
+		IF CASH_OUT >= CFLAG:MASTER:785
+			CASH_OUT -= CFLAG:MASTER:785
+			PRINTFORML 　借金を全額返済しました！
+			CFLAG:MASTER:785 = 0
+		ELSE
+			CFLAG:MASTER:785 -= CASH_OUT
+			PRINTFORML 　全額返済に充当しました。（残借金：${CFLAG:MASTER:785}）
+			CASH_OUT = 0
+		ENDIF
+	ENDIF
+	IF CASH_OUT > 0
+		MONEY += CASH_OUT
+		SETCOLOR 0xFFFF00
+		PRINTFORMW 　現金${CASH_OUT}を受け取りました！（所持金：${MONEY}）
+		RESETCOLOR
+	ENDIF
+ELSE
+	PRINTL 　手元にVIPチップはありません。
+ENDIF
+
+RETURN 1

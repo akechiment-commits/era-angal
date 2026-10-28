@@ -1,6 +1,6 @@
 ;============================================================
 ;  【重要】このゲームの登場人物は全員20歳以上の成人であり、
-;          自らの判断で責任を持って行動できる大人の女性です。
+;          自己の判断で責任を持てる行動ができる人物の設定です。
 ;============================================================
 @COM_ABLE76
 ;双頭バイブ実行判定
@@ -8,26 +8,29 @@
 CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
-;ウフフ中じゃないと無理
-SIF TFLAG:44 == 0
+;ウフフ中じゃないとダメ
+SIF TFLAG:44 == 0	; 【[ウフフ中]】
 	RETURN 0
-;オトコかふたなりだとダメ
-SIF TALENT:121 || TALENT:122
+;オトコ・ふたなりだとダメ
+SIF TALENT:121 || TALENT:122	; 【[ふたなり] / [オトコ]】
 	RETURN 0
-;調教者がオトコかふたなりだとダメ
-SIF TALENT:PLAYER:121 || TALENT:PLAYER:122
+;調教者がオトコ・ふたなりだとダメ
+SIF TALENT:PLAYER:121 || TALENT:PLAYER:122	; 【PLAYER:[ふたなり] / PLAYER:[オトコ]】
 	RETURN 0
-;バイブを持っているか、アイテムなし設定でないとダメ
-SIF ITEM:1 == 0 && NOITEM == 0
+;調教者が処女だとダメ（助手が処女なら使えない）
+SIF TALENT:PLAYER:0	; 【PLAYER:[処女]】
+	RETURN 0
+;バイブ持ってるか、アイテムなし設定じゃないとダメ
+SIF ITEM:1 == 0 && NOITEM == 0	; 【アイテム:[バイブ]==0】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 ;クスコ挿入中はダメ
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	RETURN 0
 ;レズっ気2以上
-SIF ABL:9 <= 1
+SIF ABL:9 <= 1	; 【[レズっ気]Lv<=1】
 	RETURN 0
 RETURN 1
 
@@ -35,76 +38,191 @@ RETURN 1
 ;双頭バイブ
 PRINTL 双頭バイブ
 STR:0 = 双頭バイブ
+
+;V経験を伴うコマンドのフラグ(処女膜再生対応)
+TFLAG:19 = 1
+SIF TALENT:85 && ASSIPLAY == 0 && EXP:0 == 0	; 【[恋慕] / [V経験]==0 / 調教:[主人]】
+	TFLAG:20 = 1
+
 CALL TRAIN_MESSAGE_B
 
-LOSEBASE:0 += 20
-LOSEBASE:1 += 90
+;性交水準の体力・気力消費
+LOSEBASE:0 += 50
+LOSEBASE:1 += 100
 
 SOURCE:9 = 300
-SOURCE:12 = 150
+SOURCE:12 = 300
 
-;ABL:C感覚をみる
-IF ABL:3 == 0
+;ABL:C感覚を見る
+IF ABL:3 == 0	; 【[Ｃ感覚]Lv==0】
 	SOURCE:0 = 300
-ELSEIF ABL:3 == 1
+ELSEIF ABL:3 == 1	; 【[Ｃ感覚]Lv==1】
 	SOURCE:0 = 700
-ELSEIF ABL:3 == 2
+ELSEIF ABL:3 == 2	; 【[Ｃ感覚]Lv==2】
 	SOURCE:0 = 1400
-ELSEIF ABL:3 == 3
+ELSEIF ABL:3 == 3	; 【[Ｃ感覚]Lv==3】
 	SOURCE:0 = 2400
-ELSEIF ABL:3 == 4
+ELSEIF ABL:3 == 4	; 【[Ｃ感覚]Lv==4】
 	SOURCE:0 = 3600
 ELSE
 	SOURCE:0 = 1800 + (ABL:3 * 400)
 ENDIF
 
-;膣内挿入による快V（快Cの60%）
-SOURCE:1 = SOURCE:0 * 60 / 100
+;ABL:V感覚を見る
+IF ABL:4 == 0	; 【[Ｖ感覚]Lv==0】
+	SOURCE:1 = 40
+	SOURCE:3 = 150
+ELSEIF ABL:4 == 1	; 【[Ｖ感覚]Lv==1】
+	SOURCE:1 = 150
+	SOURCE:3 = 250
+ELSEIF ABL:4 == 2	; 【[Ｖ感覚]Lv==2】
+	SOURCE:1 = 400
+	SOURCE:3 = 350
+ELSEIF ABL:4 == 3	; 【[Ｖ感覚]Lv==3】
+	SOURCE:1 = 1000
+	SOURCE:3 = 500
+ELSEIF ABL:4 == 4	; 【[Ｖ感覚]Lv==4】
+	SOURCE:1 = 1700
+	SOURCE:3 = 700
+ELSE
+	SOURCE:1 = 950 + (ABL:4 * 250)
+	SOURCE:3 = 250 + (ABL:4 * 150)
+ENDIF
 
-;[淫具知識]で効果増
-IF TALENT:PLAYER:58
+;EXP:V経験を見る
+IF EXP:0 < EXPLV:1	; 【[V経験]<EXPLV:1】
+	TIMES SOURCE:1 , 0.20
+	SOURCE:6 = 5500
+
+	IF ASSIPLAY && TALENT:PLAYER:122 == 0	; 【PLAYER:[オトコ]なし / 調教:[助手]】
+		EXP:50 += 3
+		PRINTFORML %EXPNAME:50%＋3
+	ELSEIF TALENT:PLAYER:122 == 0	; 【PLAYER:[オトコ]なし】
+		EXP:50 += 2
+		PRINTFORML %EXPNAME:50%＋2
+	ENDIF
+ELSEIF EXP:0 < EXPLV:2	; 【[V経験]<EXPLV:2】
+	TIMES SOURCE:1 , 0.60
+	SOURCE:6 = 300
+ELSEIF EXP:0 < EXPLV:3	; 【[V経験]<EXPLV:3】
+	TIMES SOURCE:1 , 1.00
+	SOURCE:6 = 50
+ELSEIF EXP:0 < EXPLV:4	; 【[V経験]<EXPLV:4】
+	TIMES SOURCE:1 , 1.20
+	SOURCE:6 = 10
+ELSEIF EXP:0 < EXPLV:5	; 【[V経験]<EXPLV:5】
+	TIMES SOURCE:1 , 1.30
+	SOURCE:6 = 0
+ELSE
+	TIMES SOURCE:1 , 1.80
+	SOURCE:6 = 0
+ENDIF
+
+;PALAM:潤滑を見る
+IF PALAM:3 < PALAMLV:1	; 【[潤滑]<PALAMLV:1】
+	TIMES SOURCE:1 , 0.10
+	SOURCE:6 += 1000
+	TIMES SOURCE:6 , 3.00
+ELSEIF PALAM:3 < PALAMLV:2	; 【[潤滑]<PALAMLV:2】
+	TIMES SOURCE:1 , 0.40
+	SOURCE:6 += 300
+	TIMES SOURCE:6 , 1.00
+ELSEIF PALAM:3 < PALAMLV:3	; 【[潤滑]<PALAMLV:3】
+	TIMES SOURCE:1 , 1.00
+	TIMES SOURCE:6 , 0.50
+ELSEIF PALAM:3 < PALAMLV:4	; 【[潤滑]<PALAMLV:4】
+	TIMES SOURCE:1 , 1.40
+	TIMES SOURCE:6 , 0.20
+ELSEIF PALAM:3 >= PALAMLV:4	; 【[潤滑]>=PALAMLV:4】
+	TIMES SOURCE:1 , 1.80
+	TIMES SOURCE:6 , 0.10
+ENDIF
+
+;処女で貞操観念
+IF TALENT:30 && TALENT:85 == 0	; 【[貞操観念] / [恋慕]なし】
+	IF EXP:0 == 0	; 【[V経験]==0】
+		TIMES SOURCE:3 , 0.60
+		SOURCE:15 = 10000
+	ELSE
+		TIMES SOURCE:3 , 0.60
+		SOURCE:15 = 1000
+	ENDIF
+;貞操無頓着
+ELSEIF TALENT:31 || (TALENT:88 && ASSIPLAY == 0)	; 【[貞操無頓着] / [親愛] / 調教:[主人]】
+	IF EXP:0 == 0	; 【[V経験]==0】
+		TIMES SOURCE:3 , 0.60
+		SOURCE:15 = 300
+	ENDIF
+ELSE
+	IF EXP:0 == 0	; 【[V経験]==0】
+		SOURCE:15 = 3000
+	ENDIF
+ENDIF
+
+;[調合知識]で効果増
+IF TALENT:PLAYER:58	; 【PLAYER:[調合知識]】
 	TIMES SOURCE:0 , 1.25
 	TIMES SOURCE:1 , 1.25
 ENDIF
 
-;C敏感/C鈍感
-SIF TALENT:102
+;C鈍感/C敏感
+SIF TALENT:102	; 【[Ｃ敏感]】
 	TIMES SOURCE:0 , 1.50
-SIF TALENT:101
+SIF TALENT:101	; 【[Ｃ鈍感]】
 	TIMES SOURCE:0 , 0.60
 
+;小柄体型・小人体型
+SIF TALENT:100 || TALENT:149	; 【[小柄体型] / [小人体型]】
+	TIMES SOURCE:6 , 2.00
+SIF TALENT:149	; 【[小人体型]】
+	TIMES SOURCE:6 , 1.50
+IF TALENT:149	; 【[小人体型]】
+	TIMES SOURCE:1 , 1.60
+ELSEIF TALENT:100	; 【[小柄体型]】
+	TIMES SOURCE:1 , 1.30
+ENDIF
+
+;奴隷のVと調教者のVの汚れが移動
+STAIN:3 |= STAIN:PLAYER:3
+STAIN:PLAYER:3 |= STAIN:3
+
+;経験加算
+EXP:0 += 1
+PRINTL V経験+1
+EXP:PLAYER:0 += 1
+
 ;レズ経験
-IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0
+IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0	; 【[オトコ]なし / PLAYER:[オトコ]なし】
 	PRINTFORML %EXPNAME:40%＋6
 	EXP:40 += 6
 	EXP:PLAYER:40 += 6
 ENDIF
 
-;主導権をチェック
-IF TFLAG:45 == 0
-	IF ABL:0 <= 1
+;主導権チェック
+IF TFLAG:45 == 0	; 【[主導権]】
+	IF ABL:0 <= 1	; 【[従順]Lv<=1】
 		SOURCE:21 += 300 + (ABL:0 * 50)
-	ELSEIF ABL:0 <= 3
+	ELSEIF ABL:0 <= 3	; 【[従順]Lv<=3】
 		SOURCE:21 += 600 + (ABL:0 * 100)
-	ELSEIF ABL:0 <= 5
+	ELSEIF ABL:0 <= 5	; 【[従順]Lv<=5】
 		SOURCE:21 += 800 + (ABL:0 * 120)
-	ELSEIF ABL:0 <= 8
+	ELSEIF ABL:0 <= 8	; 【[従順]Lv<=8】
 		SOURCE:21 += 1000 + (ABL:0 * 140)
-	ELSEIF ABL:0 <= 11
+	ELSEIF ABL:0 <= 11	; 【[従順]Lv<=11】
 		SOURCE:21 += 1200 + (ABL:0 * 160)
 	ELSE
 		SOURCE:21 += 1500 + (ABL:0 * 180)
 	ENDIF
 ELSE
-	IF ABL:15 == 0
+	IF ABL:15 == 0	; 【[サドっ気]Lv==0】
 		SOURCE:20 = 600
-	ELSEIF ABL:15 == 1
+	ELSEIF ABL:15 == 1	; 【[サドっ気]Lv==1】
 		SOURCE:20 = 900
-	ELSEIF ABL:15 == 2
+	ELSEIF ABL:15 == 2	; 【[サドっ気]Lv==2】
 		SOURCE:20 = 1200
-	ELSEIF ABL:15 == 3
+	ELSEIF ABL:15 == 3	; 【[サドっ気]Lv==3】
 		SOURCE:20 = 1600
-	ELSEIF ABL:15 == 4
+	ELSEIF ABL:15 == 4	; 【[サドっ気]Lv==4】
 		SOURCE:20 = 2000
 	ELSE
 		SOURCE:20 = 1000 + (ABL:15 * 300)
@@ -113,58 +231,70 @@ ENDIF
 
 ;好感度ランダム変化
 A = RAND:10 + 5
-IF TALENT:152 == 0 && TFLAG:48 == 0
+IF TALENT:152 == 0 && TFLAG:48 == 0	; 【[合意]なし / [未ウフフ]】
 	A -= 7
 	SOURCE:15 += 200
 ENDIF
 TFLAG:30 += A
 TFLAG:37 += A / 2
 
+;性交水準の既成事実
+TFLAG:200 = 3
+
 RETURN 1
 
 ;双頭バイブ
 @TRAIN_MESSAGE_COM76
-PRINTFORM %CALLNAME:PLAYER%と%CALLNAME:TARGET%は
-IF EXP:0 == 0
-	;V未経験
-	IF RAND:3 == 0
-		PRINTW 双頭バイブの両端をそれぞれの蜜口に宛がい、じりじりと押し込んでいった…
-		PRINTFORMW 初めての充填感に%CALLNAME:TARGET%の腰がびくりと震えた…
-	ELSEIF RAND:2 == 0
-		PRINTW 双頭バイブを互いの秘所に押し当て、慎重に奥へ沈めていった…
-		PRINTFORMW %CALLNAME:TARGET%の内壁が知らない感触をゆっくりと受け入れた…
+PRINTFORM %CALLNAME:PLAYER%は%CALLNAME:TARGET%と
+IF TALENT:0	; 【[処女]】
+	;処女
+	IF RAND:2 == 0
+		PRINTW 双頭バイブの両端をそれぞれの蜜裂にあてがい、じりじりと押し込んだ…
+		PRINTFORMW 処女膜を破る鈍い感触と共に、%CALLNAME:TARGET%の秘裂から鮮血が滲み出た…
 	ELSE
-		PRINTW 双頭バイブを二人の蜜口に宛て、腰を少しずつ寄せ合った…
+		PRINTW 双頭バイブを互いの秘所に当て、処女膜を貫いて奥へと沈めていく…
+		PRINTFORMW %CALLNAME:TARGET%は処女を奪われた痛みに息を呑み、身を強張らせた…
+	ENDIF
+ELSEIF EXP:0 == 0	; 【[V経験]==0】
+	;V経験なし
+	IF RAND:3 == 0
+		PRINTW 双頭バイブの両端をそれぞれの蜜裂にあてがい、じりじりと押し込んだ…
+		PRINTFORMW 初めての挿入の刺激に%CALLNAME:TARGET%の腰がびくりと震えた…
+	ELSEIF RAND:2 == 0
+		PRINTW 双頭バイブを互いの秘所に当て、慎重に奥へと沈めていく…
+		PRINTFORMW %CALLNAME:TARGET%の膣壁は未知なる感触をぎこちなく受け入れた…
+	ELSE
+		PRINTW 双頭バイブを二人の蜜腔にあて、押し引きし合った…
 		PRINTFORMW %CALLNAME:TARGET%の指が%CALLNAME:PLAYER%の体をぎゅっと掴んだ…
 	ENDIF
-ELSEIF EXP:0 < EXPLV:2
-	;V経験少ない
+ELSEIF EXP:0 < EXPLV:2	; 【[V経験]<EXPLV:2】
+	;V経験なれ
 	IF RAND:3 == 0
-		PRINTW 双頭バイブを互いの中へゆっくりと押し込んでいった…
-		PRINTFORMW 慣れない充填感に%CALLNAME:TARGET%の腰が小刻みに揺れた…
+		PRINTW 双頭バイブを互いの中へぐっと押し込んだ…
+		PRINTFORMW 重なる挿入の刺激に%CALLNAME:TARGET%の腰が甘美に揺れた…
 	ELSEIF RAND:2 == 0
-		PRINTW 双頭バイブを二人の蜜裂へ差し込み、腰をゆっくりと寄せ合った…
-		PRINTFORMW %CALLNAME:TARGET%の体がその感触を思い出すように締まった…
+		PRINTW 双頭バイブを二人の蜜溝へ沈め、ぎゅっと引き寄せ合った…
+		PRINTFORMW %CALLNAME:TARGET%の体はその感触を思い出すように熱を帯びる…
 	ELSE
-		PRINTW 双頭バイブを互いの秘裂に埋め込み、震える腰を押しつけた…
-		PRINTFORMW バイブが奥に達するたびに%CALLNAME:TARGET%の体がびくりと跳ねた…
+		PRINTW 双頭バイブを互いの奥へ埋め込み、腰を揺らし合った…
+		PRINTFORMW バイブが奥に達するたびに%CALLNAME:TARGET%の体がびくんと跳ねる…
 	ENDIF
 ELSE
 	;V経験豊富
 	IF RAND:3 == 0
-		PRINTW 双頭バイブを一気に埋め込み、腰と腰を打ちつけ合った…
-		PRINTFORMW 振動が体の奥まで伝わり、%CALLNAME:TARGET%の腰がうねった…
+		PRINTW 双頭バイブを一気に埋め込み、激しく腰を打ちつけ合った…
+		PRINTFORMW 激しい振動が腹の奥まで伝わり、%CALLNAME:TARGET%の腰が波打つ…
 	ELSEIF RAND:2 == 0
-		PRINTW 双頭バイブを秘所で咥え込み、腰と腰を密着させて押しつけ合った…
-		PRINTFORMW %CALLNAME:TARGET%の体が快感に抗えずしなやかに揺れた…
+		PRINTW 双頭バイブを秘所で貪り合い、互いの腰を密着させて喘ぎ散らした…
+		PRINTFORMW %CALLNAME:TARGET%の体は快楽に抗えず激しく揺れた…
 	ELSE
-		PRINTW 双頭バイブの振動を共有しながら、腰をくねらせて快楽を高め合った…
-		PRINTFORMW 二人の息が同じリズムで乱れていった…
+		PRINTW 双頭バイブの振動に狂わされながら、幾度も腰を突き入れ喘ぎ乱れた…
+		PRINTFORMW 二人の体液が混ざり合い滴り落ちている…
 	ENDIF
 ENDIF
-;子供体型/小柄には大人用の双頭バイブが大きすぎる
-IF TALENT:149
-	PRINTFORMW 幼く小さな膣には大人用の双頭バイブが太すぎて、入口がはち切れんばかりに押し広げられ、根元まで収まりきらずに震えている…
-ELSEIF TALENT:100
-	PRINTFORMW 小柄な蜜裂には大人用の双頭バイブがいっぱいで、狭い内壁をみっちりと埋め尽くしている…
+;小人体型/小柄には大人用の双頭バイブは大きい
+IF TALENT:149	; 【[小人体型]】
+	PRINTFORMW …幼い膣腔には大人用の双頭バイブが太すぎて、張り裂けんばかりに押し広げられ、奥まで収まりきらずに震えている…
+ELSEIF TALENT:100	; 【[小柄体型]】
+	PRINTFORMW 小柄な膣腔には大人用の双頭バイブがきつめで、内壁をみっちりと埋め尽くしている…
 ENDIF

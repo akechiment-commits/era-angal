@@ -1,0 +1,2337 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+;-------------------------------------------------
+;調教対象の射精チェック
+;-------------------------------------------------
+@TARGET_EJAC_CHECK
+SIF TALENT:121 == 0 && TALENT:122 == 0	; 【[ふたなり]なし / [オトコ]なし】
+	RETURN 0
+
+;快Cが主役、V/A/Bはわずかに寄与。高レベルでも1億へ固定しない。
+A = GET_TARGET_EJAC_GAIN(UP:0, UP:1, UP:2, UP:14, UP:18)
+
+;自制心
+IF TALENT:20 == 1	; 【[自制心]】
+	A /= 2
+ELSEIF TALENT:20 == 2	; 【[自制心:強]】
+	TIMES A , 2.00
+ENDIF
+
+;快感に素直
+SIF TALENT:70	; 【[快感に素直]】
+	TIMES A , 1.20
+
+;淫乱化
+SIF TALENT:76	; 【[淫乱]】
+	TIMES A , 1.10
+
+;快感の否定
+IF TALENT:71 == 1	; 【[快感の否定]】
+	TIMES A , 0.80
+ELSEIF TALENT:71 == 2	; 【[快感の否定:強]】
+	TIMES A , 1.25
+ENDIF
+;媚薬
+SIF TEQUIP:21	; 【[媚薬効果発揮中]使用中】
+	A *= 2
+
+;利尿剤
+SIF TEQUIP:22	; 【[利尿剤効果発揮中]使用中】
+	A /= 2
+
+;淫蟲
+SIF TEQUIP:92 == 1	; 【[蟲風呂プレイ]==1】
+	A *= 2
+	
+IF TFLAG:44 && A > 0	; 【[ウフフ中]】
+	A = 50 + A / 20
+ELSE
+	A /= 20
+ENDIF
+;ゲージの加算・閾値比較・割算も安全な範囲に収める。
+BASE:2 = MIN(1000000000000000, MAX(0, MIN(BASE:2, 1000000000000000)) + A)
+
+S = BASE:2
+EJAC = LIMIT(MAXBASE:2, 1, 1000000000000000)
+
+IF S > EJAC * 4
+	E = 4
+ELSEIF S > EJAC * 2
+	E = 2
+ELSEIF S > EJAC
+	E = 1
+ELSE
+	E = 0
+	RETURN 0
+ENDIF
+TFLAG:715 = S / EJAC
+SIF TFLAG:715 < 1
+	TFLAG:715 = 1
+;快感が強烈(連射countが大きい)なほど量が増える。通常は控えめ、極限で約60ml
+A = TFLAG:715
+SIF A > 26
+	A = 26
+A = 3 + 57 * A * A / 676
+B = A / 4
+C = B * 2 + 1
+TFLAG:717 = A - B + RAND:C
+SIF TFLAG:717 < 1
+	TFLAG:717 = 1
+
+;超大量射精
+IF E == 4
+	LOSEBASE:0 += 40
+	LOSEBASE:1 += 200
+
+	IF EXP:3 < EXPLV:1	; 【[射精経験]<EXPLV:1】
+		SOURCE:12 += 40000
+		SOURCE:13 += 20000
+	ELSEIF EXP:3 < EXPLV:2	; 【[射精経験]<EXPLV:2】
+		SOURCE:12 += 20000
+		SOURCE:13 += 16000
+	ELSEIF EXP:3 < EXPLV:3	; 【[射精経験]<EXPLV:3】
+		SOURCE:12 += 14000
+		SOURCE:13 += 12000
+	ELSEIF EXP:3 < EXPLV:4	; 【[射精経験]<EXPLV:4】
+		SOURCE:12 += 10000
+		SOURCE:13 += 8000
+	ELSEIF EXP:3 < EXPLV:5	; 【[射精経験]<EXPLV:5】
+		SOURCE:12 += 6000
+		SOURCE:13 += 4000
+	ELSE
+		SOURCE:12 += 3600
+		SOURCE:13 += 2400
+	ENDIF
+
+	;射精経験によるLOSEBASE軽減
+	IF EXP:3 >= EXPLV:4	; 【[射精経験]>=EXPLV:4】
+		LOSEBASE:0 -= 20
+		LOSEBASE:1 -= 100
+	ELSEIF EXP:3 >= EXPLV:3	; 【[射精経験]>=EXPLV:3】
+		LOSEBASE:0 -= 15
+		LOSEBASE:1 -= 75
+	ELSEIF EXP:3 >= EXPLV:2	; 【[射精経験]>=EXPLV:2】
+		LOSEBASE:0 -= 10
+		LOSEBASE:1 -= 50
+	ENDIF
+
+	PRINTS NAME:TARGET
+	PRINTFORML 超大量射精×{TFLAG:715}（{TFLAG:717}ml）
+	PRINTL 精液経験＋2
+	PRINTL 射精経験＋4
+
+	EXP:20 += 2
+	EXP:3 += 4
+	;膣射/精飲経験（2）
+	IF TFLAG:703 == 1 || TFLAG:703 == 9	; 【[射精箇所]==1 / [射精箇所]==9】
+		EXP:24 += 2
+		PRINTL 膣射経験＋2
+		;膣射経験によるSOURCEボーナス
+		IF EXP:24 >= EXPLV:4	; 【[膣射経験]>=EXPLV:4】
+			SOURCE:12 += 5000
+		ELSEIF EXP:24 >= EXPLV:3	; 【[膣射経験]>=EXPLV:3】
+			SOURCE:12 += 3000
+		ELSEIF EXP:24 >= EXPLV:2	; 【[膣射経験]>=EXPLV:2】
+			SOURCE:12 += 1500
+		ENDIF
+	ELSEIF TFLAG:703 == 4 && SELECTCOM != 32	; 【コマンド:[パイズリ]以外 / [射精箇所]==4】
+		EXP:26 += 2
+		PRINTL 精飲経験＋2
+		;精飲経験によるSOURCEボーナス
+		IF EXP:26 >= EXPLV:4	; 【[精飲経験]>=EXPLV:4】
+			SOURCE:12 += 5000
+		ELSEIF EXP:26 >= EXPLV:3	; 【[精飲経験]>=EXPLV:3】
+			SOURCE:12 += 3000
+		ELSEIF EXP:26 >= EXPLV:2	; 【[精飲経験]>=EXPLV:2】
+			SOURCE:12 += 1500
+		ENDIF
+	ENDIF
+;大量射精
+ELSEIF E == 2
+	LOSEBASE:0 += 20
+	LOSEBASE:1 += 100
+
+	IF EXP:3 < EXPLV:1	; 【[射精経験]<EXPLV:1】
+		SOURCE:12 += 20000
+		SOURCE:13 += 10000
+	ELSEIF EXP:3 < EXPLV:2	; 【[射精経験]<EXPLV:2】
+		SOURCE:12 += 10000
+		SOURCE:13 += 8000
+	ELSEIF EXP:3 < EXPLV:3	; 【[射精経験]<EXPLV:3】
+		SOURCE:12 += 7000
+		SOURCE:13 += 6000
+	ELSEIF EXP:3 < EXPLV:4	; 【[射精経験]<EXPLV:4】
+		SOURCE:12 += 5000
+		SOURCE:13 += 4000
+	ELSEIF EXP:3 < EXPLV:5	; 【[射精経験]<EXPLV:5】
+		SOURCE:12 += 3000
+		SOURCE:13 += 2000
+	ELSE
+		SOURCE:12 += 1800
+		SOURCE:13 += 1200
+	ENDIF
+
+	;射精経験によるLOSEBASE軽減
+	IF EXP:3 >= EXPLV:4	; 【[射精経験]>=EXPLV:4】
+		LOSEBASE:0 -= 10
+		LOSEBASE:1 -= 50
+	ELSEIF EXP:3 >= EXPLV:3	; 【[射精経験]>=EXPLV:3】
+		LOSEBASE:0 -= 7
+		LOSEBASE:1 -= 35
+	ELSEIF EXP:3 >= EXPLV:2	; 【[射精経験]>=EXPLV:2】
+		LOSEBASE:0 -= 5
+		LOSEBASE:1 -= 25
+	ENDIF
+
+	PRINTS NAME:TARGET
+	PRINTFORML 大量射精×{TFLAG:715}（{TFLAG:717}ml）
+	PRINTL 精液経験＋1
+	PRINTL 射精経験＋2
+
+	EXP:20 += 1
+	EXP:3 += 2
+	;膣射/精飲経験（1）
+	IF TFLAG:703 == 1 || TFLAG:703 == 9	; 【[射精箇所]==1 / [射精箇所]==9】
+		EXP:24 += 1
+		PRINTL 膣射経験＋1
+		;膣射経験によるSOURCEボーナス
+		IF EXP:24 >= EXPLV:4	; 【[膣射経験]>=EXPLV:4】
+			SOURCE:12 += 5000
+		ELSEIF EXP:24 >= EXPLV:3	; 【[膣射経験]>=EXPLV:3】
+			SOURCE:12 += 3000
+		ELSEIF EXP:24 >= EXPLV:2	; 【[膣射経験]>=EXPLV:2】
+			SOURCE:12 += 1500
+		ENDIF
+	ELSEIF TFLAG:703 == 4 && SELECTCOM != 32	; 【コマンド:[パイズリ]以外 / [射精箇所]==4】
+		EXP:26 += 1
+		PRINTL 精飲経験＋1
+		;精飲経験によるSOURCEボーナス
+		IF EXP:26 >= EXPLV:4	; 【[精飲経験]>=EXPLV:4】
+			SOURCE:12 += 5000
+		ELSEIF EXP:26 >= EXPLV:3	; 【[精飲経験]>=EXPLV:3】
+			SOURCE:12 += 3000
+		ELSEIF EXP:26 >= EXPLV:2	; 【[精飲経験]>=EXPLV:2】
+			SOURCE:12 += 1500
+		ENDIF
+	ENDIF
+;通常の射精
+ELSEIF E == 1
+	LOSEBASE:1 += 40
+
+	IF EXP:3 < EXPLV:1	; 【[射精経験]<EXPLV:1】
+		SOURCE:12 += 10000
+		SOURCE:13 += 5000
+	ELSEIF EXP:3 < EXPLV:2	; 【[射精経験]<EXPLV:2】
+		SOURCE:12 += 5000
+		SOURCE:13 += 4000
+	ELSEIF EXP:3 < EXPLV:3	; 【[射精経験]<EXPLV:3】
+		SOURCE:12 += 2500
+		SOURCE:13 += 2000
+	ELSEIF EXP:3 < EXPLV:4	; 【[射精経験]<EXPLV:4】
+		SOURCE:12 += 1600
+		SOURCE:13 += 1400
+	ELSEIF EXP:3 < EXPLV:5	; 【[射精経験]<EXPLV:5】
+		SOURCE:12 += 800
+		SOURCE:13 += 500
+	ELSE
+		SOURCE:12 += 200
+		SOURCE:13 += 250
+	ENDIF
+
+	;射精経験によるLOSEBASE軽減
+	IF EXP:3 >= EXPLV:4	; 【[射精経験]>=EXPLV:4】
+		LOSEBASE:1 -= 20
+	ELSEIF EXP:3 >= EXPLV:3	; 【[射精経験]>=EXPLV:3】
+		LOSEBASE:1 -= 15
+	ELSEIF EXP:3 >= EXPLV:2	; 【[射精経験]>=EXPLV:2】
+		LOSEBASE:1 -= 10
+	ENDIF
+
+	PRINTS NAME:TARGET
+	PRINTFORML 射精×{TFLAG:715}（{TFLAG:717}ml）
+	PRINTL 射精経験＋1
+	EXP:3 += 1
+ENDIF
+
+;-------------------------------------------------
+;フェラ（COM4/着衣380・プレイヤー本人のみ）でふたなりを射精させた時、男性プレイヤーが口で受けて喜んで精液を飲む地の文
+;量(E:1通常/2大量/4超大量)×連射回数(TFLAG:715)で分岐
+;-------------------------------------------------
+IF (SELECTCOM == 4 || SELECTCOM == 380) && ASSIPLAY == 0	; 【コマンド:[フェラする] / 調教者:[主人]】
+	IF E == 4
+		IF TFLAG:715 >= 2
+			PRINTFORML %CALLNAME:MASTER%は、何度も爆ぜる超大量の精液を頬を緩ませて飲んでは飲み、一滴残らず喉へ流し込んだ……
+		ELSE
+			PRINTFORML %CALLNAME:MASTER%は、口では受けきれぬほどの量を喜んで受け止め、白濁を滴らせながらも一心に飲み干した……
+		ENDIF
+	ELSEIF E == 2
+		IF TFLAG:715 >= 2
+			PRINTFORML %CALLNAME:MASTER%は、立て続けに溢れる大量の精液を夢中で嚥下し、零れた分まで名残惜しげに舐め取った……
+		ELSE
+			PRINTFORML %CALLNAME:MASTER%は、口内を満たした濃い精液を、喉を鳴らして嬉々として飲み干した……
+		ENDIF
+	ELSE
+		IF TFLAG:715 >= 2
+			PRINTFORML %CALLNAME:MASTER%は、幾度も跳ねる精液を一滴も逃さず舌で絡め取り、美味そうに飲み下した……
+		ELSE
+			PRINTFORML %CALLNAME:MASTER%は、口内に放たれた精液を嬉しそうに舌で受け止め、こくりと飲み下した……
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;手淫（COM30/191・プレイヤー本体のみ）でのふたなり射精時
+;-------------------------------------------------
+IF (SELECTCOM == 30 || SELECTCOM == 191) && ASSIPLAY == 0	; 【コマンド:[手淫] / コマンド:[手淫する] / 調教者:[主人]】
+	IF E == 4
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:MASTER%の指先が限界まで擦り上げると、鈴口から溢れんばかりの白濁が勢いよく噴き上がった！
+			PRINTFORML 掌から零れ落ちた熱い雫は、%CALLNAME:MASTER%の腕や服までも白く染め上げていく……
+		ELSE
+			PRINTFORML %CALLNAME:MASTER%の手の中で狂おしく脈打つ肉茎から、止まることのない大量の精液が激しく迸った！
+			PRINTFORML 指の隙間からどくどくと熱い飛沫が溢れ出し、あたり一面に濃密な雄の匂いを立ち上らせている……
+		ENDIF
+	ELSEIF E == 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:MASTER%が手のひらで緩急をつけてしごき上げると、先端から熱い精液が勢いよく弾け飛んだ！
+			PRINTFORML びくびくと跳ねる剛直を受け止めながら、%CALLNAME:MASTER%の手はねっとりとした白濁で覆われていく……
+		ELSE
+			PRINTFORML 達する瞬間に%CALLNAME:MASTER%が強く握り込むと、鈴口から勢いよく白濁液が放たれた！
+			PRINTFORML 熱を帯びた精液が弧を描いて飛び散り、絡めた指先を濡らしながら滴り落ちていく……
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:MASTER%の手の動きに合わせて肉茎が震え、先端からとろりとした精液が吐き出された……
+			PRINTFORML 吐き出された熱い雫を指先で掬い取りながら、%CALLNAME:MASTER%は静かに余韻を見届けた……
+		ELSE
+			PRINTFORML %CALLNAME:MASTER%が丁寧に擦り上げる手に促され、先端からぴゅっと白い飛沫が放たれた……
+			PRINTFORML 掌を伝うぬくもりを感じながら、%CALLNAME:TARGET%の昂ぶりが収まるのを優しく撫でさすった……
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;アナルに入れさせる（COM204・プレイヤー本体のみ）でのふたなり射精時
+;-------------------------------------------------
+IF SELECTCOM == 204 && ASSIPLAY == 0	; 【コマンド:[アナルに入れさせる] / 調教者:[主人]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:MASTER%の狭小な後孔を押し広げたまま、肉茎が狂おしくびくびくと跳ね回った！
+			PRINTFORML 腸壁の奥深くへと熱い白濁液が容赦なく吐き出され、逃げ場のない熱量が下腹を満たしていく……
+		ELSE
+			PRINTFORML 結合部の奥深くで鈴口が激しく脈打ち、耐えきれないほどの大量の精液が腸内に注ぎ込まれた！
+			PRINTFORML 押し寄せる熱い拍動に貫かれながら、%CALLNAME:MASTER%は下腹の奥に刻まれる確かな重みを感じていた……
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML 締め付ける後孔の奥でペニスが硬直し、びくっと震えながら熱い精液が放たれた……
+			PRINTFORML 腸壁を伝う熱い感触に、%CALLNAME:MASTER%は吐息を漏らしながらその重みを受け止めた……
+		ELSE
+			PRINTFORML 狭い腔内を押し広げる剛直が震え、先端から注ぎ込まれた精液が奥をじんわりと温めていく……
+			PRINTFORML じっくりと注ぎ込まれる感触を味わいながら、%CALLNAME:MASTER%は身を委ねて受け入れた……
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;膣に入れさせる（COM23/381等・プレイヤー本体のみ）でのふたなり射精時
+;-------------------------------------------------
+IF (SELECTCOM == 23 || SELECTCOM == 381 || SELECTCOM == 363 || SELECTCOM == 366) && ASSIPLAY == 0	; 【コマンド:[逆レイプ] / コマンド:[セックスさせる] / コマンド:[着衣挿入] / コマンド:[着衣騎乗位] / 調教者:[主人]】
+	IF E == 4
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:MASTER%の胎内深くに突き立てられた剛直が、狂おしいほど激しく跳ね上がった！
+			PRINTFORML 子宮口を直接叩きつけるように濃密な白濁がドクドクと注ぎ込まれ、結合部からも溢れ返っていく……！
+		ELSE
+			PRINTFORML 限界まで達した%CALLNAME:TARGET%が腰を押し付けると、奥深くへと規格外の大量精液が解き放たれた！
+			PRINTFORML 胎内を満たし尽くしてなお迸る熱い命の雫に、%CALLNAME:MASTER%の下腹はずっしりとした重みに満たされた……！
+		ENDIF
+	ELSEIF E == 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:MASTER%の最奥を貫いたまま肉茎が激しく脈打ち、熱い精液が一気に吐き出された！
+			PRINTFORML 膣壁を押し広げるように注ぎ込まれる大量の白濁液が、%CALLNAME:MASTER%の芯までじんじんと染み渡る……！
+		ELSE
+			PRINTFORML 達する瞬間に深く腰を沈められ、子宮口の前に向けて勢いよく熱い雫が放たれた！
+			PRINTFORML びくびくと脈打つたびにドクドクと注ぎ込まれ、奥を白濁で満たされていく感触に息を呑んだ……！
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML 膣内で昂ぶった剛直が震え、奥深くに向けてじんわりと温かい精液が注ぎ込まれた……
+			PRINTFORML 胎内へと届けられた熱い感触を受け止めながら、%CALLNAME:MASTER%は深く息をついた……
+		ELSE
+			PRINTFORML 最奥に密着した鈴口からぴゅっと熱い飛沫が放たれ、膣壁をじんわりと満たしていった……
+			PRINTFORML 吐き出される命のぬくもりを全身で感じながら、%CALLNAME:MASTER%は静かに腰を重ね合わせていた……
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;助手調教時（ASSIPLAY == 1）のふたなり射精時メッセージ
+;-------------------------------------------------
+;フェラ系（COM4/380）
+IF (SELECTCOM == 4 || SELECTCOM == 380) && ASSIPLAY == 1	; 【コマンド:[フェラする] / 調教者:[助手]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%は溢れ出る熱い雫を口いっぱいに受け止め、喉を鳴らして飲み干した……
+			PRINTFORML 吐き出される熱量を残さず吸い上げ、口元を拭いながら熱い視線を返している……
+		ELSE
+			PRINTFORML %CALLNAME:ASSI%の口内に激しく注ぎ込まれ、溢れた飛沫が唇から伝い落ちていく……
+			PRINTFORML 息を乱しながらも舌を絡め、奥まで注がれたぬくもりを受け止めている……
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%は先端から放たれた雫を素直に受け止め、静かに飲み下した……
+		ELSE
+			PRINTFORML %CALLNAME:ASSI%は注がれた熱をじっくりと味わうように飲み込み、静かに息をついた……
+		ENDIF
+	ENDIF
+ENDIF
+
+;手淫系（COM30/191）
+IF (SELECTCOM == 30 || SELECTCOM == 191) && ASSIPLAY == 1	; 【コマンド:[手淫] / コマンド:[手淫する] / 調教者:[助手]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%の手の中で激しく脈打ち、指の間から勢いよく白濁が噴き零れた！
+			PRINTFORML 掌を熱く濡らす感触に、%CALLNAME:ASSI%は妖艶な吐息を漏らしながら見届けている……
+		ELSE
+			PRINTFORML %CALLNAME:ASSI%が緩急をつけて擦り上げると、先端から熱い飛沫が激しく弾け飛んだ！
+			PRINTFORML 飛び散る白濁を受け止めながら、%CALLNAME:ASSI%の手はねっとりと白く染まっていく……
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%の指先の動きに促され、先端からとろりと熱い雫が放たれた……
+		ELSE
+			PRINTFORML %CALLNAME:ASSI%の掌に導かれるように、先端から白濁が滴り落ちていった……
+		ENDIF
+	ENDIF
+ENDIF
+
+;挿入・逆レイプ系（COM23/381/363/366）
+IF (SELECTCOM == 23 || SELECTCOM == 381 || SELECTCOM == 363 || SELECTCOM == 366) && ASSIPLAY == 1	; 【コマンド:[逆レイプ] / コマンド:[セックスさせる] / コマンド:[着衣挿入] / コマンド:[着衣騎乗位] / 調教者:[助手]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%の奥深くを貫いたまま激しく震え、胎内へと一気に熱い雫が注ぎ込まれた！
+			PRINTFORML 結合部から溢れ返る熱量を受け止めながら、%CALLNAME:ASSI%は艶っぽく身を震わせている……！
+		ELSE
+			PRINTFORML 最奥へと深く腰を押し込まれ、%CALLNAME:ASSI%の胎内を満たすように激しく吐き出された！
+			PRINTFORML 押し寄せる熱い拍動に貫かれ、%CALLNAME:ASSI%は切なげに声を漏らしながら抱きとめた……！
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%の胎内で震える肉茎から、じんわりと温かい白濁が注ぎ込まれた……
+		ELSE
+			PRINTFORML 最奥へと届けられた熱を受け止めながら、%CALLNAME:ASSI%は静かに腰を重ね合わせていた……
+		ENDIF
+	ENDIF
+ENDIF
+
+;アナル挿入系（COM204）
+IF SELECTCOM == 204 && ASSIPLAY == 1	; 【コマンド:[アナルに入れさせる] / 調教者:[助手]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%の後孔を押し広げたまま激しく脈打ち、腔内の奥深くへと注ぎ込まれた！
+			PRINTFORML 逃げ場のない熱量に満たされ、%CALLNAME:ASSI%は切迫した吐息を漏らしながら受け止めた……
+		ELSE
+			PRINTFORML 締め付ける後孔の奥深くに熱い雫が解き放たれ、%CALLNAME:ASSI%の下腹を満たしていく……
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%の狭小な後孔の奥で肉茎が震え、熱い白濁が放たれた……
+		ELSE
+			PRINTFORML 伝わる熱い拍動を受け止めながら、%CALLNAME:ASSI%は静かに身を委ねていた……
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;助手専用コマンドでのふたなり射精時メッセージ
+;-------------------------------------------------
+;助手を犯す（COM56）
+IF SELECTCOM == 56	; 【コマンド:[助手を犯す]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML 助手の%CALLNAME:ASSI%の最奥を貫いたまま肉茎が狂おしく跳ね、大量の白濁が注ぎ込まれた！
+			PRINTFORML %CALLNAME:ASSI%は快感に顔を上気させ、結合部から零れる熱量を受け止めながら喘いでいる……！
+		ELSE
+			PRINTFORML %CALLNAME:TARGET%が欲望のままに腰を叩きつけると、%CALLNAME:ASSI%の胎内深くへ勢いよく放たれた！
+			PRINTFORML びくびくと激しく脈打つたびに注ぎ込まれ、二人は絡み合ったまま熱い余韻に浸っている……！
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:ASSI%の胎内に深く収まった肉茎が震え、温かい白濁がじんわりと注ぎ込まれた……
+		ELSE
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:ASSI%を抱きしめたまま、奥深くへと熱い雫を解き放った……
+		ENDIF
+	ENDIF
+ENDIF
+
+;助手を犯させる（COM65）
+IF SELECTCOM == 65	; 【コマンド:[助手を犯させる]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML 乱れた吐息の交わる中、%CALLNAME:TARGET%の肉茎が限界を迎え、勢いよく白濁を放った！
+			PRINTFORML %CALLNAME:ASSI%と絡み合う肌を熱く濡らしながら、二人は激しく身を震わせている……！
+		ELSE
+			PRINTFORML 互いを求め合う交わりの頂点で、%CALLNAME:TARGET%の先端から大量の熱い雫が弾け飛んだ！
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML 密着した体勢のまま肉茎が脈打ち、白濁が放たれて肌を伝い落ちていった……
+		ELSE
+			PRINTFORML 激しい吐息とともに熱い雫が吐き出され、重なり合う身体を温かく濡らした……
+		ENDIF
+	ENDIF
+ENDIF
+
+;ダブルフェラ（COM68）
+IF SELECTCOM == 68	; 【コマンド:[ダブルフェラ]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML %CALLNAME:MASTER%と%CALLNAME:ASSI%が二人掛かりで責め立てると、先端から激しく白濁が噴き上がった！
+			PRINTFORML 二人の唇や顔に勢いよく熱い飛沫が飛び散り、甘い吐息とともに白く濡らしていく……！
+		ELSE
+			PRINTFORML 二つの舌に同時に奉仕された肉茎は限界を迎え、口内に収まりきらないほどの精液を迸らせた！
+			PRINTFORML %CALLNAME:MASTER%と%CALLNAME:ASSI%は零れる熱量を分け合うように舌を伸ばし、綺麗に舐め取っている……！
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML 二人の熱心な口付けに促され、先端からとろりと熱い雫が溢れ出た……
+		ELSE
+			PRINTFORML 絡みつく二つの舌の上へと温かい白濁が放たれ、二人によって優しく受け止められた……
+		ENDIF
+	ENDIF
+ENDIF
+
+;ダブル素股（COM62）
+IF SELECTCOM == 62	; 【コマンド:[ダブル素股]】
+	IF E >= 2
+		IF RAND:2 == 0
+			PRINTFORML 二つの秘肉に挟み込まれた肉茎が激しく脈打ち、大量の白濁が一気に弾け飛んだ！
+			PRINTFORML %CALLNAME:MASTER%と%CALLNAME:ASSI%の太股やお腹を熱く濡らし、甘い匂いを立ち上らせている……！
+		ELSE
+			PRINTFORML 擦り合わされる刺激に耐えかね、先端から勢いよく熱い雫が解き放たれた！
+		ENDIF
+	ELSE
+		IF RAND:2 == 0
+			PRINTFORML 二人の柔らかな肌の間で肉茎が震え、温かい白濁が溢れ出て肌を滑り落ちた……
+		ELSE
+			PRINTFORML 挟まれた先端から放たれた熱い飛沫が、重なり合う二人の肌を白く染めていった……
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;パイズリする（COM32/192）でのふたなり射精時
+;-------------------------------------------------
+IF (SELECTCOM == 32 || SELECTCOM == 192)	; 【コマンド:[パイズリ] / コマンド:[パイズリする]】
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:MASTER%の柔らかな胸の谷間に挟まれた肉茎が激しく脈打ち、勢いよく白濁が噴き上がった！
+				PRINTFORML 谷間から溢れた熱い飛沫が%CALLNAME:MASTER%の胸元や首筋を白く濡らし、甘い香りを立ち上らせる……！
+			ELSE
+				PRINTFORML %CALLNAME:MASTER%が胸元で丹念に擦り上げると、先端から勢いよく大量の精液が放たれた！
+				PRINTFORML 豊満な胸の間にドクドクと注ぎ出され、二人の肌をねっとりと白く染め上げていく……！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:MASTER%の胸の感触に昂ぶった先端から、とろりとした熱い雫が胸元へと放たれた……
+			ELSE
+				PRINTFORML 押し挟まれた谷間のぬくもりに促され、先端から白い飛沫が零れ落ちて胸肌を伝った……
+			ENDIF
+		ENDIF
+	ELSE
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:ASSI%の豊かな胸に挟まれた先端から、勢いよく大量の白濁が噴き上がった！
+				PRINTFORML %CALLNAME:ASSI%は谷間を伝う熱い雫を受け止めながら、艶っぽい吐息を漏らしている……！
+			ELSE
+				PRINTFORML %CALLNAME:ASSI%が胸元で激しくしごき上げると、耐えかねたように熱い飛沫が弾け飛んだ！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:ASSI%の胸の谷間からとろりと熱い雫が溢れ、肌を温かく濡らした……
+			ELSE
+				PRINTFORML 挟み込まれた先端から放たれた白濁を、%CALLNAME:ASSI%は優しく見届けていた……
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;正常位させる（COM193）でのふたなり射精時
+;-------------------------------------------------
+IF SELECTCOM == 193	; 【コマンド:[正常位させる]】
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:MASTER%の上へと覆い被さった%CALLNAME:TARGET%が激しく腰を打ち据え、最奥へと大量の白濁を解き放った！
+				PRINTFORML 向き合ったまま熱い吐息を交わし、下腹を満たす圧倒的な熱量に%CALLNAME:MASTER%は身を震わせた……！
+			ELSE
+				PRINTFORML 組み敷かれた体勢のまま胎内深くへと突き立てられ、子宮口を激しく叩くように熱い雫が注ぎ込まれた！
+				PRINTFORML 結合部から溢れ返る熱量を受け止めながら、%CALLNAME:MASTER%は胸元に抱きついた身体を力強く受け止めた……！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 正面から重なり合った体勢のまま肉茎が震え、胎内へとじんわりと温かい精液が放たれた……
+			ELSE
+				PRINTFORML 最奥へと届けられた熱い拍動を受け止め、%CALLNAME:MASTER%は深く息を吐きながら身体を預けた……
+			ENDIF
+		ENDIF
+	ELSE
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:ASSI%の上に覆い被さったまま腰を押し付け、最奥へと勢いよく大量の白濁が注ぎ込まれた！
+				PRINTFORML %CALLNAME:ASSI%は顔を上気させ、奥を満たす熱い拍動に声を漏らしながら抱きとめている……！
+			ELSE
+				PRINTFORML 正面から激しく腰を重ね合わせ、%CALLNAME:ASSI%の胎内深くに熱い雫が一気に解き放たれた！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 正面から抱き合う体勢のまま肉茎が脈打ち、%CALLNAME:ASSI%の奥を温かく満たしていった……
+			ELSE
+				PRINTFORML 胎内へと届けられた熱を受け止め、%CALLNAME:ASSI%は静かに腰を重ね合わせていた……
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;後背位させる（COM194/365）でのふたなり射精時
+;-------------------------------------------------
+IF SELECTCOM == 194 || SELECTCOM == 365	; 【コマンド:[後背位させる] / コマンド:[着衣後背位]】
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML 四つん這いにされた%CALLNAME:MASTER%の腰を強く引き寄せ、背後から最奥へと激しく突き入れながら放たれた！
+				PRINTFORML 逃げ場のない角度で奥深くへと大量の白濁が注ぎ込まれ、%CALLNAME:MASTER%は背筋を反らせて息を呑んだ……！
+			ELSE
+				PRINTFORML 背後から深々と貫いたまま肉茎が狂おしく跳ね、子宮口へ直接叩きつけるように熱い雫が注ぎ込まれた！
+				PRINTFORML 激しいピストンとともに結合部から白濁が溢れ返り、%CALLNAME:MASTER%の下腹はずっしりとした重みで満たされた……！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 背後から深く突き入れられたまま肉茎が震え、胎内へと温かい精液が注ぎ込まれた……
+			ELSE
+				PRINTFORML 腰を掴まれたまま最奥で放たれる熱い拍動を受け止め、%CALLNAME:MASTER%は震えながら吐息を漏らした……
+			ENDIF
+		ENDIF
+	ELSE
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML 背後から%CALLNAME:ASSI%の腰を掴んで激しく打ち付け、胎内の奥深くへ大量の白濁が一気に解き放たれた！
+				PRINTFORML %CALLNAME:ASSI%は四つん這いの姿勢のまま背筋を反らせ、奥を満たす熱い衝撃に喘いでいる……！
+			ELSE
+				PRINTFORML 背後から最奥まで深く貫かれたまま、%CALLNAME:ASSI%の胎内へ熱い雫が勢いよく注ぎ込まれた！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 背後から貫いた肉茎がびくびくと震え、%CALLNAME:ASSI%の奥深くを温かい白濁で満たしていった……
+			ELSE
+				PRINTFORML 胎内へと注ぎ込まれる熱い感触に、%CALLNAME:ASSI%は切なげに声を漏らしながら耐えていた……
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;騎乗位する（COM195）でのふたなり射精時
+;-------------------------------------------------
+IF SELECTCOM == 195	; 【コマンド:[騎乗位する]】
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:MASTER%が上に跨がり深く腰を沈めきると、最奥に密着した先端から大量の白濁が一気に噴き上がった！
+				PRINTFORML 押し寄せる熱い拍動が胎内を駆け巡り、結合部から溢れ出す白濁とともに%CALLNAME:MASTER%は恍惚と身を震わせた……！
+			ELSE
+				PRINTFORML 跨がったまま腰を上下させて貪るように導くと、限界を迎えた肉茎が激しく跳ねて奥深くへ放たれた！
+				PRINTFORML ずっしりと下腹を満たす大量の熱量を受け止めながら、%CALLNAME:MASTER%は息を乱して抱きついた……！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 跨がって深く呑み込んだ位置で肉茎が震え、胎内へとじんわりと温かい精液が注ぎ込まれた……
+			ELSE
+				PRINTFORML 上から腰を重ね合わせたまま熱い雫を受け止め、%CALLNAME:MASTER%は静かに息をついた……
+			ENDIF
+		ENDIF
+	ELSE
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:ASSI%が跨がって深く腰を沈めると、胎内を満たすように大量の熱い白濁が解き放たれた！
+				PRINTFORML %CALLNAME:ASSI%は妖艶に腰を揺らしながら、最奥に注ぎ込まれる熱い拍動を受け止めて喘いでいる……！
+			ELSE
+				PRINTFORML 上から導くように腰を動かす%CALLNAME:ASSI%の胎内へ、勢いよく大量の熱い雫が放たれた！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 跨がった%CALLNAME:ASSI%の最奥で肉茎が震え、温かい白濁がじんわりと注ぎ込まれた……
+			ELSE
+				PRINTFORML 胎内へと届けられた熱い感触を受け止め、%CALLNAME:ASSI%は艶っぽく息を漏らしていた……
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;相互挿入（COM188）でのふたなり射精時
+;-------------------------------------------------
+IF SELECTCOM == 188	; 【コマンド:[相互挿入]】
+	IF ASSIPLAY == 0	; 【調教者:[主人]】
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML 互いに深く繋ぎ合わされた結合部から熱い拍動が伝わり、同時に達した肉茎から大量の白濁が溢れ返った！
+				PRINTFORML 互いの胎内へと注ぎ交わされる熱い命の雫に、%CALLNAME:MASTER%と%CALLNAME:TARGET%は激しく抱き合って震えた……！
+			ELSE
+				PRINTFORML 絡み合ったまま腰を押し付け合うと、限界を超えた二つの先端から勢いよく熱い雫が解き放たれた！
+				PRINTFORML 結合部を満たして零れ落ちる白濁の熱量に包まれながら、二人は快感の波に呑み込まれていく……！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 互いに貫き合った体勢のまま肉茎が震え、温かい白濁が注がれて肌を濡らした……
+			ELSE
+				PRINTFORML 密着した交わりの中で熱い雫が放たれ、二人は重なり合う熱をじっくりと分かち合った……
+			ENDIF
+		ENDIF
+	ELSE
+		IF E >= 2
+			IF RAND:2 == 0
+				PRINTFORML %CALLNAME:ASSI%と深く繋ぎ合わされた体勢のまま限界を迎え、互いの奥深くへと大量の白濁が注ぎ交わされた！
+				PRINTFORML 激しい熱量の奔流に貫かれ、二人は顔を寄せ合って乱れた吐息を漏らしながら震えている……！
+			ELSE
+				PRINTFORML 互いに腰を押し付け合う絶頂の瞬間、先端から勢いよく熱い雫が放たれて肌を白く染め上げた！
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORML 互いに結合したまま肉茎が震え、温かい白濁が注ぎ込まれて肌を伝い落ちていった……
+			ELSE
+				PRINTFORML 繋がった身体の奥で放たれる熱を受け止め、二人は静かに息を重ね合わせていた……
+			ENDIF
+		ENDIF
+	ENDIF
+ENDIF
+
+;射精経験0かつオトコ、不思議な根、具現を持ってない場合は射精すると異常経験+5
+IF EXP:3 == 0 && TALENT:122 == 0 && TALENT:120 == 0 && TALENT:127 == 0	; 【[オトコ]なし / [不思議な根]なし / [具現]なし / [射精経験]==0】
+	EXP:50 += 5
+	PRINTL 異常経験＋5
+ENDIF
+
+;パートナーの各コマンドでの中田氏チェック
+CALL IN_VAGINA_CHECK_T
+
+;Ｐに精液汚れ
+STAIN:2 |= 4
+
+BASE:2 -= EJAC
+SIF BASE:2 >= EJAC
+	BASE:2 = EJAC-1
+
+;調教対象が射精フラグ
+TFLAG:10 = 1
+TFLAG:713 = E
+NOWEX:5 += 1
+	;本人の射精統計加算
+	CFLAG:TARGET:1280 += TFLAG:715
+	CFLAG:TARGET:1281 += TFLAG:717
+EX:5 += 1
+	;気絶中にふたなり・オトコが射精した場合の描写
+	SIF (TFLAG:899 || BASE:TARGET:0 <= 0) && (TALENT:TARGET:121 || TALENT:TARGET:122)	; 【TARGET:[ふたなり] / TARGET:[オトコ] / [気絶継続中] / TARGET:[体力]<=0】
+		CALL FAINT_SHOOT_MESSAGE
+
+;-------------------------------------------------
+;調教対象の噴乳チェック
+;-------------------------------------------------
+@TARGET_MILK_CHECK
+SIF TALENT:130 == 0	; 【[母乳体質]なし】
+	RETURN 0
+
+;オーバーフローチェック。
+;本来の処理はA = UP:0 / 20 + UP:1 / 20 + UP:2 / 20 + UP:14 * 4 + UP:18 / 20
+;快B(胸・乳首)が主役、V/C/Aはほぼ寄与しない
+IF UP:0 / 10 >= 1000000	; 【[快Ｃ上昇]】
+	A = 10000000
+ELSEIF UP:0 / 10 + UP:1 / 10 >= 1000000	; 【[快Ｃ上昇] / [快Ｖ上昇]】
+	A = 10000000
+ELSEIF UP:0 / 10 + UP:1 / 10 + UP:2 / 10 >= 1000000	; 【[快Ｃ上昇] / [快Ｖ上昇] / [快Ａ上昇]】
+	A = 10000000
+ELSEIF UP:0 / 10 + UP:1 / 10 + UP:2 / 10 + UP:14 / 10>= 1000000	; 【[快Ｃ上昇] / [快Ｖ上昇] / [快Ａ上昇] / [快Ｂ上昇]】
+	A = 10000000
+ELSE
+	A = UP:0 / 20 + UP:1 / 20 + UP:2 / 20 + UP:14 * 4 + UP:18 / 20
+ENDIF
+
+;自制心
+IF TALENT:20 == 1	; 【[自制心]】
+	A /= 2
+ELSEIF TALENT:20 == 2	; 【[自制心:強]】
+	TIMES A , 2.00
+ENDIF
+
+;快感に素直
+SIF TALENT:70	; 【[快感に素直]】
+	TIMES A , 1.20
+
+;淫乱化
+SIF TALENT:76	; 【[淫乱]】
+	TIMES A , 1.10
+
+;快感の否定
+IF TALENT:71 == 1	; 【[快感の否定]】
+	TIMES A , 0.80
+ELSEIF TALENT:71 == 2	; 【[快感の否定:強]】
+	TIMES A , 1.25
+ENDIF
+;B敏感
+SIF TALENT:108	; 【[Ｂ敏感]】
+	TIMES A , 1.50
+
+;胸サイズによる母乳量増加
+SIF TALENT:141	; 【[爆乳]】
+	TIMES A , 2.00
+SIF TALENT:110	; 【[巨乳]】
+	TIMES A , 1.50
+
+;媚薬
+SIF TEQUIP:21	; 【[媚薬効果発揮中]使用中】
+	A *= 2
+
+;利尿剤
+SIF TEQUIP:22	; 【[利尿剤効果発揮中]使用中】
+	A /= 2
+
+;調教者が幼児退行
+SIF TALENT:PLAYER:131	; 【PLAYER:[幼児]】
+	A *= 2
+
+;調教者が幼稚
+SIF TALENT:PLAYER:132	; 【PLAYER:[幼稚]】
+	A *= 2
+
+;貧乳
+SIF TALENT:109	; 【[貧乳]】
+	TIMES A , 0.50
+
+;淫蟲
+SIF TEQUIP:92 == 1	; 【[蟲風呂プレイ]==1】
+	A *= 2
+
+IF TFLAG:44 && A > 0	; 【[ウフフ中]】
+	A = 50 + A / 20
+ELSE
+	A /= 20
+ENDIF
+BASE:3 += A
+
+S = BASE:3
+EJAC = MAXBASE:3
+
+IF  S > EJAC * 2
+	E = 2
+ELSEIF S > EJAC
+	E = 1
+ELSE
+	E = 0
+ENDIF
+TFLAG:716 = S / EJAC
+SIF TFLAG:716 < 1
+	TFLAG:716 = 1
+A = 5 + 195 * (TFLAG:716 - 1) / (TFLAG:716 + 9)
+B = A / 4
+C = B * 2 + 1
+TFLAG:718 = A - B + RAND:C
+SIF TFLAG:718 < 1
+	TFLAG:718 = 1
+
+;大量噴乳
+IF E == 2
+	LOSEBASE:0 += 20
+	LOSEBASE:1 += 100
+
+	IF EXP:54 < EXPLV:1	; 【[噴乳経験]<EXPLV:1】
+		SOURCE:12 += 20000
+		SOURCE:13 += 10000
+	ELSEIF EXP:54 < EXPLV:2	; 【[噴乳経験]<EXPLV:2】
+		SOURCE:12 += 10000
+		SOURCE:13 += 8000
+	ELSEIF EXP:54 < EXPLV:3	; 【[噴乳経験]<EXPLV:3】
+		SOURCE:12 += 7000
+		SOURCE:13 += 6000
+	ELSEIF EXP:54 < EXPLV:4	; 【[噴乳経験]<EXPLV:4】
+		SOURCE:12 += 5000
+		SOURCE:13 += 4000
+	ELSEIF EXP:54 < EXPLV:5	; 【[噴乳経験]<EXPLV:5】
+		SOURCE:12 += 3000
+		SOURCE:13 += 2000
+	ELSE
+		SOURCE:12 += 1800
+		SOURCE:13 += 1200
+	ENDIF
+
+	;噴乳経験によるLOSEBASE軽減
+	IF EXP:54 >= EXPLV:4	; 【[噴乳経験]>=EXPLV:4】
+		LOSEBASE:0 -= 10
+		LOSEBASE:1 -= 50
+	ELSEIF EXP:54 >= EXPLV:3	; 【[噴乳経験]>=EXPLV:3】
+		LOSEBASE:0 -= 7
+		LOSEBASE:1 -= 35
+	ELSEIF EXP:54 >= EXPLV:2	; 【[噴乳経験]>=EXPLV:2】
+		LOSEBASE:0 -= 5
+		LOSEBASE:1 -= 25
+	ENDIF
+
+	PRINTFORML %NAME:TARGET%は乳首から大量の母乳を噴出した×{TFLAG:716}（{TFLAG:718}ml）
+	PRINTL 噴乳経験＋2
+
+	;マスターとの子供であり、恋慕あり、又は恋慕が無くても恋人で反発２未満なら妊娠中・育児中は異常経験がつかない
+	IF CFLAG:111 == NO:MASTER && (TALENT:85 || (TALENT:85 == 0 && TALENT:153 && MARK:3 < 2)) && (TALENT:134 || TALENT:135 || TALENT:136)	; 【[恋慕] / [恋慕]なし / [恋人] / [妊娠] / [育児中] / [母性] / [反発感情]Lv<2 / [父親]==NO:MASTER】
+		PRINTL 
+	;それ以外の時にお乳が初めて出たら異常経験が付く
+	ELSEIF (EXP:54 - CFLAG:25) == 0	; 【[噴乳経験]あり / [初期噴乳経験]】
+		EXP:50 += 5
+		PRINTL 異常経験＋5
+	ENDIF
+	;母乳回収
+	IF CFLAG:11 == 0 && TEQUIP:16 == 0 && ITEM:31 > 0	; 【無[搾乳機]】
+		CFLAG:11 = 1
+		ITEM:31 -= 1
+		IF ASSIPLAY == 0	; 【調教者:[主人]】
+			PRINTFORML %CALLNAME:PLAYER%は噴出した%CALLNAME:TARGET%の母乳を丁寧に瓶で採取すると、
+			PRINTFORML 「%CALLNAME:TARGET%の母乳」と書かれたラベルを見せつけるようにして瓶に貼り付けた
+			PRINTFORML そして母乳が漏れ出ないようにしっかりと蓋をした後、それを懐にしまい込んだ
+		ELSE
+			PRINTFORML %CALLNAME:PLAYER%は噴出した%CALLNAME:TARGET%の母乳を丁寧に瓶で採取すると、
+			PRINTFORML 「%CALLNAME:TARGET%の母乳」と書かれたラベルを見せつけるようにして瓶に貼り付けた
+			PRINTFORML そして母乳が漏れ出ないようにしっかりと蓋をした後、それを%CALLNAME:MASTER%に手渡した
+		ENDIF
+	ENDIF
+	SIF CFLAG:111 == NO:MASTER && (TALENT:85 || (TALENT:85 == 0 && TALENT:153 && MARK:3 < 2)) && (TALENT:134 || TALENT:135 || TALENT:136)	; 【[恋慕] / [恋慕]なし / [恋人] / [妊娠] / [育児中] / [母性] / [反発感情]Lv<2 / [父親]==NO:MASTER】
+		CFLAG:25 += 2
+	EXP:54 += 2
+	;Ｂに母乳汚れ
+	STAIN:5 |= 16
+
+	BASE:3 -= EJAC*2
+	SIF BASE:3 >= EJAC
+		BASE:3 = EJAC-1
+
+	;調教対象が噴乳フラグ
+	TFLAG:11 += 2
+	;搾乳器で母乳が集められているかチェック
+	SIF TEQUIP:16	; 【[搾乳機]使用中】
+		TFLAG:35 += 2
+
+	NOWEX:4 += 1
+	;噴乳統計加算
+	CFLAG:TARGET:1282 += TFLAG:716
+	CFLAG:TARGET:1283 += TFLAG:718
+	EX:4 += 1
+;通常の噴乳
+ELSEIF E == 1
+	LOSEBASE:1 += 40
+
+	IF EXP:54 < EXPLV:1	; 【[噴乳経験]<EXPLV:1】
+		SOURCE:12 += 10000
+		SOURCE:13 += 5000
+	ELSEIF EXP:54 < EXPLV:2	; 【[噴乳経験]<EXPLV:2】
+		SOURCE:12 += 5000
+		SOURCE:13 += 4000
+	ELSEIF EXP:54 < EXPLV:3	; 【[噴乳経験]<EXPLV:3】
+		SOURCE:12 += 2500
+		SOURCE:13 += 2000
+	ELSEIF EXP:54 < EXPLV:4	; 【[噴乳経験]<EXPLV:4】
+		SOURCE:12 += 1600
+		SOURCE:13 += 1400
+	ELSEIF EXP:54 < EXPLV:5	; 【[噴乳経験]<EXPLV:5】
+		SOURCE:12 += 800
+		SOURCE:13 += 500
+	ELSE
+		SOURCE:12 += 200
+		SOURCE:13 += 250
+	ENDIF
+
+	;噴乳経験によるLOSEBASE軽減
+	IF EXP:54 >= EXPLV:4	; 【[噴乳経験]>=EXPLV:4】
+		LOSEBASE:1 -= 20
+	ELSEIF EXP:54 >= EXPLV:3	; 【[噴乳経験]>=EXPLV:3】
+		LOSEBASE:1 -= 15
+	ELSEIF EXP:54 >= EXPLV:2	; 【[噴乳経験]>=EXPLV:2】
+		LOSEBASE:1 -= 10
+	ENDIF
+
+	PRINTFORML %NAME:TARGET%は乳首から母乳を垂れ流した×{TFLAG:716}（{TFLAG:718}ml）
+	PRINTL 噴乳経験＋1
+
+	;マスターとの子供であり、恋慕あり、又は恋慕が無くても恋人で反発２未満なら妊娠中・育児中は異常経験がつかない
+	IF CFLAG:111 == NO:MASTER && (TALENT:85 || (TALENT:85 == 0 && TALENT:153 && MARK:3 < 2)) && (TALENT:134 || TALENT:135 || TALENT:136)	; 【[恋慕] / [恋慕]なし / [恋人] / [妊娠] / [育児中] / [母性] / [反発感情]Lv<2 / [父親]==NO:MASTER】
+		PRINTL 
+	;それ以外の時にお乳が初めて出たら異常経験が付く
+	ELSEIF (EXP:54 - CFLAG:25) == 0	; 【[噴乳経験]あり / [初期噴乳経験]】
+		EXP:50 += 5
+		PRINTL 異常経験＋5
+	ENDIF
+	;母乳回収
+	IF CFLAG:11 == 0 && TEQUIP:16 == 0 && ITEM:31 > 0	; 【無[搾乳機]】
+		CFLAG:11 = 1
+		ITEM:31 -= 1
+		IF ASSIPLAY == 0	; 【調教者:[主人]】
+			PRINTFORML %CALLNAME:PLAYER%は垂れ出てきた%CALLNAME:TARGET%の母乳を慎重に瓶で採取すると、
+			PRINTFORML 「%CALLNAME:TARGET%の母乳」と書かれたラベルを見せつけるようにして瓶に貼り付けた
+			PRINTFORML そして母乳が漏れ出ないようにしっかりと蓋をした後、それを懐にしまい込んだ
+		ELSE
+			PRINTFORML %CALLNAME:PLAYER%は垂れ出てきた%CALLNAME:TARGET%の母乳を慎重に瓶で採取すると、
+			PRINTFORML 「%CALLNAME:TARGET%の母乳」と書かれたラベルを見せつけるようにして瓶に貼り付けた
+			PRINTFORML そして母乳が漏れ出ないようにしっかりと蓋をした後、それを%CALLNAME:MASTER%に手渡した
+		ENDIF
+	ENDIF
+	SIF CFLAG:111 == NO:MASTER && (TALENT:85 || (TALENT:85 == 0 && TALENT:153 && MARK:3 < 2)) && (TALENT:134 || TALENT:135 || TALENT:136)	; 【[恋慕] / [恋慕]なし / [恋人] / [妊娠] / [育児中] / [母性] / [反発感情]Lv<2 / [父親]==NO:MASTER】
+		CFLAG:25 += 1
+	EXP:54 += 1
+	;Ｂに母乳汚れ
+	STAIN:5 |= 16
+
+	BASE:3 -= EJAC
+	SIF BASE:3 >= EJAC
+		BASE:3 = EJAC-1
+
+	;調教対象が噴乳フラグ
+	TFLAG:11 += 1
+	;搾乳器で母乳が集められているかチェック
+	SIF TEQUIP:16	; 【[搾乳機]使用中】
+		TFLAG:35 += 1
+
+	NOWEX:4 += 1
+	EX:4 += 1
+ENDIF
+
+;-------------------------------------------------
+;同性の場合のチェック
+;-------------------------------------------------
+@SOURCE_SEX_CHECK
+SIF TALENT:122 == 0 && TALENT:PLAYER:122	; 【[オトコ]なし / PLAYER:[オトコ]】
+	RETURN 0
+SIF TALENT:122 && TALENT:PLAYER:122 == 0	; 【[オトコ] / PLAYER:[オトコ]なし】
+	RETURN 0
+
+;感覚関係のSOURCEは分けてREPEAT処理
+LOCAL:0 = 0
+LOCAL:1 = 1
+LOCAL:2 = 2
+LOCAL:3 = 17
+LOCAL:4 = 24
+REPEAT 5
+	;レズ
+	IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0	; 【[オトコ]なし / PLAYER:[オトコ]なし】
+		;ABL:レズっ気をみる
+		IF ABL:9	; 【[レズっ気]】
+			IF SOURCE:(LOCAL:COUNT) < 100000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:9 * 10 + 100) / 100
+			ELSEIF SOURCE:(LOCAL:COUNT) < 100000000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) / 100 * (ABL:9 * 10 + 100)
+			ENDIF
+		ENDIF
+
+		;ABL:レズ中毒をみる
+		IF ABL:12 && ABL:12 < 5	; 【[レズ中毒] / [レズ中毒]Lv<5】
+			SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:12 * 20 + 100) / 100
+		ELSEIF ABL:12	; 【[レズ中毒]】
+			IF SOURCE:(LOCAL:COUNT) < 100000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:12 * 10 + 150) / 100
+			ELSEIF SOURCE:(LOCAL:COUNT) < 100000000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) / 100 * (ABL:12 * 10 + 150)
+			ENDIF
+		ENDIF
+
+		;調教者のABL:レズっ気
+		IF ABL:PLAYER:9 == 0	; 【PLAYER:[レズっ気]Lv==0】
+			TIMES SOURCE:(LOCAL:COUNT) , 0.40
+		ELSEIF ABL:PLAYER:9 == 1	; 【PLAYER:[レズっ気]Lv==1】
+			TIMES SOURCE:(LOCAL:COUNT) , 0.70
+		ELSEIF ABL:PLAYER:9 == 2	; 【PLAYER:[レズっ気]Lv==2】
+			TIMES SOURCE:(LOCAL:COUNT) , 1.00
+		ELSEIF ABL:PLAYER:9 == 3	; 【PLAYER:[レズっ気]Lv==3】
+			TIMES SOURCE:(LOCAL:COUNT) , 1.10
+		ELSEIF ABL:PLAYER:9 == 4	; 【PLAYER:[レズっ気]Lv==4】
+			TIMES SOURCE:(LOCAL:COUNT) , 1.20
+		ELSE
+			IF SOURCE:(LOCAL:COUNT) < 100000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:PLAYER:9 * 5 + 105) / 100
+			ELSEIF SOURCE:(LOCAL:COUNT) < 100000000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) / 100 * (ABL:PLAYER:9 * 5 + 105)
+			ENDIF
+		ENDIF
+
+		;調教者のABL:レズ中毒
+		IF ABL:PLAYER:12 == 1	; 【PLAYER:[レズ中毒]Lv==1】
+			TIMES SOURCE:(LOCAL:COUNT) , 1.10
+		ELSEIF ABL:PLAYER:12 == 2	; 【PLAYER:[レズ中毒]Lv==2】
+			TIMES SOURCE:(LOCAL:COUNT) , 1.20
+		ELSEIF ABL:PLAYER:12 == 3	; 【PLAYER:[レズ中毒]Lv==3】
+			TIMES SOURCE:(LOCAL:COUNT) , 1.40
+		ELSEIF ABL:PLAYER:12 == 4	; 【PLAYER:[レズ中毒]Lv==4】
+			TIMES SOURCE:(LOCAL:COUNT) , 1.60
+		ELSEIF ABL:PLAYER:12 >= 5	; 【PLAYER:[レズ中毒]Lv>=5】
+			IF SOURCE:(LOCAL:COUNT) < 100000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:PLAYER:12 * 10 + 130) / 100
+			ELSEIF SOURCE:(LOCAL:COUNT) < 100000000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) / 100 * (ABL:PLAYER:12 * 10 + 130)
+			ENDIF
+		ENDIF
+	;ＢＬ
+	ELSEIF TALENT:122 && TALENT:PLAYER:122	; 【[オトコ] / PLAYER:[オトコ]】
+		;ABL:ＢＬっ気をみる
+		IF ABL:13 && ABL:13 < 5	; 【[ＢＬっ気] / [ＢＬっ気]Lv<5】
+			SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:13 * 10 + 100) / 100
+		ELSEIF ABL:13	; 【[ＢＬっ気]】
+			IF SOURCE:(LOCAL:COUNT) < 100000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:13 * 5 + 125) / 100
+			ELSEIF SOURCE:(LOCAL:COUNT) < 100000000
+				SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) / 100 * (ABL:13 * 5 + 125)
+			ENDIF
+		ENDIF
+	ENDIF
+REND
+
+;レズ
+IF TALENT:122 == 0 && TALENT:PLAYER:122 == 0	; 【[オトコ]なし / PLAYER:[オトコ]なし】
+	;調教者の自制心
+	IF TALENT:PLAYER:20	; 【PLAYER:[自制心]】
+		TIMES SOURCE:4 , 0.50
+		TIMES SOURCE:5 , 0.50
+	ENDIF
+
+	;ABL:レズっ気をみる
+	IF ABL:9 == 0	; 【[レズっ気]Lv==0】
+		TIMES SOURCE:8 , 0.80
+		TIMES SOURCE:14 , 0.80
+
+		TIMES SOURCE:13 , 0.90
+	ELSEIF ABL:9 == 1	; 【[レズっ気]Lv==1】
+		SOURCE:7 += 100
+
+		TIMES SOURCE:8 , 0.60
+		TIMES SOURCE:14 , 0.60
+		
+		TIMES SOURCE:13 , 0.75
+		
+		TIMES SOURCE:5 , 1.10
+	ELSEIF ABL:9 == 2	; 【[レズっ気]Lv==2】
+		SOURCE:7 += 200
+
+		TIMES SOURCE:8 , 0.40
+		TIMES SOURCE:14 , 0.40
+
+		TIMES SOURCE:13 , 0.60
+
+		TIMES SOURCE:5 , 1.20
+	ELSEIF ABL:9 == 3	; 【[レズっ気]Lv==3】
+		SOURCE:7 += 350
+
+		TIMES SOURCE:8 , 0.25
+		TIMES SOURCE:14 , 0.25
+
+		TIMES SOURCE:13 , 0.45
+
+		TIMES SOURCE:5 , 1.30
+	ELSEIF ABL:9 == 4	; 【[レズっ気]Lv==4】
+		SOURCE:7 += 500
+
+		TIMES SOURCE:8 , 0.15
+		TIMES SOURCE:14 , 0.15
+
+		TIMES SOURCE:13 , 0.30
+
+		TIMES SOURCE:5 , 1.40
+	ELSE
+		SOURCE:7 += 125 + (ABL:9 * 125)
+
+		TIMES SOURCE:8 , 0.10
+		TIMES SOURCE:14 , 0.10
+
+		TIMES SOURCE:13 , 0.15
+
+		IF SOURCE:5 < 100000
+			SOURCE:5 = SOURCE:5 * (ABL:9 * 10 + 110) / 100
+		ELSEIF SOURCE:5 < 100000000
+			SOURCE:5 = SOURCE:5 / 100 * (ABL:9 * 10 + 110)
+		ENDIF
+	ENDIF
+	
+	;ABL:レズ中毒をみる
+	IF ABL:12 == 1	; 【[レズ中毒]Lv==1】
+		TIMES SOURCE:8 , 0.60
+		TIMES SOURCE:14 , 0.60
+
+		TIMES SOURCE:5 , 1.20
+	ELSEIF ABL:12 == 2	; 【[レズ中毒]Lv==2】
+		TIMES SOURCE:8 , 0.40
+		TIMES SOURCE:14 , 0.40
+
+		TIMES SOURCE:5 , 1.40
+	ELSEIF ABL:12 == 3	; 【[レズ中毒]Lv==3】
+		TIMES SOURCE:8 , 0.30
+		TIMES SOURCE:14 , 0.30
+
+		TIMES SOURCE:5 , 1.60
+	ELSEIF ABL:12 == 4	; 【[レズ中毒]Lv==4】
+		TIMES SOURCE:8 , 0.20
+		TIMES SOURCE:14 , 0.20
+
+		TIMES SOURCE:5 , 1.80
+	ELSEIF ABL:12 >= 5	; 【[レズ中毒]Lv>=5】
+		TIMES SOURCE:8 , 0.10
+		TIMES SOURCE:14 , 0.10
+
+		IF SOURCE:5 < 100000
+			SOURCE:5 = SOURCE:5 * (ABL:12 * 10 + 150) / 100
+		ELSEIF SOURCE:5 < 100000000
+			SOURCE:5 = SOURCE:5 / 100 * (ABL:12 * 10 + 150)
+		ENDIF
+	ENDIF
+
+	;調教者のABL:レズっ気
+	IF ABL:PLAYER:9 == 0	; 【PLAYER:[レズっ気]Lv==0】
+		TIMES SOURCE:3 , 0.20
+		TIMES SOURCE:4 , 0.30
+		TIMES SOURCE:5 , 0.30
+	ELSEIF ABL:PLAYER:9 == 1	; 【PLAYER:[レズっ気]Lv==1】
+		TIMES SOURCE:3 , 0.60
+		TIMES SOURCE:4 , 0.70
+		TIMES SOURCE:5 , 0.70
+	ELSEIF ABL:PLAYER:9 == 2	; 【PLAYER:[レズっ気]Lv==2】
+		TIMES SOURCE:3 , 1.00
+		TIMES SOURCE:4 , 1.00
+		TIMES SOURCE:5 , 1.00
+	ELSEIF ABL:PLAYER:9 == 3	; 【PLAYER:[レズっ気]Lv==3】
+		TIMES SOURCE:3 , 1.40
+		TIMES SOURCE:4 , 1.30
+		TIMES SOURCE:5 , 1.30
+	ELSEIF ABL:PLAYER:9 == 4	; 【PLAYER:[レズっ気]Lv==4】
+		TIMES SOURCE:3 , 1.80
+		TIMES SOURCE:4 , 1.60
+		TIMES SOURCE:5 , 1.60
+	ELSE
+		IF SOURCE:3 < 100000
+			SOURCE:3 = SOURCE:3 * (ABL:PLAYER:9 * 35 + 75) / 100
+		ELSEIF SOURCE:3 < 100000000
+			SOURCE:3 = SOURCE:3 / 100 * (ABL:PLAYER:9 * 35 + 75)
+		ENDIF
+		IF SOURCE:4 < 100000
+			SOURCE:4 = SOURCE:4 * (ABL:PLAYER:9 * 20 + 100) / 100
+		ELSEIF SOURCE:4 < 100000000
+			SOURCE:4 = SOURCE:4 / 100 * (ABL:PLAYER:9 * 20 + 100)
+		ENDIF
+		IF SOURCE:5 < 100000
+			SOURCE:5 = SOURCE:5 * (ABL:PLAYER:9 * 20 + 100) / 100
+		ELSEIF SOURCE:5 < 100000000
+			SOURCE:5 = SOURCE:5 / 100 * (ABL:PLAYER:9 * 20 + 100)
+		ENDIF
+	ENDIF
+
+	;調教者のABL:レズ中毒
+	IF ABL:PLAYER:12 == 1	; 【PLAYER:[レズ中毒]Lv==1】
+		TIMES SOURCE:3 , 1.50
+		TIMES SOURCE:4 , 1.50
+		TIMES SOURCE:5 , 1.50
+	ELSEIF ABL:PLAYER:12 == 2	; 【PLAYER:[レズ中毒]Lv==2】
+		TIMES SOURCE:3 , 2.00
+		TIMES SOURCE:4 , 2.00
+		TIMES SOURCE:5 , 2.00
+	ELSEIF ABL:PLAYER:12 == 3	; 【PLAYER:[レズ中毒]Lv==3】
+		TIMES SOURCE:3 , 2.50
+		TIMES SOURCE:4 , 2.50
+		TIMES SOURCE:5 , 2.50
+	ELSEIF ABL:PLAYER:12 == 4	; 【PLAYER:[レズ中毒]Lv==4】
+		TIMES SOURCE:3 , 3.50
+		TIMES SOURCE:4 , 3.00
+		TIMES SOURCE:5 , 3.00
+	ELSEIF ABL:PLAYER:12 >= 5	; 【PLAYER:[レズ中毒]Lv>=5】
+		IF SOURCE:3 < 100000
+			SOURCE:3 = SOURCE:3 * (ABL:PLAYER:12 * 75 + 125) / 100
+		ELSEIF SOURCE:3 < 100000000
+			SOURCE:3 = SOURCE:3 / 100 * (ABL:PLAYER:12 * 75 + 125)
+		ENDIF
+		IF SOURCE:4 < 100000
+			SOURCE:4 = SOURCE:4 * (ABL:PLAYER:12 * 50 + 150) / 100
+		ELSEIF SOURCE:4 < 100000000
+			SOURCE:4 = SOURCE:4 / 100 * (ABL:PLAYER:12 * 50 + 150)
+		ENDIF
+		IF SOURCE:5 < 100000
+			SOURCE:5 = SOURCE:5 * (ABL:PLAYER:12 * 50 + 150) / 100
+		ELSEIF SOURCE:5 < 100000000
+			SOURCE:5 = SOURCE:5 / 100 * (ABL:PLAYER:12 * 50 + 150)
+		ENDIF
+	ENDIF
+ELSEIF TALENT:122 && TALENT:PLAYER:122	; 【[オトコ] / PLAYER:[オトコ]】
+	IF ABL:13 == 0	; 【[ＢＬっ気]Lv==0】
+		TIMES SOURCE:8 , 4.00
+		TIMES SOURCE:14 , 4.00
+
+		TIMES SOURCE:5 , 0.50
+	ELSEIF ABL:13 == 1	; 【[ＢＬっ気]Lv==1】
+		SOURCE:7 += 10
+
+		TIMES SOURCE:8 , 2.00
+		TIMES SOURCE:14 , 2.00
+
+		TIMES SOURCE:5 , 0.70
+	ELSEIF ABL:13 == 2	; 【[ＢＬっ気]Lv==2】
+		SOURCE:7 += 40
+
+		TIMES SOURCE:8 , 1.40
+		TIMES SOURCE:14 , 1.40
+
+		TIMES SOURCE:5 , 0.90
+	ELSEIF ABL:13 == 3	; 【[ＢＬっ気]Lv==3】
+		SOURCE:7 += 100
+
+		TIMES SOURCE:8 , 1.00
+		TIMES SOURCE:14 , 1.00
+
+		TIMES SOURCE:5 , 1.10
+	ELSEIF ABL:13 == 4	; 【[ＢＬっ気]Lv==4】
+		SOURCE:7 += 200
+
+		TIMES SOURCE:8 , 0.70
+		TIMES SOURCE:14 , 0.70
+
+		TIMES SOURCE:5 , 1.20
+	ELSE
+		SOURCE:7 += ABL:13 * 70
+
+		TIMES SOURCE:8 , 0.50
+		TIMES SOURCE:14 , 0.50
+
+		TIMES SOURCE:5 , 1.30
+	ENDIF
+
+	;調教者の自制心
+	IF TALENT:PLAYER:20	; 【PLAYER:[自制心]】
+		TIMES SOURCE:4 , 0.50
+		TIMES SOURCE:5 , 0.50
+	ENDIF
+ENDIF
+
+;結婚記念日ボーナス（全ソースに×1.2）
+IF TIME:4 & 2
+	REPEAT 25
+		TIMES SOURCE:COUNT , 1.20
+	REND
+ENDIF
+
+
+
+@PLAYER_SKILL_CHECK
+;感覚関係のSOURCEは分けてREPEAT処理
+LOCAL:0 = 0
+LOCAL:1 = 1
+LOCAL:2 = 2
+LOCAL:3 = 17
+LOCAL:4 = 24
+REPEAT 5
+	;調教者のTALENT:解放をみる
+	SIF TALENT:PLAYER:33	; 【PLAYER:[解放]】
+		TIMES SOURCE:(LOCAL:COUNT) , 1.20
+	;調教者のTALENT:魅惑をみる
+	SIF TALENT:PLAYER:91	; 【PLAYER:[魅惑]】
+		TIMES SOURCE:(LOCAL:COUNT) , 1.20
+	;調教者のTALENT:謎の魅力をみる
+	SIF TALENT:PLAYER:92	; 【PLAYER:[謎の魅力]】
+		TIMES SOURCE:(LOCAL:COUNT) , 1.20
+	;調教者のTALENT:eratohoを支配する程度の能力をみる
+	SIF TALENT:PLAYER:201	; 【PLAYER:[eratohoJも支配する程度の能力]】
+		TIMES SOURCE:(LOCAL:COUNT) , 2.00
+
+	;調教者のABL:技巧
+	IF ABL:PLAYER:2 == 0	; 【PLAYER:[技巧]Lv==0】
+		TIMES SOURCE:(LOCAL:COUNT) , 0.50
+	ELSEIF ABL:PLAYER:2 == 1	; 【PLAYER:[技巧]Lv==1】
+		TIMES SOURCE:(LOCAL:COUNT) , 0.80
+	ELSEIF ABL:PLAYER:2 == 2	; 【PLAYER:[技巧]Lv==2】
+		TIMES SOURCE:(LOCAL:COUNT) , 1.00
+	ELSEIF ABL:PLAYER:2 == 3	; 【PLAYER:[技巧]Lv==3】
+		TIMES SOURCE:(LOCAL:COUNT) , 1.20
+	ELSEIF ABL:PLAYER:2 == 4	; 【PLAYER:[技巧]Lv==4】
+		TIMES SOURCE:(LOCAL:COUNT) , 1.50
+	ELSE
+		IF SOURCE:(LOCAL:COUNT) < 100000
+			SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) * (ABL:PLAYER:2 * 25 + 75) / 100
+		ELSEIF SOURCE:(LOCAL:COUNT) < 100000000
+			SOURCE:(LOCAL:COUNT) = SOURCE:(LOCAL:COUNT) / 100 * (ABL:PLAYER:2 * 25 + 75)
+		ENDIF
+	ENDIF
+REND
+
+;調教者のTALENT:解放をみる
+IF TALENT:PLAYER:33	; 【PLAYER:[解放]】
+	TIMES SOURCE:3 , 1.20
+ENDIF
+;調教者のTALENT:小悪魔をみる
+IF TALENT:PLAYER:87	; 【PLAYER:[小悪魔]】
+	TIMES SOURCE:12 , 1.60
+ENDIF
+;調教者のTALENT:魅惑をみる
+IF TALENT:PLAYER:91	; 【PLAYER:[魅惑]】
+	TIMES SOURCE:8 , 0.50
+	TIMES SOURCE:14 , 0.50
+
+	TIMES SOURCE:5 , 1.20
+ENDIF
+;調教者のTALENT:謎の魅力をみる
+IF TALENT:PLAYER:92	; 【PLAYER:[謎の魅力]】
+	TIMES SOURCE:8 , 0.50
+	TIMES SOURCE:14 , 0.50
+
+	TIMES SOURCE:5 , 1.20
+ENDIF
+;調教者のTALENT:魅力をみる
+IF TALENT:PLAYER:113	; 【PLAYER:[魅力]】
+	TFLAG:37 += 1
+ENDIF
+;調教者のTALENT:eratohoを支配する程度の能力をみる
+IF TALENT:PLAYER:201	; 【PLAYER:[eratohoJも支配する程度の能力]】
+	TIMES SOURCE:5 , 2.00
+ENDIF
+
+;調教者のサドっ気・マゾっ気・主導権基準値を考慮
+IF ABL:PLAYER:15 > 0	; 【PLAYER:[サドっ気]Lv>0】
+	;調教者がサドいと、受動と苦痛が増える
+	IF SOURCE:6 < 100000
+		SOURCE:6 = SOURCE:6 * (ABL:PLAYER:15 * 10 + 100) / 100
+	ELSEIF SOURCE:6 < 100000000
+		SOURCE:6 = SOURCE:6 / 100 * (ABL:PLAYER:15 * 10 + 100)
+	ENDIF
+	IF SOURCE:21 < 100000
+		SOURCE:21 = SOURCE:21 * (ABL:PLAYER:15 * 20 + 100) / 100
+	ELSEIF SOURCE:21 < 100000000
+		SOURCE:21 = SOURCE:21 / 100 * (ABL:PLAYER:15 * 20 + 100)
+	ENDIF
+ENDIF
+IF ABL:PLAYER:8 > 0	; 【PLAYER:[マゾっ気]Lv>0】
+	;調教者がマゾいと、征服が増える
+	IF SOURCE:20 < 100000
+		SOURCE:20 = SOURCE:20 * (ABL:PLAYER:8 * 20 + 100) / 100
+	ELSEIF SOURCE:20 < 100000000
+		SOURCE:20 = SOURCE:20 / 100 * (ABL:PLAYER:8 * 20 + 100)
+	ENDIF
+ENDIF
+
+T = PLAYER
+CALL GET_INITIATIVE_RATE
+IF R > 0
+	;調教者がサドいと、受動と苦痛が増える
+	IF SOURCE:6 < 100000
+		SOURCE:6 = SOURCE:6 * (R + 100) / 100
+	ELSEIF SOURCE:6 < 100000000
+		SOURCE:6 = SOURCE:6 / 100 * (R + 100)
+	ENDIF
+	IF SOURCE:21 < 100000
+		SOURCE:21 = SOURCE:21 * (R + 100) / 100
+	ELSEIF SOURCE:21 < 100000000
+		SOURCE:21 = SOURCE:21 / 100 * (R + 100)
+	ENDIF
+ENDIF
+IF R < 0
+	R *= -1
+	;調教者がマゾいと、征服が増える
+	IF SOURCE:20 < 100000
+		SOURCE:20 = SOURCE:20 * (R + 100) / 100
+	ELSEIF SOURCE:20 < 100000000
+		SOURCE:20 = SOURCE:20 / 100 * (R + 100)
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;素質などによる上下の処理（快楽系）
+;-------------------------------------------------
+@UP_TALENT_CVA_CHECK
+;媚薬
+IF TEQUIP:21 && TFLAG:201 != 1	; 【[媚薬効果発揮中]使用中】
+	TIMES UP:0 , 2.00
+	TIMES UP:1 , 2.00
+	TIMES UP:2 , 2.00
+	TIMES UP:14 , 2.00
+	TIMES UP:18 , 2.00
+	;子供体型/小柄は媚薬が体格比で強く効く（控えめ：通常2.0倍に上乗せ→小柄2.2/子供2.4倍相当）
+	IF TALENT:149	; 【[子供体型]】
+		TIMES UP:0 , 1.20
+		TIMES UP:1 , 1.20
+		TIMES UP:2 , 1.20
+		TIMES UP:14 , 1.20
+		TIMES UP:18 , 1.20
+	ELSEIF TALENT:100	; 【[小柄体型]】
+		TIMES UP:0 , 1.10
+		TIMES UP:1 , 1.10
+		TIMES UP:2 , 1.10
+		TIMES UP:14 , 1.10
+		TIMES UP:18 , 1.10
+	ENDIF
+ENDIF
+
+;利尿剤
+IF TEQUIP:22 && TFLAG:201 != 1	; 【[利尿剤効果発揮中]使用中】
+	TIMES UP:0 , 0.70
+	TIMES UP:1 , 0.70
+	TIMES UP:2 , 0.70
+	TIMES UP:14 , 0.70
+	TIMES UP:18 , 0.70
+ENDIF
+
+;自制心
+IF TALENT:20 == 1 && TFLAG:201 != 1	; 【[自制心]】
+	TIMES UP:0 , 0.30
+	TIMES UP:1 , 0.50
+	TIMES UP:2 , 0.70
+	TIMES UP:14 , 0.30
+	TIMES UP:18 , 0.30
+ELSEIF TALENT:20 == 2 && TFLAG:201 != 1	; 【[自制心:強]】
+	TIMES UP:0 , 1.70
+	TIMES UP:1 , 1.50
+	TIMES UP:2 , 1.30
+	TIMES UP:14 , 1.70
+	TIMES UP:18 , 1.70
+ENDIF
+
+;オトコ
+IF TALENT:122 && TFLAG:201 != 1	; 【[オトコ]】
+	TIMES UP:2 , 1.30
+ENDIF
+
+;Lunatic
+IF TALENT:170 && TFLAG:201 != 1
+	TIMES UP:0 , 0.40
+	TIMES UP:1 , 0.40
+	TIMES UP:2 , 0.40
+	TIMES UP:14 , 0.40
+	TIMES UP:18 , 0.40
+ENDIF
+
+;淫蟲
+IF TEQUIP:92 == 1 && TFLAG:201 != 1	; 【[蟲風呂プレイ]==1】
+	TIMES UP:0 , 2.00
+	TIMES UP:1 , 2.00
+	TIMES UP:2 , 2.00
+	TIMES UP:14 , 2.00
+	TIMES UP:18 , 2.00
+ENDIF
+
+
+;-------------------------------------------------
+;素質などによる上下の処理
+;-------------------------------------------------
+@UP_TALENT_CHECK
+
+;媚薬
+IF TEQUIP:21	; 【[媚薬効果発揮中]使用中】
+	TIMES UP:4 , 1.20
+	TIMES UP:5 , 2.00
+	TIMES UP:6 , 1.20
+	TIMES UP:11 , 0.75
+	TIMES UP:12 , 0.50
+ENDIF
+
+;荊
+IF TEQUIP:72 == 1	; 【[荊縛り]==1】
+	TIMES UP:9 , 2.00
+	TIMES UP:10 , 2.00
+	TIMES UP:11 , 0.75
+	TIMES UP:12 , 0.50
+ENDIF
+
+;蜘蛛糸
+IF TEQUIP:73 == 1	; 【[蜘蛛の糸縛り]==1】
+	TIMES UP:8 , 1.70
+	TIMES UP:9 , 0.80
+	TIMES UP:10 , 2.00
+	TIMES UP:11 , 0.75
+	TIMES UP:12 , 0.50
+ENDIF
+
+;淫蟲
+IF TEQUIP:92 == 1	; 【[蟲風呂プレイ]==1】
+	TIMES UP:5 , 2.00
+	TIMES UP:6 , 1.20
+	TIMES UP:10 , 2.00
+	TIMES UP:11 , 0.75
+	TIMES UP:12 , 0.50
+ENDIF
+
+
+;利尿剤
+IF TEQUIP:22	; 【[利尿剤効果発揮中]使用中】
+	TIMES UP:4 , 0.80
+	TIMES UP:5 , 0.80
+	TIMES UP:6 , 1.50
+	TIMES UP:11 , 1.50
+	TIMES UP:12 , 1.20
+	TIMES UP:13 , 1.50
+ENDIF
+
+;臆病
+IF TALENT:10	; 【[臆病]】
+	TIMES UP:10 , 2.00
+	TIMES UP:13 , 0.25
+ENDIF
+;反抗的
+IF TALENT:11 == 1	; 【[反抗的]】
+	TIMES UP:4 , 0.25
+	TIMES UP:5 , 0.50
+	TIMES UP:11 , 1.50
+	TIMES UP:15 , 0.50
+	TIMES UP:17 , 1.10
+ELSEIF TALENT:11 == 2	; 【[反抗的:強]】
+	TIMES UP:4 , 2.00
+	TIMES UP:5 , 2.00
+	TIMES UP:11 , 0.65
+	TIMES UP:15 , 2.00
+ENDIF
+;気丈
+IF TALENT:12	; 【[気丈]】
+	TIMES UP:4 , 0.30
+	TIMES UP:5 , 0.75
+	TIMES UP:10 , 0.80
+	TIMES UP:11 , 2.00
+	TIMES UP:13 , 2.00
+	TIMES UP:15 , 0.80
+ENDIF
+;素直
+IF TALENT:13	; 【[素直]】
+	SIF UP:4 < 999999999	; 【[恭順上昇]<999999999】
+		TIMES UP:4 , 2.00
+	TIMES UP:11 , 0.60
+	SIF UP:15 < 999999999	; 【[好意上昇]<999999999】
+		TIMES UP:15 , 1.50
+ENDIF
+;大人しい
+IF TALENT:14	; 【[大人しい]】
+ENDIF
+;プライド高い
+IF TALENT:15	; 【[プライド高い]】
+	TIMES UP:6 , 0.50
+	TIMES UP:10 , 0.60
+	TIMES UP:11 , 1.20
+	TIMES UP:17 , 1.50
+ENDIF
+;プライド低い
+IF TALENT:17	; 【[プライド低い]】
+	TIMES UP:6 , 2.00
+	TIMES UP:10 , 1.50
+	TIMES UP:11 , 0.80
+	TIMES UP:17 , 0.80
+ENDIF
+
+;無関心
+IF TALENT:21 == 1	; 【[無関心]】
+	TIMES UP:4 , 0.50
+	TIMES UP:5 , 0.50
+	TIMES UP:6 , 0.50
+	TIMES UP:10 , 0.80
+	TIMES UP:11 , 0.80
+	TIMES UP:15 , 0.70
+	TIMES UP:16 , 0.70
+ELSEIF TALENT:21 == 2	; 【[無関心:強]】
+	TIMES UP:4 , 2.00
+	TIMES UP:5 , 2.00
+	TIMES UP:6 , 2.00
+	TIMES UP:10 , 1.25
+	TIMES UP:11 , 1.25
+	TIMES UP:15 , 1.50
+	TIMES UP:16 , 1.50
+ENDIF
+;感情乏しい
+IF TALENT:22 == 1	; 【[感情乏しい]】
+	TIMES UP:4 , 0.60
+	TIMES UP:5 , 0.60
+	TIMES UP:6 , 0.60
+	TIMES UP:8 , 0.60
+	TIMES UP:10 , 0.60
+	TIMES UP:11 , 0.60
+	TIMES UP:12 , 0.60
+	TIMES UP:13 , 0.60
+	TIMES UP:15 , 0.80
+	TIMES UP:16 , 0.80
+ELSEIF TALENT:22 == 2	; 【[感情乏しい:強]】
+	TIMES UP:4 , 1.40
+	TIMES UP:5 , 1.40
+	TIMES UP:6 , 1.40
+	TIMES UP:8 , 1.40
+	TIMES UP:10 , 1.40
+	TIMES UP:11 , 1.40
+	TIMES UP:12 , 1.40
+	TIMES UP:13 , 1.40
+	TIMES UP:15 , 1.20
+	TIMES UP:16 , 1.20
+ENDIF
+;好奇心
+IF TALENT:23	; 【[好奇心]】
+	TIMES UP:7 , 1.20
+ENDIF
+;保守的
+IF TALENT:24	; 【[保守的]】
+	TIMES UP:7 , 0.80
+ENDIF
+;楽観的
+IF TALENT:25	; 【[楽観的]】
+	TIMES UP:13 , 0.30
+ENDIF
+;悲観的
+IF TALENT:26	; 【[悲観的]】
+	TIMES UP:13 , 2.50
+ENDIF
+
+;抑圧
+IF TALENT:32 == 1	; 【[抑圧]】
+	TIMES UP:5 , 0.50
+	TIMES UP:11 , 2.00
+	TIMES UP:13 , 1.50
+ELSEIF TALENT:32 == 2	; 【[抑圧:強]】
+	TIMES UP:5 , 2.00
+	TIMES UP:13 , 0.65
+ENDIF
+;解放
+IF TALENT:33	; 【[解放]】
+	TIMES UP:5 , 2.00
+	TIMES UP:6 , 2.00
+ENDIF
+;抵抗
+IF TALENT:34 == 1	; 【[抵抗]】
+	TIMES UP:5 , 0.50
+	TIMES UP:11 , 2.00
+ELSEIF TALENT:34 == 2	; 【[抵抗:強]】
+	TIMES UP:5 , 2.00
+ENDIF
+
+;痛みに弱い
+IF TALENT:40	; 【[痛みに弱い]】
+	TIMES UP:10 , 2.00
+	TIMES UP:11 , 1.50
+ENDIF
+;痛みに強い
+IF TALENT:41	; 【[痛みに強い]】
+	TIMES UP:10 , 0.50
+	TIMES UP:11 , 0.75
+ENDIF
+
+;習得早い
+IF TALENT:50	; 【[習得早い]】
+	TIMES UP:7 , 2.00
+	TIMES UP:16 , 1.50
+ENDIF
+;習得遅い
+IF TALENT:51	; 【[習得遅い]】
+	TIMES UP:7 , 0.50
+	TIMES UP:16 , 0.50
+ENDIF
+
+;献身的
+IF TALENT:63 == 1	; 【[献身的]】
+	TIMES UP:6 , 2.00
+	TIMES UP:16 , 1.20
+ELSEIF TALENT:63 == 2	; 【[献身的:強]】
+	TIMES UP:6 , 3.00
+	TIMES UP:16 , 1.50
+ENDIF
+
+;快感に素直
+SIF TALENT:70	; 【[快感に素直]】
+	TIMES UP:5 , 2.00
+;快感の否定
+IF TALENT:71 == 1	; 【[快感の否定]】
+	TIMES UP:5 , 0.50
+ELSEIF TALENT:71 == 2	; 【[快感の否定:強]】
+	TIMES UP:5 , 2.00
+ENDIF
+
+;サド
+IF TALENT:83	; 【[サド]】
+	TIMES UP:17 , 2.00
+ENDIF
+
+;小悪魔
+IF TALENT:87	; 【[小悪魔]】
+	TIMES UP:17 , 1.50
+ENDIF
+
+;恋慕
+IF TALENT:85 && ASSIPLAY == 0	; 【[恋慕] / 調教者:[主人]】
+	TIMES UP:6 , 1.50
+	TIMES UP:11 , 0.75
+	TIMES UP:12 , 0.75
+	SIF UP:15 < 999999999	; 【[好意上昇]<999999999】
+		TIMES UP:15 , 1.20
+	TIMES UP:16 , 1.50
+ENDIF
+
+;親愛
+IF TALENT:88 && ASSIPLAY == 0	; 【[親愛] / 調教者:[主人]】
+	SIF UP:4 < 999999999	; 【[恭順上昇]<999999999】
+		TIMES UP:4 , 2.00
+	TIMES UP:6 , 3.00
+	TIMES UP:11 , 0.20
+	TIMES UP:12 , 0.20
+	SIF UP:15 < 999999999	; 【[好意上昇]<999999999】
+		TIMES UP:15 , 2.00
+	TIMES UP:16 , 2.50
+ENDIF
+
+;恋人
+IF TALENT:153 && ASSIPLAY == 0	; 【[恋人] / 調教者:[主人]】
+	TIMES UP:6 , 1.50
+	TIMES UP:11 , 0.75
+	TIMES UP:12 , 0.75
+	SIF UP:15 < 999999999	; 【[好意上昇]<999999999】
+		TIMES UP:15 , 1.30
+	TIMES UP:16 , 1.50
+ENDIF
+
+
+;妄信
+IF TALENT:86	; 【[妄信]】
+	TIMES UP:6 , 1.20
+	TIMES UP:11 , 0.95
+ENDIF
+
+;相愛
+IF TALENT:89	; 【[相愛]】
+	TIMES UP:12 , 0.50
+	TIMES UP:13 , 0.50
+ENDIF
+
+
+;服従
+IF TALENT:180	; 【[服従]】
+	TIMES UP:6 , 2.00
+ENDIF
+;烙印
+IF TALENT:181
+	TIMES UP:6 , 2.00
+	TIMES UP:8 , 2.00
+ENDIF
+;隷属
+IF TALENT:182
+	SIF UP:4 < 999999999	; 【[恭順上昇]<999999999】
+		TIMES UP:4 , 1.80
+	TIMES UP:6 , 2.50
+ENDIF
+
+
+;妖狐
+SIF TALENT:PLAYER:90	; 【PLAYER:[妖狐]】
+	TIMES UP:8 , 2.50
+
+;成功判定
+IF TFLAG:18 == -1	; 【[好感触]】
+	TIMES UP:11 , 1.30
+	TIMES UP:12 , 1.30
+	TIMES UP:13 , 1.30
+	TIMES UP:15 , 0.80
+ELSEIF TFLAG:18 == 1	; 【[好感触]==1】
+	TIMES UP:11 , 0.10
+	TIMES UP:12 , 0.10
+	TIMES UP:13 , 0.10
+	SIF UP:4 < 999999999	; 【[恭順上昇]<999999999】
+		TIMES UP:4 , 1.50
+	TIMES UP:5 , 3.00
+	SIF UP:15 < 999999999	; 【[好意上昇]<999999999】
+		TIMES UP:15 , 1.50
+	TIMES UP:16 , 1.50
+	TIMES UP:17 , 1.75
+ENDIF
+
+;Lunaticモード
+IF FLAG:5 == 3 || FLAG:5 == 4 || FLAG:5 == 10
+	TIMES UP:4 , 0.90
+	TIMES UP:5 , 0.90
+	TIMES UP:6 , 0.90
+	TIMES UP:10 , 0.90
+	TIMES UP:11 , 1.20
+	TIMES UP:12 , 1.20
+	TIMES UP:13 , 1.20
+	TIMES UP:15 , 0.90
+	TIMES UP:16 , 0.90
+	TIMES UP:17 , 0.90
+ENDIF
+
+;反発感情廃止（ブロック削除済み）
+
+
+;異常経験(＝淫乱度合とみなす)による、抑鬱の軽減
+;でもあなた様だけはなかなか軽減しない
+IF EXP:50 <= 0	; 【[異常経験]<=0】
+	TIMES UP:13 , 1.30
+ELSEIF EXP:50 < (10 + TALENT:201 * 255)	; 【[eratohoJも支配する程度の能力] / [異常経験]あり】
+	TIMES UP:13 , 1.10
+ELSEIF EXP:50 < (50 + TALENT:201 * 500)	; 【[eratohoJも支配する程度の能力] / [異常経験]あり】
+	TIMES UP:13 , 0.90
+ELSEIF EXP:50 < (100 + TALENT:201 * 1000)	; 【[eratohoJも支配する程度の能力] / [異常経験]あり】
+	TIMES UP:13 , 0.70
+ELSEIF EXP:50 < (200 + TALENT:201 * 2000)	; 【[eratohoJも支配する程度の能力] / [異常経験]あり】
+	TIMES UP:13 , 0.40
+ELSEIF EXP:50 < (400 + TALENT:201 * 4000)	; 【[eratohoJも支配する程度の能力] / [異常経験]あり】
+	TIMES UP:13 , 0.10
+ELSEIF EXP:50 < (700 + TALENT:201 * 7000)	; 【[eratohoJも支配する程度の能力] / [異常経験]あり】
+	TIMES UP:13 , 0.01
+ELSEIF EXP:50 < (1500 + TALENT:201 * 15000)	; 【[eratohoJも支配する程度の能力] / [異常経験]あり】
+	TIMES UP:13 , 0.001
+ELSE
+	TIMES UP:13 , 0.0001
+ENDIF
+
+;調教者の技巧による反感と不快の軽減処理
+IF ABL:PLAYER:2 >= 10 && ABL:PLAYER:2 <= 99 && (UP:0 + UP:1 + UP:2 + UP:14 + UP:18) > 0	; 【PLAYER:[技巧]Lv>=10 / PLAYER:[技巧]Lv<=99 / [快Ｃ上昇] / [快Ｖ上昇] / [快Ａ上昇] / [快Ｂ上昇] / [快Ｍ上昇]】
+	UP:11 = UP:11 * (110 - ABL:PLAYER:2) / 100
+	UP:12 = UP:12 * (110 - ABL:PLAYER:2) / 100
+ELSEIF ABL:PLAYER:2 >= 100 && ABL:PLAYER:2 <= 999 && (UP:0 + UP:1 + UP:2 + UP:14 + UP:18) > 0	; 【PLAYER:[技巧]Lv>=100 / PLAYER:[技巧]Lv<=999 / [快Ｃ上昇] / [快Ｖ上昇] / [快Ａ上昇] / [快Ｂ上昇] / [快Ｍ上昇]】
+	UP:11 = UP:11 * (1100 - ABL:PLAYER:2) / 10000
+	UP:12 = UP:12 * (1100 - ABL:PLAYER:2) / 10000
+ELSEIF ABL:PLAYER:2 >= 1000 && (UP:0 + UP:1 + UP:2 + UP:14 + UP:18) > 0	; 【PLAYER:[技巧]Lv>=1000 / [快Ｃ上昇] / [快Ｖ上昇] / [快Ａ上昇] / [快Ｂ上昇] / [快Ｍ上昇]】
+	UP:11 = UP:11 / 100
+	UP:12 = UP:12 / 100
+ENDIF
+
+;合意がない時のウフフ中コマンドによる強い反感
+IF TFLAG:44 != 0 && TARGET >= 0 && TALENT:TARGET:152 == 0	; 【TARGET:[合意]なし / [ウフフ中]】
+	;基本倍率：反感(UP:11)を大幅に増加
+	TIMES UP:11 , 3.00
+	;不快(UP:12)も増加
+	TIMES UP:12 , 2.00
+	;従順に応じて反感のベース値を大幅追加
+	IF ABL:TARGET:0 == 0	; 【TARGET:[親密]Lv==0】
+		UP:11 += 3000
+	ELSEIF ABL:TARGET:0 <= 2	; 【TARGET:[親密]Lv<=2】
+		UP:11 += 2000
+	ELSEIF ABL:TARGET:0 <= 4	; 【TARGET:[親密]Lv<=4】
+		UP:11 += 1200
+	ELSE
+		UP:11 += 600
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;刻印取得のチェック
+;-------------------------------------------------
+@MARK_GOT_CHECK
+;LOCAL = 刻印のLV記録
+;LOCAL:1 = 親密変動値記録
+
+;-------------------------------------------------
+;反発感情廃止（取得ブロック削除済み）
+TFLAG:150 = 0
+
+;-------------------------------------------------
+;苦痛依存
+;-------------------------------------------------
+VARSET LOCAL, 0
+IF UP:9 >= 500 && UP:9 < 1500 && MARK:0 <= 0	; 【[苦痛依存]Lv<=0 / [苦痛上昇]>=500 / [苦痛上昇]<1500】
+	LOCAL = 1
+	LOCAL:1 = 1
+ELSEIF UP:9 >= 1500 && UP:9 < 3000 && MARK:0 <= 1	; 【[苦痛依存]Lv<=1 / [苦痛上昇]>=1500 / [苦痛上昇]<3000】
+	LOCAL = 2
+	LOCAL:1 = 3
+ELSEIF UP:9 >= 3000 && MARK:0 <= 2	; 【[苦痛依存]Lv<=2 / [苦痛上昇]>=3000】
+	LOCAL = 3
+	LOCAL:1 = 5
+ENDIF
+
+;苦痛依存取得
+IF LOCAL > 0
+	MARK:0 = LOCAL
+	TFLAG:22 = LOCAL
+	PRINTFORML 苦痛依存LV{LOCAL}を取得
+ENDIF
+
+;マゾっ気LVが取得する苦痛依存LV以上かつ、気丈・感情乏しいがなく、反発感情がない場合は親密アップ
+IF ABL:0 < LOCAL:1 && ABL:8 >= LOCAL && TALENT:12 == 0 && TALENT:22 == 0 && MARK:3 == 0	; 【[気丈]なし / [感情乏しい]なし / [親密] / [マゾっ気] / [反発感情]Lv==0】
+	IF TFLAG:899 == 0 && BASE:TARGET:0 > 0	; 【無[気絶継続中] / TARGET:[体力]>0】
+		ABL:0 = LOCAL:1
+		PRINTFORML そして親密がLV{ABL:0}になった
+	ENDIF
+ENDIF
+
+;苦痛依存LV3取得時に条件を満たすと異常経験増加
+IF TFLAG:22 == 3	; 【[苦痛依存入手]==3】
+	;実行者が【サド】持ち サドっ気が非常に高い場合正常位等でも苦痛依存LV3取得、異常経験増加してしまうためコメントアウト
+	;IF TALENT:PLAYER:83
+	;	PRINTFORML %EXPNAME:50%＋３
+	;	EXP:50 += 3
+	;針の実行者が【針さばき】持ち
+	IF TALENT:PLAYER:53 && SELECTCOM == 42	; 【PLAYER:[針さばき] / コマンド:[針]】
+		PRINTFORML %EXPNAME:50%＋３
+		EXP:50 += 3
+	ENDIF
+ENDIF
+
+SIF LOCAL > 0
+	WAIT
+
+;-------------------------------------------------
+;快楽依存
+;-------------------------------------------------
+VARSET LOCAL, 0
+;気絶中は快楽依存を取得しない
+IF TFLAG:899 == 0 && BASE:TARGET:0 > 0	; 【無[気絶継続中] / TARGET:[体力]>0】
+	A = UP:0 + UP:1 + UP:2 + UP:14 + UP:18
+
+	IF A >= 500 && A < 1500 && MARK:1 <= 0	; 【[快楽依存]Lv<=0】
+		LOCAL = 1
+		LOCAL:1 = 1
+	ELSEIF A >= 1500 && A < 3000 && MARK:1 <= 1	; 【[快楽依存]Lv<=1】
+		LOCAL = 2
+		LOCAL:1 = 3
+	ELSEIF A >= 3000 && MARK:1 <= 2	; 【[快楽依存]Lv<=2】
+		LOCAL = 3
+		LOCAL:1 = 5
+	ENDIF
+
+	;快楽依存取得
+	IF LOCAL > 0
+		MARK:1 = LOCAL
+		TFLAG:23 = LOCAL
+		PRINTFORML 快楽依存LV{LOCAL}を取得
+	ENDIF
+
+	;自制心・感情乏しいがなく、反発感情がない場合は親密アップ
+	IF ABL:0 < LOCAL:1 && TALENT:20 == 0 && TALENT:22 == 0 && MARK:3 == 0	; 【[自制心]なし / [感情乏しい]なし / [親密] / [反発感情]Lv==0】
+		ABL:0 = LOCAL:1
+		PRINTFORML そして親密がLV{ABL:0}になった
+	ENDIF
+
+	SIF LOCAL > 0
+		WAIT
+ENDIF
+
+;-------------------------------------------------
+;既成事実
+;-------------------------------------------------
+VARSET LOCAL, 0
+;気絶中は既成事実を取得しない
+IF TFLAG:899 == 0 && BASE:TARGET:0 > 0	; 【無[気絶継続中] / TARGET:[体力]>0】
+	IF TFLAG:200 == 1 && MARK:2 <= 0	; 【[既成事実]Lv<=0 / [既成事実フラグ]==1】
+		LOCAL = 1
+		LOCAL:1 = 3
+	ELSEIF TFLAG:200 == 2 && MARK:2 <= 1	; 【[既成事実]Lv<=1 / [既成事実フラグ]==2】
+		LOCAL = 2
+		LOCAL:1 = 5
+	ELSEIF TFLAG:200 == 3 && MARK:2 <= 2	; 【[既成事実]Lv<=2 / [既成事実フラグ]==3】
+		LOCAL = 3
+		LOCAL:1 = 8
+	ENDIF
+
+	;既成事実取得
+	IF LOCAL > 0
+		MARK:2 = LOCAL
+		TFLAG:24 = LOCAL
+		PRINTFORML 既成事実LV{LOCAL}を取得
+	ENDIF
+
+	;感情乏しいがなく、反発感情がない場合は親密アップ
+	IF ABL:0 < LOCAL:1 && TALENT:22 == 0 && MARK:3 == 0	; 【[感情乏しい]なし / [親密] / [反発感情]Lv==0】
+		ABL:0 = LOCAL:1
+		PRINTFORML そして親密がLV{ABL:0}になった
+	ENDIF
+
+	SIF LOCAL > 0
+		WAIT
+ENDIF
+
+;-------------------------------------------------
+;反発感情取得時は反発感情取得口上のみ表示
+;-------------------------------------------------
+IF TFLAG:21	; 【[反発感情入手]】
+	TFLAG:22 = 0
+	TFLAG:23 = 0
+	TFLAG:24 = 0
+ENDIF
+
+
+
+;-------------------------------------------------
+;欲望の上昇による[抑圧][抵抗]の消滅をチェック
+;-------------------------------------------------
+@YOKUBO_UP_CHECK
+IF ABL:1 >= 6 && (TALENT:32 == 1 || TALENT:34 == 1)	; 【[抑圧] / [抵抗] / [欲望]Lv>=6】
+	TFLAG:13 = 36
+	CALL SELF_KOJO
+	PRINTFORM %NAME:TARGET%は
+	IF TALENT:32 == 1	; 【[抑圧]】
+		PRINTFORM [%TALENTNAME:32%]
+		TALENT:32 = 2
+	ENDIF
+	IF TALENT:34 == 1	; 【[抵抗]】
+		PRINTFORM [%TALENTNAME:34%]
+		TALENT:34 = 2
+	ENDIF
+	PRINTL が昇華した
+	
+	PRINTW 否定の珠が半分になった
+	JUEL:100 /= 2
+
+	TFLAG:25 = 1
+ENDIF
+
+;-------------------------------------------------
+;ツンデレ持ちの親密上昇による[反抗的]の反転をチェック
+;-------------------------------------------------
+@JUJUN_UP_CHECK
+IF ABL:0 >= 10 && TALENT:11 == 1 && TALENT:18	; 【[反抗的] / [ツンデレ] / [親密]Lv>=10】
+	TFLAG:13 = 77
+	CALL SELF_KOJO
+	PRINTFORMW %NAME:TARGET%は[%TALENTNAME:11%]が昇華し、[%TALENTNAME:13%]を得た
+	TALENT:11 = 2
+	TALENT:13 = 1
+ENDIF
+
+;-------------------------------------------------
+;苦痛快楽経験、奉仕快楽経験のチェック
+;-------------------------------------------------
+@EXP_GOT_CHECK
+
+A = UP:0 + UP:1 + UP:2 + UP:14 +UP:18
+
+;奉仕系である、奉仕快楽のチェック
+E = 0
+
+IF UP:7 < 100	; 【[習得上昇]<100】
+	A = 0
+ELSEIF UP:7 < 300	; 【[習得上昇]<300】
+	A *= 1
+ELSEIF UP:7 < 700	; 【[習得上昇]<700】
+	A *= 2
+ELSEIF UP:7 < 1500	; 【[習得上昇]<1500】
+	A *= 3
+ELSE
+	A *= 4
+ENDIF
+
+IF TFLAG:100	; 【[ページ数]】
+	IF A >= 1000000
+		E = 64
+		TIMES UP:11 , 0.55
+		TIMES UP:12 , 0.10
+	ELSEIF A >= 200000
+		E = 32
+		TIMES UP:11 , 0.60
+		TIMES UP:12 , 0.20
+	ELSEIF A >= 12000
+		E = 16
+		TIMES UP:11 , 0.65
+		TIMES UP:12 , 0.30
+	ELSEIF A >= 8000
+		E = 12
+		TIMES UP:11 , 0.70
+		TIMES UP:12 , 0.40
+	ELSEIF A >= 5000
+		E = 8
+		TIMES UP:11 , 0.75
+		TIMES UP:12 , 0.50
+	ELSEIF A >= 3000
+		E = 4
+		TIMES UP:11 , 0.80
+		TIMES UP:12 , 0.60
+	ELSEIF A >= 2000
+		E = 2
+		TIMES UP:11 , 0.85
+		TIMES UP:12 , 0.70
+	ELSEIF A >= 1000
+		E = 1
+		TIMES UP:11 , 0.90
+		TIMES UP:12 , 0.80
+	ENDIF
+	
+	IF E
+		PRINT 奉仕快楽経験+
+		PRINTVL E
+		EXP:21 += E
+		TFLAG:26 = E
+	ENDIF
+ENDIF
+
+;苦痛快楽のチェック
+A = UP:0 + UP:1 + UP:2 + UP:14 + UP:18
+
+E = 0
+
+IF A >= 12000 && UP:9 >= 8000	; 【[苦痛上昇]>=8000】
+	E = 64
+	TIMES UP:11 , 0.55
+ELSEIF A >= 6000 && UP:9 >= 4000	; 【[苦痛上昇]>=4000】
+	E = 32
+	TIMES UP:11 , 0.60
+ELSEIF A >= 3000 && UP:9 >= 2000	; 【[苦痛上昇]>=2000】
+	E = 16
+	TIMES UP:11 , 0.65
+ELSEIF A >= 2500 && UP:9 >= 1500	; 【[苦痛上昇]>=1500】
+	E = 12
+	TIMES UP:11 , 0.70
+ELSEIF A >= 1500 && UP:9 >= 1000	; 【[苦痛上昇]>=1000】
+	E = 8
+	TIMES UP:11 , 0.75
+ELSEIF A >= 1000 && UP:9 >= 500	; 【[苦痛上昇]>=500】
+	E = 4
+	TIMES UP:11 , 0.80
+ELSEIF A >= 600 && UP:9 >= 300	; 【[苦痛上昇]>=300】
+	E = 2
+	TIMES UP:11 , 0.85
+ELSEIF A >= 300 && UP:9 >= 100	; 【[苦痛上昇]>=100】
+	E = 1
+	TIMES UP:11 , 0.90
+ENDIF
+IF E
+	PRINT 苦痛快楽経験+
+	PRINTVL E
+	EXP:30 += E
+	TFLAG:27 = E
+ENDIF
+
+
+A = UP:2
+
+;アナル系である、Ａ快楽のチェック
+E = 0
+
+IF A >= 1000000
+	E = 64
+	TIMES UP:11 , 0.75
+	TIMES UP:12 , 0.85
+	TIMES UP:6 , 1.30
+ELSEIF A >= 200000
+	E = 32
+	TIMES UP:11 , 0.80
+	TIMES UP:12 , 0.85
+	TIMES UP:6 , 1.25
+ELSEIF A >= 12000
+	E = 16
+	TIMES UP:11 , 0.80
+	TIMES UP:12 , 0.90
+	TIMES UP:6 , 1.20
+ELSEIF A >= 8000
+	E = 12
+	TIMES UP:11 , 0.85
+	TIMES UP:12 , 0.90
+	TIMES UP:6 , 1.15
+ELSEIF A >= 5000
+	E = 8
+	TIMES UP:11 , 0.85
+	TIMES UP:12 , 0.95
+	TIMES UP:6 , 1.10
+ELSEIF A >= 3000
+	E = 4
+	TIMES UP:11 , 0.90
+	TIMES UP:12 , 0.95
+	TIMES UP:6 , 1.05
+ELSEIF A >= 2000
+	E = 2
+	TIMES UP:11 , 0.90
+	TIMES UP:12 , 1.00
+	TIMES UP:6 , 1.00
+ELSEIF A >= 1000
+	E = 1
+	TIMES UP:11 , 0.95
+	TIMES UP:12 , 1.00
+	TIMES UP:6 , 1.00
+ENDIF
+IF E
+	PRINT Ａ快楽経験+
+	PRINTVL E
+	EXP:32 += E
+	TFLAG:128 = E
+ENDIF
+
+;-------------------------------------------------
+;[即落ち]のチェック
+;-------------------------------------------------
+@SOKUOCHI_CHECK
+
+SIF TALENT:73 == 0	; 【[即落ち]なし】
+	RETURN 0
+
+;UP代入
+LOCAL:0 = 0
+LOCAL:1 = 1
+LOCAL:2 = 2
+LOCAL:3 = 14
+LOCAL:4 = 4
+LOCAL:5 = 5
+LOCAL:6 = 6
+LOCAL:7 = 7
+LOCAL:8 = 8
+LOCAL:9 = 9
+;ABL代入
+LOCAL:100 = 3
+LOCAL:101 = 4
+LOCAL:102 = 5
+LOCAL:103 = 14
+LOCAL:104 = 0
+LOCAL:105 = 1
+LOCAL:106 = 6
+LOCAL:107 = 2
+LOCAL:108 = 7
+LOCAL:109 = 8
+REPEAT 10
+	IF UP:(LOCAL:COUNT) > 1 && ABL:(LOCAL:(100+COUNT)) < 1
+		ABL:(LOCAL:(100+COUNT)) = 1
+		PRINTFORML %ABLNAME:(LOCAL:(100+COUNT))%LV1になった
+	ELSEIF UP:(LOCAL:COUNT) > 30 && ABL:(LOCAL:(100+COUNT)) < 2
+		ABL:(LOCAL:(100+COUNT)) = 2
+		PRINTFORML %ABLNAME:(LOCAL:(100+COUNT))%LV2になった
+	ELSEIF UP:(LOCAL:COUNT) > 60 && ABL:(LOCAL:(100+COUNT)) < 3
+		ABL:(LOCAL:(100+COUNT)) = 3
+		PRINTFORML %ABLNAME:(LOCAL:(100+COUNT))%LV3になった
+	ELSEIF UP:(LOCAL:COUNT) > 200 && ABL:(LOCAL:(100+COUNT)) < 4
+		ABL:(LOCAL:(100+COUNT)) = 4
+		PRINTFORML %ABLNAME:(LOCAL:(100+COUNT))%LV4になった
+	ELSEIF UP:(LOCAL:COUNT) > 1000 && ABL:(LOCAL:(100+COUNT)) < 5
+		ABL:(LOCAL:(100+COUNT)) = 5
+		PRINTFORML %ABLNAME:(LOCAL:(100+COUNT))%LV5になった
+	ENDIF
+REND
+
+IF EXP:40 > 1 && ABL:9 < 1 && ABL:1 >= 1	; 【[レズっ気]Lv<1 / [欲望]Lv>=1 / [レズ経験]>1】
+	ABL:9 = 1
+	PRINTFORML %ABLNAME:9%LV1になった
+ELSEIF EXP:40 > 5 && ABL:9 < 2 && ABL:1 >= 2	; 【[レズっ気]Lv<2 / [欲望]Lv>=2 / [レズ経験]>5】
+	ABL:9 = 2
+	PRINTFORML %ABLNAME:9%LV2になった
+ELSEIF EXP:40 > 20 && ABL:9 < 3 && ABL:1 >= 3	; 【[レズっ気]Lv<3 / [欲望]Lv>=3 / [レズ経験]>20】
+	ABL:9 = 3
+	PRINTFORML %ABLNAME:9%LV3になった
+ELSEIF EXP:40 > 40 && ABL:9 < 4 && ABL:1 >= 4	; 【[レズっ気]Lv<4 / [欲望]Lv>=4 / [レズ経験]>40】
+	ABL:9 = 4
+	PRINTFORML %ABLNAME:9%LV4になった
+ELSEIF EXP:40 > 100 && ABL:9 < 5 && ABL:1 >= 5	; 【[レズっ気]Lv<5 / [欲望]Lv>=5 / [レズ経験]>100】
+	ABL:9 = 5
+	PRINTFORML %ABLNAME:9%LV5になった
+ENDIF
+
+IF EXP:41 > 1 && ABL:13 < 1 && ABL:1 >= 1	; 【[ＢＬっ気]Lv<1 / [欲望]Lv>=1 / [ＢＬ経験]>1】
+	ABL:13 = 1
+	PRINTFORML %ABLNAME:13%LV1になった
+ELSEIF EXP:41 > 5 && ABL:13 < 2 && ABL:1 >= 2	; 【[ＢＬっ気]Lv<2 / [欲望]Lv>=2 / [ＢＬ経験]>5】
+	ABL:13 = 2
+	PRINTFORML %ABLNAME:13%LV2になった
+ELSEIF EXP:41 > 20 && ABL:13 < 3 && ABL:1 >= 3	; 【[ＢＬっ気]Lv<3 / [欲望]Lv>=3 / [ＢＬ経験]>20】
+	ABL:13 = 3
+	PRINTFORML %ABLNAME:13%LV3になった
+ELSEIF EXP:41 > 40 && ABL:13 < 4 && ABL:1 >= 4	; 【[ＢＬっ気]Lv<4 / [欲望]Lv>=4 / [ＢＬ経験]>40】
+	ABL:13 = 4
+	PRINTFORML %ABLNAME:13%LV4になった
+ELSEIF EXP:41 > 100 && ABL:13 < 5 && ABL:1 >= 5	; 【[ＢＬっ気]Lv<5 / [欲望]Lv>=5 / [ＢＬ経験]>100】
+	ABL:13 = 5
+	PRINTFORML %ABLNAME:13%LV5になった
+ENDIF
+
+;パートナーの射精ゲージ加算。従来の加重式を安全に計算する。
+;基礎値上限は1e15（従来1e8）。上限時だけ90～110%の幅を付ける。
+@GET_TARGET_EJAC_GAIN, ARG, ARG:1, ARG:2, ARG:3, ARG:4
+#FUNCTION
+#DIM DYNAMIC GAIN, 1
+;各入力を先に制限するので、加重和でも最大4.5e15を超えない。
+GAIN = LIMIT(ARG, 0, 1000000000000000) * 3
+GAIN += LIMIT(ARG:1, 0, 1000000000000000) / 10
+GAIN += LIMIT(ARG:2, 0, 1000000000000000) / 5
+GAIN += LIMIT(ARG:3, 0, 1000000000000000) / 5
+GAIN += LIMIT(ARG:4, 0, 1000000000000000)
+SIF GAIN >= 1000000000000000
+	GAIN = 900000000000000 + RAND:200001 * 1000000000
+RETURNF GAIN

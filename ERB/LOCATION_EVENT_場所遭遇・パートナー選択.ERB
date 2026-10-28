@@ -400,10 +400,9 @@ ELSEIF TFLAG:86 == 2	;委員会室
 		LOCAL:0 = 4
 	ELSEIF TFLAG:84 == 2
 		PRINTFORML ── 図書委員会 ──
-		LOCAL:1 = 27
-		LOCAL:2 = 55
-		LOCAL:3 = 69
-		LOCAL:0 = 3
+		LOCAL:1 = 64
+		LOCAL:2 = 70
+		LOCAL:0 = 2
 	ELSEIF TFLAG:84 == 3
 		PRINTFORML ── 緑化委員会 ──
 		LOCAL:1 = 43
@@ -411,26 +410,43 @@ ELSEIF TFLAG:86 == 2	;委員会室
 		LOCAL:0 = 2
 	ELSEIF TFLAG:84 == 4
 		PRINTFORML ── 美化委員会 ──
+		LOCAL:1 = 27
+		LOCAL:2 = 55
+		LOCAL:3 = 69
+		LOCAL:0 = 3
+	ELSEIF TFLAG:84 == 5
+		PRINTFORML ── 選挙管理委員会 ──
+		LOCAL:1 = 8
+		LOCAL:2 = 20
+		LOCAL:0 = 2
+	ELSEIF TFLAG:84 == 6
+		PRINTFORML ── 風紀委員会 ──
 		LOCAL:1 = 5
 		LOCAL:2 = 23
 		LOCAL:3 = 60
 		LOCAL:0 = 3
-	ELSEIF TFLAG:84 == 5
-		PRINTFORML ── 風紀委員会 ──
-		LOCAL:1 = 64
-		LOCAL:2 = 70
-		LOCAL:0 = 2
-	ELSEIF TFLAG:84 == 6
-		PRINTFORML ── 風紀委員会 ──
-		LOCAL:1 = 8
-		LOCAL:2 = 20
-		LOCAL:0 = 2
 	ENDIF
 
 ENDIF
 
-; 誰もいなかった→ソロイベント
+; 療養中（BASE:0 <= 0）のキャラを候補から除外
+LOCAL:90 = 0
+FOR LOCAL:91, 1, LOCAL:0 + 1
+	LOCAL:92 = LOCAL:(LOCAL:91)
+	LOCAL:93 = GETCHARA(LOCAL:92)
+	; 既に加入済みで、かつ体力が0以下（療養中）の場合は不在として除外
+	IF LOCAL:93 >= 0 && BASE:(LOCAL:93):0 <= 0
+		CONTINUE
+	ENDIF
+	LOCAL:90 += 1
+	LOCAL:(LOCAL:90) = LOCAL:92
+NEXT
+LOCAL:0 = LOCAL:90
+
+; 誰もいなかった（全員療養中または無人）→空室ソロイベント
 IF LOCAL:0 == 0
+	PRINTFORML 中を覗いてみたが、誰もいないようだ……部屋は静まり返っている。
+	PRINTFORMW （所属する生徒は保健室で療養中などのため、空でした）
 	CALL LOCATION_SOLO_EVENT
 	RETURN RESULT
 ENDIF
@@ -487,9 +503,9 @@ ELSEIF A == 3
 	PRINTFORML 誰もいなかった。静かな空間で少し休憩することにした。
 	PRINTFORML 気分がすっきりした。
 	PRINTL
-	IF BASE:0 < MAXBASE:0
+	IF BASE:0 < MAXBASE:0	; 【[体力]<MAXBASE:0】
 		BASE:0 += MAXBASE:0 / 5 + 1
-		IF BASE:0 > MAXBASE:0
+		IF BASE:0 > MAXBASE:0	; 【[体力]>MAXBASE:0】
 			BASE:0 = MAXBASE:0
 		ENDIF
 	ENDIF
@@ -533,9 +549,22 @@ PRINTL
 PRINTFORML %CALLNAME:A%の好感度 +3（現在：{CFLAG:A:2}）
 PRINTL
 
+;衰弱療養中チェック
+IF BASE:A:0 <= 0	; 【A:[体力]<=0】
+	PRINTFORML （しかし%NAME:A%は体力が尽きて衰弱しており、保健室で療養中（お休み）のようだ……）
+	PRINTFORMW （体力が正の値に回復するまでパートナーにすることはできません）
+	RETURN 1
+ENDIF
+
 ;パートナー選択
 IF TARGET == A
 	PRINTFORMW %CALLNAME:A%はもう今のパートナーだ。
+	RETURN 1
+ENDIF
+
+;衰弱療養（休み）のキャラは誘えない
+IF BASE:A:0 <= 0	; 【A:[体力]<=0】
+	PRINTFORMW %CALLNAME:A%は体力が尽き({BASE:A:0})衰弱療養（休み）のため、パートナーに誘えません。
 	RETURN 1
 ENDIF
 
@@ -550,6 +579,12 @@ $INPUT_LOOP_ENC
 INPUT
 IF RESULT == 0
 	TARGET = A
+	;パートナー交代時に衰弱療養・気絶関連の残留フラグを確実にクリア
+	TFLAG:898 = 0
+	TFLAG:899 = 0
+	TFLAG:301 = 0
+	TFLAG:51 = 0
+	TFLAG:999 = 0
 	PRINTFORMW %NAME:A%がパートナーになった。
 	TRYCALLFORM CHAR_FIRST_PARTNER_{NO:A}
 	RETURN 1
@@ -619,6 +654,11 @@ PRINTFORML [0] 帰る
 $OD_SCENE_LOOP
 INPUT
 IF RESULT == 1
+	IF BASE:A:0 <= 0	; 【A:[体力]<=0】
+		PRINTFORML （しかし%NAME:A%は体力が尽きて衰弱しており、保健室で療養中（お休み）のようだ……）
+		PRINTFORMW （体力が正の値に回復するまで一緒に過ごすことはできません）
+		RETURN 1
+	ENDIF
 	TARGET = A
 	TFLAG:87 = 0
 	TFLAG:88 = 0

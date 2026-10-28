@@ -2,76 +2,69 @@
 ; yd—vz‚±‚ÌƒQ[ƒ€‚Ì“oêl•¨‚Í‘Sˆõ20ÎˆÈã‚Ì¬l‚Å‚ ‚èA
 ;         Ž©‚ç‚Ì”»’f‚ÅÓ”C‚ðŽ‚Á‚Äs“®‚Å‚«‚é‘ål‚Ì—«‚Å‚·B
 ;============================================================
-;ŒŽŒois
+;ŒŽŒoŽüŠú‚ÍŽÀ“ú”BƒQ[ƒ€“à1“ú‚Å—ï‚Ì3“ú•ª‚ªŒo‰ß‚·‚éB
+;CFLAG:33=ŽüŠú“à‚ÌŒo‰ß“ú”i¶—‰“ú‚ª0j
+;1276=ŽüŠú“ú”A1277=oŒŒ“ú”A1278=VŽüŠúƒ‚ƒfƒ‹‰Šú‰»Ï‚Ý
+;³í”ÍˆÍ‚ÌŒÂl·‚ðŠÈ—ª‰»B”DP”­ŠoŽžŠúEŽc‘¶¸Žq‚Í]—ˆ‚Ì‘¦Žž”»’èB
 @EVENT_DANGERDAY
-;CFLAG:33
-;ŒŽŒoŽüŠú
-;0`7	‚â‚âˆÀ‘S“ú
-;8`11	¶—
-;11`14	ŠëŒ¯“ú
-
-
 REPEAT CHARANUM
-	;”DP‚µ‚Ä‚È‚¢AƒIƒgƒR‚Å‚Í‚È‚¢
+	CALL INIT_MENSTRUAL_CYCLE, COUNT, 0
 	IF TALENT:COUNT:134 == 0 && TALENT:COUNT:122 == 0
-		LOCAL = 3
-		SELECTCASE CFLAG:COUNT:33
-		CASE 5, 9, 12
-			CFLAG:COUNT:33 += RAND:LOCAL == 0
-		ENDSELECT
-		CFLAG:COUNT:33 += 1
-		CFLAG:COUNT:33 %= 15
-
-		;TALENT;137	ŠëŒ¯“ú
-		;TALENT;138	¶—
-		SELECTCASE CFLAG:COUNT:33
-		CASE 0 TO 7
-			TALENT:COUNT:137 = 0
-			TALENT:COUNT:138 = 0
-		CASE 8 TO 11
-			TALENT:COUNT:137 = 0
-			TALENT:COUNT:138 = 1
-		CASE 11
-			TALENT:COUNT:137 = 1
-			TALENT:COUNT:138 = 1
-		CASE 12 TO 14
-			TALENT:COUNT:137 = 1
-			TALENT:COUNT:138 = 0
-		ENDSELECT
-	ELSE
-		TALENT:COUNT:137 = 0
-		TALENT:COUNT:138 = 0
-		CFLAG:COUNT:33 = 0
+		CFLAG:COUNT:33 += 3
+		CFLAG:COUNT:33 %= CFLAG:COUNT:1276
 	ENDIF
+	CALL UPDATE_MENSTRUAL_STATUS, COUNT
 REND
 
+;ŽžŠÔ‚ði‚ß‚¸ó‘Ô‚ð“¯ŠúB‹ŒƒZ[ƒu‚Æ‰Á“üŒo˜H‚É‚æ‚é‰Šú‰»˜R‚ê‚É‚à‘Î‰žB
+@REFRESH_MENSTRUAL_STATUS
+REPEAT CHARANUM
+	CALL INIT_MENSTRUAL_CYCLE, COUNT, 0
+	CALL UPDATE_MENSTRUAL_STATUS, COUNT
+REND
 
-;‰ŠúŒŽŒoŽüŠú‚ÌÝ’è
 @EVENT_ADD_CHARA_MENSTRUATION
-;ƒIƒgƒR‚Å‚Í‚È‚¢
-IF TALENT:L:122 == 0
-	CFLAG:L:33 = RAND:15
-	;TALENT;137	ŠëŒ¯“ú
-	;TALENT;138	¶—
-	SELECTCASE CFLAG:L:33
-	CASE 0 TO 7
-		TALENT:L:137 = 0
-		TALENT:L:138 = 0
-	CASE 8 TO 11
-		TALENT:L:137 = 0
-		TALENT:L:138 = 1
-	CASE 11
-		TALENT:L:137 = 1
-		TALENT:L:138 = 1
-	CASE 12 TO 14
-		TALENT:L:137 = 1
-		TALENT:L:138 = 0
-	ENDSELECT
+CALL INIT_MENSTRUAL_CYCLE, L, 1
+CALL UPDATE_MENSTRUAL_STATUS, L
+
+@INIT_MENSTRUAL_CYCLE, ARG, ARG:1
+SIF CFLAG:ARG:1278 && ARG:1 == 0
+	RETURN 0
+;’†‰›•t‹ß‚ª‘½‚¢•ª•zBŽüŠú21`35“úi•½‹Ï28“újAoŒŒ2`7“úB
+CFLAG:ARG:1276 = 21 + RAND:8 + RAND:8
+CFLAG:ARG:1277 = 2 + RAND:3 + RAND:4
+IF ARG:1
+	CFLAG:ARG:33 = RAND:(CFLAG:ARG:1276)
 ELSE
-	TALENT:L:137 = 0
-	TALENT:L:138 = 0
-	CFLAG:L:33 = 0
+	;‹Œ15’iŠK‚©‚çˆê“x‚¾‚¯ˆÚsB¶—/”r—‘‘OŒã/‚»‚êˆÈŠO‚Ì‘å‚Ü‚©‚Èó‘Ô‚ð•ÛŽB
+	IF CFLAG:ARG:33 >= 8 && CFLAG:ARG:33 <= 11
+		CFLAG:ARG:33 = (CFLAG:ARG:33 - 8) * CFLAG:ARG:1277 / 4
+	ELSEIF CFLAG:ARG:33 >= 12 && CFLAG:ARG:33 <= 14
+		CFLAG:ARG:33 = CFLAG:ARG:1276 - 17 + CFLAG:ARG:33 - 12
+	ELSE
+		CFLAG:ARG:33 = CFLAG:ARG:1276 - 12 + MAX(0, MIN(CFLAG:ARG:33, 7)) * 12 / 8
+	ENDIF
 ENDIF
+CFLAG:ARG:1278 = 1
+RETURN 0
+
+@UPDATE_MENSTRUAL_STATUS, ARG
+TALENT:ARG:137 = 0
+TALENT:ARG:138 = 0
+IF TALENT:ARG:134 || TALENT:ARG:122
+	CFLAG:ARG:33 = 0
+	RETURN 0
+ENDIF
+;oŒŒ‚Æ”DP‚µ‚â‚·‚¢ŠúŠÔ‚Í•ÊX‚É”»’è‚·‚éB
+;’Z‚¢ŽüŠúE’·‚¢oŒŒ‚Ìê‡‚ÉŒÀ‚èd‚È‚é‚±‚Æ‚ª‚ ‚éB
+SIF CFLAG:ARG:33 < CFLAG:ARG:1277
+	TALENT:ARG:138 = 1
+;”r—‘‚ÍŽŸ‚Ì¶—‚Ì–ñ14“ú‘OiŽüŠú“ú”Ô†=ŽüŠú“ú”-14jB
+;•\Ž¦ã‚ÌŠëŒ¯“ú‚Í”r—‘5“ú‘O`—‚“úB‘¦Žž”DP”»’è‚É‚Ü‚Æ‚ß‚½ƒQ[ƒ€ã‚ÌŠúŠÔB
+LOCAL = CFLAG:ARG:1276 - 15
+SIF CFLAG:ARG:33 >= LOCAL - 5 && CFLAG:ARG:33 <= LOCAL + 1
+	TALENT:ARG:137 = 1
+RETURN 0
 
 
 @EVENT_MENSTRUAL_PAIN
@@ -81,9 +74,9 @@ SIF SOURCE:6 == 0 && (SOURCE:0 || SOURCE:1 || SOURCE:2 || SOURCE:17 || SOURCE:9)
 
 ;C‚ÉŽhŒƒ‚ª‚ ‚éê‡
 IF SOURCE:0
-	IF TALENT:101
+	IF TALENT:101	; y[‚b“ÝŠ´]z
 		TIMES SOURCE:6 , 1.20
-	ELSEIF TALENT:102
+	ELSEIF TALENT:102	; y[‚b•qŠ´]z
 		TIMES SOURCE:6 , 1.50
 	ELSE
 		TIMES SOURCE:6 , 1.30
@@ -92,9 +85,9 @@ ENDIF
 
 ;V‚ÉŽhŒƒ‚ª‚ ‚éê‡
 IF SOURCE:1
-	IF TALENT:103
+	IF TALENT:103	; y[‚u“ÝŠ´]z
 		TIMES SOURCE:6 , 1.20
-	ELSEIF TALENT:104
+	ELSEIF TALENT:104	; y[‚u•qŠ´]z
 		TIMES SOURCE:6 , 1.50
 	ELSE
 		TIMES SOURCE:6 , 1.30
@@ -103,9 +96,9 @@ ENDIF
 
 ;A‚ÉŽhŒƒ‚ª‚ ‚éê‡
 IF SOURCE:2
-	IF TALENT:105
+	IF TALENT:105	; y[‚`“ÝŠ´]z
 		TIMES SOURCE:6 , 1.20
-	ELSEIF TALENT:106
+	ELSEIF TALENT:106	; y[‚`•qŠ´]z
 		TIMES SOURCE:6 , 1.40
 	ELSE
 		TIMES SOURCE:6 , 1.30
@@ -114,9 +107,9 @@ ENDIF
 
 ;B‚ÉŽhŒƒ‚ª‚ ‚éê‡
 IF SOURCE:17
-	IF TALENT:107
+	IF TALENT:107	; y[‚a“ÝŠ´]z
 		TIMES SOURCE:6 , 1.20
-	ELSEIF TALENT:108
+	ELSEIF TALENT:108	; y[‚a•qŠ´]z
 		TIMES SOURCE:6 , 1.40
 	ELSE
 		TIMES SOURCE:6 , 1.30

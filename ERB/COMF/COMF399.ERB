@@ -10,7 +10,7 @@ STR:0 = 告白する
 CALL TRAIN_MESSAGE_B
 LOSEBASE:1 += 10
 
-IF TFLAG:45 == 0
+IF TFLAG:45 == 0	; 【無[主導権]】
 	;主導権が主人公
 
 	A = 0
@@ -19,25 +19,34 @@ IF TFLAG:45 == 0
 
 	;純愛系コマンド実行値取得
 	CALL GET_JUN_VALUE
+	LOCAL:10 = A
 
 	;好感度
-	A += CFLAG:2 / 50
+	LOCAL:11 = CFLAG:2 / 50
+	A += LOCAL:11
 
+	;素質補正
+	LOCAL:12 = 0
 	;キス未経験
-	SIF TALENT:151
+	IF TALENT:151	; 【[キス未経験]】
 		A -= 10
-
+		LOCAL:12 -= 10
+	ENDIF
 	;恋慕
-	SIF TALENT:85
+	IF TALENT:85	; 【[恋慕]】
 		A += 30
-
+		LOCAL:12 += 30
+	ENDIF
 	;悲観的
-	SIF TALENT:26
+	IF TALENT:26	; 【[悲観的]】
 		A -= 5
-
+		LOCAL:12 -= 5
+	ENDIF
 	;一線越えない
-	SIF TALENT:27 == 1
+	IF TALENT:27 == 1	; 【[一線越えない]】
 		A -= 15
+		LOCAL:12 -= 15
+	ENDIF
 
 	;Aの値を退避
 	Z = A
@@ -48,39 +57,71 @@ IF TFLAG:45 == 0
 	A = Z
 
 	;従順なキャラには－ボーナス、強気なキャラには＋ボーナス
+	LOCAL:13 = 0
 	IF R > 0
-		A += R / 5 + 5
+		LOCAL:13 = R / 5 + 5
+		A += LOCAL:13
 	ELSEIF R < 0
 		;負の値の計算がeramakerのバグで怪しいので要注意
 		R = R * -1
-		A -= R / 5
+		LOCAL:13 = -(R / 5)
+		A += LOCAL:13
 	ENDIF
 
 	;ムードボーナス この値が本命
-	IF TFLAG:37 < 10
-		A -= 10
-	ELSEIF TFLAG:37 < 30
-		A -= 1
-	ELSEIF TFLAG:37 < 50
-		A += 3
-	ELSEIF TFLAG:37 < 100
-		A += TFLAG:37 / 4
-	ELSEIF TFLAG:37 < 300
-		A += TFLAG:37 / 2
+	LOCAL:14 = 0
+	IF TFLAG:37 < 10	; 【[ムード]<10】
+		LOCAL:14 = -10
+	ELSEIF TFLAG:37 < 30	; 【[ムード]<30】
+		LOCAL:14 = -1
+	ELSEIF TFLAG:37 < 50	; 【[ムード]<50】
+		LOCAL:14 = 3
+	ELSEIF TFLAG:37 < 100	; 【[ムード]<100】
+		LOCAL:14 = TFLAG:37 / 4
+	ELSEIF TFLAG:37 < 300	; 【[ムード]<300】
+		LOCAL:14 = TFLAG:37 / 2
 	ELSE
-		A += TFLAG:37
+		LOCAL:14 = TFLAG:37
 	ENDIF
+	A += LOCAL:14
 
 	;デート経験 これも割と大きい
-	IF EXP:94 < 50
-		A -= 5
-	ELSEIF EXP:94 < 100
-		A += 5
-	ELSEIF EXP:94 < 500
-		A += EXP:94 / 10
+	LOCAL:15 = 0
+	IF EXP:94 < 50	; 【[デート経験]<50】
+		LOCAL:15 = -5
+	ELSEIF EXP:94 < 100	; 【[デート経験]<100】
+		LOCAL:15 = 5
+	ELSEIF EXP:94 < 500	; 【[デート経験]<500】
+		LOCAL:15 = EXP:94 / 10
 	ELSE
-		A += EXP:94 / 7
+		LOCAL:15 = EXP:94 / 7
 	ENDIF
+	A += LOCAL:15
+
+	;--- 判定値・目標値・内訳の表示 ---
+	DRAWLINE
+	PRINTFORML 【告白判定】 （主導権: %CALLNAME:PLAYER%）
+	PRINTFORM 　親密・素質:{LOCAL:10} 
+	PRINTFORM ＋ 好感度:{LOCAL:11} 
+	SIF LOCAL:12 != 0
+		PRINTFORM \@ LOCAL:12 > 0 ? ＋ # － \@{ABS(LOCAL:12)}(素質補正) 
+	SIF LOCAL:13 != 0
+		PRINTFORM \@ LOCAL:13 > 0 ? ＋ # － \@{ABS(LOCAL:13)}(主導権) 
+	PRINTFORM \@ LOCAL:14 >= 0 ? ＋ # － \@{ABS(LOCAL:14)}(ムード:{TFLAG:37}) 
+	SIF LOCAL:15 != 0
+		PRINTFORM \@ LOCAL:15 > 0 ? ＋ # － \@{ABS(LOCAL:15)}(デート経験:{EXP:94}) 
+	PRINTL
+	IF A >= V
+		SETCOLOR 100, 255, 100
+		PRINTFORML 　⇒ 判定値合計: {A} ≧ 目標難易度: {V} 【成功！】
+		RESETCOLOR
+	ELSE
+		SETCOLOR 255, 120, 120
+		PRINTFORML 　⇒ 判定値合計: {A} ＜ 目標難易度: {V} 【失敗…（不足: {V - A}）】
+		RESETCOLOR
+	ENDIF
+	DRAWLINE
+	WAIT
 
 	;判定成功
 	IF A >= V
@@ -88,19 +129,23 @@ IF TFLAG:45 == 0
 		;口上表示
 		TFLAG:600 = 2
 		TALENT:153 = 1
+		SIF CFLAG:TARGET:1243 == 0	; 【TARGET:[恋人記念日(日目)]==0】
+			CFLAG:TARGET:1243 = GET_CURRENT_DATE_INT()
 		CALL KOJO_JUN
-		SIF TALENT:153 == 0
+		SIF TALENT:153 == 0	; 【[恋人]なし】
 			RETURN 0
 		T = TARGET
 		CALL GET_LOVERS
-		IF TALENT:151
+		IF TALENT:151	; 【[キス未経験]】
 			TALENT:151 = 0
+			CALL SET_FIRST_KISS_RECORD, TARGET, PLAYER
 			PRINTFORML %EXPNAME:96%＋１
 			EXP:96 += 1
 			EXP:PLAYER:96 += 1
-			IF TALENT:PLAYER:151
+			IF TALENT:PLAYER:151	; 【PLAYER:[キス未経験]】
 				PRINTFORMW %CALLNAME:PLAYER%は【キス未経験】を失いました
 				TALENT:PLAYER:151 = 0
+				CALL SET_FIRST_KISS_RECORD, PLAYER, TARGET
 			ENDIF
 			PRINTFORMW %CALLNAME:TARGET%は【キス未経験】を失いました
 			TFLAG:38 = 1
@@ -119,7 +164,7 @@ IF TFLAG:45 == 0
 		ENDIF
 		TFLAG:600 = 3
 		CALL KOJO_JUN
-		IF TALENT:85 == 0
+		IF TALENT:85 == 0	; 【[恋慕]なし】
 			PRINTFORMW %CALLNAME:TARGET%の好感度が50下がりました
 			CFLAG:2 -= 50
 		ENDIF
@@ -133,40 +178,53 @@ ELSE
 
 	;純愛系コマンド実行値取得
 	CALL GET_JUN_VALUE
+	LOCAL:10 = A
 
 	;相手側の告白は欲望Lvが少しだけ影響
-	A += ABL:1 / 2
+	LOCAL:16 = ABL:1 / 2
+	A += LOCAL:16
 
 	;好感度
-	A += CFLAG:2 / 50
+	LOCAL:11 = CFLAG:2 / 50
+	A += LOCAL:11
 
+	;素質補正
+	LOCAL:12 = 0
 	;キス未経験
-	SIF TALENT:151
+	IF TALENT:151	; 【[キス未経験]】
 		A -= 10
-
+		LOCAL:12 -= 10
+	ENDIF
 	;恋慕
-	SIF TALENT:85
+	IF TALENT:85	; 【[恋慕]】
 		A += 30
-
+		LOCAL:12 += 30
+	ENDIF
 	;臆病
-	SIF TALENT:10
+	IF TALENT:10	; 【[臆病]】
 		A -= 10
-
+		LOCAL:12 -= 10
+	ENDIF
 	;恥じらい
-	SIF TALENT:35
+	IF TALENT:35	; 【[恥じらい]】
 		A -= 10
-
+		LOCAL:12 -= 10
+	ENDIF
 	;恥薄い
-	SIF TALENT:36
+	IF TALENT:36	; 【[恥薄い]】
 		A += 5
-
+		LOCAL:12 += 5
+	ENDIF
 	;悲観的
-	SIF TALENT:26
+	IF TALENT:26	; 【[悲観的]】
 		A -= 5
-
+		LOCAL:12 -= 5
+	ENDIF
 	;一線越えない
-	SIF TALENT:27 == 1
+	IF TALENT:27 == 1	; 【[一線越えない]】
 		A -= 15
+		LOCAL:12 -= 15
+	ENDIF
 
 	;Aの値を退避
 	Z = A
@@ -176,39 +234,73 @@ ELSE
 	;退避させた値を戻す
 	A = Z
 	;従順なキャラには＋ボーナス、強気なキャラには－ボーナス
+	LOCAL:13 = 0
 	IF R < 0
 		;負の値の計算がeramakerのバグで怪しいので要注意
 		R = R * -1
-		A += R / 5 + 5
+		LOCAL:13 = R / 5 + 5
+		A += LOCAL:13
 	ELSEIF R > 0
-		A -= R / 5
+		LOCAL:13 = -(R / 5)
+		A += LOCAL:13
 	ENDIF
 
 	;ムードボーナス この値が本命
-	IF TFLAG:37 < 10
-		A -= 10
-	ELSEIF TFLAG:37 < 30
-		A -= 1
-	ELSEIF TFLAG:37 < 50
-		A += 3
-	ELSEIF TFLAG:37 < 100
-		A += TFLAG:37 / 4
-	ELSEIF TFLAG:37 < 300
-		A += TFLAG:37 / 2
+	LOCAL:14 = 0
+	IF TFLAG:37 < 10	; 【[ムード]<10】
+		LOCAL:14 = -10
+	ELSEIF TFLAG:37 < 30	; 【[ムード]<30】
+		LOCAL:14 = -1
+	ELSEIF TFLAG:37 < 50	; 【[ムード]<50】
+		LOCAL:14 = 3
+	ELSEIF TFLAG:37 < 100	; 【[ムード]<100】
+		LOCAL:14 = TFLAG:37 / 4
+	ELSEIF TFLAG:37 < 300	; 【[ムード]<300】
+		LOCAL:14 = TFLAG:37 / 2
 	ELSE
-		A += TFLAG:37
+		LOCAL:14 = TFLAG:37
 	ENDIF
+	A += LOCAL:14
 
 	;デート経験 これも割と大きい
-	IF EXP:94 < 50
-		A -= 5
-	ELSEIF EXP:94 < 100
-		A += 5
-	ELSEIF EXP:94 < 500
-		A += EXP:94 / 10
+	LOCAL:15 = 0
+	IF EXP:94 < 50	; 【[デート経験]<50】
+		LOCAL:15 = -5
+	ELSEIF EXP:94 < 100	; 【[デート経験]<100】
+		LOCAL:15 = 5
+	ELSEIF EXP:94 < 500	; 【[デート経験]<500】
+		LOCAL:15 = EXP:94 / 10
 	ELSE
-		A += EXP:94 / 7
+		LOCAL:15 = EXP:94 / 7
 	ENDIF
+	A += LOCAL:15
+
+	;--- 判定値・目標値・内訳の表示 ---
+	DRAWLINE
+	PRINTFORML 【告白判定】 （主導権: %CALLNAME:TARGET%）
+	PRINTFORM 　親密・素質:{LOCAL:10} 
+	SIF LOCAL:16 > 0
+		PRINTFORM ＋ 欲望:{LOCAL:16} 
+	PRINTFORM ＋ 好感度:{LOCAL:11} 
+	SIF LOCAL:12 != 0
+		PRINTFORM \@ LOCAL:12 > 0 ? ＋ # － \@{ABS(LOCAL:12)}(素質補正) 
+	SIF LOCAL:13 != 0
+		PRINTFORM \@ LOCAL:13 > 0 ? ＋ # － \@{ABS(LOCAL:13)}(主導権) 
+	PRINTFORM \@ LOCAL:14 >= 0 ? ＋ # － \@{ABS(LOCAL:14)}(ムード:{TFLAG:37}) 
+	SIF LOCAL:15 != 0
+		PRINTFORM \@ LOCAL:15 > 0 ? ＋ # － \@{ABS(LOCAL:15)}(デート経験:{EXP:94}) 
+	PRINTL
+	IF A >= V
+		SETCOLOR 100, 255, 100
+		PRINTFORML 　⇒ 判定値合計: {A} ≧ 目標難易度: {V} 【成功！】
+		RESETCOLOR
+	ELSE
+		SETCOLOR 255, 120, 120
+		PRINTFORML 　⇒ 判定値合計: {A} ＜ 目標難易度: {V} 【失敗…（不足: {V - A}）】
+		RESETCOLOR
+	ENDIF
+	DRAWLINE
+	WAIT
 
 	;判定成功
 	IF A >= V
@@ -217,18 +309,22 @@ ELSE
 		TFLAG:600 = 2
 		CALL KOJO_JUN
 		TALENT:153 = 1
+		SIF CFLAG:TARGET:1243 == 0	; 【TARGET:[恋人記念日(日目)]==0】
+			CFLAG:TARGET:1243 = GET_CURRENT_DATE_INT()
 		PRINTFORMW %CALLNAME:TARGET%と【恋人】になりました
 		FLAG:48 += 1
 		CALL CHECK_FEAT
 		TFLAG:39 = 1
-		IF TALENT:151
+		IF TALENT:151	; 【[キス未経験]】
 			TALENT:151 = 0
+			CALL SET_FIRST_KISS_RECORD, TARGET, PLAYER
 			PRINTFORML %EXPNAME:96%＋１
 			EXP:96 += 1
 			EXP:PLAYER:96 += 1
-			IF TALENT:PLAYER:151
+			IF TALENT:PLAYER:151	; 【PLAYER:[キス未経験]】
 				PRINTFORMW %CALLNAME:PLAYER%は【キス未経験】を失いました
 				TALENT:PLAYER:151 = 0
+				CALL SET_FIRST_KISS_RECORD, PLAYER, TARGET
 			ENDIF
 			PRINTFORMW %CALLNAME:TARGET%は【キス未経験】を失いました
 			TFLAG:38 = 1
@@ -247,14 +343,11 @@ ELSE
 		ENDIF
 		TFLAG:600 = 3
 		CALL KOJO_JUN
-		IF TALENT:85 == 0
+		IF TALENT:85 == 0	; 【[恋慕]なし】
 			PRINTFORMW %CALLNAME:TARGET%の好感度が50下がりました
 			CFLAG:2 -= 50
 		ENDIF
 	ENDIF
 ENDIF
 
-
-
 RETURN 1
-

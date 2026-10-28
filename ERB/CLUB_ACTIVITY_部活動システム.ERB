@@ -15,7 +15,7 @@
 ;@INIT_CLUB_FLAGS         - 既存セーブ対応：部活タイプ初期化
 ;---------------------------------------------------------
 ;TFLAG:82 -> アクティビティ種別（0=運動, 1=表現, 2=知識, 3=自習, 4=生活）
-;CFLAG:char:25 -> 部活タイプ（0=帰宅, 1=運動部, 2=表現部, 3=知識部）
+;CFLAG:char:1287 -> 部活タイプ（0=帰宅, 1=運動部, 2=表現部, 3=知識部）
 ;CSTR:char:25  -> 部活名
 ;ABL:93 -> 運動技能   ABL:94 -> 表現技能   ABL:95 -> 知識技能
 ;ABL:54 -> 運動素質   ABL:55 -> 表現素質   ABL:56 -> 知識素質
@@ -31,10 +31,13 @@ DRAWLINE
 IF TARGET < 0
 	PRINTFORMW パートナーを選んでいません。先にパートナーを決めてください。
 	RETURN 0
+	ELSEIF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+		PRINTFORMW %CALLNAME:TARGET%は衰弱療養中（お休み）のため、一緒に部活動に参加することはできません。
+		RETURN 0
 ENDIF
 
 ;パートナーの部活タイプ（ボーナス判定用）
-A = CFLAG:TARGET:25
+A = CFLAG:TARGET:1287
 
 PRINTFORML 【放課後のアクティビティ】
 PRINTFORML パートナー：%CALLNAME:TARGET%
@@ -108,7 +111,10 @@ ENDIF
 @DO_ACTIVITY
 A = TFLAG:82
 ;パートナーの部活タイプ（0=帰宅, 1=運動, 2=表現, 3=知識）
-B = CFLAG:TARGET:25
+B = CFLAG:TARGET:1287
+	;部活動・アクティビティ参加回数加算
+	SIF TARGET >= 1 && TARGET < CHARANUM
+		CFLAG:TARGET:1270 += 1
 ;ボーナス判定: パートナーの専門と一致するか
 ;(A==0かつB==1) or (A==1かつB==2) or (A==2かつB==3)
 LOCAL:9 = 0
@@ -146,7 +152,7 @@ IF A == 0
 		P = P * 3 / 2  ;ボーナス×1.5
 	SIF P > 12
 		P = 12
-	IF TALENT:MASTER:220
+	IF TALENT:MASTER:220	; 【MASTER:[怪力]】
 		P += 3
 		PRINTFORML 	（怪力ボーナス +3）
 	ENDIF
@@ -159,25 +165,24 @@ IF A == 0
 		P = P * 3 / 2
 	SIF P > 12
 		P = 12
-	IF TALENT:TARGET:220
+	IF TALENT:TARGET:220	; 【TARGET:[怪力]】
 		P += 3
 		PRINTFORML 	（%CALLNAME:TARGET%の怪力ボーナス +3）
 	ENDIF
-	IF TALENT:TARGET:221 == 1
+	IF TALENT:TARGET:221 == 1	; 【TARGET:[運動音痴]】
 		P -= 3
 		SIF P < 1
 			P = 1
 		PRINTFORML 	（%CALLNAME:TARGET%の運動音痴 -3）
-	ELSEIF TALENT:TARGET:221 == 2
+	ELSEIF TALENT:TARGET:221 == 2	; 【TARGET:[運動音痴:強]】
 		P += 3
 		PRINTFORML 	（%CALLNAME:TARGET%の運動音痴[昇華] +3）
 	ENDIF
-	ABL:TARGET:93 += P
-	SIF ABL:TARGET:93 > 100
-		ABL:TARGET:93 = 100
+	SIF ABL:TARGET:93 < 100	; 【TARGET:[運動技能]Lv<100】
+		ABL:TARGET:93 = MIN(ABL:TARGET:93 + P, 100)
 	PRINTFORML 　%CALLNAME:TARGET%の運動技能 +{P}（{ABL:TARGET:93}/100）
 	;運動音痴の昇華チェック
-	IF TALENT:TARGET:221 == 1 && ABL:TARGET:93 >= 70
+	IF TALENT:TARGET:221 == 1 && ABL:TARGET:93 >= 70	; 【TARGET:[運動音痴] / TARGET:[運動技能]Lv>=70】
 		TALENT:TARGET:221 = 2
 		PRINTFORML 　★%CALLNAME:TARGET%の【運動音痴】が昇華した！苦手を乗り越え、底知れぬ怪力に覚醒！
 	ENDIF
@@ -185,7 +190,7 @@ IF A == 0
 	;体力消費
 	LOCAL:2 = MAXBASE:MASTER:0 / 5
 	BASE:MASTER:0 -= LOCAL:2
-	SIF BASE:MASTER:0 < 0
+	SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 		BASE:MASTER:0 = 0
 	PRINTFORML 　体力 -{LOCAL:2}（残り {BASE:MASTER:0}/{MAXBASE:MASTER:0}）
 
@@ -204,7 +209,7 @@ ELSEIF A == 1
 		P = P * 3 / 2
 	SIF P > 12
 		P = 12
-	IF TALENT:MASTER:223
+	IF TALENT:MASTER:223	; 【MASTER:[アイドル]】
 		P += 3
 		PRINTFORML 	（アイドルボーナス +3）
 	ENDIF
@@ -217,19 +222,18 @@ ELSEIF A == 1
 		P = P * 3 / 2
 	SIF P > 12
 		P = 12
-	IF TALENT:TARGET:223
+	IF TALENT:TARGET:223	; 【TARGET:[アイドル]】
 		P += 3
 		PRINTFORML 	（%CALLNAME:TARGET%のアイドルボーナス +3）
 	ENDIF
-	ABL:TARGET:94 += P
-	SIF ABL:TARGET:94 > 100
-		ABL:TARGET:94 = 100
+	SIF ABL:TARGET:94 < 100	; 【TARGET:[表現技能]Lv<100】
+		ABL:TARGET:94 = MIN(ABL:TARGET:94 + P, 100)
 	PRINTFORML 　%CALLNAME:TARGET%の表現技能 +{P}（{ABL:TARGET:94}/100）
 
 	;気力消費
 	LOCAL:2 = MAXBASE:MASTER:1 / 5
 	BASE:MASTER:1 -= LOCAL:2
-	SIF BASE:MASTER:1 < 0
+	SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
 		BASE:MASTER:1 = 0
 	PRINTFORML 　気力 -{LOCAL:2}（残り {BASE:MASTER:1}/{MAXBASE:MASTER:1}）
 
@@ -249,7 +253,7 @@ ELSEIF A == 2
 		P = P * 3 / 2
 	SIF P > 12
 		P = 12
-	IF TALENT:MASTER:222
+	IF TALENT:MASTER:222	; 【MASTER:[霊感]】
 		P += 3
 		PRINTFORML 	（霊感ボーナス +3）
 	ENDIF
@@ -261,13 +265,12 @@ ELSEIF A == 2
 		P = P * 3 / 2
 	SIF P > 12
 		P = 12
-	IF TALENT:TARGET:222
+	IF TALENT:TARGET:222	; 【TARGET:[霊感]】
 		P += 3
 		PRINTFORML 	（%CALLNAME:TARGET%の霊感ボーナス +3）
 	ENDIF
-	ABL:TARGET:95 += P
-	SIF ABL:TARGET:95 > 100
-		ABL:TARGET:95 = 100
+	SIF ABL:TARGET:95 < 100	; 【TARGET:[知識技能]Lv<100】
+		ABL:TARGET:95 = MIN(ABL:TARGET:95 + P, 100)
 	PRINTFORML 　%CALLNAME:TARGET%の知識技能 +{P}（{ABL:TARGET:95}/100）
 
 	;体力消費（軽微）
@@ -275,7 +278,7 @@ ELSEIF A == 2
 	SIF LOCAL:2 < 10
 		LOCAL:2 = 10
 	BASE:MASTER:0 -= LOCAL:2
-	SIF BASE:MASTER:0 < 0
+	SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 		BASE:MASTER:0 = 0
 	PRINTFORML 　体力 -{LOCAL:2}（残り {BASE:MASTER:0}/{MAXBASE:MASTER:0}）
 
@@ -301,10 +304,10 @@ ELSEIF A == 3
 
 	;体力・気力消費は少ない
 	BASE:MASTER:0 -= 20
-	SIF BASE:MASTER:0 < 0
+	SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 		BASE:MASTER:0 = 0
 	BASE:MASTER:1 -= 30
-	SIF BASE:MASTER:1 < 0
+	SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
 		BASE:MASTER:1 = 0
 	PRINTFORML 　体力 -20　気力 -30
 
@@ -318,18 +321,16 @@ ELSEIF A == 4
 	P = RAND:5 + ABL:MASTER:50 / 15 + 1
 	SIF P > 12
 		P = 12
-	ABL:MASTER:90 += P
-	SIF ABL:MASTER:90 > 100
-		ABL:MASTER:90 = 100
+	SIF ABL:MASTER:90 < 100	; 【MASTER:[料理技能]Lv<100】
+		ABL:MASTER:90 = MIN(ABL:MASTER:90 + P, 100)
 	EXP:MASTER:90 += P
 	PRINTFORML 　%CALLNAME:MASTER%の料理技能 +{P}（Lv{ABL:MASTER:90} 家事経験{EXP:MASTER:90}）
 
 	P = RAND:5 + ABL:TARGET:50 / 15 + 1
 	SIF P > 12
 		P = 12
-	ABL:TARGET:90 += P
-	SIF ABL:TARGET:90 > 100
-		ABL:TARGET:90 = 100
+	SIF ABL:TARGET:90 < 100	; 【TARGET:[料理技能]Lv<100】
+		ABL:TARGET:90 = MIN(ABL:TARGET:90 + P, 100)
 	PRINTFORML 　%CALLNAME:TARGET%の料理技能 +{P}（{ABL:TARGET:90}/100）
 
 	;体力消費（中程度）
@@ -337,7 +338,7 @@ ELSEIF A == 4
 	SIF LOCAL:2 < 10
 		LOCAL:2 = 10
 	BASE:MASTER:0 -= LOCAL:2
-	SIF BASE:MASTER:0 < 0
+	SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 		BASE:MASTER:0 = 0
 	PRINTFORML 　体力 -{LOCAL:2}（残り {BASE:MASTER:0}/{MAXBASE:MASTER:0}）
 ENDIF
@@ -377,9 +378,8 @@ IF A == 0
 	IF B == 0
 		PRINTFORML 練習試合が急に組まれた！本気で動いたおかげで大きく成長した。
 		ABL:MASTER:93 += 3
-		ABL:TARGET:93 += 3
-		SIF ABL:TARGET:93 > 100
-			ABL:TARGET:93 = 100
+		SIF ABL:TARGET:93 < 100	; 【TARGET:[運動技能]Lv<100】
+			ABL:TARGET:93 = MIN(ABL:TARGET:93 + 3, 100)
 		PRINTFORML 　運動技能 さらに+3（主人公:{ABL:MASTER:93} %CALLNAME:TARGET%:{ABL:TARGET:93}）
 	ELSEIF B == 1
 		PRINTFORMW %CALLNAME:TARGET%のプレーに思わず見とれてしまった……！
@@ -388,14 +388,13 @@ IF A == 0
 		PRINTFORML 　好感度+3　運動技能+2（{ABL:MASTER:93}）
 	ELSEIF B == 2
 		PRINTFORML コーチから個別指導を受けた。フォームが改善された。
-		ABL:MASTER:54 += 1
-		SIF ABL:MASTER:54 > 100
-			ABL:MASTER:54 = 100
+		SIF ABL:MASTER:54 < 100	; 【MASTER:[運動素質]Lv<100】
+			ABL:MASTER:54 = MIN(ABL:MASTER:54 + 1, 100)
 		PRINTFORML 　運動素質+1（{ABL:MASTER:54}）
 	ELSE
 		PRINTFORML 全力を出し切ってヘトヘトになった。でも充実した！
 		BASE:MASTER:0 -= MAXBASE:MASTER:0 / 5
-		SIF BASE:MASTER:0 < 0
+		SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 			BASE:MASTER:0 = 0
 		ABL:MASTER:93 += 2
 		PRINTFORML 　疲労増加　運動技能+2（{ABL:MASTER:93}）
@@ -406,16 +405,14 @@ ELSEIF A == 1
 	IF B == 0
 		PRINTFORML 合同発表会の練習！人前での度胸がついた。
 		ABL:MASTER:94 += 3
-		ABL:TARGET:94 += 3
-		SIF ABL:TARGET:94 > 100
-			ABL:TARGET:94 = 100
+		SIF ABL:TARGET:94 < 100	; 【TARGET:[表現技能]Lv<100】
+			ABL:TARGET:94 = MIN(ABL:TARGET:94 + 3, 100)
 		PRINTFORML 　表現技能 さらに+3（主人公:{ABL:MASTER:94} %CALLNAME:TARGET%:{ABL:TARGET:94}）
 	ELSEIF B == 1
 		PRINTFORMW %CALLNAME:TARGET%のパフォーマンスに心が震えた……！
 		CFLAG:TARGET:2 += 4
-		ABL:MASTER:55 += 1
-		SIF ABL:MASTER:55 > 100
-			ABL:MASTER:55 = 100
+		SIF ABL:MASTER:55 < 100	; 【MASTER:[表現素質]Lv<100】
+			ABL:MASTER:55 = MIN(ABL:MASTER:55 + 1, 100)
 		PRINTFORML 　好感度+4　表現素質+1（{ABL:MASTER:55}）
 	ELSEIF B == 2
 		PRINTFORML 新しい表現のアイデアがひらめいた！
@@ -424,7 +421,7 @@ ELSEIF A == 1
 	ELSE
 		PRINTFORML 長時間練習してクタクタになった。でも充実している。
 		BASE:MASTER:1 -= MAXBASE:MASTER:1 / 5
-		SIF BASE:MASTER:1 < 0
+		SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
 			BASE:MASTER:1 = 0
 		ABL:MASTER:94 += 2
 		PRINTFORML 　疲労増加　表現技能+2（{ABL:MASTER:94}）
@@ -435,9 +432,8 @@ ELSEIF A == 2
 	IF B == 0
 		PRINTFORML 調べていたら面白い発見が！みんなで議論が盛り上がった。
 		ABL:MASTER:95 += 3
-		ABL:TARGET:95 += 3
-		SIF ABL:TARGET:95 > 100
-			ABL:TARGET:95 = 100
+		SIF ABL:TARGET:95 < 100	; 【TARGET:[知識技能]Lv<100】
+			ABL:TARGET:95 = MIN(ABL:TARGET:95 + 3, 100)
 		PRINTFORML 　知識技能 さらに+3（主人公:{ABL:MASTER:95} %CALLNAME:TARGET%:{ABL:TARGET:95}）
 	ELSEIF B == 1
 		PRINTFORMW %CALLNAME:TARGET%の話が面白くて時間を忘れた。
@@ -452,7 +448,7 @@ ELSEIF A == 2
 	ELSE
 		PRINTFORML 気づいたら外が真っ暗になっていた。でも充実した時間だった。
 		BASE:MASTER:0 -= MAXBASE:MASTER:0 / 10
-		SIF BASE:MASTER:0 < 0
+		SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 			BASE:MASTER:0 = 0
 		ABL:MASTER:95 += 2
 		PRINTFORML 　疲労増加　知識技能+2（{ABL:MASTER:95}）
@@ -476,9 +472,8 @@ ELSEIF A == 3
 		PRINTFORML 集中して取り組んだことで知識が定着した気がする。
 		EXP:MASTER:95 += 2
 		FLAG:210 += 2  ;今学期の勉強量(試験の主成分)にも加算
-		ABL:MASTER:98 += 1
-		SIF ABL:MASTER:98 > 100
-			ABL:MASTER:98 = 100
+		SIF ABL:MASTER:98 < 100	; 【MASTER:[学力素質]Lv<100】
+			ABL:MASTER:98 = MIN(ABL:MASTER:98 + 1, 100)
 		PRINTFORML 　学習経験+2　学力素質+1（{ABL:MASTER:98}）
 	ELSE
 		PRINTFORML 夢中になって勉強したら閉館時間になってしまった……。
@@ -492,34 +487,29 @@ ELSEIF A == 4
 	;生活系イベント
 	IF B == 0
 		PRINTFORML %CALLNAME:TARGET%の手際の良さに感心した！真似してみたら上手くできた。
-		ABL:MASTER:90 += 3
-		SIF ABL:MASTER:90 > 100
-			ABL:MASTER:90 = 100
-		ABL:TARGET:90 += 3
-		SIF ABL:TARGET:90 > 100
-			ABL:TARGET:90 = 100
+		SIF ABL:MASTER:90 < 100	; 【MASTER:[料理技能]Lv<100】
+			ABL:MASTER:90 = MIN(ABL:MASTER:90 + 3, 100)
+		SIF ABL:TARGET:90 < 100	; 【TARGET:[料理技能]Lv<100】
+			ABL:TARGET:90 = MIN(ABL:TARGET:90 + 3, 100)
 		PRINTFORML 　料理技能 さらに+3（主人公:{ABL:MASTER:90} %CALLNAME:TARGET%:{ABL:TARGET:90}）
 	ELSEIF B == 1
 		PRINTFORMW %CALLNAME:TARGET%が作った料理がとても美味しかった……！
 		CFLAG:TARGET:2 += 3
-		ABL:MASTER:90 += 2
-		SIF ABL:MASTER:90 > 100
-			ABL:MASTER:90 = 100
+		SIF ABL:MASTER:90 < 100	; 【MASTER:[料理技能]Lv<100】
+			ABL:MASTER:90 = MIN(ABL:MASTER:90 + 2, 100)
 		PRINTFORML 　好感度+3　料理技能+2（{ABL:MASTER:90}）
 	ELSEIF B == 2
 		PRINTFORML %CALLNAME:TARGET%から料理のコツを教わった！素質が上がった気がする。
-		ABL:MASTER:50 += 1
-		SIF ABL:MASTER:50 > 100
-			ABL:MASTER:50 = 100
+		SIF ABL:MASTER:50 < 100	; 【MASTER:[料理素質]Lv<100】
+			ABL:MASTER:50 = MIN(ABL:MASTER:50 + 1, 100)
 		PRINTFORML 　料理素質+1（{ABL:MASTER:50}）
 	ELSE
 		PRINTFORML 夢中で家事をしていたら体が慣れてきた。充実した時間だった。
 		BASE:MASTER:0 -= MAXBASE:MASTER:0 / 8
-		SIF BASE:MASTER:0 < 0
+		SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
 			BASE:MASTER:0 = 0
-		ABL:MASTER:90 += 2
-		SIF ABL:MASTER:90 > 100
-			ABL:MASTER:90 = 100
+		SIF ABL:MASTER:90 < 100	; 【MASTER:[料理技能]Lv<100】
+			ABL:MASTER:90 = MIN(ABL:MASTER:90 + 2, 100)
 		PRINTFORML 　疲労増加　料理技能+2（{ABL:MASTER:90}）
 	ENDIF
 ENDIF
@@ -541,37 +531,18 @@ PRINTFORML 　料理技能：{ABL:MASTER:90}/100　（%CALLNAME:TARGET%：{ABL:TARGET:90}
 RETURN 1
 
 ;---------------------------------------------------------
-;既存セーブ対応：CFLAG:25未設定キャラに部活タイプを設定
+;既存セーブ対応：CFLAG:1287未設定キャラに部活タイプを設定
 ;---------------------------------------------------------
 @INIT_CLUB_FLAGS
-A = 0
+;部活専用領域をCSVから復元する。旧25番は初期噴乳経験として使用する。
+;キャラごとに処理し、設定済みキャラがいても未設定キャラの復元を続ける。
 REPEAT CHARANUM
-	SIF CFLAG:COUNT:25 > 0
-		A = 1
-		BREAK
+	SIF CFLAG:COUNT:1287 > 0
+		CONTINUE
+	EXISTCSV NO:COUNT, 0
+	SIF RESULT == 0
+		CONTINUE
+	CSVCFLAG NO:COUNT, 1287, 0
+	CFLAG:COUNT:1287 = RESULT
 REND
-SIF A
-	RETURN 0
-
-REPEAT CHARANUM
-	B = NO:COUNT
-	IF B == 1 || B == 4 || B == 9 || B == 13 || B == 20 || B == 27 || B == 30 || B == 34 || B == 36 || B == 52 || B == 62 || B == 63 || B == 66
-		CFLAG:COUNT:25 = 2
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 表現部
-	ELSEIF B == 2 || B == 3 || B == 6 || B == 8 || B == 10 || B == 11 || B == 21 || B == 23 || B == 24 || B == 28 || B == 39 || B == 43 || B == 44 || B == 45 || B == 46 || B == 47 || B == 51 || B == 54 || B == 55 || B == 58 || B == 61 || B == 65 || B == 68 || B == 70
-		CFLAG:COUNT:25 = 3
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 知識部
-	ELSEIF B == 5 || B == 7 || B == 12 || B == 14 || B == 15 || B == 16 || B == 17 || B == 18 || B == 19 || B == 22 || B == 26 || B == 29 || B == 33 || B == 35 || B == 37 || B == 38 || B == 40 || B == 41 || B == 42 || B == 48 || B == 49 || B == 50 || B == 53 || B == 56 || B == 57 || B == 59 || B == 67 || B == 69 || B == 71
-		CFLAG:COUNT:25 = 1
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 運動部
-	ELSE
-		CFLAG:COUNT:25 = 0
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 帰宅部
-	ENDIF
-REND
-
 RETURN 1

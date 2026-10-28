@@ -28,12 +28,30 @@ CALL NEW_PRINT_TALENT
 CALL SHOW_DAY_INFO
 WAIT
 
+@SHOW_INFO_PAGE1
+;表示関数(ページ1用、WAITなし)
+W = TARGET
+DRAWLINE
+PRINTL □ 経験
+CALL NEW_PRINT_EXP
+DRAWLINE
+PRINTL □ 能力
+CALL NEW_PRINT_ABL
+DRAWLINE
+PRINTL □ 刻印
+CALL NEW_PRINT_MARK
+DRAWLINE
+PRINTL □ 素質
+CALL NEW_PRINT_TALENT
+CALL SHOW_DAY_INFO
+RETURN 0
+
 ;=== バスト/ペニスサイズ表示ヘルパー ===
 ;ステータス用バスト(0.1cm)を返す。未設定ならプロフィール(CSTR:23 "B##/W##/H##"のB値)から初期化
 ;※プロフィール画面は不変。これは別管理の可変値で、今後ゲーム内イベントで変動させる想定
 @BUST_TENTHS(C)
 #FUNCTION
-SIF CFLAG:C:1101 != 0
+SIF CFLAG:C:1101 != 0	; 【C:[バストサイズ(0.1cm単位)]!=0】
 	RETURNF CFLAG:C:1101
 LOCAL = 800
 SIF STRLENS(CSTR:C:23) >= 3
@@ -43,12 +61,13 @@ SIF LOCAL <= 0
 CFLAG:C:1101 = LOCAL
 RETURNF CFLAG:C:1101
 
-;バストサイズ(0.1cm)を D 変動。未設定なら初期化。下限60.0cm・上限190.0cm
+;バストサイズ(0.1cm)をD変動。下限は身長比40％または60cmの低い方、上限190cm。
 @BUST_ADJUST(C, D)
 ;関数内呼び出しでグローバルRESULTが壊れるため退避→復元（呼び出し側のキャラ選択を保護）
 LOCAL:1 = RESULT
 LOCAL = BUST_TENTHS(C)
-CFLAG:C:1101 = LIMIT(CFLAG:C:1101 + D, 600, 1900)
+LOCAL:3 = MIN(600, MAX(1, HEIGHT_CM(C) * 400 / 100))
+CFLAG:C:1101 = LIMIT(CFLAG:C:1101 + D, LOCAL:3, 1900)
 CALL SYNC_BUST_TALENT, C
 RESULT = LOCAL:1
 RETURN
@@ -63,7 +82,7 @@ TALENT:C:109 = 0
 TALENT:C:110 = 0
 TALENT:C:141 = 0
 TALENT:C:143 = 0
-LOCAL = TOINT(SUBSTRING(CSTR:C:22, 0, 3))
+LOCAL = HEIGHT_CM(C)
 IF LOCAL > 0
 	;バスト指数 = バスト(0.1cm) * 100 / 身長(cm)
 	LOCAL:1 = CFLAG:C:1101 * 100 / LOCAL
@@ -77,13 +96,13 @@ IF LOCAL > 0
 		TALENT:C:143 = 1
 ELSE
 	;身長不明時は絶対値判定（フォールバック）
-	SIF CFLAG:C:1101 < 750
+	SIF CFLAG:C:1101 < 750	; 【C:[バストサイズ(0.1cm単位)]<750】
 		TALENT:C:109 = 1
-	SIF CFLAG:C:1101 >= 830 && CFLAG:C:1101 < 900
+	SIF CFLAG:C:1101 >= 830 && CFLAG:C:1101 < 900	; 【C:[バストサイズ(0.1cm単位)]>=830 / C:[バストサイズ(0.1cm単位)]<900】
 		TALENT:C:110 = 1
-	SIF CFLAG:C:1101 >= 900 && CFLAG:C:1101 < 1120
+	SIF CFLAG:C:1101 >= 900 && CFLAG:C:1101 < 1120	; 【C:[バストサイズ(0.1cm単位)]>=900 / C:[バストサイズ(0.1cm単位)]<1120】
 		TALENT:C:141 = 1
-	SIF CFLAG:C:1101 >= 1120
+	SIF CFLAG:C:1101 >= 1120	; 【C:[バストサイズ(0.1cm単位)]>=1120】
 		TALENT:C:143 = 1
 ENDIF
 RETURN
@@ -106,6 +125,8 @@ LOCAL:1 = RESULT
 LOCAL = HEIGHT_CM(C)
 CFLAG:C:1103 = LIMIT(CFLAG:C:1103 + D, 55, 250)
 CALL SYNC_BODY_TALENT, C
+LOCAL = BUST_TENTHS(C)
+CALL SYNC_BUST_TALENT, C
 RESULT = LOCAL:1
 RETURN
 
@@ -124,7 +145,7 @@ ELSEIF LOCAL < 140
 ELSE
 	TALENT:C:149 = 0
 	;一時的な小柄装備(TEQUIP:40の8/16ビット)が無ければ小柄も解除
-	SIF (TEQUIP:C:40 & 8) == 0 && (TEQUIP:C:40 & 16) == 0
+	SIF (TEQUIP:C:40 & 8) == 0 && (TEQUIP:C:40 & 16) == 0	; 【[素質変化記録]使用中】
 		TALENT:C:100 = 0
 ENDIF
 RETURN
@@ -134,13 +155,13 @@ RETURN
 TALENT:C:144 = 0
 TALENT:C:145 = 0
 TALENT:C:146 = 0
-SIF CFLAG:C:1100 <= 0
+SIF CFLAG:C:1100 <= 0	; 【C:[ペニスサイズ(0.1cm単位)]<=0】
 	RETURN
-IF CFLAG:C:1100 < 80
+IF CFLAG:C:1100 < 80	; 【C:[ペニスサイズ(0.1cm単位)]<80】
 	TALENT:C:144 = 1
-ELSEIF CFLAG:C:1100 >= 250
+ELSEIF CFLAG:C:1100 >= 250	; 【C:[ペニスサイズ(0.1cm単位)]>=250】
 	TALENT:C:146 = 1
-ELSEIF CFLAG:C:1100 >= 160
+ELSEIF CFLAG:C:1100 >= 160	; 【C:[ペニスサイズ(0.1cm単位)]>=160】
 	TALENT:C:145 = 1
 ENDIF
 RETURN
@@ -151,21 +172,21 @@ LOCAL:2 = HEIGHT_CM(TARGET)
 CALL SYNC_BODY_TALENT, TARGET
 PRINTFORML 　身長：{LOCAL:2}cm
 ;オトコ(男性・素質122)はバスト/ペニスを表記しない（主人公が男の能力表示など）
-SIF TALENT:122
+SIF TALENT:122	; 【[オトコ]】
 	RETURN
 LOCAL = BUST_TENTHS(TARGET)
 CALL SYNC_BUST_TALENT, TARGET
 CALL SYNC_PENIS_TALENT, TARGET
-IF TALENT:121
+IF TALENT:121	; 【[ふたなり]】
 	;ペニス未設定なら現在バストに応じて初期化（巨乳ほど巨根）
-	SIF CFLAG:1100 == 0
+	SIF CFLAG:1100 == 0	; 【[ペニスサイズ(0.1cm単位)]==0】
 		CFLAG:1100 = LIMIT(LOCAL * 7 / 16 - 213, 40, 400)
 	PRINTFORML 　バストサイズ：{LOCAL / 10}.{LOCAL % 10}cm　　ペニスサイズ：{CFLAG:1100 / 10}.{CFLAG:1100 % 10}cm
 ELSE
 	PRINTFORML 　バストサイズ：{LOCAL / 10}.{LOCAL % 10}cm
 ENDIF
 ;名器度（膣の使い込み度・CFLAG:1102）。未経験(0)は非表示
-SIF CFLAG:1102 > 0
+SIF CFLAG:1102 > 0	; 【[名器度]>0】
 	PRINTFORML 　名器度：{CFLAG:1102}
 RETURN
 
@@ -177,23 +198,23 @@ IF (FLAG:62 & 1)
 	VARSET TSTR, ""
 	;プレイヤー名
 	TSTR:0 = %NAME:PLAYER%
-	SIF ASSIPLAY
+	SIF ASSIPLAY	; 【調教者:[助手]】
 		TSTR:0 = %TSTR:0%(助手)
-	SIF TALENT:PLAYER:137
+	SIF TALENT:PLAYER:137	; 【PLAYER:[危険日]】
 		TSTR:0 = %TSTR:0%(危険日)
-	SIF TALENT:PLAYER:138
+	SIF TALENT:PLAYER:138	; 【PLAYER:[生理]】
 		TSTR:0 = %TSTR:0%(生理)
 	;パートナー名
 	TSTR:1 = %NAME:TARGET%
-	SIF TALENT:137
+	SIF TALENT:137	; 【[危険日]】
 		TSTR:1 = %TSTR:1%(危険日)
-	SIF TALENT:138
+	SIF TALENT:138	; 【[生理]】
 		TSTR:1 = %TSTR:1%(生理)
 ELSE
 	VARSET TSTR, ""
 	;プレイヤー名
 	TSTR:0 = %NAME:PLAYER%
-	SIF ASSIPLAY
+	SIF ASSIPLAY	; 【調教者:[助手]】
 		TSTR:0 = %TSTR:0%(助手)
 	;パートナー名
 	TSTR:1 = %NAME:TARGET%
@@ -214,7 +235,7 @@ PRINTFORML {DAY:3}年 %STR:2%月 {DAY:1}日 (%STR:1%) 天気:%STR:3% {DAY+1}日目(%STR
 ;TSTR:0にプレイヤー、TSTR:1にパートナーの名前入力
 CALL SHOW_STATUS_NAME
 ;主導権を持っている側を先に表示
-IF TFLAG:45
+IF TFLAG:45	; 【[主導権]】
 	PRINTFORM %TSTR:1%が%TSTR:0%と一緒です
 ELSE
 	PRINTFORM %TSTR:0%が%TSTR:1%と一緒です
@@ -227,13 +248,21 @@ CALL LIFE_LIMIT
 CALL SHOW_EQUIP_2
 
 PRINT 体力
-SIF BASE:0 < 0
-	BASE:0 = 0
-CALL PRINT_BAR_0, BASE:0, MAXBASE:0, 32
-PRINTFORML ({BASE:0,4}/{MAXBASE:0,4})
+	LOCAL = BASE:0
+	SIF LOCAL < 0
+		LOCAL = 0
+	CALL PRINT_BAR_0, LOCAL, MAXBASE:0, 32
+	PRINTFORM ({BASE:0,4}/{MAXBASE:0,4})
+	IF BASE:0 <= 0	; 【[体力]<=0】
+		SETCOLOR 0xFF6666
+		PRINTFORML  【気絶】
+		RESETCOLOR
+	ELSE
+		PRINTL
+	ENDIF
 
 PRINT 気力
-SIF BASE:1 < 0
+SIF BASE:1 < 0	; 【[気力]<0】
 	BASE:1 = 0
 CALL PRINT_BAR, BASE:1, MAXBASE:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
 PRINTFORML ({BASE:1,4}/{MAXBASE:1,4})
@@ -266,18 +295,18 @@ SIF EX:0 || EX:1 || EX:2 || EX:3 || EX:4 || EX:5 || EX:6
 	PRINTL >
 
 ;射精値設定
-IF TALENT:TARGET:133
+IF TALENT:TARGET:133	; 【TARGET:[早漏]】
 	MAXBASE:TARGET:2 = 5000
 ELSE
 	MAXBASE:TARGET:2 = 10000
 ENDIF
-IF TALENT:MASTER:133
+IF TALENT:MASTER:133	; 【MASTER:[早漏]】
 	MAXBASE:MASTER:2 = 5000
 ELSE
 	MAXBASE:MASTER:2 = 10000
 ENDIF
 IF ASSI >= 0
-	IF TALENT:ASSI:133
+	IF TALENT:ASSI:133	; 【ASSI:[早漏]】
 		MAXBASE:ASSI:2 = 5000
 	ELSE
 		MAXBASE:ASSI:2 = 10000
@@ -286,29 +315,39 @@ ENDIF
 SIF MAXBASE:MASTER:6 == 0
 	MAXBASE:MASTER:6 = 10000
 
-IF TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122
+;射精ゲージ負数ガード
+SIF BASE:MASTER:2 < 0
+	BASE:MASTER:2 = 0
+SIF BASE:TARGET:2 < 0
+	BASE:TARGET:2 = 0
+IF ASSI >= 0
+	SIF BASE:ASSI:2 < 0
+		BASE:ASSI:2 = 0
+ENDIF
+
+IF TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ]】
 	PRINT 射精 
 	CALL PRINT_BAR, BASE:MASTER:2, MAXBASE:MASTER:2, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("しろ"), RESULT:1
 	PRINTFORM  ({BASE:MASTER:2}/{MAXBASE:MASTER:2})
-	IF TEQUIP:MASTER:85 == 1
+	IF TEQUIP:MASTER:85 == 1	; 【[コンドーム]==1】
 		PRINTFORML  [コンドーム着用]
 	ELSE
 		PRINTFORML  
 	ENDIF
 ENDIF
 
-IF (FLAG:62 & 1p17) || TFLAG:34 || TFLAG:997
+IF (FLAG:62 & 1p17) || TFLAG:34 || TFLAG:997	; 【[主導権全委任]】
 	PRINTFORM 耐力（%NAME:PLAYER%）
 	CALL PRINT_BAR_0, BASE:PLAYER:4, MAXBASE:PLAYER:4, 32
 	PRINTFORML ({BASE:PLAYER:4,4}/{MAXBASE:PLAYER:4,4})
 ENDIF
 
-IF ASSIPLAY
-	IF TALENT:ASSI:119 || TALENT:ASSI:121 || TALENT:ASSI:122
+IF ASSIPLAY	; 【調教者:[助手]】
+	IF TALENT:ASSI:119 || TALENT:ASSI:121 || TALENT:ASSI:122	; 【ASSI:[半人半妖] / ASSI:[ふたなり] / ASSI:[オトコ]】
 		PRINT 射精(助手)
 		CALL PRINT_BAR, BASE:ASSI:2, MAXBASE:ASSI:2, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("しろ"), RESULT:1
 		PRINTFORM ({BASE:ASSI:2}/{MAXBASE:ASSI:2})
-		IF TEQUIP:ASSI:85 == 1
+		IF TEQUIP:ASSI:85 == 1	; 【[コンドーム]==1】
 			PRINTFORML  [コンドーム着用]
 		ELSE
 			PRINTFORML  
@@ -316,18 +355,18 @@ IF ASSIPLAY
 	ENDIF
 ENDIF
 
-IF TALENT:TARGET:119 || TALENT:TARGET:121 || TALENT:TARGET:122
+IF TALENT:TARGET:119 || TALENT:TARGET:121 || TALENT:TARGET:122	; 【TARGET:[半人半妖] / TARGET:[ふたなり] / TARGET:[オトコ]】
 	PRINTFORM 射精（%NAME:TARGET%）
 	CALL PRINT_BAR, BASE:2, MAXBASE:2, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("しろ"), RESULT:1
 	PRINTFORM ({BASE:2}/{MAXBASE:2})
-	IF TEQUIP:85 == 1
+	IF TEQUIP:85 == 1	; 【[コンドーム]==1】
 		PRINTFORML  [コンドーム着用]
 	ELSE
 		PRINTFORML  
 	ENDIF
 ENDIF
 
-IF TALENT:TARGET:130
+IF TALENT:TARGET:130	; 【TARGET:[母乳体質]】
 	SIF MAXBASE:3 == 0
 		MAXBASE:3 = 10000
 	PRINTFORM 母乳（%NAME:TARGET%）
@@ -335,7 +374,7 @@ IF TALENT:TARGET:130
 	PRINTFORML ({BASE:3}/{MAXBASE:3})
 ENDIF
 
-IF TEQUIP:90
+IF TEQUIP:90	; 【[触手プレイ]使用中】
 	SIF MAXBASE:MASTER:7 == 0
 		MAXBASE:MASTER:7 = 10000
 	PRINT 射精（触手）
@@ -347,9 +386,9 @@ TRYCALL SHOW_TOUCH
 CALL SHOW_EQUIP_1
 
 ;完全にパートナーに主導権を握らせている場合
-IF TFLAG:34
+IF TFLAG:34	; 【[主導権全委任]】
 	;ウフフ中
-	IF TFLAG:44
+	IF TFLAG:44	; 【[ウフフ中]】
 		;REVMODE
 		CALL REVMODE_PASSIVEPHASE(TARGET)
 	;非ウフフ中
@@ -365,15 +404,15 @@ ENDIF
 @SHOW_MOOD
 ;TFLAG:37 現在のムード
 ;TFLAG:47 酔ってる度合い
-IF TFLAG:37 < 10
+IF TFLAG:37 < 10	; 【[ムード]<10】
 	LOCAL = 0
-ELSEIF TFLAG:37 < 30
+ELSEIF TFLAG:37 < 30	; 【[ムード]<30】
 	LOCAL = 1
-ELSEIF TFLAG:37 < 50
+ELSEIF TFLAG:37 < 50	; 【[ムード]<50】
 	LOCAL = 2
-ELSEIF TFLAG:37 < 100
+ELSEIF TFLAG:37 < 100	; 【[ムード]<100】
 	LOCAL = 3
-ELSEIF TFLAG:37 < 300
+ELSEIF TFLAG:37 < 300	; 【[ムード]<300】
 	LOCAL = 4
 ELSE
 	LOCAL = 5
@@ -381,7 +420,7 @@ ENDIF
 
 PRINTFORM ﾑｰﾄﾞ
 CALL PRINT_BAR, TFLAG:37, 300, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("桃"), RESULT:1
-SIF TFLAG:37 >= 300
+SIF TFLAG:37 >= 300	; 【[ムード]>=300】
 	SETCOLOR 255,51,153
 
 LOCALS = %GETFONT()%
@@ -398,11 +437,11 @@ RESETCOLOR
 @STAIN_INFO
 
 REPEAT 6
-	SIF COUNT == 2 && TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0
+	SIF COUNT == 2 && TALENT:MASTER:119 == 0 && TALENT:MASTER:121 == 0 && TALENT:MASTER:122 == 0	; 【MASTER:[半人半妖]なし / MASTER:[ふたなり]なし / MASTER:[オトコ]なし】
 		CONTINUE
-	SIF COUNT == 3 && TALENT:MASTER:122
+	SIF COUNT == 3 && TALENT:MASTER:122	; 【MASTER:[オトコ]】
 		CONTINUE
-	SIF COUNT == 5 && TALENT:MASTER:122
+	SIF COUNT == 5 && TALENT:MASTER:122	; 【MASTER:[オトコ]】
 		CONTINUE
 	PRINTS NAME:MASTER
 	IF COUNT == 0
@@ -432,11 +471,11 @@ REPEAT 6
 REND
 
 REPEAT 6
-	SIF COUNT == 2 && TALENT:119 == 0 && TALENT:121 == 0 && TALENT:122 == 0
+	SIF COUNT == 2 && TALENT:119 == 0 && TALENT:121 == 0 && TALENT:122 == 0	; 【[半人半妖]なし / [ふたなり]なし / [オトコ]なし】
 		CONTINUE
-	SIF COUNT == 3 && TALENT:122
+	SIF COUNT == 3 && TALENT:122	; 【[オトコ]】
 		CONTINUE
-	SIF COUNT == 5 && TALENT:122
+	SIF COUNT == 5 && TALENT:122	; 【[オトコ]】
 		CONTINUE
 	PRINTS NAME:TARGET
 	IF COUNT == 0
@@ -469,11 +508,11 @@ REND
 REPEAT 6
 	SIF ASSI < 0
 		BREAK
-	SIF COUNT == 2 && TALENT:ASSI:119 == 0 && TALENT:ASSI:121 == 0 && TALENT:ASSI:122 == 0
+	SIF COUNT == 2 && TALENT:ASSI:119 == 0 && TALENT:ASSI:121 == 0 && TALENT:ASSI:122 == 0	; 【ASSI:[半人半妖]なし / ASSI:[ふたなり]なし / ASSI:[オトコ]なし】
 		CONTINUE
-	SIF COUNT == 3 && TALENT:ASSI:122
+	SIF COUNT == 3 && TALENT:ASSI:122	; 【ASSI:[オトコ]】
 		CONTINUE
-	SIF COUNT == 5 && TALENT:ASSI:122
+	SIF COUNT == 5 && TALENT:ASSI:122	; 【ASSI:[オトコ]】
 		CONTINUE
 	PRINTS NAME:ASSI
 	IF COUNT == 0
@@ -553,7 +592,7 @@ SIF FLAG:28
 
 ;コンフィグでセーブデータにメモを付けるをONにした場合メモを付けられる
 ;TFLAG:99が0の時でないと表示されないのは、オートセーブ時に毎回メモの入力を求められないようにするため
-IF TFLAG:99 == 0 && FLAG:23 & 1p24
+IF TFLAG:99 == 0 && FLAG:23 & 1p24	; 【無[オートセーブ判定]】
 	$INPUT
 	PRINTL メモを入力して下さい。何も入力しない場合メモが省略されます。
 	INPUTS
@@ -569,45 +608,38 @@ ENDIF
 ;状況の表示
 ;調教対象には使わない、特殊な着脱式の道具を追加した場合はここに追加をしてください
 ;（場所変更、マスターや助手が使用する道具等）
-IF TEQUIP:1
-	IF NAME_CSV(NO:TARGET, 0) == "慧音"
-		PRINTFORM  [ハクタク化]
-	ELSEIF ASSIPLAY
-		PRINTFORM  [ハクタク化](助手)
-	ENDIF
-ENDIF
-IF TEQUIP:2
+IF TEQUIP:2	; 【[デート中]使用中】
 	CALL PLACE_NAME
 	PRINTFORM  [デート中(%STR:4%)]
 ENDIF
 
-IF TEQUIP:4
+IF TEQUIP:4	; 【[アクセサリ]使用中】
 	ADDCHARA TEQUIP:4
 	A = CHARANUM-1
 	PRINTFORM  [%CALLNAME:A%から貰ったアクセサリ装着中]
 	DELCHARA A 
 ENDIF
 
-IF TEQUIP:53
+IF TEQUIP:53	; 【[撮影中]使用中】
 	V = 10 - TFLAG:70 + 1
 	PRINTFORM  [撮影中(残{V}回)]
 ENDIF
-SIF TEQUIP:54
+SIF TEQUIP:54	; 【[野外プレイ中]使用中】
 	PRINT  [野外プレイ中]
-IF TEQUIP:57 == 2
+IF TEQUIP:57 == 2	; 【[羞恥（大鏡）プレイ中]==2】
 	PRINT  [羞恥（浄玻璃の鏡）プレイ中]
-ELSEIF TEQUIP:57
+ELSEIF TEQUIP:57	; 【[羞恥（大鏡）プレイ中]使用中】
 	PRINT  [羞恥（大鏡）プレイ中]
 ENDIF
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	PRINT  [お風呂場プレイ中]
-SIF TEQUIP:59
+SIF TEQUIP:59	; 【[裸エプロン]使用中】
 	PRINT  [新妻プレイ中]
-SIF TEQUIP:60
+SIF TEQUIP:60	; 【[スク水]使用中】
 	PRINT  [スク水プレイ中]
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	PRINT  [お医者プレイ中]
-SIF TEQUIP:69
+SIF TEQUIP:69	; 【[女体盛りプレイ中]使用中】
 	PRINT  [女体盛りプレイ中]
 ;キャラごと固有のコスチューム表示可能にする関数(Notウフフ用)
 CALL COSTUME_SHOW
@@ -617,82 +649,82 @@ PRINTL
 ;使用中の道具を表示する
 ;一度使用したら解除するまで止まらない道具や調教を
 ;追加した場合はここに追加をしてください
-IF TEQUIP:PLAYER:43 || TEQUIP:PLAYER:44 || TEQUIP:PLAYER:45
+IF TEQUIP:PLAYER:43 || TEQUIP:PLAYER:44 || TEQUIP:PLAYER:45	; 【[アイマスク]使用中 / [縄で緊縛]使用中 / [ボールギャグ]使用中】
 	PRINTFORM 使用中(%NAME:PLAYER%) 
-	SIF TEQUIP:PLAYER:43
+	SIF TEQUIP:PLAYER:43	; 【[アイマスク]使用中】
 		PRINTFORM [アイマスク]
-	SIF TEQUIP:PLAYER:44
+	SIF TEQUIP:PLAYER:44	; 【[縄で緊縛]使用中】
 		PRINTFORM [縄で緊縛]
-	SIF TEQUIP:PLAYER:45
+	SIF TEQUIP:PLAYER:45	; 【[ボールギャグ]使用中】
 		PRINTFORM [ボールギャグ]
 	PRINTL  
 ENDIF
 
 ;日常用TEQUIP解除
 ;ウフフ中ならこれらは解除
-IF TFLAG:44 == 1
+IF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	TEQUIP:7 = 0
 	TEQUIP:20 = 0
 	TEQUIP:36 = 0
 ENDIF
 
-IF TEQUIP:7 || TEQUIP:11 || TEQUIP:13 || TEQUIP:14 || TEQUIP:15 || TEQUIP:16 || TEQUIP:17 || TEQUIP:18 || TEQUIP:19 || TEQUIP:20 || TEQUIP:21 || TEQUIP:22 || TEQUIP:25 || TEQUIP:36 || TEQUIP:43 || TEQUIP:44 || TEQUIP:45 || TEQUIP:46 || TEQUIP:47 || TEQUIP:48 || TEQUIP:49 || TEQUIP:61 || TEQUIP:70 || TEQUIP:71 || TEQUIP:72 || TEQUIP:73 || TEQUIP:74 || TEQUIP:75 || TEQUIP:76 || TEQUIP:79 || TEQUIP:86 || TEQUIP:87 || TEQUIP:98 || TEQUIP:65
+IF TEQUIP:7 || TEQUIP:11 || TEQUIP:13 || TEQUIP:14 || TEQUIP:15 || TEQUIP:16 || TEQUIP:17 || TEQUIP:18 || TEQUIP:19 || TEQUIP:20 || TEQUIP:21 || TEQUIP:22 || TEQUIP:25 || TEQUIP:36 || TEQUIP:43 || TEQUIP:44 || TEQUIP:45 || TEQUIP:46 || TEQUIP:47 || TEQUIP:48 || TEQUIP:49 || TEQUIP:61 || TEQUIP:70 || TEQUIP:71 || TEQUIP:72 || TEQUIP:73 || TEQUIP:74 || TEQUIP:75 || TEQUIP:76 || TEQUIP:79 || TEQUIP:86 || TEQUIP:87 || TEQUIP:98 || TEQUIP:65	; 【[炬燵]使用中 / [バイブ]使用中 / [アナルバイブ]使用中 / [クリキャップ]使用中 / [クリップローター]使用中 / [搾乳機]使用中 / [オナホール]使用中 / [シャワー]使用中 / [アナルビーズ]使用中 / [オムツ]使用中 / [媚薬効果発揮中]使用中 / [利尿剤効果発揮中]使用中 / [押し倒し中]使用中 / [着衣ローター]使用中 / [アイマスク]使用中 / [縄で緊縛]使用中 / [ボールギャグ]使用中 / [普通の浣腸]使用中 / [空気浣腸]使用中 / [バルーン]使用中 / [アナル電極]使用中 / [クスコ]使用中 / [巨峰]使用中 / [焼芋]使用中 / [荊縛り]使用中 / [蜘蛛の糸縛り]使用中 / [鈴蘭の毒]使用中 / [昆虫採集セット薬]使用中 / [サラシ]使用中 / [氷柱]使用中 / [排卵誘発剤効果発揮中]使用中 / [緊急避妊薬準備済み]使用中 / [触手口辱]使用中 / [コスプレ]使用中】
 	PRINTFORM 使用中(%NAME:TARGET%) 
 
-SIF TEQUIP:21
+SIF TEQUIP:21	; 【[媚薬効果発揮中]使用中】
 	PRINT [媚薬効果発揮中]
-SIF TEQUIP:22
+SIF TEQUIP:22	; 【[利尿剤効果発揮中]使用中】
 	PRINT [利尿剤効果発揮中]
-SIF TEQUIP:86
+SIF TEQUIP:86	; 【[排卵誘発剤効果発揮中]使用中】
 	PRINT [排卵誘発剤効果発揮中]
-SIF TEQUIP:87
+SIF TEQUIP:87	; 【[緊急避妊薬準備済み]使用中】
 	PRINT [緊急避妊薬準備済み]
 
-	SIF TEQUIP:11
+	SIF TEQUIP:11	; 【[バイブ]使用中】
 		PRINT [バイブ]
 
 
-	SIF TEQUIP:13
+	SIF TEQUIP:13	; 【[アナルバイブ]使用中】
 		PRINT [アナルバイブ]
 
 
-SIF TEQUIP:76
+SIF TEQUIP:76	; 【[サラシ]使用中】
 	PRINT [サラシ]
 
-	SIF TEQUIP:44
+	SIF TEQUIP:44	; 【[縄で緊縛]使用中】
 		PRINT [縄で緊縛]
 
 
-	SIF TEQUIP:46
+	SIF TEQUIP:46	; 【[普通の浣腸]使用中】
 		PRINT [浣腸＋アナルプラグ]
 
 
-SIF TEQUIP:43 && TEQUIP:73 == 0
+SIF TEQUIP:43 && TEQUIP:73 == 0	; 【[アイマスク]使用中 / 無[蜘蛛の糸縛り]】
 	PRINT [アイマスク]
-SIF TEQUIP:45
+SIF TEQUIP:45	; 【[ボールギャグ]使用中】
 	PRINT [ボールギャグ]
-SIF TEQUIP:18
+SIF TEQUIP:18	; 【[シャワー]使用中】
 	PRINT [シャワー]
-SIF TEQUIP:19
+SIF TEQUIP:19	; 【[アナルビーズ]使用中】
 	PRINT [アナルビーズ]
-SIF TEQUIP:47
+SIF TEQUIP:47	; 【[空気浣腸]使用中】
 	PRINT [空気浣腸]
-SIF TEQUIP:48
+SIF TEQUIP:48	; 【[バルーン]使用中】
 	PRINT [拡張バルーン]
-SIF TEQUIP:49
+SIF TEQUIP:49	; 【[アナル電極]使用中】
 	PRINT [アナル電極]
-SIF TEQUIP:61
+SIF TEQUIP:61	; 【[クスコ]使用中】
 	PRINT [クスコ]
-SIF TEQUIP:71
+SIF TEQUIP:71	; 【[焼芋]使用中】
 	PRINT [焼芋挿入中]
-SIF TEQUIP:70
+SIF TEQUIP:70	; 【[巨峰]使用中】
 	PRINT [巨峰挿入中]
-IF TEQUIP:79
-	SIF TEQUIP:79 == 1 || TEQUIP:79 == 2
+IF TEQUIP:79	; 【[氷柱]使用中】
+	SIF TEQUIP:79 == 1 || TEQUIP:79 == 2	; 【[氷柱]==1 / [氷柱]==2】
 		PRINT [氷柱挿入中]
-	SIF TEQUIP:79 == 3
+	SIF TEQUIP:79 == 3	; 【[氷柱]==3】
 		PRINT [極太氷柱挿入中]
-	SIF TEQUIP:79 >= 4
+	SIF TEQUIP:79 >= 4	; 【[氷柱]>=4】
 		PRINT [氷塊挿入中]
 ENDIF
 
@@ -701,105 +733,105 @@ CALL COSTUME_PLAY_SHOW
 ;コスプレは固有表示にする為、固有表示されてないこと確認
 IF RESULT == 1
 	;キャラごと固有のコスチューム表示
-ELSEIF TEQUIP:65 == 1
+ELSEIF TEQUIP:65 == 1	; 【[コスプレ]==1】
 	PRINT [学ラン]
-ELSEIF TEQUIP:65 == 2
+ELSEIF TEQUIP:65 == 2	; 【[コスプレ]==2】
 	PRINT [セーラー服]
-ELSEIF TEQUIP:65 == 3
+ELSEIF TEQUIP:65 == 3	; 【[コスプレ]==3】
 	PRINT [ブルマ]
-ELSEIF TEQUIP:65 == 4
+ELSEIF TEQUIP:65 == 4	; 【[コスプレ]==4】
 	PRINT [水着]
-ELSEIF TEQUIP:65 == 5
+ELSEIF TEQUIP:65 == 5	; 【[コスプレ]==5】
 	PRINT [スク水（紺）]
-ELSEIF TEQUIP:65 == 6
+ELSEIF TEQUIP:65 == 6	; 【[コスプレ]==6】
 	PRINT [スク水（白）]
-ELSEIF TEQUIP:65 == 7
+ELSEIF TEQUIP:65 == 7	; 【[コスプレ]==7】
 	PRINT [白衣]
-ELSEIF TEQUIP:65 == 8
+ELSEIF TEQUIP:65 == 8	; 【[コスプレ]==8】
 	PRINT [ナース服]
-ELSEIF TEQUIP:65 == 9
+ELSEIF TEQUIP:65 == 9	; 【[コスプレ]==9】
 	PRINT [女性警察官制服]
-ELSEIF TEQUIP:65 == 10
+ELSEIF TEQUIP:65 == 10	; 【[コスプレ]==10】
 	PRINT [ボンテージスーツ]
-ELSEIF TEQUIP:65 == 11
+ELSEIF TEQUIP:65 == 11	; 【[コスプレ]==11】
 	PRINT [浴衣]
-ELSEIF TEQUIP:65 == 12
+ELSEIF TEQUIP:65 == 12	; 【[コスプレ]==12】
 	PRINT [巫女服]
-ELSEIF TEQUIP:65 == 13
+ELSEIF TEQUIP:65 == 13	; 【[コスプレ]==13】
 	PRINT [巫女服（紅白）]
-ELSEIF TEQUIP:65 == 14
+ELSEIF TEQUIP:65 == 14	; 【[コスプレ]==14】
 	PRINT [巫女服（緑白）]
-ELSEIF TEQUIP:65 == 15
+ELSEIF TEQUIP:65 == 15	; 【[コスプレ]==15】
 	PRINT [メイド服]
-ELSEIF TEQUIP:65 == 16
+ELSEIF TEQUIP:65 == 16	; 【[コスプレ]==16】
 	PRINT [メイド服（紅）]
-ELSEIF TEQUIP:65 == 17
+ELSEIF TEQUIP:65 == 17	; 【[コスプレ]==17】
 	PRINT [裸リボン]
-ELSEIF TEQUIP:65 == 18
+ELSEIF TEQUIP:65 == 18	; 【[コスプレ]==18】
 	PRINTFORM [小悪魔風衣装]
-ELSEIF TEQUIP:65 == 19
+ELSEIF TEQUIP:65 == 19	; 【[コスプレ]==19】
 	PRINTFORM [魔法少女コス]
-ELSEIF TEQUIP:65 == 20
+ELSEIF TEQUIP:65 == 20	; 【[コスプレ]==20】
 	PRINTFORM [ゴスロリ]
-ELSEIF TEQUIP:65 == 21
+ELSEIF TEQUIP:65 == 21	; 【[コスプレ]==21】
 	PRINTFORM [バニーガール]
-ELSEIF TEQUIP:65 == 22
+ELSEIF TEQUIP:65 == 22	; 【[コスプレ]==22】
 	PRINTFORM [裸Yシャツ]
-ELSEIF TEQUIP:65 == 23
+ELSEIF TEQUIP:65 == 23	; 【[コスプレ]==23】
 	PRINTFORM [%NAME:TARGET%の服]
-ELSEIF TEQUIP:65 == 24
+ELSEIF TEQUIP:65 == 24	; 【[コスプレ]==24】
 	PRINTFORM [%NAME:MASTER%の服]
-ELSEIF TEQUIP:65 == 255
+ELSEIF TEQUIP:65 == 255	; 【[コスプレ]==255】
 	PRINTFORM [ボロボロの布切れ]
 ENDIF
 
 ;日常用TEQUIP
-SIF TEQUIP:7
+SIF TEQUIP:7	; 【[炬燵]使用中】
 	PRINT  [炬燵]
-SIF TEQUIP:20
+SIF TEQUIP:20	; 【[オムツ]使用中】
 	PRINT  [オムツ着用中]
-SIF TEQUIP:36
+SIF TEQUIP:36	; 【[着衣ローター]使用中】
 	PRINT  [ローター装着中]
 
 ;ココより↑にTEQUIPに登録したものを書き込む
 PRINTL 
 ENDIF
-IF TEQUIP:3
+IF TEQUIP:3	; 【[イノセンス]使用中】
 	PRINT インセンス使用中(
-	SIF TEQUIP:3 == 1
+	SIF TEQUIP:3 == 1	; 【[イノセンス]==1】
 		PRINT シダーウッド：体力消費軽減・小
-	SIF TEQUIP:3 == 2
+	SIF TEQUIP:3 == 2	; 【[イノセンス]==2】
 		PRINT サイプレスウッド：体力消費軽減・中
-	SIF TEQUIP:3 == 3
+	SIF TEQUIP:3 == 3	; 【[イノセンス]==3】
 		PRINT アローズウッド：体力消費軽減・大
-	SIF TEQUIP:3 == 4
+	SIF TEQUIP:3 == 4	; 【[イノセンス]==4】
 		PRINT ペパーミント：気力消費軽減・小
-	SIF TEQUIP:3 == 5
+	SIF TEQUIP:3 == 5	; 【[イノセンス]==5】
 		PRINT メリッサ：気力消費軽減・中
-	SIF TEQUIP:3 == 6
+	SIF TEQUIP:3 == 6	; 【[イノセンス]==6】
 		PRINT ミルトス：気力消費軽減・大
-	SIF TEQUIP:3 == 7
+	SIF TEQUIP:3 == 7	; 【[イノセンス]==7】
 		PRINT ジャスミン：ムード上昇・小
-	SIF TEQUIP:3 == 8
+	SIF TEQUIP:3 == 8	; 【[イノセンス]==8】
 		PRINT ラヴェンダー：ムード上昇・中
-	SIF TEQUIP:3 == 9
+	SIF TEQUIP:3 == 9	; 【[イノセンス]==9】
 		PRINT ムスク：ムード上昇・大
-	SIF TEQUIP:3 == 10
+	SIF TEQUIP:3 == 10	; 【[イノセンス]==10】
 		PRINT フランキンセンス：体力気力消費軽減＋ムード上昇
-	SIF TEQUIP:3 == 11
+	SIF TEQUIP:3 == 11	; 【[イノセンス]==11】
 		PRINT 竜印香炉：体力回復・小
-	SIF TEQUIP:3 == 12
+	SIF TEQUIP:3 == 12	; 【[イノセンス]==12】
 		PRINT ネクロパフューム：亡霊系・体力気力消費軽減＋ムード上昇
 	PRINTL )
 ENDIF
 ;調合用TEQUIP
-IF TEQUIP:5
+IF TEQUIP:5	; 【[調合アイテム使用中]使用中】
 	PRINT 調合アイテム使用中(
-	SIF TEQUIP:5 == 1
+	SIF TEQUIP:5 == 1	; 【[調合アイテム使用中]==1】
 		PRINT 病気平癒守：耐力体力回復・中
-	SIF TEQUIP:5 == 2
+	SIF TEQUIP:5 == 2	; 【[調合アイテム使用中]==2】
 		PRINT ペンデュラム：探索率上昇
-	SIF TEQUIP:5 == 3
+	SIF TEQUIP:5 == 3	; 【[調合アイテム使用中]==3】
 		PRINT 魔法瓶：デート中体力気力消費軽減・小
 	PRINTL )
 ENDIF
@@ -1146,13 +1178,13 @@ PALAM:20 = 0
 @LIFE_LIMIT
 ;体力・気力の固定9999上限は廃止。
 ;耐力だけはエンジンの整数範囲を意識した安全上限を維持する。
-SIF MAXBASE:4 > 999999999999999999
+SIF MAXBASE:4 > 999999999999999999	; 【[耐力]>999999999999999999】
 	MAXBASE:4 = 999999999999999999
-SIF MAXBASE:MASTER:4 > 999999999999999999
+SIF MAXBASE:MASTER:4 > 999999999999999999	; 【MASTER:[耐力]>999999999999999999】
 	MAXBASE:MASTER:4 = 999999999999999999
-SIF BASE:4 > 999999999999999999
+SIF BASE:4 > 999999999999999999	; 【[耐力]>999999999999999999】
 	BASE:4 = 999999999999999999
-SIF BASE:MASTER:4 > 999999999999999999
+SIF BASE:MASTER:4 > 999999999999999999	; 【MASTER:[耐力]>999999999999999999】
 	BASE:MASTER:4 = 999999999999999999
 
 CALL LIFE_LIMIT_MAXBASE
@@ -1164,17 +1196,19 @@ CALL LIFE_LIMIT_MAXBASE
 @LIFE_LIMIT_MAXBASE
 ;パートナーは従来どおり通常上限に合わせる。
 ;J用アイテムにより一時的に体力上限がなくなっていれば体力は合わせない。
-IF TEQUIP:41 == 0
-	SIF BASE:0 > MAXBASE:0
+IF TEQUIP:41 == 0	; 【無[体力上限なし]】
+	SIF BASE:0 > MAXBASE:0	; 【[体力]>MAXBASE:0】
 		BASE:0 = MAXBASE:0
 ENDIF
-SIF BASE:1 > MAXBASE:1
+SIF BASE:1 > MAXBASE:1	; 【[気力]>MAXBASE:1】
 	BASE:1 = MAXBASE:1
+SIF BASE:1 < 0	; 【[気力]<0】
+	BASE:1 = 0
 
 ;耐力は主人公・パートナーとも通常上限に合わせる。
-SIF BASE:4 > MAXBASE:4
+SIF BASE:4 > MAXBASE:4	; 【[耐力]>MAXBASE:4】
 	BASE:4 = MAXBASE:4
-SIF BASE:MASTER:4 > MAXBASE:MASTER:4
+SIF BASE:MASTER:4 > MAXBASE:MASTER:4	; 【MASTER:[耐力]>MAXBASE:MASTER:4】
 	BASE:MASTER:4 = MAXBASE:MASTER:4
 
 ;-------------------------------------------------
@@ -1182,7 +1216,7 @@ SIF BASE:MASTER:4 > MAXBASE:MASTER:4
 ;-------------------------------------------------
 @SHOW_DAY_INFO
 ;表示する記念日がなければRETURN
-SIF TALENT:89 == 0 && TALENT:134 == 0 && CSTR:TARGET:21 == "" && TIME:3 == 0
+SIF TALENT:89 == 0 && TALENT:134 == 0 && CSTR:TARGET:21 == "" && TIME:3 == 0	; 【[相愛]なし / [妊娠]なし】
 	RETURN 0
 
 DRAWLINE
@@ -1203,7 +1237,7 @@ IF TIME:3 > 0 && NO:TARGET == MASTER
 ENDIF
 
 ;結婚記念日
-IF TALENT:89
+IF TALENT:89	; 【[相愛]】
 	IF TIME:9
 		PRINTFORML 結婚記念日：{TIME:10}月{TIME:9}日
 	ELSE
@@ -1212,7 +1246,7 @@ IF TALENT:89
 ENDIF
 
 ;出産予定日
-IF TALENT:134
+IF TALENT:134	; 【[妊娠]】
 	PRINTFORML 出産予定日まで{CFLAG:110-DAY:7}日
 ENDIF
 
@@ -1341,3 +1375,732 @@ SELECTCASE ARGS
 		RESULT:1 = 0x202020
 		RETURNF 0xC0C0C0
 ENDSELECT
+
+;==================================================
+; キャラクター詳細統計・同期処理
+; ARG: キャラ登録番号
+;==================================================
+@SYNC_CHARA_MISC_STATS, ARG
+#LOCALSIZE 5
+#DIM IS_SACRIFICED
+SIF ARG <= 0 || ARG >= CHARANUM
+	RETURN 0
+
+;射精ゲージ負数ガード
+SIF BASE:ARG:2 < 0
+	BASE:ARG:2 = 0
+
+LOCAL = NO:ARG
+
+; カジノ身代わり回数同期（CFLAG:786と同期）
+IF CFLAG:ARG:786 > CFLAG:ARG:1210
+	CFLAG:ARG:1210 = CFLAG:ARG:786
+ENDIF
+IS_SACRIFICED = (CFLAG:ARG:786 > 0 || CFLAG:ARG:1210 > 0)
+
+;--------------------------------------------------
+; カジノ身代わり犠牲者の個人ログ誤爆クリーンアップ
+; （他人に犯された性的経験が主人公との愛の記録に誤変換されていた場合の修復）
+;--------------------------------------------------
+IF IS_SACRIFICED
+	; 性的経験の合計値
+	LOCAL:1 = EXP:ARG:0 + EXP:ARG:1 + EXP:ARG:10 + EXP:ARG:21 + EXP:ARG:22
+
+	; ウフフターン数が性的経験合計値（旧逆算値）と一致している場合、主人公調教実績ではないためリセット
+	IF CFLAG:ARG:1212 == LOCAL:1 && LOCAL:1 > 0	; 【ARG:[親密(ウフフ)ターン数]==LOCAL:1】
+		CFLAG:ARG:1212 = 0
+		CFLAG:ARG:1235 = 0
+		; 共に過ごした時間も日常ターンのみに修正
+		CFLAG:ARG:1200 = CFLAG:ARG:1211
+	ENDIF
+
+	; 体位別結合記録が旧逆算比率（40/30/20/10）と一致している場合、リセット
+	IF EXP:ARG:0 > 0 && CFLAG:ARG:1250 == (EXP:ARG:0 * 40 / 100) && CFLAG:ARG:1251 == (EXP:ARG:0 * 30 / 100) && CFLAG:ARG:1252 == (EXP:ARG:0 * 20 / 100) && CFLAG:ARG:1253 == (EXP:ARG:0 * 10 / 100)	; 【ARG:[Ｖ経験]>0 / ARG:[Ｖ経験]あり / ARG:[正常位累計] / ARG:[後背位累計] / ARG:[騎乗位累計] / ARG:[対面座位累計]】
+		CFLAG:ARG:1250 = 0
+		CFLAG:ARG:1251 = 0
+		CFLAG:ARG:1252 = 0
+		CFLAG:ARG:1253 = 0
+		CFLAG:ARG:1254 = 0
+	ENDIF
+
+	; 主人公とウフフ実績がない場合、絶頂・潮吹き・射精の旧同期値をリセット
+	IF CFLAG:ARG:1212 == 0	; 【ARG:[親密(ウフフ)ターン数]==0】
+		IF CFLAG:ARG:1232 == EXP:ARG:2	; 【ARG:[絶頂経験]あり / ARG:[絶頂累計]==EXP:ARG:2】
+			CFLAG:ARG:1232 = 0
+			CFLAG:ARG:1239 = 0
+		ENDIF
+		IF CFLAG:ARG:1233 == EXP:ARG:31	; 【ARG:[放尿経験]あり / ARG:[潮吹き回数]==EXP:ARG:31】
+			CFLAG:ARG:1233 = 0
+			CFLAG:ARG:1234 = 0
+		ENDIF
+		IF CFLAG:ARG:1280 == EXP:ARG:3	; 【ARG:[射精経験]あり / ARG:[本人の総射精回数]==EXP:ARG:3】
+			CFLAG:ARG:1280 = 0
+			CFLAG:ARG:1281 = 0
+		ENDIF
+		IF CFLAG:ARG:1282 == EXP:ARG:54	; 【ARG:[噴乳経験]あり / ARG:[総噴乳回数]==EXP:ARG:54】
+			CFLAG:ARG:1282 = 0
+			CFLAG:ARG:1283 = 0
+		ENDIF
+	ENDIF
+ENDIF
+
+; 射精量の同期（トロフィー等のFLAG:5800+NOに記録がある場合、CFLAG:1221が少なければ同期）
+IF FLAG:(5800 + LOCAL) > CFLAG:ARG:1221	; 【ARG:[主人公からの総射精量(mL)]】
+	CFLAG:ARG:1221 = FLAG:(5800 + LOCAL)
+ENDIF
+
+; 射精量があるのに射精回数が未初期化(0)の場合、平均15mL換算で推定補正
+IF CFLAG:ARG:1221 > 0 && CFLAG:ARG:1220 == 0	; 【ARG:[主人公からの総射精量(mL)]>0 / ARG:[主人公からの総射精回数]==0】
+	CFLAG:ARG:1220 = MAX(1, CFLAG:ARG:1221 / 15)
+	IF EXP:ARG:20 > 0	; 【ARG:[精液経験]>0】
+		CFLAG:ARG:1222 = MIN(CFLAG:ARG:1220, EXP:ARG:20)
+		CFLAG:ARG:1223 = CFLAG:ARG:1222 * (CFLAG:ARG:1221 / CFLAG:ARG:1220)
+		CFLAG:ARG:1228 = CFLAG:ARG:1220 - CFLAG:ARG:1222
+		CFLAG:ARG:1229 = CFLAG:ARG:1221 - CFLAG:ARG:1223
+	ELSE
+		CFLAG:ARG:1228 = CFLAG:ARG:1220
+		CFLAG:ARG:1229 = CFLAG:ARG:1221
+	ENDIF
+ENDIF
+; 射精強度の誤加算(TFLAG:714)により回数が射精量(mL)を異常に上回っている既存セーブの自動修復
+IF CFLAG:ARG:1220 > CFLAG:ARG:1221 && CFLAG:ARG:1221 > 0
+	; 1回の最高射精量(CFLAG:1240)または平均20mLから実射精回数を適正値に再計算
+	LOCAL:2 = MAX(20, CFLAG:ARG:1240)
+	; 体位別合計回数があればそれを優先
+	LOCAL:3 = CFLAG:ARG:1250 + CFLAG:ARG:1251 + CFLAG:ARG:1252 + CFLAG:ARG:1253 + CFLAG:ARG:1254
+	IF LOCAL:3 > 0 && LOCAL:3 <= CFLAG:ARG:1221
+		CFLAG:ARG:1220 = LOCAL:3
+	ELSE
+		CFLAG:ARG:1220 = LIMIT(CFLAG:ARG:1221 / LOCAL:2, 1, CFLAG:ARG:1221)
+	ENDIF
+	; 膣内射精回数なども総回数に合わせて比率調整
+	IF CFLAG:ARG:1222 > CFLAG:ARG:1220
+		IF CFLAG:ARG:1223 > 0 && CFLAG:ARG:1221 > 0
+			CFLAG:ARG:1222 = LIMIT(CFLAG:ARG:1220 * CFLAG:ARG:1223 / CFLAG:ARG:1221, 1, CFLAG:ARG:1220)
+		ELSE
+			CFLAG:ARG:1222 = CFLAG:ARG:1220
+		ENDIF
+	ENDIF
+	SIF CFLAG:ARG:1224 > CFLAG:ARG:1220
+		CFLAG:ARG:1224 = CFLAG:ARG:1220 - CFLAG:ARG:1222
+	SIF CFLAG:ARG:1226 > CFLAG:ARG:1220
+		CFLAG:ARG:1226 = 0
+	SIF CFLAG:ARG:1228 > CFLAG:ARG:1220
+		CFLAG:ARG:1228 = 0
+	SIF CFLAG:ARG:1230 > CFLAG:ARG:1220
+		CFLAG:ARG:1230 = CFLAG:ARG:1220
+ENDIF
+
+; 処女なのにＶ経験がある不整合の修復（過去のCOM84バグ等による不整合救済）
+IF TALENT:ARG:0 == 1 && EXP:ARG:0 > 0
+	TALENT:ARG:0 = 0
+	SIF CFLAG:ARG:1241 == 0	; 【ARG:[処女喪失記念日]==0】
+		CFLAG:ARG:1241 = GET_CURRENT_DATE_INT()
+ENDIF
+
+; 体位別の未初期化補正（V経験があるのに体位が全0なら推定分配、身代わり経験者は除外）
+IF !IS_SACRIFICED && EXP:ARG:0 > 0 && (CFLAG:ARG:1250 + CFLAG:ARG:1251 + CFLAG:ARG:1252 + CFLAG:ARG:1253 + CFLAG:ARG:1254 == 0)	; 【ARG:[Ｖ経験]>0 / ARG:[正常位累計] / ARG:[後背位累計] / ARG:[騎乗位累計] / ARG:[対面座位累計] / ARG:[背面座位累計]==0】
+	CFLAG:ARG:1250 = EXP:ARG:0 * 40 / 100
+	CFLAG:ARG:1251 = EXP:ARG:0 * 30 / 100
+	CFLAG:ARG:1252 = EXP:ARG:0 * 20 / 100
+	CFLAG:ARG:1253 = EXP:ARG:0 * 10 / 100
+ENDIF
+
+; 同時絶頂の初期推定（射精と絶頂が共にあれば一部を反映）
+IF CFLAG:ARG:1220 > 0 && EXP:ARG:2 > 0 && CFLAG:ARG:1238 == 0	; 【ARG:[絶頂経験]>0 / ARG:[主人公からの総射精回数]>0 / ARG:[同時絶頂累計]==0】
+	CFLAG:ARG:1238 = MIN(CFLAG:ARG:1220, EXP:ARG:2) / 3
+ENDIF
+
+; 1回の最高射精量の初期推定
+IF CFLAG:ARG:1221 > 0 && CFLAG:ARG:1240 == 0	; 【ARG:[主人公からの総射精量(mL)]>0 / ARG:[1回の最高射精量(mL)]==0】
+	CFLAG:ARG:1240 = MIN(CFLAG:ARG:1221, MAX(20, CFLAG:ARG:1221 / MAX(1, CFLAG:ARG:1220) + 10))
+ENDIF
+
+; 本人の射精同期（射精経験がある場合、身代わり経験者は除外）
+IF !IS_SACRIFICED && EXP:ARG:3 > 0 && CFLAG:ARG:1280 == 0	; 【ARG:[射精経験]>0 / ARG:[本人の総射精回数]==0】
+	CFLAG:ARG:1280 = EXP:ARG:3
+	CFLAG:ARG:1281 = EXP:ARG:3 * 15
+ENDIF
+
+; 噴乳同期（噴乳経験がある場合、身代わり経験者は除外）
+IF !IS_SACRIFICED && EXP:ARG:54 > 0 && CFLAG:ARG:1282 == 0	; 【ARG:[噴乳経験]>0 / ARG:[総噴乳回数]==0】
+	CFLAG:ARG:1282 = EXP:ARG:54
+	CFLAG:ARG:1283 = EXP:ARG:54 * 20
+ENDIF
+
+; 貢いだ金額の初期補正（エンゲージリング所持なら最低1,000,000）
+IF CFLAG:ARG:29 > 0 && CFLAG:ARG:1275 < 1000000	; 【ARG:[エンゲージリング受取]>0 / ARG:[貢いだ総額($)]<1000000】
+	CFLAG:ARG:1275 = MAX(CFLAG:ARG:1275, 1000000)
+ENDIF
+
+; 1回の最高絶頂数記録の同期（未記録なら絶頂経験ベースで初期推定、身代わり経験者は除外）
+IF !IS_SACRIFICED && EXP:ARG:2 > 0 && CFLAG:ARG:1239 == 0	; 【ARG:[絶頂経験]>0 / ARG:[最高絶頂記録]==0】
+	CFLAG:ARG:1239 = MIN(EXP:ARG:2, MAX(1, EXP:ARG:2 / MAX(1, CFLAG:ARG:1235) + 3))
+ENDIF
+
+; 累計好感度（現在好感度を下回っていれば同期）
+IF CFLAG:ARG:2 > CFLAG:ARG:1214	; 【ARG:[好感度]>CFLAG:ARG:1214】
+	CFLAG:ARG:1214 = CFLAG:ARG:2
+ENDIF
+
+; 絶頂回数（未記録なら絶頂経験をベースに同期、身代わり経験者は除外）
+IF !IS_SACRIFICED && EXP:ARG:2 > CFLAG:ARG:1232	; 【ARG:[絶頂経験]>CFLAG:ARG:1232 / ARG:[絶頂累計]】
+	CFLAG:ARG:1232 = EXP:ARG:2
+ENDIF
+
+; 潮吹き回数（未記録なら放尿経験・異常経験等から同期、身代わり経験者は除外）
+IF !IS_SACRIFICED && EXP:ARG:31 > CFLAG:ARG:1233 && EXP:ARG:31 > 0	; 【ARG:[放尿経験]>CFLAG:ARG:1233 / ARG:[放尿経験]>0 / ARG:[潮吹き回数]】
+	CFLAG:ARG:1233 = EXP:ARG:31
+	CFLAG:ARG:1234 = CFLAG:ARG:1233 * 30
+ENDIF
+
+; 勉強回数の補正（総ターン数を超えている場合は上限を総ターン数に補正）
+IF CFLAG:ARG:1207 > CFLAG:ARG:1200	; 【ARG:[勉強累計]>CFLAG:ARG:1200】
+	CFLAG:ARG:1207 = CFLAG:ARG:1200
+ENDIF
+
+; ウフフターン数・調教回数の同期（性的経験合計をベースにウフフを補正、身代わり経験者は除外）
+IF !IS_SACRIFICED
+	LOCAL:1 = EXP:ARG:0 + EXP:ARG:1 + EXP:ARG:10 + EXP:ARG:21 + EXP:ARG:22
+	IF CFLAG:ARG:1212 == 0 && LOCAL:1 > 0	; 【ARG:[親密(ウフフ)ターン数]==0】
+		CFLAG:ARG:1212 = LOCAL:1
+	ENDIF
+	; 非ウフフ（調教外）行動を除外して調教回数をウフフターン数に合わせる
+	CFLAG:ARG:1235 = CFLAG:ARG:1212
+ENDIF
+
+; 一緒に過ごした総ターン数と内訳の同期
+IF CFLAG:ARG:1211 == 0 && CFLAG:ARG:1200 > CFLAG:ARG:1212	; 【ARG:[日常(非ウフフ)ターン数]==0 / ARG:[共に過ごした総時間(ターン数)]>CFLAG:ARG:1212】
+	CFLAG:ARG:1211 = CFLAG:ARG:1200 - CFLAG:ARG:1212
+ELSEIF CFLAG:ARG:1211 + CFLAG:ARG:1212 > CFLAG:ARG:1200	; 【ARG:[日常(非ウフフ)ターン数] / ARG:[親密(ウフフ)ターン数]>CFLAG:ARG:1200】
+	CFLAG:ARG:1200 = CFLAG:ARG:1211 + CFLAG:ARG:1212
+ENDIF
+
+; 一緒に過ごした時間（未記録なら好感度から初期推定）
+IF CFLAG:ARG:1200 == 0 && CFLAG:ARG:2 > 0	; 【ARG:[共に過ごした総時間(ターン数)]==0 / ARG:[好感度]>0】
+	CFLAG:ARG:1200 = MAX(1, CFLAG:ARG:2 / 50)
+	CFLAG:ARG:1211 = CFLAG:ARG:1200
+ENDIF
+
+; 一緒に過ごした回数（調教開始回数）の初期推定
+IF CFLAG:ARG:1213 == 0 && CFLAG:ARG:1200 > 0	; 【ARG:[一緒に過ごした回数]==0 / ARG:[共に過ごした総時間(ターン数)]>0】
+	CFLAG:ARG:1213 = MAX(1, CFLAG:ARG:1200 / 8)
+ENDIF
+
+; 記念日の旧日目形式（1～9999）から日付形式（YYYYMMDD）への移行変換
+IF CFLAG:ARG:1242 > 0 && CFLAG:ARG:1242 < 10000	; 【ARG:[初キス記念日]>0 / ARG:[初キス記念日]<10000】
+	CFLAG:ARG:1242 = CONVERT_DAY_INT_TO_DATE_INT(CFLAG:ARG:1242)
+ENDIF
+IF CFLAG:ARG:1241 > 0 && CFLAG:ARG:1241 < 10000	; 【ARG:[処女喪失記念日]>0 / ARG:[処女喪失記念日]<10000】
+	CFLAG:ARG:1241 = CONVERT_DAY_INT_TO_DATE_INT(CFLAG:ARG:1241)
+ENDIF
+IF CFLAG:ARG:1243 > 0 && CFLAG:ARG:1243 < 10000	; 【ARG:[恋人記念日(日目)]>0 / ARG:[恋人記念日(日目)]<10000】
+	CFLAG:ARG:1243 = CONVERT_DAY_INT_TO_DATE_INT(CFLAG:ARG:1243)
+ENDIF
+IF CFLAG:ARG:1244 > 0 && CFLAG:ARG:1244 < 10000	; 【ARG:[相愛記念日(日目)]>0 / ARG:[相愛記念日(日目)]<10000】
+	CFLAG:ARG:1244 = CONVERT_DAY_INT_TO_DATE_INT(CFLAG:ARG:1244)
+ENDIF
+IF TALENT:ARG:153 && CFLAG:ARG:1243 == 0	; 【ARG:[恋人] / ARG:[恋人記念日(日目)]==0】
+	CFLAG:ARG:1243 = GET_CURRENT_DATE_INT()
+ENDIF
+IF TALENT:ARG:89 && CFLAG:ARG:1244 == 0	; 【ARG:[相愛] / ARG:[相愛記念日(日目)]==0】
+	CFLAG:ARG:1244 = GET_CURRENT_DATE_INT()
+ENDIF
+
+; カジノ等で誰のものとも知れぬ子を妊娠している場合の父親フラグ修正
+IF CFLAG:ARG:104 == 99 && CFLAG:ARG:111 >= 0	; 【ARG:[種提供者]==99 / ARG:[父親]>=0】
+	CFLAG:ARG:111 = -1
+ENDIF
+
+; 処女喪失記念日があるのに相手が未記録の場合、以前のプレイ（主人公との行為）として補完
+IF CFLAG:ARG:1241 > 0 && CFLAG:ARG:1246 == 0
+	CFLAG:ARG:1246 = 1
+	CSTR:ARG:1 = %CALLNAME:MASTER%
+ENDIF
+; ファーストキス記念日があるのに相手が未記録の場合、以前のプレイ（主人公とのキス）として補完
+IF CFLAG:ARG:1242 > 0 && CFLAG:ARG:1247 == 0
+	CFLAG:ARG:1247 = 1
+	CSTR:ARG:2 = %CALLNAME:MASTER%
+ENDIF
+
+RETURN 0
+
+;==================================================
+; ファーストキス記録設定関数
+; ARG: 対象キャラ番号
+; ARG:1: 相手キャラ番号（-1ならモブ/不明）
+;==================================================
+@SET_FIRST_KISS_RECORD, ARG, ARG:1
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+
+; 記念日が未記録なら今日の日付を記録
+SIF CFLAG:ARG:1242 == 0
+	CFLAG:ARG:1242 = GET_CURRENT_DATE_INT()
+
+; 相手が未記録なら記録
+IF CFLAG:ARG:1247 == 0
+	IF ARG:1 >= 0 && ARG:1 < CHARANUM
+		CFLAG:ARG:1247 = NO:(ARG:1) + 1
+		CSTR:ARG:2 = %CALLNAME:(ARG:1)%
+	ELSE
+		CFLAG:ARG:1247 = -1
+		CSTR:ARG:2 = 見知らぬ相手
+	ENDIF
+ENDIF
+RETURN 1
+
+;==================================================
+; 処女喪失記録設定関数
+; ARG: 対象キャラ番号
+; ARG:1: 相手キャラ番号（-1ならモブ/不明）
+;==================================================
+@SET_VIRGINITY_RECORD, ARG, ARG:1
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+
+; 記念日が未記録なら今日の日付を記録
+SIF CFLAG:ARG:1241 == 0
+	CFLAG:ARG:1241 = GET_CURRENT_DATE_INT()
+
+; 相手が未記録なら記録
+IF CFLAG:ARG:1246 == 0
+	IF ARG:1 >= 0 && ARG:1 < CHARANUM
+		CFLAG:ARG:1246 = NO:(ARG:1) + 1
+		CSTR:ARG:1 = %CALLNAME:(ARG:1)%
+	ELSE
+		CFLAG:ARG:1246 = -1
+		CSTR:ARG:1 = 見知らぬ相手
+	ENDIF
+ENDIF
+RETURN 1
+
+;==================================================
+; 喪失相手名取得関数
+; ARG: 対象キャラ番号
+; ARGS: "VIRGIN" または "KISS"
+;==================================================
+@GET_FIRST_PARTNER_NAME(ARG, ARGS)
+#FUNCTIONS
+#DIM PARTNER_CFLAG
+#DIMS PARTNER_NAME
+
+IF ARGS == "VIRGIN"
+	PARTNER_CFLAG = CFLAG:ARG:1246
+	PARTNER_NAME = %CSTR:ARG:1%
+ELSEIF ARGS == "KISS"
+	PARTNER_CFLAG = CFLAG:ARG:1247
+	PARTNER_NAME = %CSTR:ARG:2%
+ELSE
+	RETURNF ""
+ENDIF
+
+IF PARTNER_NAME != ""
+	RETURNF PARTNER_NAME
+ELSEIF PARTNER_CFLAG == 1
+	RETURNF CALLNAME:MASTER
+ELSEIF PARTNER_CFLAG > 1
+	LOCAL:90 = PARTNER_CFLAG - 1
+	LOCAL:91 = GETCHARA(LOCAL:90)
+	IF LOCAL:91 >= 0
+		RETURNF CALLNAME:(LOCAL:91)
+	ELSE
+		RETURNF CSVNAME(LOCAL:90, 0)
+	ENDIF
+ELSEIF PARTNER_CFLAG == -1
+	RETURNF "見知らぬ相手"
+ELSE
+	; 未記録かつ記念日がある場合は以前のプレイ（主人公）として補完
+	IF ARGS == "VIRGIN" && CFLAG:ARG:1241 > 0
+		RETURNF CALLNAME:MASTER
+	ELSEIF ARGS == "KISS" && CFLAG:ARG:1242 > 0
+		RETURNF CALLNAME:MASTER
+	ENDIF
+	RETURNF ""
+ENDIF
+
+;==================================================
+; キャラクター詳細統計・個人ログ（ステータス2ページ目）
+; ARG: キャラ登録番号
+;==================================================
+@SHOW_CHARA_PAGE2, ARG
+#LOCALSIZE 20
+SIF ARG <= 0 || ARG >= CHARANUM
+	RETURN 0
+
+; 統計データの同期・初期補正
+CALL SYNC_CHARA_MISC_STATS, ARG
+
+DRAWLINE
+PRINTFORML ■ %NAME:ARG% の詳細記録・個人ログ (PAGE 2/2)
+DRAWLINE
+
+;--- 【二人の歩み・学園生活】 ---
+LOCAL:10 = (CFLAG:ARG:1213 > 0) || (CFLAG:ARG:1200 > 0) || (CFLAG:ARG:1202 > 0) || (CFLAG:ARG:1270 > 0) || (CFLAG:ARG:1207 > 0) || (CFLAG:ARG:1271 > 0) || (CFLAG:ARG:1208 > 0) || (CFLAG:ARG:1206 > 0) || (CFLAG:ARG:1209 > 0) || (CFLAG:ARG:1210 > 0) || (CFLAG:ARG:1275 > 0)
+
+IF LOCAL:10
+	SETCOLOR 150, 220, 255
+	PRINTL □ 二人の歩み・学園生活の記録
+	RESETCOLOR
+	IF CFLAG:ARG:1213 > 0 || CFLAG:ARG:1200 > 0	; 【ARG:[一緒に過ごした回数]>0 / ARG:[共に過ごした総時間(ターン数)]>0】
+		SIF CFLAG:ARG:1213 > 0	; 【ARG:[一緒に過ごした回数]>0】
+			PRINTFORML 　・一緒に過ごした回数　: {CFLAG:ARG:1213, 6} 回 （調教開始回数）
+		IF CFLAG:ARG:1200 > 0	; 【ARG:[共に過ごした総時間(ターン数)]>0】
+			PRINTFORM 　・共に過ごした時間　　: {CFLAG:ARG:1200, 6} ターン
+			IF CFLAG:ARG:1200 >= 300	; 【ARG:[共に過ごした総時間(ターン数)]>=300】
+				PRINTL  （かけがえのない青春のすべて）
+			ELSEIF CFLAG:ARG:1200 >= 100	; 【ARG:[共に過ごした総時間(ターン数)]>=100】
+				PRINTL  （すっかり日常の一部）
+			ELSEIF CFLAG:ARG:1200 >= 30	; 【ARG:[共に過ごした総時間(ターン数)]>=30】
+				PRINTL  （打ち解けてきた日々）
+			ELSE
+				PRINTL  （まだまだこれからの関係）
+			ENDIF
+			IF CFLAG:ARG:1211 > 0 || CFLAG:ARG:1212 > 0	; 【ARG:[日常(非ウフフ)ターン数]>0 / ARG:[親密(ウフフ)ターン数]>0】
+				PRINTFORML 　　［内訳］ 日常(非ウフフ): {CFLAG:ARG:1211, 5} ターン ／ 親密(ウフフ): {CFLAG:ARG:1212, 5} ターン
+			ENDIF
+		ENDIF
+	ENDIF
+
+	IF CFLAG:ARG:1202 > 0	; 【ARG:[一緒にお昼を食べた回数]>0】
+		PRINTFORM 　・一緒に食事をした回数: {CFLAG:ARG:1202, 6} 回
+		IF CFLAG:ARG:1203 > 0 || CFLAG:ARG:1204 > 0	; 【ARG:[料理を作ってもらった回数]>0 / ARG:[料理を作ってあげた回数]>0】
+			PRINTFORML  (奢った: {CFLAG:ARG:1203}回 ／ 奢られた: {CFLAG:ARG:1204}回)
+		ELSE
+			PRINTL
+		ENDIF
+	ENDIF
+
+	IF CFLAG:ARG:1270 > 0	; 【ARG:[部活動参加回数]>0】
+		PRINTFORML 　・一緒に寄り道した回数: {CFLAG:ARG:1270, 6} 回
+	ENDIF
+
+	IF CFLAG:ARG:1207 > 0	; 【ARG:[勉強累計]>0】
+		PRINTFORML 　・一緒に勉強した回数　: {CFLAG:ARG:1207, 6} 回
+	ENDIF
+	IF CFLAG:ARG:1271 > 0	; 【ARG:[最高試験得点]>0】
+		PRINTFORML 　・定期試験最高得点　　: {CFLAG:ARG:1271} 点 (直近: {CFLAG:ARG:1272} 点)
+	ENDIF
+
+	SIF CFLAG:ARG:1208 > 0	; 【ARG:[学園行事出場回数]>0】
+		PRINTFORML 　・学園行事に出場した回数: {CFLAG:ARG:1208, 6} 回
+	SIF CFLAG:ARG:1206 > 0	; 【ARG:[保健室療養回数]>0】
+		PRINTFORML 　・保健室で療養・看病: {CFLAG:ARG:1206, 6} 回
+	IF CFLAG:ARG:1209 > 0 || CFLAG:ARG:1210 > 0	; 【ARG:[裏カジノ同伴回数]>0 / ARG:[裏カジノ身代わり回数]>0】
+		IF CFLAG:ARG:1209 > 0	; 【ARG:[裏カジノ同伴回数]>0】
+			PRINTFORML 　・裏カジノ同伴: {CFLAG:ARG:1209}回 (身代わり担保: {CFLAG:ARG:1210}回)
+		ELSE
+			PRINTFORML 　・裏カジノ身代わり担保: {CFLAG:ARG:1210}回
+		ENDIF
+	ENDIF
+
+	IF CFLAG:ARG:1275 > 0	; 【ARG:[貢いだ総額($)]>0】
+		PRINTFORM 　・貢いだ総額($)　　　:  
+		IF CFLAG:ARG:1275 >= 10000000	; 【ARG:[貢いだ総額($)]>=10000000】
+			PRINTL  （国家予算級の惜しみない献身）
+		ELSEIF CFLAG:ARG:1275 >= 1000000	; 【ARG:[貢いだ総額($)]>=1000000】
+			PRINTL  （湯水のように注ぎ込んだ愛の証）
+		ELSEIF CFLAG:ARG:1275 >= 100000	; 【ARG:[貢いだ総額($)]>=100000】
+			PRINTL  （特別な想いが込められた投資）
+		ELSE
+			PRINTL
+		ENDIF
+	ENDIF
+	PRINTL
+ENDIF
+
+;--- 【大切な記念日の記録】 ---
+LOCAL:11 = (CFLAG:ARG:1242 > 0 || TALENT:ARG:151 == 0) || (CFLAG:ARG:1241 > 0 || TALENT:ARG:0 == 0) || (CFLAG:ARG:1243 > 0 || TALENT:ARG:153) || (CFLAG:ARG:1244 > 0 || TALENT:ARG:89)
+
+IF LOCAL:11
+	SETCOLOR 255, 230, 120
+	PRINTL □ 大切な記念日の記録
+	RESETCOLOR
+	IF CFLAG:ARG:1242 > 0	; 【ARG:[初キス記念日]>0】
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "KISS")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・ファーストキス記念日: %FORMAT_DATE_STR(CFLAG:ARG:1242)% （お相手：%LOCALS:10%）
+		ELSE
+			PRINTFORML 　・ファーストキス記念日: %FORMAT_DATE_STR(CFLAG:ARG:1242)%
+		ENDIF
+	ELSEIF TALENT:ARG:151 == 0	; 【ARG:[キス未経験]なし】
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "KISS")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・ファーストキス記念日: 達成済み（記録開始前 / お相手：%LOCALS:10%）
+		ELSE
+			PRINTL 　・ファーストキス記念日: 達成済み（記録開始前）
+		ENDIF
+	ENDIF
+
+	IF CFLAG:ARG:1241 > 0	; 【ARG:[処女喪失記念日]>0】
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "VIRGIN")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・初めて結ばれた日　　: %FORMAT_DATE_STR(CFLAG:ARG:1241)% （お相手：%LOCALS:10%）
+		ELSE
+			PRINTFORML 　・初めて結ばれた日　　: %FORMAT_DATE_STR(CFLAG:ARG:1241)%
+		ENDIF
+	ELSEIF TALENT:ARG:0 == 0	; 【ARG:[処女]なし】
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "VIRGIN")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・初めて結ばれた日　　: 達成済み（記録開始前 / お相手：%LOCALS:10%）
+		ELSE
+			PRINTL 　・初めて結ばれた日　　: 達成済み（記録開始前）
+		ENDIF
+	ENDIF
+
+	IF CFLAG:ARG:1243 > 0	; 【ARG:[恋人記念日(日目)]>0】
+		PRINTFORML 　・恋人になった日　　　: %FORMAT_DATE_STR(CFLAG:ARG:1243)%
+	ELSEIF TALENT:ARG:153	; 【ARG:[恋人]】
+		PRINTL 　・恋人になった日　　　: 達成済み（甘い恋人関係）
+	ENDIF
+
+	IF CFLAG:ARG:1244 > 0	; 【ARG:[相愛記念日(日目)]>0】
+		PRINTFORML 　・永遠の絆を結んだ日　: %FORMAT_DATE_STR(CFLAG:ARG:1244)%
+	ELSEIF TALENT:ARG:89	; 【ARG:[相愛]】
+		PRINTL 　・永遠の絆を結んだ日　: 達成済み（深く愛し合う相愛）
+	ENDIF
+	PRINTL
+ENDIF
+
+;--- 【スキンシップ・身体のプロフィールの変化】 ---
+LOCAL:2 = BUST_TENTHS(ARG)
+LOCAL:3 = 800
+SIF STRLENS(CSTR:ARG:23) >= 3
+	LOCAL:3 = TOINT(SUBSTRING(CSTR:ARG:23, 1, 2)) * 10
+LOCAL:4 = LOCAL:2 - LOCAL:3  ;バスト変化(0.1cm)
+
+LOCAL:7 = HEIGHT_CM(ARG)
+LOCAL:8 = TOINT(SUBSTRING(CSTR:ARG:22, 0, 3))
+SIF LOCAL:8 <= 0
+	LOCAL:8 = 150
+LOCAL:9 = LOCAL:7 - LOCAL:8  ;身長変化(cm)
+
+LOCAL:12 = (CFLAG:ARG:1201 > 0) || (CFLAG:ARG:1260 > 0) || (CFLAG:ARG:1262 > 0) || (CFLAG:ARG:1261 > 0) || (LOCAL:4 != 0) || (LOCAL:9 != 0)
+
+IF LOCAL:12
+	SETCOLOR 180, 230, 180
+	PRINTL □ スキンシップ・身体のプロフィールの変化
+	RESETCOLOR
+	SIF CFLAG:ARG:1201 > 0	; 【ARG:[お茶淹れ累計]>0】
+		PRINTFORML 　・お茶・会話(日常)  : {CFLAG:ARG:1201, 6} 回
+	SIF CFLAG:ARG:1260 > 0	; 【ARG:[頭撫で累計]>0】
+		PRINTFORML 　・頭を撫でてもらった: {CFLAG:ARG:1260, 6} 回
+	SIF CFLAG:ARG:1262 > 0	; 【ARG:[見つめ合い累計]>0】
+		PRINTFORML 　・抱きしめられた回数: {CFLAG:ARG:1262, 6} 回
+	SIF CFLAG:ARG:1261 > 0	; 【ARG:[囁き累計]>0】
+		PRINTFORML 　・甘い言葉を囁かれた: {CFLAG:ARG:1261, 6} 回
+
+	; バスト変化（差分がある場合のみ表示）
+	IF LOCAL:4 > 0
+		PRINTFORML 　・バストの変化量　　　: +{LOCAL:4 / 10}.{LOCAL:4 % 10}cm （初期:{LOCAL:3 / 10}.{LOCAL:3 % 10}cm → 現在:{LOCAL:2 / 10}.{LOCAL:2 % 10}cm）
+	ELSEIF LOCAL:4 < 0
+		LOCAL:5 = -LOCAL:4
+		PRINTFORML 　・バストの変化量　　　: -{LOCAL:5 / 10}.{LOCAL:5 % 10}cm （初期:{LOCAL:3 / 10}.{LOCAL:3 % 10}cm → 現在:{LOCAL:2 / 10}.{LOCAL:2 % 10}cm）
+	ENDIF
+
+	; 身長変化（差分がある場合のみ表示）
+	IF LOCAL:9 > 0
+		PRINTFORML 　・身長の変化量　　　　: +{LOCAL:9}cm （初期:{LOCAL:8}cm → 現在:{LOCAL:7}cm）
+	ELSEIF LOCAL:9 < 0
+		LOCAL:5 = -LOCAL:9
+		PRINTFORML 　・身長の変化量　　　　: -{LOCAL:5}cm （初期:{LOCAL:8}cm → 現在:{LOCAL:7}cm）
+	ENDIF
+	PRINTL
+ENDIF
+
+;--- 【衣装・お気に入りの装い】 ---
+LOCAL:16 = (CFLAG:ARG:1215 > 0) || (CFLAG:ARG:1217 > 0)
+IF LOCAL:16
+	SETCOLOR 255, 180, 220
+	PRINTL □ 衣装・お気に入りの装い
+	RESETCOLOR
+	CALL CLOTH_NAME
+	IF CFLAG:ARG:1215 > 0	; 【ARG:[ウフフ時指定衣装]>0】
+		PRINTFORML 　・ウフフ時指定衣装: %TSTR:(CFLAG:ARG:1215)% （優先着用）
+	ENDIF
+	IF CFLAG:ARG:1217 > 0 && CFLAG:ARG:1216 > 0	; 【ARG:[最多衣装着用ターン数]>0 / ARG:[最長着用衣装]>0】
+		PRINTFORML 　・最も着て過ごした衣装: %TSTR:(CFLAG:ARG:1216)% （{CFLAG:ARG:1217} ターン）
+	ENDIF
+	PRINTL
+ENDIF
+
+;--- 【愛の行為の記録】 ---
+LOCAL:1 = CFLAG:ARG:1221
+LOCAL:13 = (CFLAG:ARG:1220 > 0) || (CFLAG:ARG:1230 > 0) || (CFLAG:ARG:1231 > 0) || (CFLAG:ARG:1212 > 0) || (CFLAG:ARG:1238 > 0)
+
+IF LOCAL:13
+	SETCOLOR 255, 180, 200
+	PRINTFORML □ 愛の行為の記録（あなた → %CALLNAME:ARG%）
+	RESETCOLOR
+	IF CFLAG:ARG:1220 > 0	; 【ARG:[主人公からの総射精回数]>0】
+		PRINTFORM 　・あなたの総射精回数: {CFLAG:ARG:1220, 6} 回
+		PRINTFORM 　・総射精量: {LOCAL:1, 6} mL 
+		IF LOCAL:1 >= 10000
+			PRINTFORML （約 {LOCAL:1 / 1000} リットル！溢れる愛の証）
+		ELSEIF LOCAL:1 >= 1000
+			PRINTFORML （約 {LOCAL:1 / 1000}.{LOCAL:1 % 1000 / 100} リットル）
+		ELSE
+			PRINTL
+		ENDIF
+
+		; 射精箇所内訳（0でないもののみ表示）
+		PRINTFORML 　［射精の内訳］
+		SIF CFLAG:ARG:1222 > 0	; 【ARG:[膣内射精回数]>0】
+			PRINTFORML 　　・膣内への注ぎ込み　: {CFLAG:ARG:1222, 5} 回 ({CFLAG:ARG:1223, 6} mL)
+		SIF CFLAG:ARG:1224 > 0	; 【ARG:[肛門射精回数]>0】
+			PRINTFORML 　　・肛門への注ぎ込み　: {CFLAG:ARG:1224, 5} 回 ({CFLAG:ARG:1225, 6} mL)
+		SIF CFLAG:ARG:1226 > 0	; 【ARG:[口内射精回数]>0】
+			PRINTFORML 　　・お口への注ぎ込み　: {CFLAG:ARG:1226, 5} 回 ({CFLAG:ARG:1227, 6} mL)
+		SIF CFLAG:ARG:1228 > 0	; 【ARG:[外出し射精回数]>0】
+			PRINTFORML 　　・胸・手・外出し等　: {CFLAG:ARG:1228, 5} 回 ({CFLAG:ARG:1229, 6} mL)
+		SIF CFLAG:ARG:1240 > 0	; 【ARG:[1回の最高射精量(mL)]>0】
+			PRINTFORML 　・一回の最高射精量記録: {CFLAG:ARG:1240, 6} mL
+	ENDIF
+
+	SIF CFLAG:ARG:1238 > 0	; 【ARG:[同時絶頂累計]>0】
+		PRINTFORML 　・ふたりで同時に達した: {CFLAG:ARG:1238, 6} 回 (同時絶頂)
+	SIF CFLAG:ARG:1230 > 0	; 【ARG:[主人公を射精させた回数]>0】
+		PRINTFORML 　・主人公を射精させた回数: {CFLAG:ARG:1230, 6} 回
+	SIF CFLAG:ARG:1231 > 0	; 【ARG:[キス累計]>0】
+		PRINTFORML 　・唇を重ねた回数(キス)　: {CFLAG:ARG:1231, 6} 回
+	SIF CFLAG:ARG:1212 > 0	; 【ARG:[親密(ウフフ)ターン数]>0】
+		PRINTFORML 　・愛し合って過ごした時間: {CFLAG:ARG:1212, 6} ターン （ウフフ時間）
+	PRINTL
+ENDIF
+
+;--- 【体位別の結合記録（愛のフォーム）】 ---
+LOCAL:6 = CFLAG:ARG:1250 + CFLAG:ARG:1251 + CFLAG:ARG:1252 + CFLAG:ARG:1253 + CFLAG:ARG:1254
+IF LOCAL:6 > 0
+	SETCOLOR 255, 200, 255
+	PRINTL □ 体位別の結合記録（愛のフォーム）
+	RESETCOLOR
+	SIF CFLAG:ARG:1250 > 0	; 【ARG:[正常位累計]>0】
+		PRINTFORM 　・正常位: {CFLAG:ARG:1250, 4} 回
+	SIF CFLAG:ARG:1251 > 0	; 【ARG:[後背位累計]>0】
+		PRINTFORM 　・後背位: {CFLAG:ARG:1251, 4} 回
+	SIF CFLAG:ARG:1252 > 0	; 【ARG:[騎乗位累計]>0】
+		PRINTFORM 　・騎乗位: {CFLAG:ARG:1252, 4} 回
+	SIF CFLAG:ARG:1253 > 0	; 【ARG:[対面座位累計]>0】
+		PRINTFORM 　・対面座位: {CFLAG:ARG:1253, 4} 回
+	SIF CFLAG:ARG:1254 > 0	; 【ARG:[背面座位累計]>0】
+		PRINTFORM 　・背面座位: {CFLAG:ARG:1254, 4} 回
+	PRINTL
+
+	; 最多体位コメント
+	LOCAL:14 = MAX(CFLAG:ARG:1250, CFLAG:ARG:1251, CFLAG:ARG:1252, CFLAG:ARG:1253, CFLAG:ARG:1254)
+	IF LOCAL:14 > 0
+		PRINTFORM 　［好みの体位］ 
+		IF LOCAL:14 == CFLAG:ARG:1252	; 【ARG:[騎乗位累計]】
+			PRINTL 騎乗位（主導権を握って自ら腰を振るのを好む）
+		ELSEIF LOCAL:14 == CFLAG:ARG:1253	; 【ARG:[対面座位累計]】
+			PRINTL 対面座位（抱き合ってお互いの顔を見つめ合うのを好む）
+		ELSEIF LOCAL:14 == CFLAG:ARG:1251	; 【ARG:[後背位累計]】
+			PRINTL 後背位（後ろから深く突かれるのを好む）
+		ELSEIF LOCAL:14 == CFLAG:ARG:1250	; 【ARG:[正常位累計]】
+			PRINTL 正常位（王道かつ見つめ合いながらの結合を好む）
+		ELSE
+			PRINTL 背面座位（背中を預けて密着する結合を好む）
+		ENDIF
+	ENDIF
+	PRINTL
+ENDIF
+
+;--- 【快楽・身体反応の記録】 ---
+LOCAL:15 = (CFLAG:ARG:1232 > 0) || (CFLAG:ARG:1233 > 0) || (CFLAG:ARG:1280 > 0) || (CFLAG:ARG:1282 > 0) || (CFLAG:ARG:1236 > 0) || (CFLAG:ARG:1239 > 0)
+
+IF LOCAL:15
+	SETCOLOR 255, 220, 150
+	PRINTL □ 快楽・身体反応の記録
+	RESETCOLOR
+	SIF CFLAG:ARG:1232 > 0	; 【ARG:[絶頂累計]>0】
+		PRINTFORML 　・絶頂に達した総回数　: {CFLAG:ARG:1232, 6} 回
+	SIF CFLAG:ARG:1239 > 0	; 【ARG:[最高絶頂記録]>0】
+		PRINTFORML 　・一回の最高絶頂数記録: {CFLAG:ARG:1239, 6} 回
+	SIF CFLAG:ARG:1233 > 0	; 【ARG:[潮吹き回数]>0】
+		PRINTFORML 　・潮を吹いた回数　　　: {CFLAG:ARG:1233, 6} 回 (噴出量約: {CFLAG:ARG:1234} mL)
+	SIF CFLAG:ARG:1280 > 0	; 【ARG:[本人の総射精回数]>0】
+		PRINTFORML 　・本人の射精回数　　　: {CFLAG:ARG:1280, 6} 回 (総射精量: {CFLAG:ARG:1281} mL)
+	SIF CFLAG:ARG:1282 > 0	; 【ARG:[総噴乳回数]>0】
+		PRINTFORML 　・母乳を噴出した回数　: {CFLAG:ARG:1282, 6} 回 (総噴乳量: {CFLAG:ARG:1283} mL)
+	SIF CFLAG:ARG:1236 > 0	; 【ARG:[反発恐怖回数]>0】
+		PRINTFORML 　・恐怖・反発を覚えた回数: {CFLAG:ARG:1236, 6} 回
+ENDIF
+
+;--- 【レズ交友記録（誰と何回）】 ---
+IF CFLAG:ARG:3099 > 0
+	SETCOLOR 255, 180, 220
+	PRINTL ■ レズ交友記録（女同士の交わり）
+	RESETCOLOR
+	PRINTFORML 　・総レズ行為回数: {CFLAG:ARG:3099, 6} 回
+	LOCAL:17 = 0
+	FOR LOCAL:18, 0, 75
+		IF CFLAG:ARG:(3000 + LOCAL:18) > 0
+			IF LOCAL:18 == 0
+				PRINTFORM 　　× %CALLNAME:MASTER, 14, LEFT%: {CFLAG:ARG:3000, 5} 回
+			ELSE
+				LOCAL:19 = GETCHARA(LOCAL:18)
+				IF LOCAL:19 >= 0
+					PRINTFORM 　　× %CALLNAME:(LOCAL:19), 14, LEFT%: {CFLAG:ARG:(3000 + LOCAL:18), 5} 回
+				ELSE
+					PRINTFORM 　　× %CSVNAME(LOCAL:18, 0), 14, LEFT%: {CFLAG:ARG:(3000 + LOCAL:18), 5} 回
+				ENDIF
+			ENDIF
+			LOCAL:17 += 1
+			SIF LOCAL:17 % 2 == 0
+				PRINTL 
+		ENDIF
+	NEXT
+	SIF LOCAL:17 % 2 != 0
+		PRINTL 
+	PRINTL 
+ENDIF
+
+; まだ何も記録がない場合のフォールバック表示
+IF !LOCAL:10 && !LOCAL:11 && !LOCAL:12 && !LOCAL:13 && !LOCAL:6 && !LOCAL:15 && !LOCAL:16 && CFLAG:ARG:3099 == 0
+	PRINTL
+	PRINTFORML 　（%CALLNAME:ARG%との記録はまだ刻まれていません）
+	PRINTFORML 　（学園生活や調教を共に過ごすことで、様々な個人データがここに記録されていきます）
+	PRINTL
+ENDIF
+
+DRAWLINE
+RETURN 0
+
+;胸の一時変更は実サイズを動かし、実際に動いた分だけ記録する。
+@TEMP_BUST_ADJUST(C, D)
+LOCAL:2 = BUST_TENTHS(C)
+CALL BUST_ADJUST, C, D
+TEQUIP:C:149 += CFLAG:C:1101 - LOCAL:2
+RETURN
+
+;現在の身長に対して貧乳/並乳/巨乳になる範囲の中央へ調整する。
+;D=-1:貧乳 / D=0:並乳 / D=1:巨乳
+@TEMP_BUST_CATEGORY(C, D)
+LOCAL:3 = HEIGHT_CM(C)
+IF D < 0
+	LOCAL:4 = 470
+ELSEIF D > 0
+	LOCAL:4 = 550
+ELSE
+	LOCAL:4 = 512
+ENDIF
+LOCAL:4 = LOCAL:3 * LOCAL:4 / 100
+CALL TEMP_BUST_ADJUST, C, (LOCAL:4 - BUST_TENTHS(C))
+RETURN
+
+@TEMP_BUST_NORMALIZE(C)
+CALL TEMP_BUST_CATEGORY, C, 0
+RETURN
+
+;変化分のみを戻し、素質は復帰後のサイズから自動導出する。
+@RESTORE_TEMP_BUST(C)
+IF TEQUIP:C:149 != 0
+	CALL BUST_ADJUST, C, -(TEQUIP:C:149)
+ELSEIF (TEQUIP:C:40 & 7) != 0
+	;旧セーブの素質だけを変える薬は、実サイズへ同期して整合させる。
+	LOCAL:2 = BUST_TENTHS(C)
+	CALL SYNC_BUST_TALENT, C
+ENDIF
+TEQUIP:C:149 = 0
+TEQUIP:C:40 -= (TEQUIP:C:40 & 7)
+RETURN

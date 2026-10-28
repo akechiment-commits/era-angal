@@ -17,10 +17,10 @@
 ;---------------------------------------------------------
 @COUNTER_ECSTASY
 ;カウンターシステムコンフィグOFFかつREVMODEでもないならRETURN
-SIF (FLAG:62 & 4096) == 0 && TFLAG:34 == 0
+SIF (FLAG:62 & 4096) == 0 && TFLAG:34 == 0	; 【無[主導権全委任]】
 	RETURN 0
 ;射精していなければRETURN
-SIF TFLAG:302 == 0
+SIF TFLAG:302 == 0	; 【無[同時絶頂]】
 	RETURN 0
 ;主人公が射精していなければRETURN
 SIF P != MASTER
@@ -28,7 +28,7 @@ SIF P != MASTER
 
 ;通常調教の耐力減少は、絶頂強度確定後に処理する。
 ;REVMODEでは従来どおりDOWNBASEへ積み、同じオプションがONの時だけ適用する。
-SIF TFLAG:34
+SIF TFLAG:34	; 【[主導権全委任]】
 	CALL COUNTER_EJAC_DAMAGE
 
 ;ソース追加
@@ -39,25 +39,25 @@ SIF TFLAG:34
 VARSET LOCAL, 0
 ;情愛の計算
 ;親密を見る
-IF ABL:0 > 6
+IF ABL:0 > 6	; 【[親密]Lv>6】
 	LOCAL:3 = 600+50*ABL:0
-ELSEIF ABL:0 > 3
+ELSEIF ABL:0 > 3	; 【[親密]Lv>3】
 	LOCAL:3 = 150*ABL:0
 ELSE
 	LOCAL:3 = 100+100*ABL:0
 ENDIF
 ;親愛、恋人時ブースト
-IF TALENT:88 && TALENT:153
+IF TALENT:88 && TALENT:153	; 【[親愛] / [恋人]】
 	TIMES LOCAL:3 , 1.5
-ELSEIF TALENT:88 || TALENT:153
+ELSEIF TALENT:88 || TALENT:153	; 【[親愛] / [恋人]】
 	TIMES LOCAL:3 , 1.25
 ENDIF
 ;性行動,達成感の計算
 ;奉仕精神を見る
-IF ABL:6 > 6
+IF ABL:6 > 6	; 【[奉仕精神]Lv>6】
 	LOCAL:4 = 600+50*ABL:6
 	LOCAL:5 = 200*ABL:6
-ELSEIF ABL:6 > 3
+ELSEIF ABL:6 > 3	; 【[奉仕精神]Lv>3】
 	LOCAL:4 = 150*ABL:6
 	LOCAL:5 = 150*ABL:6-200
 ELSE
@@ -74,7 +74,7 @@ LOCAL:13 = 1500
 ;ノーリスクと言えばノーリスクだし・・・
 ;バランス取りやすくするためだったり
 ;主従関係のときは軽減
-IF TALENT:MASTER:219 == 1
+IF TALENT:MASTER:219 == 1	; 【MASTER:[虜]】
 	TIMES LOCAL:3 , 0.8
 	TIMES LOCAL:4 , 0.8
 	TIMES LOCAL:5 , 0.8
@@ -87,7 +87,7 @@ ELSE
 ENDIF
 
 ;強絶頂以上はボーナス有
-IF TFLAG:302 > 1
+IF TFLAG:302 > 1	; 【[同時絶頂]>1】
 	LOCAL:3 = LOCAL:3 * (10 + TFLAG:302) / 10
 	LOCAL:4 = LOCAL:4 * (10 + TFLAG:302) / 10
 	LOCAL:5 = LOCAL:5 * (10 + TFLAG:302) / 10
@@ -118,7 +118,7 @@ SIF LOCAL < 1
 	LOCAL = 1
 
 ;押し倒され中はダメージ倍
-SIF TFLAG:51
+SIF TFLAG:51	; 【[押し倒され]】
 	LOCAL *= 2
 
 DOWNBASE:(TFLAG:996):4 = LOCAL
@@ -128,47 +128,33 @@ DOWNBASE:(TFLAG:996):4 = LOCAL
 ;射精量が極端、または強い多重絶頂ほど急激に耐力を失う。
 ;耐力0は強制終了条件にしない。
 ;---------------------------------------------------------
-@PARTNER_TURN_ENDURANCE_DAMAGE, ARG, ARG:1, ARG:2, ARG:3, ARG:4
+@PARTNER_TURN_ENDURANCE_DAMAGE, ARG = 0, ARG:1 = 0, ARG:2 = 0, ARG:3 = 0, ARG:4 = 0
 #DIM DYNAMIC DAMAGE, 1
 #DIM DYNAMIC STRENGTH, 1
-#DIM DYNAMIC ORGASM_COUNT, 1
 #DIM DYNAMIC BEFORE_ENDURANCE, 1
 
-IF (FLAG:62 & 1p17) == 0 || TFLAG:302 == 0 || TFLAG:994 == 0
+IF (FLAG:62 & 1p17) == 0 || TFLAG:302 == 0 || TFLAG:994 == 0	; 【無[同時絶頂]】
 	TFLAG:994 = 0
 	RETURN 0
 ENDIF
 
-;連射倍率は平方根に圧縮し、射精量区分と実測mlを加算する。
-DAMAGE = 600 * TFLAG:302 * SQRT(TFLAG:714)
-DAMAGE += TFLAG:719 * TFLAG:302 * 2
-
-STRENGTH = MAX(ARG, ARG:1, ARG:2, ARG:3, ARG:4)
-SIF ARG
-	ORGASM_COUNT += 1
-SIF ARG:1
-	ORGASM_COUNT += 1
-SIF ARG:2
-	ORGASM_COUNT += 1
-SIF ARG:3
-	ORGASM_COUNT += 1
-SIF ARG:4
-	ORGASM_COUNT += 1
-
-;絶頂強度と多重絶頂も反映するが、育成速度を越えて急増しない倍率に抑える。
-SIF STRENGTH || ORGASM_COUNT
-	DAMAGE = DAMAGE * (100 + STRENGTH * 2 + MAX(ORGASM_COUNT - 1, 0) * 10) / 100
+;連射倍率・量の入力を安全な範囲へ収め、通常の量補正は維持する。
+STRENGTH = LIMIT(TFLAG:714, 0, 1000000000000000)
+DAMAGE = 600 * LIMIT(TFLAG:302, 1, 4) * SQRT(STRENGTH)
+DAMAGE += LIMIT(TFLAG:719, 0, 1000000000000000) * LIMIT(TFLAG:302, 1, 4) * 2
+;乗算してから/100すると64ビット整数が桁あふれするため、商と余りに分ける。
+DAMAGE = SCALE_ENDURANCE_DAMAGE(DAMAGE, 100 + STRENGTH * 2)
 SIF DAMAGE < 1
 	DAMAGE = 1
-;パートナーの追加ターン中は、耐力の実消費量と表示をともに半額にする。
+;パートナーの追加ターン中は消費量を半額にする。
 SIF TFLAG:543
 	DAMAGE = (DAMAGE + 1) / 2
 
+;表示は実際に減った耐力に合わせる。残量以上のダメージで負数にしない。
+BEFORE_ENDURANCE = MAX(0, BASE:(TFLAG:996):4)
+DAMAGE = MIN(DAMAGE, BEFORE_ENDURANCE)
+BASE:(TFLAG:996):4 = BEFORE_ENDURANCE - DAMAGE
 PRINTFORML %CALLNAME:(TFLAG:996)%の耐力-{DAMAGE}（絶頂強度{STRENGTH}）
-BEFORE_ENDURANCE = BASE:(TFLAG:996):4
-BASE:(TFLAG:996):4 -= DAMAGE
-SIF BASE:(TFLAG:996):4 < 0
-	BASE:(TFLAG:996):4 = 0
 IF BEFORE_ENDURANCE > 0 && BASE:(TFLAG:996):4 == 0
 	;限界まで絞り出された経験は、通常の射精経験より大きく耐力上限を鍛える。
 	IF TFLAG:996 == MASTER
@@ -177,16 +163,45 @@ IF BEFORE_ENDURANCE > 0 && BASE:(TFLAG:996):4 == 0
 		;絶頂経験とは分けて、耐力枯渇回数だけを別カウンタへ記録する。
 		CFLAG:(TFLAG:996):1153 += 80 + RAND(41)
 	ENDIF
-	SELECTCASE RAND(4)
-	CASE 0
-		PRINTFORML %CALLNAME:TARGET%に何度も搾り立てられ、%CALLNAME:(TFLAG:996)%は最後の一滴まで空にされた……
-	CASE 1
-		PRINTFORML 容赦なく快感を重ねられ、%CALLNAME:(TFLAG:996)%の身体はもう何も残せず震えている……
-	CASE 2
-		PRINTFORML %CALLNAME:TARGET%は限界を悟ってなお手を緩めず、%CALLNAME:(TFLAG:996)%を力尽きるまで弄び抜いた……
-	CASEELSE
-		PRINTFORML 絞り出されたあとの鈍い余韻に、%CALLNAME:(TFLAG:996)%はぐったりと身を委ねた……
-	ENDSELECT
+	LOCAL = (SELECTCOM == 56 || SELECTCOM == 65) ? ASSI # TARGET
+	IF LOCAL == TFLAG:996 || LOCAL < 0
+		IF ASSI > 0 && ASSI != TFLAG:996
+			LOCAL = ASSI
+		ELSE
+			LOCAL = PLAYER
+		ENDIF
+	ENDIF
+	LOCAL:1 = 0
+	IF LOCAL >= 0 && LOCAL < CHARANUM
+		IF TFLAG:898 || TFLAG:899 || BASE:LOCAL:0 <= 0
+			LOCAL:1 = 1
+		ELSEIF LOCAL == TARGET && (BASE:LOCAL:0 - LOSEBASE:0 <= 0)
+			LOCAL:1 = 1
+		ENDIF
+	ENDIF
+	IF LOCAL:1
+		SELECTCASE RAND(4)
+		CASE 0
+			PRINTFORML 意識を失いぐったりとした%CALLNAME:LOCAL%の上で、%CALLNAME:(TFLAG:996)%は最後の一滴まで出し尽くし、完全に精根を使い果たした……
+		CASE 1
+			PRINTFORML 気を失った%CALLNAME:LOCAL%の体温に全てを吸い取られ、%CALLNAME:(TFLAG:996)%は力なくその場に倒れ込んだ……
+		CASE 2
+			PRINTFORML 静まり返った%CALLNAME:LOCAL%の身体を相手に限界まで出し尽くし、%CALLNAME:(TFLAG:996)%は虚脱感の中で果てた……
+		CASEELSE
+			PRINTFORML 反応のない%CALLNAME:LOCAL%の肉体に身を沈めたまま、%CALLNAME:(TFLAG:996)%は完全に力を使い果たし、ぐったりと突っ伏した……
+		ENDSELECT
+	ELSE
+		SELECTCASE RAND(4)
+		CASE 0
+			PRINTFORML %CALLNAME:LOCAL%に何度も搾り立てられ、%CALLNAME:(TFLAG:996)%は最後の一滴まで空にされた……
+		CASE 1
+			PRINTFORML 容赦なく快感を重ねられ、%CALLNAME:(TFLAG:996)%の身体はもう何も残せず震えている……
+		CASE 2
+			PRINTFORML %CALLNAME:LOCAL%は限界を悟ってなお手を緩めず、%CALLNAME:(TFLAG:996)%を力尽きるまで弄び抜いた……
+		CASEELSE
+			PRINTFORML 絞り出されたあとの鈍い余韻に、%CALLNAME:(TFLAG:996)%はぐったりと身を委ねた……
+		ENDSELECT
+	ENDIF
 ENDIF
 TFLAG:994 = 0
 RETURN 0
@@ -196,22 +211,34 @@ RETURN 0
 ;TFLAG:301 オちたときに1となります。
 ;---------------------------------------------------------
 @COUNTER_DOWN
-IF BASE:MASTER:4 <=0
+IF BASE:MASTER:4 <=0	; 【MASTER:[耐力]<=0】
 	CFLAG:31 += 10
-	PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%の与える快感により気絶してしまった……
-ELSEIF BASE:MASTER:4 <= 500
+	LOCAL:1 = 0
+	IF TARGET >= 0 && TARGET < CHARANUM
+		IF TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0
+			LOCAL:1 = 1
+		ELSEIF BASE:TARGET:0 - LOSEBASE:0 <= 0
+			LOCAL:1 = 1
+		ENDIF
+	ENDIF
+	IF LOCAL:1
+		PRINTFORML %CALLNAME:MASTER%は限界まで精根を使い果たし、力なく倒れ込んでしまった……
+	ELSE
+		PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%の与える快感に抗えず、限界を迎えて力尽きてしまった……
+	ENDIF
+ELSEIF BASE:MASTER:4 <= 500	; 【MASTER:[耐力]<=500】
 	CFLAG:31 += 1
 ENDIF
 TFLAG:301 = 1
 
 ;絶頂時の体力低下でウフフが終了した際にCFLAG:31に回数を記録。
 ;一定数を超えており、かつTARGETが主導権を握っていた際逆調教イベントを発生。
-;MASTERがTARGETの与えてくる快楽に溺れた証（素質を付与）し、６ボス撃破時に
+;MASTERがTARGETの与えてくる快楽に溺れた証（素質を付与）し、特定のクリア時に
 ;通常endではなく、逆調教endを表示できるようにする
 
 ;TARGETが主導権を握っている+主人公が素質【虜】を持ってない+TARGETのサドっ気がLv5以上
 ;+精液経験(主人公を射精させた回数として使用）が1000以上もしくはパートナーが主人公を耐力なくなるまでが100以上
-IF TFLAG:45 == 1 && TALENT:MASTER:219 == 0 && ABL:15 >= 5 && (EXP:20 >= 1000 || CFLAG:31 >= 100)
+IF TFLAG:45 == 1 && TALENT:MASTER:219 == 0 && ABL:15 >= 5 && (EXP:20 >= 1000 || CFLAG:31 >= 100)	; 【MASTER:[虜]なし / [サドっ気]Lv>=5 / [精液経験]>=1000 / [主導権]==1 / [主人気絶回数]>=100】
 	;逆調教イベント口上の呼び出し
 	TFLAG:300 = 8
 	CALL COUNTER_KOJO
@@ -219,7 +246,39 @@ IF TFLAG:45 == 1 && TALENT:MASTER:219 == 0 && ABL:15 >= 5 && (EXP:20 >= 1000 || 
 	TALENT:MASTER:219 = 1
 	PRINTFORML %CALLNAME:MASTER%は%CALLNAME:TARGET%のモノとなってしまった……
 ENDIF
-PRINTFORML （%CALLNAME:MASTER%の耐力が限界に来ています。一旦別れました）
+PRINTFORML （%CALLNAME:MASTER%の精力が限界にきています。一旦別れました）
 BEGIN AFTERTRAIN
 RETURN 0
 
+
+;耐力ダメージ×倍率/100を、64ビット整数の範囲で計算する。
+;最大9e18に飽和。呼出し側の倍率は最大2e15+100なので余りの乗算も安全。
+@SCALE_ENDURANCE_DAMAGE, ARG, ARG:1
+#FUNCTION
+#DIM DYNAMIC WHOLE, 1
+#DIM DYNAMIC FRACTION, 1
+WHOLE = ARG / 100
+FRACTION = (ARG % 100) * ARG:1 / 100
+SIF WHOLE > 9000000000000000000 / ARG:1
+	RETURNF 9000000000000000000
+WHOLE *= ARG:1
+SIF FRACTION >= 9000000000000000000 - WHOLE
+	RETURNF 9000000000000000000
+RETURNF WHOLE + FRACTION
+
+;調教の実行行動4ターンごとに、その時の調教者の耐力をわずかに回復。
+;通常・追加パートナー行動・完全主導権で共通。表示や設定操作では呼ばない。
+@TRAINER_ENDURANCE_RECOVERY, ARG
+#DIM DYNAMIC RECOVERY, 1
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+TFLAG:111 = (TFLAG:111 + 1) % 4
+SIF TFLAG:111 != 0
+	RETURN 0
+;最大耐力の0.5%（最低1）。満タン・上限超過時は減らさず何もしない。
+SIF MAXBASE:ARG:4 <= 0 || BASE:ARG:4 >= MAXBASE:ARG:4
+	RETURN 0
+RECOVERY = MIN(MAX(1, MAXBASE:ARG:4 / 200), MAXBASE:ARG:4 - BASE:ARG:4)
+BASE:ARG:4 += RECOVERY
+PRINTFORML %CALLNAME:ARG%の耐力+{RECOVERY}（少量回復）
+RETURN 0

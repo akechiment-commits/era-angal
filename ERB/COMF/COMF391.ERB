@@ -9,31 +9,31 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;ウフフ中でないとダメ
-SIF TFLAG:44 == 0
+SIF TFLAG:44 == 0	; 【無[ウフフ中]】
 	RETURN 0
 ;恋慕か合意＋恋人じゃないとダメ
-SIF TALENT:85 == 0 && (TALENT:152 == 0 || TALENT:153 == 0)
+SIF TALENT:85 == 0 && (TALENT:152 == 0 || TALENT:153 == 0)	; 【[恋慕]なし / [合意]なし / [恋人]なし】
 	RETURN 0
 ;解除はいつでも可能
-SIF TEQUIP:65
+SIF TEQUIP:65	; 【[コスプレ]使用中】
 	RETURN 1
 ;助手じゃダメ
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
 	RETURN 0
 ;野外プレイ中はダメ
-SIF TEQUIP:54
+SIF TEQUIP:54	; 【[野外プレイ中]使用中】
 	RETURN 0
 ;羞恥プレイ中はダメ
-SIF TEQUIP:57
+SIF TEQUIP:57	; 【[羞恥（大鏡）プレイ中]使用中】
 	RETURN 0
 ;お風呂場プレイ中はダメ
-SIF TEQUIP:58
+SIF TEQUIP:58	; 【[お風呂場プレイ中]使用中】
 	RETURN 0
 ;お医者プレイ中はダメ
-SIF TEQUIP:62
+SIF TEQUIP:62	; 【[お医者プレイ中]使用中】
 	RETURN 0
 ;触手調教中はダメ
-SIF TEQUIP:90
+SIF TEQUIP:90	; 【[触手プレイ]使用中】
 	RETURN 0
 RETURN 1
 
@@ -67,6 +67,17 @@ TSTR:21 = バニーガール
 TSTR:22 = Yシャツ
 TSTR:23 = 普段着
 TSTR:24 = %CALLNAME:MASTER%の服
+TSTR:25 = ブレザー制服
+TSTR:26 = ジャージ
+TSTR:27 = チアガール衣装
+TSTR:28 = パジャマ
+TSTR:29 = 裸エプロン
+TSTR:30 = チャイナドレス
+TSTR:31 = シスター服
+TSTR:32 = 競泳水着
+TSTR:33 = ベビードール
+TSTR:34 = 勝負デート服
+TSTR:35 = ウェディングドレス
 
 ;-------------------------------------------------
 ;衣装名（省略版）
@@ -98,6 +109,17 @@ TSTR:21 = バニーガール
 TSTR:22 = 裸Yシャツ
 TSTR:23 = 普段着
 TSTR:24 = %CALLNAME:MASTER%の服
+TSTR:25 = ブレザー
+TSTR:26 = ジャージ
+TSTR:27 = チアガール
+TSTR:28 = パジャマ
+TSTR:29 = 裸エプロン
+TSTR:30 = チャイナドレス
+TSTR:31 = シスター服
+TSTR:32 = 競泳水着
+TSTR:33 = ベビードール
+TSTR:34 = 勝負デート服
+TSTR:35 = ウェディングドレス
 TSTR:255 = ボロボロの布切れ
 
 ;-------------------------------------------------
@@ -106,9 +128,9 @@ TSTR:255 = ボロボロの布切れ
 @GET_CLOTH_SHORT_NAME(ARG:0)
 #FUNCTIONS
 	SELECTCASE ARG:0
-		CASE 0, 1 TO 3, 8 TO 10, 12 TO 16, 18 TO 21, 23, 24
+		CASE 0, 1 TO 3, 8 TO 10, 12 TO 16, 18 TO 21, 23, 24, 25, 26, 27, 28, 30, 31, 34
 			RETURNF "服"
-		CASE 4 TO 6
+		CASE 4 TO 6, 32
 			RETURNF "水着"
 		CASE 7
 			RETURNF "白衣"
@@ -118,6 +140,12 @@ TSTR:255 = ボロボロの布切れ
 			RETURNF "リボン"
 		CASE 22
 			RETURNF "シャツ"
+		CASE 29
+			RETURNF "エプロン"
+		CASE 33
+			RETURNF "ランジェリー"
+		CASE 35
+			RETURNF "ドレス"
 		CASE 255
 			RETURNF "布切れ"
 	ENDSELECT
@@ -127,29 +155,33 @@ TSTR:255 = ボロボロの布切れ
 ;-------------------------------------------------
 @GET_UNDERWARE_NAME(ARG:0)
 #FUNCTIONS
-	IF TEQUIP:20
+	IF TEQUIP:20	; 【[オムツ]使用中】
 		RETURNF "オムツ"
 	ENDIF
 	SELECTCASE ARG:0
-		CASE 0, 1, 2, 7 TO 16, 18 TO 21, 23, 24
+		CASE 0, 1, 2, 7 TO 16, 18 TO 21, 23, 24, 25, 26, 27, 28, 30, 31, 34, 35
 			RETURNF "下着"
 		CASE 3
 			RETURNF "ブルマ"
-		CASE 4 TO 6
+		CASE 4 TO 6, 32
 			RETURNF "水着"
 		CASE 17
 			RETURNF "リボン"
 		CASE 22
 			RETURNF "シャツ"
+		CASE 29
+			RETURNF "エプロン"
+		CASE 33
+			RETURNF "ベビードール"
 		CASE 255
 			RETURNF "布切れ"
 	ENDSELECT
 
 @UNDERWARED
 #FUNCTION
-	IF TEQUIP:20
+	IF TEQUIP:20	; 【[オムツ]使用中】
 		RETURNF 1
-	ELSEIF TEQUIP:65 == 0 || TEQUIP:65 == 17 || TEQUIP:65 == 22 || TEQUIP:65 == 255
+	ELSEIF TEQUIP:65 == 0 || TEQUIP:65 == 17 || TEQUIP:65 == 22 || TEQUIP:65 == 29 || TEQUIP:65 == 255	; 【無[コスプレ] / [コスプレ]==17 / [コスプレ]==22 / [コスプレ]==29 / [コスプレ]==255】
 		RETURNF 0
 	ENDIF
 	RETURNF 1
@@ -195,6 +227,11 @@ T:27 = 67108864
 T:28 = 134217728
 T:29 = 268435456
 T:30 = 536870912
+T:31 = 1073741824
+T:32 = 2147483648
+T:33 = 4294967296
+T:34 = 8589934592
+T:35 = 17179869184
 
 ;衣装替え
 @COM391
@@ -208,8 +245,12 @@ LOSEBASE:1 += 20
 CALL CLOTH_NAME
 
 ;リボンは相愛必要
-SIF TALENT:89 == 0
+SIF TALENT:89 == 0	; 【[相愛]なし】
 	TSTR:17 = ""
+
+;ウェディングドレスは相愛または恋人必要
+SIF TALENT:89 == 0 && TALENT:153 == 0	; 【[相愛]なし / [恋人]なし】
+	TSTR:35 = ""
 
 ;普段着、%CALLNAME:MASTER%の服は常に所持
 FLAG:70 |= 4194304
@@ -219,12 +260,12 @@ FLAG:70 |= 8388608
 CALL T_COUNT_391
 ;改行用
 C = 0
-REPEAT 30
+REPEAT 36
 	;TSTR:COUNTが設定されていなかったら表示しない
 	SIF TSTR:COUNT == ""
 		CONTINUE
 
-	IF (FLAG:70 & (T:COUNT)) && TEQUIP:65 != COUNT
+	IF (FLAG:70 & (T:COUNT)) && TEQUIP:65 != COUNT	; 【[コスプレ]!=COUNT】
 		PRINTFORMLC [{COUNT,3}] %TSTR:COUNT%
 		LOCAL:COUNT = 1
 		C += 1
@@ -240,18 +281,30 @@ REND
 ;最後のループで改行してなかったら、ここで改行しておく
 SIF C != 0
 	PRINTL 
-SIF TEQUIP:65
+SIF TEQUIP:65	; 【[コスプレ]使用中】
 	PRINTL [100] 脱がせる
+;親密ならウフフ指定衣装の設定項目も表示
+IF TALENT:85 || TALENT:88 || TALENT:89 || TALENT:153 || CFLAG:2 >= 1000	; 【[恋慕] / [親愛] / [相愛] / [恋人] / [好感度]>=1000】
+	PRINTFORM [101] ウフフ時指定衣装の設定（現在: 
+	IF CFLAG:1215 > 0	; 【[ウフフ時指定衣装]>0】
+		PRINTFORML 【%TSTR:(CFLAG:1215)%】）
+	ELSE
+		PRINTFORML 【なし】）
+	ENDIF
+ENDIF
 PRINTL [999] 戻る
 $INPUT_LOOP
 INPUT
 IF RESULT == 999
 	RETURN 0
-ELSEIF RESULT > 1000 || RESULT == 0 || (RESULT == 100 && TEQUIP:65 == 0)
+ELSEIF RESULT == 101 && (TALENT:85 || TALENT:88 || TALENT:89 || TALENT:153 || CFLAG:2 >= 1000)	; 【[恋慕] / [親愛] / [相愛] / [恋人] / [好感度]>=1000】
+	CALL SET_FAVORITE_CLOTH
+	RESTART
+ELSEIF RESULT > 1000 || RESULT == 0 || (RESULT == 100 && TEQUIP:65 == 0) || (RESULT > 35 && RESULT != 100) || (RESULT <= 35 && LOCAL:RESULT == 0)	; 【無[コスプレ]】
 	PRINTL 正しい値を入力して下さい
 	GOTO INPUT_LOOP
 ELSE
-	IF TEQUIP:65
+	IF TEQUIP:65	; 【[コスプレ]使用中】
 		IF TFLAG:263
 			PRINTFORML 歪に膨らんだ%CALLNAME:TARGET%の%GET_UNDERWARE_NAME(TEQUIP:65)%を下ろしていくと、床に汚物がこぼれ落ちた
 		ENDIF
@@ -259,7 +312,7 @@ ELSE
 			SIF TFLAG:264
 				PRINT ローションと
 			PRINTFORM 大量の尿で濡れた
-		ELSEIF TFLAG:264 || TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))
+		ELSEIF TFLAG:264 || TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))	; 【[お風呂場プレイ中]使用中 / [野外プレイ中]使用中】
 			SIF TFLAG:264
 				PRINT ローションで
 			PRINTFORM 濡れてしまった
@@ -283,12 +336,28 @@ ELSE
 		ENDIF
 	ENDIF
 	IF RESULT != 100
-		IF RESULT == 17 && (FLAG:70 & 65536) && TALENT:89 && TEQUIP:65 != 17
+		IF RESULT == 17 && (FLAG:70 & 65536) && TALENT:89 && TEQUIP:65 != 17	; 【[相愛] / [コスプレ]!=17】
 			TEQUIP:65 = 17
 			PRINTFORMW %CALLNAME:TARGET%は自らの裸体にリボンを巻きつけている……
 		ELSE
 			TEQUIP:65 = RESULT
 			PRINTFORMW %CALLNAME:TARGET%に%TSTR:RESULT%を着せた
+		ENDIF
+		;親密なら指定衣装に登録するか確認
+		IF (TALENT:85 || TALENT:88 || TALENT:89 || TALENT:153 || CFLAG:2 >= 1000) && CFLAG:1215 != TEQUIP:65	; 【[恋慕] / [親愛] / [相愛] / [恋人] / [コスプレ]使用中 / [好感度]>=1000 / [ウフフ時指定衣装]!=TEQUIP:65】
+			PRINTFORML この衣装【%TSTR:(TEQUIP:65)%】を今後のウフフ時の指定衣装（自動着用）に登録しますか？
+			PRINTFORML [0] 指定衣装に登録する
+			PRINTFORML [1] 今回だけ着替える
+			$INPUT_FAV_LOOP
+			INPUT
+			IF RESULT == 0
+				CFLAG:1215 = TEQUIP:65
+				PRINTFORMW （%CALLNAME:TARGET%のウフフ時指定衣装を【%TSTR:(TEQUIP:65)%】に登録しました）
+			ELSEIF RESULT == 1
+				;何もしない
+			ELSE
+				GOTO INPUT_FAV_LOOP
+			ENDIF
 		ENDIF
 	ENDIF
 ENDIF
@@ -309,71 +378,71 @@ B = 500
 C = 500
 
 ;PALAM:欲情をみる
-IF PALAM:5 < PALAMLV:1
+IF PALAM:5 < PALAMLV:1	; 【[欲情]<PALAMLV:1】
 	TIMES C , 0.80
-ELSEIF PALAM:5 < PALAMLV:2
+ELSEIF PALAM:5 < PALAMLV:2	; 【[欲情]<PALAMLV:2】
 	TIMES C , 0.90
-ELSEIF PALAM:5 < PALAMLV:3
+ELSEIF PALAM:5 < PALAMLV:3	; 【[欲情]<PALAMLV:3】
 	TIMES C , 1.00
-ELSEIF PALAM:5 < PALAMLV:4
+ELSEIF PALAM:5 < PALAMLV:4	; 【[欲情]<PALAMLV:4】
 	TIMES C , 1.10
-ELSEIF PALAM:5 >= PALAMLV:4
+ELSEIF PALAM:5 >= PALAMLV:4	; 【[欲情]>=PALAMLV:4】
 	TIMES C , 1.20
 ENDIF
 
 ;ABL:露出癖をみる
-IF ABL:7 == 0
+IF ABL:7 == 0	; 【[露出癖]Lv==0】
 	TIMES A, 1.50
-ELSEIF ABL:7 == 1
+ELSEIF ABL:7 == 1	; 【[露出癖]Lv==1】
 	TIMES A, 1.20
-ELSEIF ABL:7 == 2
+ELSEIF ABL:7 == 2	; 【[露出癖]Lv==2】
 	TIMES A, 0.80
-ELSEIF ABL:7 == 3
+ELSEIF ABL:7 == 3	; 【[露出癖]Lv==3】
 	TIMES A, 0.60
-ELSEIF ABL:7 == 4
+ELSEIF ABL:7 == 4	; 【[露出癖]Lv==4】
 	TIMES A, 0.40
 ELSE
 	TIMES A, 0.20
 ENDIF
 
 ;ABL:奉仕精神をみる
-IF ABL:6 == 0
+IF ABL:6 == 0	; 【[奉仕精神]Lv==0】
 	TIMES B, 1.40
-ELSEIF ABL:6 == 1
+ELSEIF ABL:6 == 1	; 【[奉仕精神]Lv==1】
 	TIMES B, 1.20
-ELSEIF ABL:6 == 2
-ELSEIF ABL:7 == 3
+ELSEIF ABL:6 == 2	; 【[奉仕精神]Lv==2】
+ELSEIF ABL:6 == 3	; 【[奉仕精神]Lv==3】
 	TIMES B, 0.80
-ELSEIF ABL:6 == 4
+ELSEIF ABL:6 == 4	; 【[奉仕精神]Lv==4】
 	TIMES B, 0.60
 ELSE
 	TIMES B, 0.40
 ENDIF
 
 ;素直
-SIF TALENT:13
+SIF TALENT:13	; 【[素直]】
 	TIMES C , 1.20
 
 ;好奇心
-SIF TALENT:23
+SIF TALENT:23	; 【[好奇心]】
 	TIMES C , 1.20
 
 ;目立ちたがり
-SIF TALENT:28
+SIF TALENT:28	; 【[目立ちたがり]】
 	TIMES A , 0.80
 ;解放
-SIF TALENT:33
+SIF TALENT:33	; 【[解放]】
 	TIMES A , 0.80
 
 ;恥じらい
-SIF TALENT:35
+SIF TALENT:35	; 【[恥じらい]】
 	TIMES A , 2.00
 ;恥薄い
-SIF TALENT:36
+SIF TALENT:36	; 【[恥薄い]】
 	TIMES A , 0.50
 
 ;どんな服でも濡れると恥かしい
-IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))
+IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))	; 【[お風呂場プレイ中]使用中 / [野外プレイ中]使用中】
 	;ずぶ濡れ
 	TIMES A , 1.30
 ELSEIF (DAY:2 == 1 && (TIME:5 == 3 || TIME:5 == 4|| TIME:5 == 7))
@@ -406,15 +475,16 @@ ENDIF
 IF TFLAG:265
 	PRINTFORM [精液]
 ENDIF
-PRINTFORML ＞
+PRINTFORML ＞
+CALL CLOTH_TRAIN_EQUIP_DESC(TEQUIP:65)
 
-IF TEQUIP:65 == 1
+IF TEQUIP:65 == 1	; 【[コスプレ]==1】
 	;PRINTL ＜コスプレ中[学ラン]＞
 	;露出度低
 	TIMES A , 0.50
-ELSEIF TEQUIP:65 == 2
+ELSEIF TEQUIP:65 == 2	; 【[コスプレ]==2】
 	;PRINTL ＜コスプレ中[セーラー服]＞
-	IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))
+	IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))	; 【[お風呂場プレイ中]使用中 / [野外プレイ中]使用中】
 		PRINTFORML セーラー服のシャツが透けて下着がくっきりと見える…
 		;濡れると透ける
 		TIMES A , 2.00
@@ -428,38 +498,38 @@ ELSEIF TEQUIP:65 == 2
 		TIMES A , 0.50
 		TIMES C , 1.50
 	ENDIF
-ELSEIF TEQUIP:65 == 3
+ELSEIF TEQUIP:65 == 3	; 【[コスプレ]==3】
 	;PRINTL ＜コスプレ中[ブルマ]＞
 	;露出度高
 	TIMES A , 1.50
 	TIMES C , 1.20
-ELSEIF TEQUIP:65 == 4
+ELSEIF TEQUIP:65 == 4	; 【[コスプレ]==4】
 	;PRINTL ＜コスプレ中[水着]＞
 	;露出度高
 	TIMES A , 1.50
 	TIMES C , 1.50
 	;貧乳だと恥かしい
-	SIF TALENT:109
+	SIF TALENT:109	; 【[貧乳]】
 		TIMES A , 1.50
-ELSEIF TEQUIP:65 == 5
+ELSEIF TEQUIP:65 == 5	; 【[コスプレ]==5】
 	;PRINTL ＜コスプレ中[スク水（紺）]＞
 	;露出度高
 	TIMES A , 2.00
 	TIMES C , 0.80
 	;貧乳だと恥かしい
-	SIF TALENT:109
+	SIF TALENT:109	; 【[貧乳]】
 		UP:8 += A/8
 	;巨乳だと痛い
-	SIF TALENT:143 || TALENT:141 || TALENT:110
+	SIF TALENT:143 || TALENT:141 || TALENT:110	; 【[超乳] / [爆乳] / [巨乳]】
 		SOURCE:6 = 100
-ELSEIF TEQUIP:65 == 6
+ELSEIF TEQUIP:65 == 6	; 【[コスプレ]==6】
 	;PRINTL ＜コスプレ中[スク水（白）]＞
-	IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))
+	IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))	; 【[お風呂場プレイ中]使用中 / [野外プレイ中]使用中】
 		PRINTFORML %CALLNAME:TARGET%の水着はスケスケになっている…
 		;濡れると透ける
 		TIMES A , 3.00
 		TIMES C , 0.40
-	ELSEIF PALAM:3 > PALAMLV:3 || (DAY:2 == 1 && (TIME:5 == 3 || TIME:5 == 4|| TIME:5 == 7))
+	ELSEIF PALAM:3 > PALAMLV:3 || (DAY:2 == 1 && (TIME:5 == 3 || TIME:5 == 4|| TIME:5 == 7))	; 【[潤滑]>PALAMLV:3】
 		PRINTFORML %CALLNAME:TARGET%の水着は少し透けている…
 		;湿気が強いor濡れると湿って透ける
 		TIMES A , 2.50
@@ -470,31 +540,31 @@ ELSEIF TEQUIP:65 == 6
 		TIMES C , 0.80
 	ENDIF
 	;貧乳だと恥かしい
-	SIF TALENT:109
+	SIF TALENT:109	; 【[貧乳]】
 		UP:8 += A/8
 	;巨乳だと痛い
-	SIF TALENT:143 || TALENT:141 || TALENT:110
+	SIF TALENT:143 || TALENT:141 || TALENT:110	; 【[超乳] / [爆乳] / [巨乳]】
 		SOURCE:6 = 100
-ELSEIF TEQUIP:65 == 7
+ELSEIF TEQUIP:65 == 7	; 【[コスプレ]==7】
 	;PRINTL ＜コスプレ中[白衣]＞
 	;露出度低
 	TIMES A , 0.50
 	TIMES C , 1.50
-ELSEIF TEQUIP:65 == 8
+ELSEIF TEQUIP:65 == 8	; 【[コスプレ]==8】
 	;PRINTL ＜コスプレ中[ナース服]＞
 	;露出度低
 	TIMES A , 0.50
 	TIMES C , 1.50
-ELSEIF TEQUIP:65 == 9
+ELSEIF TEQUIP:65 == 9	; 【[コスプレ]==9】
 	;PRINTL ＜コスプレ中[女性警官制服]＞
 	;露出度高
 	TIMES A , 1.50
 	TIMES C , 1.70
-ELSEIF TEQUIP:65 == 10
+ELSEIF TEQUIP:65 == 10	; 【[コスプレ]==10】
 	;PRINTL ＜コスプレ中[ボンテージスーツ]＞
 	;露出度高
 	TIMES A , 1.50
-	IF TALENT:83 == 1
+	IF TALENT:83 == 1	; 【[サド]】
 		TIMES C , 2.50
 	ELSE
 		TIMES C , 1.50
@@ -502,9 +572,9 @@ ELSEIF TEQUIP:65 == 10
 	;征服
 	SOURCE:20 += A/2
 	;貧乳だと恥かしい
-	SIF TALENT:109
+	SIF TALENT:109	; 【[貧乳]】
 		UP:8 += A/8
-ELSEIF TEQUIP:65 == 11
+ELSEIF TEQUIP:65 == 11	; 【[コスプレ]==11】
 	;PRINTL ＜コスプレ中[浴衣]＞
 	;露出度低
 	TIMES A , 0.50
@@ -513,29 +583,29 @@ ELSEIF TEQUIP:65 == 11
 	ELSE
 		TIMES C , 2.00
 	ENDIF
-ELSEIF TEQUIP:65 == 12
+ELSEIF TEQUIP:65 == 12	; 【[コスプレ]==12】
 	;PRINTL ＜コスプレ中[巫女服]＞
 	;露出度低
 	TIMES A , 0.50
 	TIMES C , 1.20
-ELSEIF TEQUIP:65 == 13
+ELSEIF TEQUIP:65 == 13	; 【[コスプレ]==13】
 	;PRINTL ＜コスプレ中[巫女服（紅白）]＞
 	;露出度中
 	TIMES A , 1.20
 	TIMES C , 1.50
-ELSEIF TEQUIP:65 == 14
+ELSEIF TEQUIP:65 == 14	; 【[コスプレ]==14】
 	;PRINTL ＜コスプレ中[巫女服（緑白）]＞
 	;露出度中
 	TIMES A , 1.20
 	TIMES C , 1.50
-ELSEIF TEQUIP:65 == 15
+ELSEIF TEQUIP:65 == 15	; 【[コスプレ]==15】
 	;PRINTL ＜コスプレ中[メイド服]＞
 	;露出度低
 	TIMES A , 0.50
 	TIMES C , 1.30
 	;家務
 	SOURCE:16 += A/8
-ELSEIF TEQUIP:65 == 16
+ELSEIF TEQUIP:65 == 16	; 【[コスプレ]==16】
 	;PRINTL ＜コスプレ中[メイド服（紅）]＞
 	;露出度中
 	TIMES A , 1.20
@@ -544,7 +614,7 @@ ELSEIF TEQUIP:65 == 16
 	SOURCE:16 += A/6
 	;達成感
 	SOURCE:5 += A/12
-ELSEIF TEQUIP:65 == 17
+ELSEIF TEQUIP:65 == 17	; 【[コスプレ]==17】
 	;PRINTL ＜コスプレ中[裸リボン]＞
 	;露出度超
 	;愛のためならこのくらい…
@@ -579,39 +649,39 @@ ELSEIF TEQUIP:65 == 17
 		PRINTL +1
 		EXP:23 += 1
 	ENDIF
-ELSEIF TEQUIP:65 == 18
+ELSEIF TEQUIP:65 == 18	; 【[コスプレ]==18】
 	;PRINTL ＜コスプレ中[小悪魔風衣装]＞
 	;露出度低
 	TIMES A , 0.50
-	IF TALENT:87 == 1
+	IF TALENT:87 == 1	; 【[小悪魔]】
 		TIMES C , 2.50
 	ELSE
 		TIMES C , 1.50
 	ENDIF
-ELSEIF TEQUIP:65 == 19
+ELSEIF TEQUIP:65 == 19	; 【[コスプレ]==19】
 	;PRINTL ＜コスプレ中[魔法少女コス]＞
 	;露出度中
 	TIMES A , 1.20
 	TIMES C , 1.50
-ELSEIF TEQUIP:65 == 20
+ELSEIF TEQUIP:65 == 20	; 【[コスプレ]==20】
 	;PRINTL ＜コスプレ中[ゴスロリ]＞
 	;露出度低
 	TIMES A , 0.50
 	TIMES C , 1.50
-ELSEIF TEQUIP:65 == 21
+ELSEIF TEQUIP:65 == 21	; 【[コスプレ]==21】
 	;PRINTL ＜コスプレ中[バニーガール]＞
 	;露出度高
 	TIMES A , 1.50
 	TIMES C , 0.80
 	;巨乳だと露出度うｐ
-	SIF TALENT:143 || TALENT:141 || TALENT:110
+	SIF TALENT:143 || TALENT:141 || TALENT:110	; 【[超乳] / [爆乳] / [巨乳]】
 		TIMES A , 1.20
 	;貧乳だと恥かしい
-	SIF TALENT:109
+	SIF TALENT:109	; 【[貧乳]】
 		UP:8 += A/8
-ELSEIF TEQUIP:65 == 22
+ELSEIF TEQUIP:65 == 22	; 【[コスプレ]==22】
 	;PRINTL ＜コスプレ中[裸Yシャツ]＞
-	IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))
+	IF TEQUIP:58 ||(TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))	; 【[お風呂場プレイ中]使用中 / [野外プレイ中]使用中】
 		PRINTFORML %CALLNAME:TARGET%のシャツはスケスケになって肌にへばりついている…
 		;濡れると透ける
 		TIMES A , 2.50
@@ -626,7 +696,7 @@ ELSEIF TEQUIP:65 == 22
 		TIMES A , 1.50
 		TIMES C , 1.20
 	ENDIF
-ELSEIF TEQUIP:65 == 23
+ELSEIF TEQUIP:65 == 23	; 【[コスプレ]==23】
 	;PRINTFORML ＜コスプレ中[%CALLNAME:TARGET%の服]＞
 	IF TFLAG:263
 		PRINTFORML %CALLNAME:TARGET%の服のお尻の部分が汚物色に染まり、歪に膨らんでいる…
@@ -641,12 +711,66 @@ ELSEIF TEQUIP:65 == 23
 	;露出度極低
 	TIMES A , 0.20
 	TIMES C , 1.20
-ELSEIF TEQUIP:65 == 24
+ELSEIF TEQUIP:65 == 24	; 【[コスプレ]==24】
 	;PRINTFORML ＜コスプレ中[%CALLNAME:MASTER%の服]＞
 	;露出度極低
 	TIMES A , 0.20
 	TIMES C , 1.80
-ELSEIF TEQUIP:65 == 255
+ELSEIF TEQUIP:65 == 25	; 【[コスプレ]==25】
+	;ブレザー制服
+	TIMES A , 0.50
+	TIMES C , 1.00
+ELSEIF TEQUIP:65 == 26	; 【[コスプレ]==26】
+	;ジャージ
+	TIMES A , 0.30
+	TIMES C , 1.00
+ELSEIF TEQUIP:65 == 27	; 【[コスプレ]==27】
+	;チアガール
+	TIMES A , 1.20
+	TIMES C , 1.30
+ELSEIF TEQUIP:65 == 28	; 【[コスプレ]==28】
+	;パジャマ
+	TIMES A , 0.60
+	TIMES C , 1.40
+ELSEIF TEQUIP:65 == 29	; 【[コスプレ]==29】
+	;裸エプロン
+	TIMES A , 2.20
+	TIMES C , 1.80
+	SOURCE:16 += A/8
+ELSEIF TEQUIP:65 == 30	; 【[コスプレ]==30】
+	;チャイナドレス
+	TIMES A , 1.30
+	TIMES C , 1.40
+ELSEIF TEQUIP:65 == 31	; 【[コスプレ]==31】
+	;シスター服
+	TIMES A , 0.40
+	TIMES B , 1.30
+	TIMES C , 1.20
+ELSEIF TEQUIP:65 == 32	; 【[コスプレ]==32】
+	;競泳水着
+	TIMES A , 1.50
+	TIMES C , 1.20
+	IF TEQUIP:58 || (TEQUIP:54 && (TIME:5 == 3 || TIME:5 == 4 || TIME:5 == 5 || TIME:5 == 7 || TIME:5 == 8))	; 【[お風呂場プレイ中]使用中 / [野外プレイ中]使用中】
+		TIMES A , 1.80
+	ENDIF
+ELSEIF TEQUIP:65 == 33	; 【[コスプレ]==33】
+	;ベビードール
+	TIMES A , 1.80
+	TIMES C , 1.60
+ELSEIF TEQUIP:65 == 34	; 【[コスプレ]==34】
+	;勝負デート服
+	TIMES A , 0.60
+	TIMES C , 1.60
+ELSEIF TEQUIP:65 == 35	; 【[コスプレ]==35】
+	;ウェディングドレス
+	TIMES A , 1.00
+	TIMES C , 2.00
+	IF TALENT:89 || TALENT:88 || TALENT:85	; 【[相愛] / [親愛] / [恋慕]】
+		PRINTS EXPNAME:23
+		PRINTL +2
+		EXP:23 += 2
+	ENDIF
+ELSEIF TEQUIP:65 == 255	; 【[コスプレ]==255】
 	;PRINTL ＜コスプレ中[ボロボロの布切れ]＞
 	;露出度高
 	TIMES A , 2.50
@@ -692,6 +816,13 @@ T = 9
 CALL GET_EXISTANCE
 SIF E == 0
 	LOCAL:16 = -1
+;ウェディングドレス（35）は相愛または恋人必要
+IF TARGET >= 0
+	SIF TALENT:TARGET:89 == 0 && TALENT:TARGET:153 == 0	; 【TARGET:[相愛]なし / TARGET:[恋人]なし】
+		LOCAL:35 = -1
+ELSE
+	LOCAL:35 = -1
+ENDIF
 
 ;衣装名取得
 CALL CLOTH_NAME
@@ -705,7 +836,7 @@ FLAG:70 |= 8388608
 PRINTL 所持衣装:
 ;改行用
 C = 0
-REPEAT 30
+REPEAT 36
 	;TSTR:COUNTが設定されていなかったら表示しない
 	IF TSTR:COUNT == ""
 		CONTINUE
@@ -735,7 +866,7 @@ SIF C != 0
 PRINTL 
 
 ;以下販売表示
-REPEAT 30
+REPEAT 36
 	;TSTR:COUNTが設定されていなかったら表示しない
 	IF TSTR:COUNT == ""
 		CONTINUE
@@ -753,7 +884,7 @@ SIF C
 	PRINTL どの衣装を購入しますか？($10000)
 ;改行用
 C = 0
-REPEAT 30
+REPEAT 36
 	;TSTR:COUNTが設定されていなかったら表示しない
 	IF TSTR:COUNT == ""
 		CONTINUE
@@ -779,22 +910,37 @@ REND
 ;最後のループで改行してなかったら、ここで改行しておく
 SIF C != 0
 	PRINTL 
+IF TARGET >= 0
+	PRINTL 
+	DRAWLINE
+	PRINTFORM 現在のパートナー: %CALLNAME:TARGET% 
+	IF CFLAG:TARGET:1215 > 0	; 【TARGET:[ウフフ時指定衣装]>0】
+		PRINTFORML [ウフフ時指定衣装: %TSTR:(CFLAG:TARGET:1215)%]
+	ELSE
+		PRINTFORML [ウフフ時指定衣装: なし]
+	ENDIF
+	PRINTL [101] ウフフ時のお気に入り衣装を指定する
+	DRAWLINE
+ENDIF
 PRINTL [100] 戻る
 $INPUT_LOOP
 INPUT
 IF RESULT == 100
 	RETURN 0
-ELSEIF RESULT > 100
+ELSEIF RESULT == 101 && TARGET >= 0
+	CALL SET_FAVORITE_CLOTH
+	RESTART
+ELSEIF RESULT < 0 || RESULT > 100
 	PRINTW 正しい値を入力して下さい
 	GOTO INPUT_LOOP
 ELSEIF FLAG:70 & (T:RESULT)
 	;ここで各衣装の説明文表示できると良いんですが
 	PRINTW 既に所持しています
 	GOTO INPUT_LOOP
-ELSEIF LOCAL:RESULT == 0
+ELSEIF LOCAL:RESULT != 1
 	PRINTW 正しい値を入力して下さい
 	GOTO INPUT_LOOP
-ELSEIF MONEY <= 10000
+ELSEIF MONEY < 10000
 	PRINTW お金が足りません
 ELSE
 	PRINTFORMW ＜%TSTR:RESULT%を購入しました＞
@@ -804,4 +950,47 @@ ENDIF
 RESTART
 RETURN 0
 
+;-------------------------------------------------
+;ウフフ時指定衣装の設定
+;-------------------------------------------------
+@SET_FAVORITE_CLOTH
+CALL CLOTH_NAME
+CALL T_COUNT_391
 
+;親密条件チェック（恋慕、親愛、相愛、恋人、好感度1000以上）
+IF TALENT:TARGET:85 == 0 && TALENT:TARGET:88 == 0 && TALENT:TARGET:89 == 0 && TALENT:TARGET:153 == 0 && CFLAG:TARGET:2 < 1000	; 【TARGET:[恋慕]なし / TARGET:[親愛]なし / TARGET:[相愛]なし / TARGET:[恋人]なし / TARGET:[好感度]<1000】
+	PRINTFORMW （まだ%CALLNAME:TARGET%との絆がそこまで深まっていません。恋人になったり好感度を高めると指定できるようになります…）
+	RETURN 0
+ENDIF
+
+PRINTL 
+PRINTFORML ■ %CALLNAME:TARGET%と二人きりの時（ウフフ時）に着てもらうお気に入り衣装を選んでください
+PRINTL 　※普段の学園生活では私服や制服で過ごし、ウフフ開始時に自動で着用します。
+DRAWLINE
+PRINTL [ 0] 指定なし（自動着用しない）
+FOR LOCAL, 1, 36
+	SIF TSTR:LOCAL == ""
+		CONTINUE
+	IF FLAG:70 & T:LOCAL
+		PRINTFORMLC [{LOCAL, 2}] %TSTR:LOCAL%
+	ENDIF
+NEXT
+PRINTL 
+DRAWLINE
+PRINTL [999] 戻る
+$INPUT_FAV_LOOP
+INPUT
+IF RESULT == 999
+	RETURN 0
+ELSEIF RESULT == 0
+	CFLAG:TARGET:1215 = 0
+	PRINTFORMW （%CALLNAME:TARGET%のウフフ時指定衣装を解除しました）
+	RETURN 0
+ELSEIF RESULT >= 1 && RESULT <= 35 && (FLAG:70 & T:RESULT)
+	CFLAG:TARGET:1215 = RESULT
+	PRINTFORMW （%CALLNAME:TARGET%のウフフ時指定衣装を【%TSTR:RESULT%】に設定しました）
+	RETURN 0
+ELSE
+	PRINTW 正しい値を入力して下さい
+	GOTO INPUT_FAV_LOOP
+ENDIF

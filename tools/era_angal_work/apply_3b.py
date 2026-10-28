@@ -1,0 +1,395 @@
+import os
+import re
+import shutil
+
+erb_path = 'ERB/AITE_YOBI_相手呼称.ERB'
+backup_path = 'ERB/AITE_YOBI_相手呼称.ERB.bak_before_3b'
+
+# Restore from backup first to be 100% clean
+if os.path.exists(backup_path):
+    shutil.copyfile(backup_path, erb_path)
+
+with open(erb_path, 'rb') as f:
+    raw_b = f.read()
+
+text = raw_b.decode('cp932')
+
+# -------------------------------------------------------------
+# 1. Update Layer 1
+# -------------------------------------------------------------
+# (A) 苗字呼び捨てグループに 56, 57, 60, 62 を追加
+old_l1_yobisute = """\t\tCASE 46, 49, 50, 52
+			;双葉みづき/小松ぼたん/山條ぎん/湖南やこ: 苗字で呼び捨て
+			RESULTS '= @"%SUR%"
+""".replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+
+new_l1_yobisute = """\t\tCASE 46, 49, 50, 52, 56, 57, 60, 62
+			;双葉みづき/小松ぼたん/山條ぎん/湖南やこ/八壁ひかる/岩戸サン/瀬川かえで/黒森すず: 苗字で呼び捨て
+			RESULTS '= @"%SUR%"
+""".replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+
+assert old_l1_yobisute in text, "old_l1_yobisute not found!"
+text = text.replace(old_l1_yobisute, new_l1_yobisute)
+
+# (B) 名前+ちゃんグループに 63 を追加
+old_l1_chan = """\t\tCASE 47
+			;双葉みなづき: 名前+ちゃん（甘えん坊妹愛称）
+			RESULTS '= @"%CALLNAME:AI%ちゃん"
+""".replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+
+new_l1_chan = """\t\tCASE 47, 63
+			;双葉みなづき/八雲ちづる: 名前+ちゃん
+			RESULTS '= @"%CALLNAME:AI%ちゃん"
+""".replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+
+assert old_l1_chan in text, "old_l1_chan not found!"
+text = text.replace(old_l1_chan, new_l1_chan)
+
+# (C) %SUR%さん グループから 57, 60, 62 を除外
+old_l1_sans = """\t\tCASE 25, 28, 45, 48, 54, 55, 57, 60, 62, 65, 67, 68, 69
+			;八朔つゆり/星海こよい/円城寺れいか/四方みつる/久坂あやめ/伊藤さくら/岩戸サン/瀬川かえで/黒森すず/時国そら/日滝ましろ/深鳥ふみ/神樹はじめ: 苗字+さん付け
+			RESULTS '= @"%SUR%さん"
+""".replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+
+new_l1_sans = """\t\tCASE 25, 28, 45, 48, 54, 55, 65, 67, 68, 69
+			;八朔つゆり/星海こよい/円城寺れいか/四方みつる/久坂あやめ/伊藤さくら/時国そら/日滝ましろ/深鳥ふみ/神樹はじめ: 苗字+さん付け
+			RESULTS '= @"%SUR%さん"
+""".replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+
+assert old_l1_sans in text, "old_l1_sans not found!"
+text = text.replace(old_l1_sans, new_l1_sans)
+
+# (D) CASE 59, 61, 63 から 63 を除外して 59, 61 にする
+m_call = re.search(r'\t\tCASE 59, 61, 63\r\n\t\t\t;[^\r\n]*\r\n\t\t\tRESULTS \'=[^\r\n]*\r\n', text)
+assert m_call, "m_call not found!"
+new_l1_call = """\t\tCASE 59, 61
+			;水嶌うしお/鶴海ひまり: 呼び名で呼び捨て
+			RESULTS '= @"%CALLNAME:AI%"
+""".replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+text = text[:m_call.start()] + new_l1_call + text[m_call.end():]
+
+print("Layer 1 updated successfully.")
+
+# -------------------------------------------------------------
+# 2. Update Layer 2 (CASE 53 to CASE 63)
+# -------------------------------------------------------------
+b_new = text.encode('cp932')
+
+# Find exact bounds of the slice to replace:
+# Start: right after SP CASE 52's ENDSELECT
+m_c52 = list(re.finditer(rb'^\t\tCASE 52\r\n\t\t\t;', b_new, re.MULTILINE))
+assert len(m_c52) == 1, f"Expected 1 SP CASE 52, got {len(m_c52)}"
+p_c52_start = m_c52[0].start()
+p_c52_endselect = b_new.find(b'\t\t\tENDSELECT\r\n', p_c52_start)
+p_slice_start = p_c52_endselect + len(b'\t\t\tENDSELECT\r\n')
+
+# End: start of SP CASE 65
+m_c65 = list(re.finditer(rb'^\t\tCASE 65\r\n\t\t\t;', b_new, re.MULTILINE))
+assert len(m_c65) == 1, f"Expected 1 SP CASE 65, got {len(m_c65)}"
+p_slice_end = m_c65[0].start()
+
+print(f"Replacing slice from byte {p_slice_start} to {p_slice_end}")
+
+new_layer2_3b = """\t\tCASE 53
+			;花丘まり (3-B / テニス部部長)
+			SELECTCASE AI
+				;--- テニス部後輩（愛称） ---
+				CASE 18
+					;熊沢ひめの (テニス部後輩)
+					RESULTS '= @"ひめのちゃん"
+				CASE 17
+					;小鳩あずさ (テニス部後輩)
+					RESULTS '= @"あずさちゃん"
+				CASE 36
+					;遠見ちか
+					RESULTS '= @"ちかちゃん"
+				;--- お嬢様・後輩への「〜様」 ---
+				CASE 34
+					;桐島かいり
+					RESULTS '= @"かいり様"
+				CASE 31
+					;夢路まりあ
+					RESULTS '= @"まりあ様"
+				CASE 38
+					;クー・カロア
+					RESULTS '= @"クー様"
+				CASE 37
+					;龍泉寺レンレン
+					RESULTS '= @"レンレン様"
+				CASE 43
+					;砂賀みどり
+					RESULTS '= @"みどり様"
+				CASE 44
+					;笹芽ひよの
+					RESULTS '= @"ひよの様"
+				;--- 幼馴染・同級生 ---
+				CASE 48
+					;四方みつる (王子様)
+					RESULTS '= @"みつるさん"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんずさん"
+			ENDSELECT
+		CASE 54
+			;久坂あやめ (3-B / 華道部部長)
+			SELECTCASE AI
+				;--- 最重要幼馴染（40回登場） ---
+				CASE 56
+					;八壁ひかる (幼馴染！「ひかるちゃん」)
+					RESULTS '= @"ひかるちゃん"
+				;--- 特別愛称 ---
+				CASE 57
+					;岩戸サン (8回登場)
+					RESULTS '= @"サンちゃん"
+				CASE 10
+					;曽根ラピス
+					RESULTS '= @"ラピスちゃん"
+				CASE 16
+					;大虎いさみ
+					RESULTS '= @"いさみちゃん"
+				CASE 29
+					;春風なな
+					RESULTS '= @"ななちゃん"
+				CASE 38
+					;クー・カロア (外国人名)
+					RESULTS '= @"カロアさん"
+				CASE 69
+					;神樹はじめ (神樹姓重複回避)
+					RESULTS '= @"はじめさん"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんずちゃん"
+			ENDSELECT
+		CASE 55
+			;伊藤さくら (3-B / 園芸部・美化委員)
+			SELECTCASE AI
+				;--- 崇拝対象 ---
+				CASE 45
+					;円城寺れいか (フォロワーとして崇拝)
+					RESULTS '= @"れいか様"
+				;--- 親友フォロワー（75回登場） ---
+				CASE 60
+					;瀬川かえで (親友)
+					RESULTS '= @"かえで"
+				;--- 生徒会長 ---
+				CASE 61
+					;鶴海ひまり
+					RESULTS '= @"鶴海会長"
+				CASE 69
+					;神樹はじめ (神樹姓重複回避)
+					RESULTS '= @"はじめさん"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんずさん"
+			ENDSELECT
+		CASE 56
+			;八壁ひかる (3-B / 柔道部部長)
+			SELECTCASE AI
+				;--- 最重要幼馴染（72回登場・絶対的呼び捨て） ---
+				CASE 54
+					;久坂あやめ (幼馴染！「あやめ」)
+					RESULTS '= @"あやめ"
+				;--- 柔道部後輩・ライバル ---
+				CASE 16
+					;大虎いさみ (後輩・30回登場)
+					RESULTS '= @"いさみ"
+				CASE 37
+					;龍泉寺レンレン (宿敵ライバル)
+					RESULTS '= @"龍泉寺"
+				CASE 12
+					;神樹いちか (神樹姓重複回避)
+					RESULTS '= @"いちか"
+				CASE 69
+					;神樹はじめ (神樹姓重複回避)
+					RESULTS '= @"はじめ"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんず"
+			ENDSELECT
+		CASE 57
+			;岩戸サン (3-B / 陸上部部長・走高跳)
+			SELECTCASE AI
+				;--- 陸上部（公式設定明記） ---
+				CASE 48
+					;四方みつる (副部長)
+					RESULTS '= @"みつる"
+				CASE 42
+					;榊むつみ (後輩)
+					RESULTS '= @"むつみ"
+				CASE 12
+					;神樹いちか (神樹姓重複回避)
+					RESULTS '= @"いちか"
+				CASE 69
+					;神樹はじめ (神樹姓重複回避)
+					RESULTS '= @"はじめ"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんず"
+			ENDSELECT
+		CASE 58
+			;天宮るり (3-B / 軽音部)
+			SELECTCASE AI
+				;--- 最重要親友・幼馴染（35回登場） ---
+				CASE 70
+					;神無月ほとり (唯一無二の理解者)
+					RESULTS '= @"ほとりちゃん"
+				;--- 生徒会長 ---
+				CASE 61
+					;鶴海ひまり
+					RESULTS '= @"生徒会長"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんずさん"
+			ENDSELECT
+		CASE 59
+			;水嶌うしお (3-B / 水泳部部長)
+			SELECTCASE AI
+				;--- 最重要親友（34回登場） ---
+				CASE 46
+					;双葉みづき (親友)
+					RESULTS '= @"みづき"
+				;--- 親しい友人・後輩 ---
+				CASE 22
+					;鯱いかり (10回登場)
+					RESULTS '= @"いかりちゃん"
+				CASE 65
+					;時国そら (11回登場)
+					RESULTS '= @"そらちゃん"
+				CASE 61
+					;鶴海ひまり (3回登場)
+					RESULTS '= @"ひまりちゃん"
+				CASE 50
+					;山條ぎん
+					RESULTS '= @"ぎんちゃん"
+				CASE 51
+					;御影かすみ
+					RESULTS '= @"かすみん"
+				CASE 60
+					;瀬川かえで (敬称)
+					RESULTS '= @"瀬川さん"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんず"
+			ENDSELECT
+		CASE 60
+			;瀬川かえで (3-B / 弓道部・風紀委員)
+			SELECTCASE AI
+				;--- 崇拝対象 ---
+				CASE 45
+					;円城寺れいか (フォロワーとして絶対崇拝)
+					RESULTS '= @"れいか様"
+				;--- 親友フォロワー（68回登場） ---
+				CASE 55
+					;伊藤さくら (親友)
+					RESULTS '= @"さくら"
+				;--- 特別愛称 ---
+				CASE 56
+					;八壁ひかる (3回登場)
+					RESULTS '= @"ひかるくん"
+				CASE 57
+					;岩戸サン (5回登場)
+					RESULTS '= @"サン"
+				CASE 12
+					;神樹いちか (神樹姓重複回避)
+					RESULTS '= @"いちか"
+				CASE 69
+					;神樹はじめ (神樹姓重複回避)
+					RESULTS '= @"はじめ"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんず"
+			ENDSELECT
+		CASE 61
+			;鶴海ひまり (3-B / 現生徒会長・合唱部)
+			SELECTCASE AI
+				;--- 敬愛する前会長（45回登場） ---
+				CASE 45
+					;円城寺れいか (敬愛する前会長)
+					RESULTS '= @"れいか先輩"
+				;--- 愛称 ---
+				CASE 62
+					;黒森すず (固有愛称)
+					RESULTS '= @"くろりん"
+				CASE 53
+					;花丘まり (12回登場)
+					RESULTS '= @"まりちゃん"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんずさん"
+			ENDSELECT
+		CASE 62
+			;黒森すず (3-B / 軽音部ベース担当)
+			SELECTCASE AI
+				;--- 軽音部仲間・固有愛称（公式設定明記） ---
+				CASE 9
+					;月永るか (公式設定)
+					RESULTS '= @"ルカ"
+				CASE 10
+					;曽根ラピス (公式設定)
+					RESULTS '= @"ラピ"
+				CASE 20
+					;藤猪しずく (公式設定)
+					RESULTS '= @"シズ"
+				CASE 66
+					;曽根セイラ (公式設定)
+					RESULTS '= @"セイ"
+				CASE 72
+					;あんず (超重要固有愛称)
+					RESULTS '= @"アジュー"
+				CASE 12
+					;神樹いちか (神樹姓重複回避)
+					RESULTS '= @"いちか"
+				CASE 69
+					;神樹はじめ (神樹姓重複回避)
+					RESULTS '= @"はじめ"
+			ENDSELECT
+		CASE 63
+			;八雲ちづる (3-B / 美化委員・合唱部)
+			SELECTCASE AI
+				;--- 最重要片想い（34回登場・「王子様」） ---
+				CASE 48
+					;四方みつる (王子様)
+					RESULTS '= @"みつるちゃん"
+				;--- 親友・悪友（61回登場） ---
+				CASE 52
+					;湖南やこ (呼び捨て)
+					RESULTS '= @"やこ"
+				;--- 演劇部後輩（60回登場） ---
+				CASE 36
+					;遠見ちか (呼び捨て)
+					RESULTS '= @"ちか"
+				;--- 呼び捨て同級生 ---
+				CASE 57
+					;岩戸サン
+					RESULTS '= @"サン"
+				CASE 62
+					;黒森すず
+					RESULTS '= @"すず"
+				CASE 66
+					;曽根セイラ
+					RESULTS '= @"セイラ"
+				CASE 6
+					;藍乃あいか
+					RESULTS '= @"アイカ"
+				CASE 12
+					;神樹いちか (神樹姓重複回避)
+					RESULTS '= @"いちか"
+				CASE 69
+					;神樹はじめ (神樹姓重複回避)
+					RESULTS '= @"はじめ"
+				CASE 72
+					;あんず
+					RESULTS '= @"あんずさん"
+			ENDSELECT
+"""
+
+new_layer2_3b = new_layer2_3b.replace('\n', '\r\n').replace('\r\r\n', '\r\n')
+new_layer2_bytes = new_layer2_3b.encode('cp932')
+
+final_bytes = b_new[:p_slice_start] + new_layer2_bytes + b_new[p_slice_end:]
+
+with open(erb_path, 'wb') as f:
+    f.write(final_bytes)
+
+print(f"Successfully updated {erb_path}")
+print(f"Final file size: {len(final_bytes)} bytes")

@@ -10,7 +10,7 @@
 ;DAY:0(単にDAYだとこれ)は何日目かです（DAY = 0で1日目）
 ;DAY:1は月内の日にちです(1～10) ← 1ゲーム日=3実日、10日/月、120日/年
 ;DAY:2は季節です　0が春　　1が夏　　2が秋　　3が冬
-;DAY:3は年です　ゲーム開始時の年+DAY/120(120日で1年)
+;DAY:3は暦年です　1月に加算（4月開始のためDAY+30で補正）
 ;DAY:4はゲーム開始時の年です
 ;DAY:5は曜日です　0が月曜　1が火曜　2が水曜　3が木曜　4が金曜　5がサタデー　6が日曜
 ;DAY:6は予備変数（旧:季節ずれ、現在未使用）
@@ -29,7 +29,7 @@ SIF DAY != 0
 	DAY:1 = DAY % 10 * 3 + 1
 DAY:2 = LOCAL:9 / 3
 DAY:8 = (LOCAL:9 + 3) % 12 + 1
-DAY:3 = DAY / 120 + DAY:4
+DAY:3 = (DAY + 30) / 120 + DAY:4
 DAY:5 = DAY % 7
 SIF NO:MASTER == 0 && TIME:2 == 0
 	CALL BIRTHDAY
@@ -45,7 +45,7 @@ SIF DAY != 0
 	DAY:1 = DAY % 10 * 3 + 1
 DAY:2 = LOCAL:9 / 3
 DAY:8 = (LOCAL:9 + 3) % 12 + 1
-DAY:3 = DAY / 120 + DAY:4
+DAY:3 = (DAY + 30) / 120 + DAY:4
 DAY:5 = DAY % 7
 SIF NO:MASTER == 0 && TIME:2 == 0
 	CALL BIRTHDAY
@@ -483,7 +483,7 @@ ENDIF
 
 @EVENTCOMEND
 ;ウフフ中、勝手にムードアップする
-IF TFLAG:44 == 1
+IF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	SIF TIME:5 == 3
 		TFLAG:37 += RAND:3
 	SIF TIME:5 == 7
@@ -498,3 +498,73 @@ SIF TIME:11 == 1
 	TFLAG:37 += RAND:6+1
 SIF TIME:11 == 2
 	TFLAG:37 += RAND:3+1
+
+;-----------------------------------------------------------------
+; 記念日・日付管理用ヘルパー関数
+;-----------------------------------------------------------------
+@GET_CURRENT_DATE_INT
+#FUNCTION
+#DIM D_YEAR
+#DIM D_MONTH
+#DIM D_DAY
+D_YEAR = (DAY + 30) / 120 + (DAY:4 ? DAY:4 # 2015)
+D_MONTH = (DAY / 10 % 12 + 3) % 12 + 1
+D_DAY = (DAY == 0) ? 1 # (DAY % 10 * 3 + 1)
+RETURNF D_YEAR * 10000 + D_MONTH * 100 + D_DAY
+
+@CONVERT_DAY_INT_TO_DATE_INT(ARG)
+#FUNCTION
+#DIM D_VAL
+#DIM D_YEAR
+#DIM D_MONTH
+#DIM D_DAY
+SIF ARG <= 0
+	RETURNF 0
+IF ARG >= 10000
+	RETURNF ARG
+ENDIF
+D_VAL = MAX(0, ARG - 1)
+D_YEAR = (D_VAL + 30) / 120 + (DAY:4 ? DAY:4 # 2015)
+D_MONTH = (D_VAL / 10 % 12 + 3) % 12 + 1
+D_DAY = (D_VAL == 0) ? 1 # (D_VAL % 10 * 3 + 1)
+RETURNF D_YEAR * 10000 + D_MONTH * 100 + D_DAY
+
+@FORMAT_DATE_STR(ARG)
+#FUNCTIONS
+#DIM D_VAL
+#DIM D_YEAR
+#DIM D_MONTH
+#DIM D_DAY
+SIF ARG <= 0
+	RETURNF ""
+IF ARG < 10000
+	D_VAL = CONVERT_DAY_INT_TO_DATE_INT(ARG)
+ELSE
+	D_VAL = ARG
+ENDIF
+D_YEAR = D_VAL / 10000
+D_MONTH = (D_VAL % 10000) / 100
+D_DAY = D_VAL % 100
+RETURNF @"{D_YEAR}年 {D_MONTH}月 {D_DAY}日"
+
+;年度キーは4月に切り替える。年間行事の既存保存値との互換性を維持する。
+@GET_SCHOOL_YEAR
+#FUNCTION
+RETURNF DAY / 120 + (DAY:4 ? DAY:4 # 2015)
+
+;暦年修正前にYYYYMMDDで保存した1～3月の記念日を一度だけ翌年へ移す。
+;日目形式はCONVERT_DAY_INT_TO_DATE_INTで変換するためここでは変更しない。
+@MIGRATE_CALENDAR_DATES
+SIF FLAG:15098 >= 1
+	RETURN 0
+REPEAT CHARANUM
+	FOR LOCAL, 1241, 1245
+		LOCAL:1 = CFLAG:COUNT:LOCAL
+		LOCAL:2 = (LOCAL:1 % 10000) / 100
+		IF LOCAL:1 >= 10000 && LOCAL:2 >= 1 && LOCAL:2 <= 3
+			CFLAG:COUNT:LOCAL += 10000
+		ENDIF
+	NEXT
+REND
+FLAG:15098 = 1
+RETURN 1

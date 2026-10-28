@@ -1,0 +1,737 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自らの判断で責任を持って行動できる大人の女性です。
+;============================================================
+@DAILY_LIFE
+#DIM LCOUNT, 1
+
+;表示頻度
+SIF FLAG:7 <= 0
+	RETURN 1
+
+;調教をまだ行っていなければ引き返す
+VARSET LOCALS
+FOR LCOUNT, 0, CHARANUM
+	;主人公を除く
+	SIF LCOUNT == MASTER
+		CONTINUE
+	;別れていない && (初調教口上が表示済み || 好感度 > 30) && 妊娠していない
+	SIF CFLAG:LCOUNT:21 == 0 && (CFLAG:LCOUNT:201 == 1 || CFLAG:LCOUNT:2 > 30) && (MARK:LCOUNT:90 == 0) && BASE:LCOUNT:0 > 0	; 【LCOUNT:[別れ]==0 / LCOUNT:[初パートナーと過ごす]==1 / LCOUNT:[好感度]>30 / LCOUNT:[体力]>0】
+		LOCALS += TOSTR(LCOUNT) + "/"
+NEXT
+SIF STRCOUNT(LOCALS, "/") == 0
+	RETURN 1
+
+DRAWLINE
+
+;メインキャラを選ぶ
+LOCAL = AUTO_SPLIT_INT(LOCALS, "/", RAND:STRCOUNT(LOCALS, "/"))
+
+;個別
+TRYCCALLFORM DAILY_LIFE_MESSAGE_{NO:LOCAL}(LOCAL)
+;共通
+CATCH
+	CALL DAILY_LIFE_MESSAGE(LOCAL)
+ENDCATCH
+
+@DAILY_LIFE_MESSAGE(ARG)
+#DIM LCOUNT, 1
+#DIMS LLIST, 2
+
+VARSET LLIST
+FOR LCOUNT, 0, CHARANUM
+	;主人公を除く
+	SIF LCOUNT == MASTER
+		CONTINUE
+	;メインキャラを除く
+	SIF LCOUNT == ARG
+		CONTINUE
+	;別れたキャラを除く
+	SIF CFLAG:LCOUNT:21 == 1	; 【LCOUNT:[別れ]==1】
+		CONTINUE
+	LLIST += TOSTR(LCOUNT) + "/"
+NEXT
+
+;体力1000以下（疲れて休んでいる）
+IF BASE:ARG:0 <= 1000	; 【ARG:[体力]<=1000】
+	;相愛（同棲中）なら自宅で眠っているシーンを見せる
+	IF TALENT:ARG:89	; 【ARG:[相愛]】
+		PRINTFORMW 通りすがりにふと%CALLNAME:ARG%の部屋を覗いてみた……
+		PRINTFORMW %CALLNAME:ARG%はベッドで眠っているようだ
+	ELSE
+		;授業の合間に図書室や空き教室で疲れを癒している
+		IF RAND:2 == 0
+			PRINTFORMW 図書室に立ち寄ってみると、%CALLNAME:ARG%が机に突っ伏してうとうとしていた
+		ELSE
+			PRINTFORMW 空き教室を覗くと、%CALLNAME:ARG%が机に頭を乗せて休んでいた
+		ENDIF
+	ENDIF
+	;反発感情Lv3の時
+	IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+		IF RAND:2 == 0
+			PRINTFORMW その表情は険しい……
+		ELSE
+			PRINTFORMW こちらに気付くと、むっとした表情のまま立ち上がってどこかに行った……
+		ENDIF
+	;恋慕の時
+	ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORMW うとうとしながら%CALLNAME:MASTER%の名前を呟いたようだ……
+		CASE 1
+			PRINTFORMW 気配に気付いた%CALLNAME:ARG%がぱっと顔を上げ、目が合うと照れたように笑った……
+		CASEELSE
+			PRINTFORMW 幸せそうな寝顔だ……
+		ENDSELECT
+	;既成事実Lv2以上
+	ELSEIF MARK:ARG:2 >= 2	; 【[既成事実]Lv>=2】
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORMW 疲れ果てているようで、熟睡している……
+		CASE 1
+			PRINTFORMW 静かに休んでいるようだ……
+		CASEELSE
+			PRINTFORMW 邪魔しないようにそっとその場を離れた……
+		ENDSELECT
+	;それ以外
+	ELSE
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORMW 気配を感じて顔を上げた%CALLNAME:ARG%は、眠そうな目をこすりながらこちらを見た……
+		CASE 1
+			PRINTFORMW 深く眠っているようなので声はかけなかった……
+		CASEELSE
+			PRINTFORMW 疲れているようだ……邪魔しないようにその場を離れた
+		ENDSELECT
+	ENDIF
+;体力 > 1000（元気に過ごしている）
+ELSE
+	VARSET LOCALS
+	;表現技能持ちの時、歌の練習
+	SIF ABL:ARG:94 > 0	; 【ARG:[表現技能]Lv>0】
+		LOCALS += "1/"
+	;大人しいの時、本を読む
+	SIF TALENT:ARG:14	; 【ARG:[大人しい]】
+		LOCALS += "3/"
+	;好奇心の時、スマホで動画を漁る
+	SIF TALENT:ARG:23	; 【ARG:[好奇心]】
+		LOCALS += "17/"
+	;習得遅い・幼稚の時、おやつをつまみ食い
+	SIF TALENT:ARG:51 || TALENT:ARG:132	; 【ARG:[習得遅い] / ARG:[幼稚]】
+		LOCALS += "4/"
+	;針さばき持ちの時、手芸
+	SIF TALENT:ARG:53	; 【ARG:[針さばき]】
+		LOCALS += "9/"
+	;献身的の時、掃除・片付け
+	SIF TALENT:ARG:63	; 【ARG:[献身的]】
+		LOCALS += "10/"
+	;感情乏しいor無関心の時、ぼーっとする
+	SIF TALENT:ARG:21 || TALENT:ARG:22	; 【ARG:[無関心] / ARG:[感情乏しい]】
+		LOCALS += "12/"
+	;目立ちたがりの時、踊る
+	SIF TALENT:ARG:28 && MARK:ARG:3 != 3 && STRCOUNT(LLIST, "/") >= 1	; 【ARG:[目立ちたがり] / [反発感情]Lv!=3】
+		LOCALS += "13/"
+	;反抗的・素直の時、荷物運びを手伝う
+	SIF TALENT:ARG:11 || TALENT:ARG:13	; 【ARG:[反抗的] / ARG:[素直]】
+		LOCALS += "15/"
+	;楽観的の時、鼻歌を歌いながら通る
+	SIF TALENT:ARG:25	; 【ARG:[楽観的]】
+		LOCALS += "18/"
+	;悲観的の時、窓の外を眺めて溜息
+	SIF TALENT:ARG:26	; 【ARG:[悲観的]】
+		LOCALS += "19/"
+	;従順Lv7以上の時、料理の当番
+	SIF ABL:ARG:0 >= 7 && MARK:ARG:3 != 3	; 【ARG:[親密]Lv>=7 / [反発感情]Lv!=3】
+		LOCALS += "20/"
+	;冬の大雪ネタ
+	SIF DAY:2 == 3 && GROUPMATCH(TIME:5, 5, 6)
+		LOCALS += "21/"
+	;夜、廊下でトイレ帰り
+	SIF TIME == 1 && (TALENT:ARG:10 || TALENT:ARG:12)	; 【ARG:[臆病] / ARG:[気丈]】
+		LOCALS += "22/"
+	;昼、日向ぼっこ
+	SIF TIME == 0
+		LOCALS += "7/"
+	;習得早いの時、自主練
+	SIF TALENT:ARG:50 && MARK:ARG:3 != 3	; 【ARG:[習得早い] / [反発感情]Lv!=3】
+		LOCALS += "6/"
+	;相愛（同棲中）限定シーン
+	IF TALENT:ARG:89	; 【ARG:[相愛]】
+		LOCALS += "30/"
+		LOCALS += "31/"
+		LOCALS += "32/"
+	ENDIF
+	;それ以外
+	SIF 1
+		LOCALS += "23/"
+	
+	;ランダマイズ
+	LOCAL = AUTO_SPLIT_INT(LOCALS, "/", RAND:STRCOUNT(LOCALS, "/"))
+	
+	SELECTCASE LOCAL
+	;自習・勉強
+	CASE 0
+		PRINTFORMW 図書室に来てみると、%CALLNAME:ARG%が参考書を広げて自習していた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと、本をそのままに何も言わずどこかに行ってしまった
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:MASTER%に気付いた%CALLNAME:ARG%は嬉しそうに微笑みかけてきた
+				PRINTFORMW %CALLNAME:MASTER%は近くに座り、しばらく一緒に過ごした……
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと慌てて本を伏せた
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%は本に夢中になっていて%CALLNAME:MASTER%に気付かない……
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%はこちらに気付いて軽く会釈し、また勉強に戻った
+			ENDIF
+		ENDIF
+	;歌の練習
+	CASE 1
+		PRINTFORMW %CALLNAME:ARG%の教室の前を通りすがると、中から歌声が漏れてきた……
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%はこちらに気付くと、ぴたりと歌をやめて出て行った……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			IF RAND:2 == 0
+				PRINTFORMW しっとりとした歌い方に心が落ち着いていく……
+				PRINTFORMW 一曲歌いきった%CALLNAME:ARG%がこちらに気付いて、はにかんで笑った……
+			ELSE
+				PRINTFORMW 難しいフレーズを何度も繰り返し練習しているようだ……
+			ENDIF
+		ELSE
+			PRINTFORMW 苦手なパートを克服しようとしているのか、同じフレーズを繰り返し歌っている……
+		ENDIF
+	;スマホをいじる
+	CASE 2
+		PRINTFORMW 食堂に来てみると、%CALLNAME:ARG%がスマホをいじりながら軽食を食べていた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと、無言で席を立ってどこかへ行った……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW こちらに気付いた%CALLNAME:ARG%が、スマホの画面を見せながら笑いかけてきた……
+		ELSE
+			PRINTFORMW 夢中でスマホを見ていて%CALLNAME:MASTER%には気付かない……
+		ENDIF
+	;本を読む（大人しい）
+	CASE 3
+		PRINTFORMW 図書室に来てみると、%CALLNAME:ARG%が本を読んでいた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%は入ってきた%CALLNAME:MASTER%に気付くと、本をそのままに何も言わずどこかに行ってしまった
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			IF RAND:3 == 0
+				PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと慌てて読んでいた本を閉じた
+			ELSEIF RAND:2 == 0
+				PRINTFORMW %CALLNAME:MASTER%に気付いた%CALLNAME:ARG%は嬉しそうに微笑みかけてきた
+				PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:ARG%の近くに座り、好きな本について話して過ごした……
+			ELSE
+				PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:ARG%の近くに座り、一緒に本を読んで静かに過ごした……
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%は本に夢中になっていて%CALLNAME:MASTER%に気付かない……
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%はこちらに気付いて挨拶し、また本に目を落とした
+			ENDIF
+		ENDIF
+	;お菓子作り・間食
+	CASE 4
+		IF RAND:2 == 0
+			PRINTFORMW 台所に来てみると、%CALLNAME:ARG%が小さなクッキーを焼こうとしているところだった
+			IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+				PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと、むすっとしたまま材料をしまいはじめた……
+			ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+				PRINTFORMW 焼き上がったらわけてあげると%CALLNAME:ARG%が照れながら言った……
+			ELSE
+				PRINTFORMW そのままもくもくと作業を続けている……
+			ENDIF
+		ELSE
+			PRINTFORMW 台所に忍び寄る黒い人影……
+			PRINTFORMW その正体は――%CALLNAME:ARG%だ！
+			;理性の勝利
+			IF ABL:ARG:0 >= (ABL:ARG:1 + RAND:5)	; 【ARG:[親密] / ARG:[欲望]】
+				PRINTFORMW 棚の中におやつを見つけると、すかさず手を伸ばしかけた
+				PRINTFORMW が、急に神妙な顔つきになった後、くるりと反転して戻っていった……
+			ELSE
+				PRINTFORMW 棚の中におやつを見つけると、少しも躊躇せず口に放り込み
+				IF ABL:ARG:2 >= RAND:10	; 【ARG:[技巧]】
+					PRINTFORMW 包み紙を丸めてつまみ食いの痕跡を消してから立ち去っていった……
+				ELSE
+					PRINTFORMW そのまま満足げに立ち去っていった……
+				ENDIF
+			ENDIF
+		ENDIF
+	;部活の自主練
+	CASE 6
+		PRINTFORMW 廊下を歩いていると、%CALLNAME:ARG%が体育館の方へ向かっているのが見えた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと軽く目を逸らしてそのまま行ってしまった……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW 自主練に向かう%CALLNAME:ARG%と目が合うと、嬉しそうに手を振ってきた……
+		ELSE
+			PRINTFORMW 誰よりも早く、もう自主練に向かうらしい……
+		ENDIF
+	;日向ぼっこ（昼）
+	CASE 7
+		PRINTFORMW 中庭に来てみると、ベンチで%CALLNAME:ARG%が日向ぼっこをしていた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%を見つけると、さっと立ち上がってその場を去った……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW %CALLNAME:ARG%は日差しの中で目を細めている……
+			PRINTFORMW こちらに気付くと、隣に座るよう手招きしてきた……
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%は日差しの中で気持ち良さそうに空を見上げている……
+			PRINTFORMW こちらに気付くと、目を細めて軽く頷いてきた
+		ENDIF
+	;手芸・お裁縫
+	CASE 9
+		PRINTFORMW 家庭科室の前を通りすがると、%CALLNAME:ARG%が縫い物をしているのが見えた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%はこちらに気付くと、手を止めて無言で扉を閉めた……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW 感心して眺めていると、だんだん%CALLNAME:ARG%の顔が赤くなってきて……
+			PRINTFORMW 邪魔しないでと照れながら怒られた
+		ELSE
+			PRINTFORMW 口で糸を切っている%CALLNAME:ARG%と目が合った
+			PRINTFORMW 器用に針を動かしながらにっこりと挨拶してくる
+		ENDIF
+	;部屋の掃除・片付け
+	CASE 10
+		IF RAND:2 == 0
+			PRINTFORMW %CALLNAME:ARG%が廊下の掃除をしているところに通りすがった……
+			IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+				PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと、やりかけのまま固い表情でどこかに行ってしまった
+			ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+				PRINTFORMW こちらに気付いて微笑む%CALLNAME:ARG%と挨拶を交わした
+			ELSE
+				PRINTFORMW てきぱきと掃除していく%CALLNAME:ARG%を眺めていた……
+			ENDIF
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%が洗濯物を干しているところに通りすがった……
+			SELECTCASE STRCOUNT(LLIST, "/")
+			CASE IS >= 2
+				PRINTFORMW みんなの分も一緒に洗濯しているようだ
+			CASE 1
+				SPLIT LLIST, "/", LOCALS
+				PRINTFORMW %CALLNAME:MASTER%と%CALLNAME:TOINT(LOCALS)%の分も一緒に洗濯しているようだ
+			CASEELSE
+				PRINTFORMW あなたの分も一緒に洗濯しているようだ
+			ENDSELECT
+			IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+				PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと、やりかけのまま固い表情でどこかにいってしまった
+			ENDIF
+		ENDIF
+	;ぼーっとする（感情乏しい・無関心）
+	CASE 12
+		PRINTFORM ふと
+		IF RAND:3 == 0
+			PRINTFORM 中庭のベンチに座って
+		ELSEIF RAND:2 == 0
+			PRINTFORM 食堂の椅子に座って
+		ELSE
+			PRINTFORM 廊下の窓際にもたれて
+		ENDIF
+		PRINTFORMW %CALLNAME:ARG%がぼーっとしているところに通りすがった……
+	;踊る・ダンスの練習（目立ちたがり）
+	CASE 13
+		IF MARK:ARG:2 >= 2	; 【[既成事実]Lv>=2】
+			PRINTFORMW 廊下を歩いていると、%CALLNAME:ARG%が寄ってきて食堂まで引っ張られた
+		ELSE
+			PRINTFORMW ふと食堂に通りかかると、%CALLNAME:ARG%の姿が見える……
+		ENDIF
+		SELECTCASE STRCOUNT(LLIST, "/")
+		CASE IS >= 3
+			PRINTFORMW 他のみんなも集まっているようだ
+		CASE 2
+			SPLIT LLIST, "/", LOCALS
+			PRINTFORMW %CALLNAME:TOINT(LOCALS:0)%と%CALLNAME:TOINT(LOCALS:1)%もきているようだ
+		CASE 1
+			SPLIT LLIST, "/", LOCALS
+			PRINTFORMW %CALLNAME:TOINT(LOCALS)%もきているようだ
+		ENDSELECT
+		PRINTFORMW %CALLNAME:ARG%は音楽に合わせてダンスの練習を始めた
+		IF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%にウインクしてみせた
+		ENDIF
+	;荷物運びを手伝う（反抗的・素直）
+	CASE 15
+		PRINTFORMW 廊下で教材の入った段ボールを運ぼうとした丁度そのとき、%CALLNAME:ARG%が通りかかった
+		IF TALENT:ARG:13	; 【ARG:[素直]】
+			IF TALENT:ARG:63 || ABL:ARG:0 >= 7	; 【ARG:[献身的] / ARG:[親密]Lv>=7】
+				PRINTFORMW %CALLNAME:ARG%は積まれた荷物を見るとすぐに、自発的に手伝いを申し出てくれた……
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%に声を掛けると、快く手伝ってくれた……
+			ENDIF
+		ELSEIF TALENT:ARG:11	; 【ARG:[反抗的]】
+			IF TALENT:ARG:85	; 【ARG:[恋慕]】
+				PRINTFORMW %CALLNAME:ARG%はそのまま素通りする勢いだったが、%CALLNAME:MASTER%と目が合うと、少し頬を染めながら手伝いを申し出てくれた……
+			ELSEIF ABL:ARG:0 >= 7	; 【ARG:[親密]Lv>=7】
+				PRINTFORMW 素通りする勢いの%CALLNAME:ARG%を慌てて呼び止めてお手伝いをお願いした……
+			ELSE
+				PRINTFORMW しかし%CALLNAME:ARG%はそのまま素通りしていった……
+			ENDIF
+		ENDIF
+	;花壇の世話
+	CASE 16
+		PRINTFORMW 中庭の花壇で%CALLNAME:ARG%が花の手入れをしていた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと、黙ったままどこかに行ってしまった……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW %CALLNAME:MASTER%に気付くと、隣で一緒に見ていくよう誘ってくれた……
+		ELSE
+			IF DAY:2 == 0
+				PRINTFORMW 春の花の世話を丁寧にしている……
+			ELSEIF DAY:2 == 1
+				PRINTFORMW 夏の日差しの中、しっかり水やりをしている……
+			ELSEIF DAY:2 == 2
+				PRINTFORMW コスモスの茂みの中で、秋の花を大切に手入れしている……
+			ELSEIF DAY:2 == 3
+				PRINTFORMW 枯れかけた冬の花壇を、寂しそうに見つめている……
+			ENDIF
+		ENDIF
+	;スマホで動画を漁る（好奇心）
+	CASE 17
+		PRINTFORMW 食堂に来てみると、%CALLNAME:ARG%が何かを熱心にスマホで見つめている
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%が来たことに気付くと、足早にその場を立ち去った……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW こちらに気付いた%CALLNAME:ARG%が面白いものを見つけたと画面を向けてきた……
+		ELSE
+			PRINTFORMW 動画に夢中で%CALLNAME:MASTER%には気付かない……
+		ENDIF
+	;鼻歌を歌いながら通る（楽観的）
+	CASE 18
+		PRINTFORMW 廊下の向こうから、誰かが鼻歌を歌いながら歩いてくる
+		PRINTFORMW 姿こそ見えないが、声の主はきっと%CALLNAME:ARG%だろう……
+	;窓の外を眺めて溜息（悲観的）
+	CASE 19
+		PRINTFORMW 教室の前を通りかかると、%CALLNAME:ARG%が窓の外をじっと眺めているのが見えた……
+		PRINTFORMW 小さく溜息をついたようだ
+		IF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付いて振り返り、悲しげな顔を伏せた
+		ENDIF
+	;料理の当番（従順Lv7以上）
+	CASE 20
+		PRINTFORMW 今日の昼食の当番は%CALLNAME:ARG%らしい
+		IF TALENT:ARG:63 || TALENT:ARG:25	; 【ARG:[献身的] / ARG:[楽観的]】
+			PRINTFORMW %CALLNAME:ARG%はガッツポーズをしてみせると、はりきって台所に向かった……
+		ELSEIF TALENT:ARG:21 || TALENT:ARG:22	; 【ARG:[無関心] / ARG:[感情乏しい]】
+			PRINTFORMW %CALLNAME:ARG%は無表情に頷いて台所に向かった……
+		ELSEIF TALENT:ARG:11 || TALENT:ARG:15 || TALENT:ARG:16 || TALENT:ARG:34	; 【ARG:[反抗的] / ARG:[プライド高い] / ARG:[生意気] / ARG:[抵抗]】
+			PRINTFORMW %CALLNAME:ARG%はしぶしぶながら台所へ向かった……
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%は頷いて台所に向かった……
+		ENDIF
+	;冬の大雪ネタ
+	CASE 21
+		PRINTFORMW 昨夜から降り続いた大雪により、外は一面の銀世界だ
+		IF RAND:7 == 0 && STRCOUNT(LLIST, "/") >= 1
+			PRINTFORMW みんなは暖かい食堂に集まって雑談に花を咲かせている
+		ELSEIF RAND:6 == 0 && STRCOUNT(LLIST, "/") >= 1
+			PRINTFORMW 外が騒がしいので窓から覗いてみると、生徒たちによる雪合戦が繰り広げられていた
+		ELSEIF RAND:5 == 0
+			PRINTFORMW 中庭に出てみると、かまくらが目に付いた
+		ELSEIF RAND:4 == 0
+			PRINTFORMW 食堂を通りかかると、%CALLNAME:ARG%が窓際に立ち、外の雪景色を眺めていた
+		ELSEIF RAND:3 == 0
+			PRINTFORMW 玄関前に積もった雪をかこうとしていると、スコップを持った%CALLNAME:ARG%が声を掛けてきてくれた
+		ELSEIF RAND:2 == 0
+			PRINTFORMW 屋根に積もった雪を落とそうとしていると、%CALLNAME:ARG%が手伝いに来てくれた
+		ELSE
+			PRINTFORMW 中庭に出てみると、かわいい雪だるまが並んで作られていた
+		ENDIF
+	;夜の廊下でトイレ帰り（臆病・気丈）
+	CASE 22
+		PRINTFORMW 夜遅く廊下を歩いていると、ちょうどトイレから出てきた%CALLNAME:ARG%と鉢合わせになった
+		IF TALENT:ARG:10	; 【ARG:[臆病]】
+			PRINTFORM %CALLNAME:ARG%は声にならない悲鳴を上げると自室の方へ
+			PRINTFORMW 走り去ってしまった……
+		ELSEIF TALENT:ARG:12	; 【ARG:[気丈]】
+			PRINTFORMW 暗闘にも全く動じることのない%CALLNAME:ARG%と、しばらく廊下で立ち話をした……
+		ELSE
+			PRINTFORMW %CALLNAME:ARG%はびっくりした様子だったが、すぐに「おつかれさま」と声を掛けてきた……
+		ENDIF
+	;それ以外（鏡の前でポーズ）
+	CASE 23
+		PRINTFORMW 廊下を歩いていると、更衣室の鏡の前で%CALLNAME:ARG%がポーズを取っているのが見えた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW と、%CALLNAME:MASTER%に気付いた%CALLNAME:ARG%が冷たい表情で扉を強く閉めた……
+		ELSEIF TALENT:ARG:35 || TALENT:ARG:24	; 【ARG:[恥じらい] / ARG:[保守的]】
+			PRINTFORMW と、%CALLNAME:MASTER%に気付いた%CALLNAME:ARG%が真っ赤になって慌てて扉を閉めた……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			PRINTFORMW と、%CALLNAME:MASTER%に気付いた%CALLNAME:ARG%がにっこりしてみせた
+		ENDIF
+	;相愛限定：夕飯の準備
+	CASE 30
+		PRINTFORMW 帰宅すると、台所から良い香りが漂ってきた
+		PRINTFORMW %CALLNAME:ARG%が夕飯の準備をしているようだ
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW こちらに気付いたが、何も言わずそのまま料理を続けた……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			IF RAND:2 == 0
+				PRINTFORMW 振り返った%CALLNAME:ARG%がほころんだ表情でこちらを見た……
+				PRINTFORMW 「もうすぐ出来るよ」と言って、また鍋に向かった
+			ELSE
+				PRINTFORMW ちょっと味見してと%CALLNAME:ARG%がこちらに木のスプーンを差し出してきた……
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW 「おかえり」と%CALLNAME:ARG%が声をかけてきた
+			ELSE
+				PRINTFORMW もうすぐ出来るから待ってて、と%CALLNAME:ARG%が言った
+			ENDIF
+		ENDIF
+	;相愛限定：ソファでくつろいでいる
+	CASE 31
+		IF TIME == 1
+			PRINTFORMW 夜、リビングに行くと%CALLNAME:ARG%がソファに深く腰掛けていた
+		ELSE
+			PRINTFORMW 部屋に戻ると%CALLNAME:ARG%がソファでのんびりしていた
+		ENDIF
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW %CALLNAME:ARG%はこちらを一瞥して、また視線を外した……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			SELECTCASE RAND:3
+			CASE 0
+				PRINTFORMW %CALLNAME:ARG%は%CALLNAME:MASTER%に気付くと、隣をぽんぽんと叩いて手招きした……
+			CASE 1
+				PRINTFORMW %CALLNAME:ARG%はこちらに寄りかかって、すっかりくつろいでいる……
+			CASEELSE
+				PRINTFORMW うとうとしていた%CALLNAME:ARG%が目をあけ、ふわりと笑った……
+			ENDSELECT
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%は静かにくつろいでいる……邪魔しないようにそっとしておいた
+			ELSE
+				PRINTFORMW %CALLNAME:ARG%と目が合い、軽く会釈を交わした
+			ENDIF
+		ENDIF
+	;相愛限定：洗濯物を畳んでいる
+	CASE 32
+		PRINTFORMW 部屋に戻ると、%CALLNAME:ARG%が洗濯物を丁寧に畳んでいた
+		IF MARK:ARG:3 == 3	; 【[反発感情]Lv==3】
+			PRINTFORMW こちらに気付くと、黙ったまま手を動かし続けた……
+		ELSEIF TALENT:ARG:85	; 【ARG:[恋慕]】
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%はこちらに気付き、%CALLNAME:MASTER%の分を手に取って差し出してきた……
+			ELSE
+				PRINTFORMW 「一緒に畳む？」と%CALLNAME:ARG%が笑いながら聞いてきた
+			ENDIF
+		ELSE
+			IF RAND:2 == 0
+				PRINTFORMW %CALLNAME:ARG%はてきぱきと洗濯物を片付けていく……
+			ELSE
+				PRINTFORMW 気付いた%CALLNAME:ARG%が「あ、これあなたの」と%CALLNAME:MASTER%の服を渡してきた
+			ENDIF
+		ENDIF
+	ENDSELECT
+	RETURN 1
+ENDIF
+
+@DAILY_LIFE_A
+$REPLAY1
+;Bに他の一人のキャラ登録番号を入れる
+B = 0
+B = RAND:CHARANUM
+
+;Bが0もしくはBがAと同じならばもう一度選びなおす・別れフラグが立っている時はやり直し
+SIF B == 0 || B == A || CFLAG:B:21 == 1	; 【B:[別れ]==1】
+	GOTO REPLAY1
+RETURN 1
+
+;複数の登録されたキャラからランダムに2人呼び出す関数
+;この関数は、あらかじめキャラ登録数が4人以上（F >= 4）であることを条件に使う必要がある
+;でなければこの部分を永遠に繰り返す
+@DAILY_LIFE_B
+$REPLAY2
+;Bに他の一人のキャラ登録番号を入れる
+B = 0
+B = RAND:CHARANUM
+
+;Bが0もしくはBがAと同じならばもう一度選びなおす・別れフラグが立っている時はやり直し
+SIF B == 0 || B == A || CFLAG:B:21 == 1	; 【B:[別れ]==1】
+	GOTO REPLAY2
+$REPLAY3
+C = 0
+C = RAND:CHARANUM
+;Cが0、A、Bと同じならもう一度選びなおす・別れフラグが立っている時はやり直し
+SIF C == 0 || C == A || C == B || CFLAG:C:21 == 1	; 【C:[別れ]==1】
+	GOTO REPLAY3
+RETURN 1
+
+;キャラの中から特定の素質（今回は貞操観念or保守的）を持ったキャラ1人をピックアップする関数
+;Bにピックアップしたキャラの登録番号を入れる
+;別に変数を用意してTALENT指定に使えば、使いまわしも可能
+;不在であればB == 0を返す
+@DAILY_LIFE_C
+B = 0
+C = 0
+D = 0
+
+;C群の変数をクリアする
+REPEAT 100
+	C:COUNT = 0
+REND
+
+;キャラ登録数が2以下であれば0を返す
+IF CHARANUM <= 2
+	RETURN 1
+ELSE
+	REPEAT CHARANUM
+		;COUNT == 0 はMASTERの分
+		IF COUNT == 0
+			CONTINUE
+		ELSE
+			;別れてるキャラはピックアップしない
+			SIF CFLAG:COUNT:21	; 【COUNT:[別れ]】
+				CONTINUE
+			;登録番号がCOUNTのキャラが保守的もしくは貞操観念を持っていた時 
+			IF TALENT:COUNT:24 || TALENT:COUNT:30	; 【COUNT:[保守的] / COUNT:[貞操観念]】
+				;C:Dにキャラ登録番号を保存する
+				C:D = COUNT
+				;Dを1増やす
+				D += 1
+			ENDIF
+		ENDIF
+	REND
+ENDIF
+
+;この時点で変数C群に素質持ちキャラの登録番号が保存されている
+;Dには登録番号を保存した回数が保存されている
+;D == 0であればB == 0を返す・別れフラグが立っている時はやり直し
+$REPLAY4
+IF D == 0
+	RETURN 1
+;その他の時BにC群からランダムで選んだキャラ登録番号を入れる
+ELSE
+	R = RAND:D
+	B = C:R
+ENDIF
+
+;A == B で　D == 1の時、B == 0 を返す
+IF A == B && D == 1
+	B = 0
+	RETURN 1
+;D >= 2でA == B の時、やり直す
+ELSEIF A == B
+	GOTO REPLAY4
+ENDIF
+RETURN 1
+
+;キャラの中から特定の素質（Eに保存されている）を持ったキャラ1人をピックアップする関数
+;E はCALLされた場所で定義されている
+;Bにピックアップしたキャラの登録番号を入れる
+;不在であればB == 0を返す
+@DAILY_LIFE_D
+B = 0
+C = 0
+D = 0
+
+;C群の変数をクリアする
+REPEAT 100
+	C:COUNT = 0
+REND
+
+;キャラ登録数が2以下であれば0を返す
+IF CHARANUM <= 2
+	RETURN 1
+ELSE
+	REPEAT CHARANUM
+		;COUNT == 0 はMASTERの分
+		IF COUNT == 0
+			CONTINUE
+		ELSE
+			;別れてるキャラはピックアップしない
+			SIF CFLAG:COUNT:21	; 【COUNT:[別れ]】
+				CONTINUE
+			;登録番号がCOUNTのキャラが習得遅いを持っていた時 
+			IF TALENT:COUNT:E
+				;C:Dにキャラ登録番号を保存する
+				C:D = COUNT
+				;Dを1増やす
+				D += 1
+			ENDIF
+		ENDIF
+	REND
+ENDIF
+
+;この時点で変数C群に素質持ちキャラの登録番号が保存されている
+;Dには登録番号を保存した回数が保存されている
+;D == 0であればB == 0を返す・別れフラグが立っている時はやり直し
+$REPLAY5
+IF D == 0
+	RETURN 1
+;その他の時BにC群からランダムで選んだキャラ登録番号を入れる
+ELSE
+	R = RAND:D
+	B = C:R
+ENDIF
+
+;A == B で　D == 1の時、B == 0 を返す
+IF A == B && D == 1
+	B = 0
+	RETURN 1
+;D >= 2でA == B の時、やり直す
+ELSEIF A == B
+	GOTO REPLAY5
+ENDIF
+RETURN 1
+
+;キャラの中から特定の素質（今回は臆病or大人しいor幼稚）を持ったキャラ1人をピックアップする関数
+;Bにピックアップしたキャラの登録番号を入れる
+;別に変数を用意してTALENT指定に使えば、使いまわしも可能
+;不在であればB == 0を返す
+@DAILY_LIFE_E
+B = 0
+C = 0
+D = 0
+
+;C群の変数をクリアする
+REPEAT 100
+	C:COUNT = 0
+REND
+
+;キャラ登録数が2以下であれば0を返す
+IF CHARANUM <= 2
+	RETURN 1
+ELSE
+	REPEAT CHARANUM
+		;COUNT == 0 はMASTERの分
+		IF COUNT == 0
+			CONTINUE
+		ELSE
+			;別れてるキャラはピックアップしない
+			SIF CFLAG:COUNT:21	; 【COUNT:[別れ]】
+				CONTINUE
+			;登録番号がCOUNTのキャラが臆病もしくは大人しいもしくは幼稚を持っていた時 
+			IF TALENT:COUNT:10 || TALENT:COUNT:14 || TALENT:COUNT:132	; 【COUNT:[臆病] / COUNT:[大人しい] / COUNT:[幼稚]】
+				;C:Dにキャラ登録番号を保存する
+				C:D = COUNT
+				;Dを1増やす
+				D += 1
+			ENDIF
+		ENDIF
+	REND
+ENDIF
+
+;この時点で変数C群に素質持ちキャラの登録番号が保存されている
+;Dには登録番号を保存した回数が保存されている
+;D == 0であればB == 0を返す・別れフラグが立っている時はやり直し
+$REPLAY6
+IF D == 0
+	RETURN 1
+;その他の時BにC群からランダムで選んだキャラ登録番号を入れる
+ELSE
+	R = RAND:D
+	B = C:R
+ENDIF
+
+;A == B で　D == 1の時、B == 0 を返す
+IF A == B && D == 1
+	B = 0
+	RETURN 1
+;D >= 2でA == B の時、やり直す
+ELSEIF A == B
+	GOTO REPLAY6
+ENDIF
+RETURN 1

@@ -9,35 +9,36 @@ CALL COM_ABLE_COMMON, SELECTCOM
 SIF RESULT == 0
 	RETURN 0
 ;プレイヤーのみ（アシスタントプレイ中は使用不可）
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
 	RETURN 0
 ;ウフフ中だと無理
-SIF TFLAG:44 == 1
+SIF TFLAG:44 == 1	; 【[ウフフ中]==1】
 	RETURN 0
 ;CFLAGがたてられてないと無理
 SIF !GETBIT(CFLAG:TARGET:独自コマンド使用判定, 9)
 	RETURN 0
 ;恋人のみ（純愛独自コマンドは恋人必須）
-SIF TALENT:153 == 0
+SIF TALENT:153 == 0	; 【[恋人]なし】
 	RETURN 0
-;独自コマンドは1回の調教につきいずれか1つだけ
-SIF TFLAG:独自コマンド使用済
+;独自コマンドの1調教あたり使用回数上限チェック（カード収集・レア度で緩和）
+CALL GET_MAX_DOKUJI_COM_USES, TARGET
+SIF TFLAG:独自コマンド使用済 >= RESULT
 	RETURN 0
 RESULT = 1
 TRYCALLFORM COM_ABLE414_{NO:TARGET}
 SIF RESULT == 0
 	RETURN 0
 ;プレイヤーのみ（アシスタントプレイ中は使用不可）
-SIF ASSIPLAY
+SIF ASSIPLAY	; 【調教者:[助手]】
 	RETURN 0
 ;ファーストキス前はコマンド使用不可（キスしないため）
-SIF TALENT:151
+SIF TALENT:151	; 【[キス未経験]】
 	RETURN 0
 RETURN 1
 
 @COM414
-;この調教で独自コマンドを使用済みにする（1調教1回限り）
-TFLAG:独自コマンド使用済 = 1
+;この調教での独自コマンド使用回数を加算
+TFLAG:独自コマンド使用済 += 1
 PRINTSL CSTR:89
 STR:0 = %CSTR:89%
 ;実行判定を使用する場合はこの関数で、真で戻ってくれば判定失敗
@@ -52,22 +53,24 @@ CATCH
 ENDCATCH
 ;地の文を呼ぶ
 CALL TRAIN_MESSAGE_B
-;デフォルト効果（独自純愛 COM414：ディープキス）
-;快M最大。キス経験+2。
+;デフォルト効果（独自純愛 COM414：親愛・特別な時間）
+;非ウフフ時のキャラ固有コマンドのため快M等の性感判定はなし
 ;キャラ個別で上書きする場合は COM414_<NO> で SOURCE/LOSEBASE を再設定
 LOSEBASE:0 += 130	;体力
 LOSEBASE:1 += 320	;気力
-SOURCE:3 = 3500	;情愛
-SOURCE:9 = 3500	;接触
-SOURCE:18 = 3000	;歓楽
-SOURCE:21 = 2000	;受動
-SOURCE:24 = 5500	;快Ｍ
-;キス経験を加算（ディープキス）
-PRINTFORML %EXPNAME:96%＋２
-EXP:96 += 2
-EXP:PLAYER:96 += 2
+SOURCE:3 = 5500	;情愛
+SOURCE:9 = 4000	;接触
+SOURCE:18 = 4500	;歓楽
+SOURCE:21 = 2500	;受動
+SOURCE:24 = 0	;快Ｍ（非ウフフ固有コマンドのため性感判定なし）
+;キス経験を加算
+PRINTFORML %EXPNAME:96%＋１
+EXP:96 += 1
+EXP:PLAYER:96 += 1
 ;キャラ固有処理（ソース上書き等）
 TRYCALLFORM COM414_{NO:TARGET}
+;カード収集・高レア所持による固有コマンド威力・ムードボーナス
+CALL APPLY_CARD_DOKUJI_BONUS, 1
 RETURN 1
 
 ;コマンド前の地の文
