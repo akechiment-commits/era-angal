@@ -48,6 +48,7 @@ PRINTFORML [4] プラチナガチャ（1枚）　[14] 10連（10枚）
 PRINTFORML [5] ダイヤガチャ（ダイヤ5個）   （MR 6\%　R11\% HR28\% SR40\% UR15\%）　[15] 10連（50個）
 PRINTL
 PRINTFORML [6] チケット購入
+PRINTFORML [7] カードセレクトチケット使用（所持{ITEM:96}枚）
 PRINTL
 PRINTFORML [0] 戻る
 INPUT
@@ -89,6 +90,8 @@ CASE 5
 	ENDIF
 CASE 6
 	CALL GACHA_TICKET_SHOP
+CASE 7
+	CALL CARD_SELECT_TICKET_USE
 CASE 11
 	IF FLAG:15001 < 10
 		PRINTFORMW ブロンズチケットが10枚必要です（現在{FLAG:15001}枚）。
@@ -565,7 +568,36 @@ IF LOCAL:0 > 0
 	;再計算処理ではデッキ戦力だけ最終2倍になる。
 	LOCAL:24 *= 2
 	PRINTFORML %CALLNAME:TARGET%のカード補正　表現力+{LOCAL:21}　運動力+{LOCAL:22}　学力+{LOCAL:23}　デッキ戦力+{LOCAL:24}！
-	CFLAG:TARGET:307 += 1
+	;キャラ別の所持カード総枚数(CFLAG:307)・最高所持レア度(CFLAG:309)・所持種数(CFLAG:308)を更新
+	CFLAG:TARGET:307 += 1	; 【TARGET:[所持カード枚数]+1】
+	SIF LOCAL:1 > CFLAG:TARGET:309	; 【引いたカードのレア度 > TARGET:[最高所持カードレア度]】
+		CFLAG:TARGET:309 = LOCAL:1	; 【TARGET:[最高所持カードレア度]更新】
+	IF LOCAL:6 == 0	; 【新規カード獲得時（未所持カード）】
+		CFLAG:TARGET:308 += 1	; 【TARGET:[所持カード種数]+1】
+		CALL CARD_SYNC_CHARA_DOKUJI_COM, TARGET
+		;引いたカードがSR以上(レア度4以上)の場合、SR以上所持種数(1/2/3/5/7種)に応じた固有コマンド解放枠チェック
+		IF LOCAL:1 >= 4	; 【レア度>=SR(4)】
+			CALL GET_CHARA_SR_PLUS_CARD_COUNT, TARGET
+			LOCAL:15 = RESULT
+			LOCAL:14 = -1
+			SIF LOCAL:15 == 1
+				LOCAL:14 = 0
+			SIF LOCAL:15 == 2
+				LOCAL:14 = 1
+			SIF LOCAL:15 == 3
+				LOCAL:14 = 2
+			SIF LOCAL:15 == 5
+				LOCAL:14 = 3
+			SIF LOCAL:15 == 7
+				LOCAL:14 = 4
+			IF LOCAL:14 >= 0
+				SETCOLOR 255, 140, 210
+				PRINTFORML ★ 固有コマンド解放！（%CALLNAME:TARGET%のSR以上カード {LOCAL:15}種達成！）
+				PRINTFORML 　専用コマンド【%CSTR:TARGET:(85 + LOCAL:14)%】（純愛）＆【%CSTR:TARGET:(80 + LOCAL:14)%】（ウフフ）が使用可能になりました！
+				RESETCOLOR
+			ENDIF
+		ENDIF
+	ENDIF
 ENDIF
 SIF LOCAL:12 == 1
 	PRINTL ★ 新キャラクター登場！パートナーに選べるようになりました。
@@ -610,7 +642,13 @@ REPEAT CHARANUM
 	CFLAG:COUNT:304 = 0
 	CFLAG:COUNT:305 = 0
 	CFLAG:COUNT:306 = 0
+	CFLAG:COUNT:307 = 0
+	CFLAG:COUNT:308 = 0
+	CFLAG:COUNT:309 = 0
 REND
+LOCAL:76 = 0
+LOCAL:77 = 0
+LOCAL:78 = 0
 ;全カード(1-1884)を走査
 FOR LOCAL:95, 1, 1885
 	A = 3000 + LOCAL:95
@@ -621,9 +659,17 @@ FOR LOCAL:95, 1, 1885
 		LOCAL:91 = RESULT:2	;レア度
 		LOCAL:92 = RESULT:4	;基本ボーナス値
 		LOCAL:94 = RESULT:3	;主補正タイプ（0=表現/1=運動/2=学力/3=デッキ戦力）
+		LOCAL:77 += LOCAL:96
+		LOCAL:78 += 1
+		SIF LOCAL:91 > LOCAL:76
+			LOCAL:76 = LOCAL:91
 		IF LOCAL:90 > 0 && LOCAL:92 > 0
 			LOCAL:89 = GETCHARA(LOCAL:90)
 			IF LOCAL:89 >= 0
+				CFLAG:(LOCAL:89):307 += LOCAL:96
+				CFLAG:(LOCAL:89):308 += 1
+				SIF LOCAL:91 > CFLAG:(LOCAL:89):309
+					CFLAG:(LOCAL:89):309 = LOCAL:91
 				;K枚所持時の合計ボーナス = base + (K-1)*base/rate + (K>=12 ? base*3 : 0)
 				SELECTCASE LOCAL:91
 				CASE 6	;MR rate=2
@@ -682,9 +728,16 @@ FOR LOCAL:95, 1, 1885
 	ENDIF
 NEXT
 ;デッキ戦力はカード収集の効果を実感しやすくするため、最終値を2倍にする。
-REPEAT CHARANUM
-	CFLAG:COUNT:306 *= 2
-REND
+FOR LOCAL:75, 0, CHARANUM
+	CFLAG:(LOCAL:75):306 *= 2
+	;あんず(NO:72)は個別カード対象外のため、総所持カード種数と好感度に応じて解放・補正を算出
+	IF NO:(LOCAL:75) == 72
+		CFLAG:(LOCAL:75):307 = LOCAL:77 / 10
+		CFLAG:(LOCAL:75):308 = LOCAL:78 / 10 + MAX(CFLAG:(LOCAL:75):2, 0) / 250
+		CFLAG:(LOCAL:75):309 = LOCAL:76
+	ENDIF
+	CALL CARD_SYNC_CHARA_DOKUJI_COM, LOCAL:75
+NEXT
 RETURN
 
 ;--------------------------------------------------
@@ -808,6 +861,9 @@ ELSEIF LOCAL:0 > FLAG:15081
 	FLAG:15083 += 30 * LOCAL:1
 	FLAG:15084 += 15 * LOCAL:1
 	FLAG:15085 += 5 * LOCAL:1
+	FLAG:15081 = LOCAL:0
+ELSEIF LOCAL:0 < FLAG:15081
+	;旧セーブの周回後も在庫を維持し、次の月から補充を再開する。
 	FLAG:15081 = LOCAL:0
 ENDIF
 RETURN 0

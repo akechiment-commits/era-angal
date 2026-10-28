@@ -16,8 +16,87 @@ TFLAG:29 = C + V + A + B + M
 @MASTER_FLAG_CHECK
 SIF TARGET < 0
 	RETURN 0
-;気絶中はターン経過しても好感度は上昇しない
+;気絶中はターン経過しても好感度は上昇しない（非親密時は調教中の行為を累積し、調教終了時に一括低下）
 IF TFLAG:899 || BASE:TARGET:0 <= 0	; 【[気絶継続中] / TARGET:[体力]<=0】
+	; 非常に親密かどうかの判定
+	; 恋慕(85), 妄信(86), 親愛(88), 相愛(89), 恋人(153), 服従(180)のいずれかを所持、
+	; または [親密]Lv10以上 かつ [好感度]3000以上
+	LOCAL:80 = 0
+	SIF TALENT:TARGET:85 || TALENT:TARGET:86 || TALENT:TARGET:88 || TALENT:TARGET:89 || TALENT:TARGET:153 || TALENT:TARGET:180
+		LOCAL:80 = 1
+	SIF ABL:TARGET:0 >= 10 && CFLAG:TARGET:2 >= 3000
+		LOCAL:80 = 1
+
+	; 非常に親密な場合は好感度低下なし（既存仕様通り0変動）
+	IF LOCAL:80 == 1
+		R = 0
+		TFLAG:30 = 0
+		RETURN 0
+	ENDIF
+
+	; --- 非常に親密でない場合：意識のない相手への行為ペナルティを調教終了時用に累積 ---
+	LOCAL:81 = 0
+
+	; 「何もしない(SELECTCOM == 7)」はペナルティなし
+	IF SELECTCOM != 7
+		; 1. 基礎コマンドペナルティ
+		; 性交・道具・苦痛・排泄・羞恥・ハード系コマンドは重いペナルティ
+		IF IS_V_INSERT_COM(SELECTCOM) || IS_A_INSERT_COM(SELECTCOM) || (SELECTCOM >= 60 && SELECTCOM <= 79) || (SELECTCOM >= 40 && SELECTCOM <= 59) || (SELECTCOM >= 80 && SELECTCOM <= 89) || (SELECTCOM >= 140 && SELECTCOM <= 159) || (SELECTCOM >= 280 && SELECTCOM <= 284)
+			LOCAL:81 = 50 + RAND:21
+		ELSE
+			LOCAL:81 = 20 + RAND:11
+		ENDIF
+
+		; 素質補正
+		SIF TALENT:TARGET:30	; 貞操観念
+			TIMES LOCAL:81 , 1.50
+		SIF TALENT:TARGET:11	; 反抗的
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:15	; プライド高い
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:32	; 抑圧
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:34	; 抵抗
+			TIMES LOCAL:81 , 1.20
+		SIF TALENT:TARGET:31	; 貞操無頓着
+			TIMES LOCAL:81 , 0.60
+		SIF TALENT:TARGET:22	; 感情乏しい
+			TIMES LOCAL:81 , 0.80
+		SIF TALENT:TARGET:76	; 淫乱
+			TIMES LOCAL:81 , 0.50
+
+		; 2. 処女喪失ペナルティ（大幅低下）
+		IF TFLAG:3 == 1
+			LOCAL:82 = 700 + RAND:201
+			SIF TALENT:TARGET:30	; 貞操観念
+				LOCAL:82 += 400
+			SIF TALENT:TARGET:31	; 貞操無頓着
+				LOCAL:82 = LOCAL:82 * 6 / 10
+			LOCAL:81 += LOCAL:82
+			TFLAG:896 = 1	; 気絶調教中処女喪失を記録
+		ENDIF
+
+		; 3. 膣内射精ペナルティ（追加低下）
+		IF TFLAG:302 > 0 && (TFLAG:703 == 1 || TFLAG:703 == 9 || (TFLAG:703 == 12 && TFLAG:(40 + ASSIPLAY) == 1))
+			LOCAL:83 = 350 + RAND:151
+			SIF TALENT:TARGET:30	; 貞操観念
+				LOCAL:83 += 200
+			SIF TALENT:TARGET:31	; 貞操無頓着
+				LOCAL:83 = LOCAL:83 * 7 / 10
+			LOCAL:81 += LOCAL:83
+			TFLAG:897 += 1	; 気絶調教中膣内射精回数を記録
+		; アナル射精ペナルティ
+		ELSEIF TFLAG:302 > 0 && (TFLAG:703 == 2 || TFLAG:703 == 10 || (TFLAG:703 == 12 && TFLAG:(40 + ASSIPLAY) == 2))
+			LOCAL:83 = 250 + RAND:101
+			SIF TALENT:TARGET:30	; 貞操観念
+				LOCAL:83 += 150
+			LOCAL:81 += LOCAL:83
+		ENDIF
+
+		; 調教中のターン内では表示・減算せず、TFLAG:895へ累積して調教終了時に一括減算
+		TFLAG:895 += LOCAL:81
+	ENDIF
+
 	R = 0
 	TFLAG:30 = 0
 	RETURN 0
@@ -593,14 +672,15 @@ IF (MARK:4 == 0 && (EXP:50 - CFLAG:22) <= 0)	; 【[異常経験]あり / [初期異常経験]
 			PRINTFORMW %NAME:TARGET%は【サド】が昇華した
 			TALENT:83 = 2
 		ENDIF
-		IF TALENT:13 == 0	; 【[素直]なし】
-			PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
-			TFLAG:13 = 47
-			CALL SELF_KOJO
-			PRINTFORMW %NAME:TARGET%は【素直】を得た
-			TALENT:13 = 1
-		ENDIF
+		; 素直の一律自動取得は停止
+		;IF TALENT:13 == 0	; 【[素直]なし】
+		;	PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
+		;	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
+		;	TFLAG:13 = 47
+		;	CALL SELF_KOJO
+		;	PRINTFORMW %NAME:TARGET%は【素直】を得た
+		;	TALENT:13 = 1
+		;ENDIF
 	ENDIF
 ENDIF
 
@@ -741,14 +821,15 @@ IF ABL:0 >= 15 && ABL:6 >= 15 && TALENT:153 && TALENT:85 && CFLAG:2 >= 10000 && 
 		PRINTFORMW %NAME:TARGET%は【サド】が昇華した
 		TALENT:83 = 2
 	ENDIF
-	IF TALENT:13 == 0	; 【[素直]なし】
-		PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
-		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
-		TFLAG:13 = 47
-		CALL SELF_KOJO
-		PRINTFORMW %NAME:TARGET%は【素直】を得た
-		TALENT:13 = 1
-	ENDIF
+	; 素直の一律自動取得は停止
+	;IF TALENT:13 == 0	; 【[素直]なし】
+	;	PRINTFORMW %CALLNAME:TARGET%のこちらを見る目がおかしい…
+	;	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%の去り際に唇を重ねてきた…
+	;	TFLAG:13 = 47
+	;	CALL SELF_KOJO
+	;	PRINTFORMW %NAME:TARGET%は【素直】を得た
+	;	TALENT:13 = 1
+	;ENDIF
 ENDIF
 
 ;Ｍ感覚関係

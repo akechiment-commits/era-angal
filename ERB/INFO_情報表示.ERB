@@ -315,6 +315,16 @@ ENDIF
 SIF MAXBASE:MASTER:6 == 0
 	MAXBASE:MASTER:6 = 10000
 
+;射精ゲージ負数ガード
+SIF BASE:MASTER:2 < 0
+	BASE:MASTER:2 = 0
+SIF BASE:TARGET:2 < 0
+	BASE:TARGET:2 = 0
+IF ASSI >= 0
+	SIF BASE:ASSI:2 < 0
+		BASE:ASSI:2 = 0
+ENDIF
+
 IF TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ]】
 	PRINT 射精 
 	CALL PRINT_BAR, BASE:MASTER:2, MAXBASE:MASTER:2, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("しろ"), RESULT:1
@@ -1376,6 +1386,10 @@ ENDSELECT
 SIF ARG <= 0 || ARG >= CHARANUM
 	RETURN 0
 
+;射精ゲージ負数ガード
+SIF BASE:ARG:2 < 0
+	BASE:ARG:2 = 0
+
 LOCAL = NO:ARG
 
 ; カジノ身代わり回数同期（CFLAG:786と同期）
@@ -1447,6 +1461,41 @@ IF CFLAG:ARG:1221 > 0 && CFLAG:ARG:1220 == 0	; 【ARG:[主人公からの総射精量(mL)]>
 		CFLAG:ARG:1228 = CFLAG:ARG:1220
 		CFLAG:ARG:1229 = CFLAG:ARG:1221
 	ENDIF
+ENDIF
+; 射精強度の誤加算(TFLAG:714)により回数が射精量(mL)を異常に上回っている既存セーブの自動修復
+IF CFLAG:ARG:1220 > CFLAG:ARG:1221 && CFLAG:ARG:1221 > 0
+	; 1回の最高射精量(CFLAG:1240)または平均20mLから実射精回数を適正値に再計算
+	LOCAL:2 = MAX(20, CFLAG:ARG:1240)
+	; 体位別合計回数があればそれを優先
+	LOCAL:3 = CFLAG:ARG:1250 + CFLAG:ARG:1251 + CFLAG:ARG:1252 + CFLAG:ARG:1253 + CFLAG:ARG:1254
+	IF LOCAL:3 > 0 && LOCAL:3 <= CFLAG:ARG:1221
+		CFLAG:ARG:1220 = LOCAL:3
+	ELSE
+		CFLAG:ARG:1220 = LIMIT(CFLAG:ARG:1221 / LOCAL:2, 1, CFLAG:ARG:1221)
+	ENDIF
+	; 膣内射精回数なども総回数に合わせて比率調整
+	IF CFLAG:ARG:1222 > CFLAG:ARG:1220
+		IF CFLAG:ARG:1223 > 0 && CFLAG:ARG:1221 > 0
+			CFLAG:ARG:1222 = LIMIT(CFLAG:ARG:1220 * CFLAG:ARG:1223 / CFLAG:ARG:1221, 1, CFLAG:ARG:1220)
+		ELSE
+			CFLAG:ARG:1222 = CFLAG:ARG:1220
+		ENDIF
+	ENDIF
+	SIF CFLAG:ARG:1224 > CFLAG:ARG:1220
+		CFLAG:ARG:1224 = CFLAG:ARG:1220 - CFLAG:ARG:1222
+	SIF CFLAG:ARG:1226 > CFLAG:ARG:1220
+		CFLAG:ARG:1226 = 0
+	SIF CFLAG:ARG:1228 > CFLAG:ARG:1220
+		CFLAG:ARG:1228 = 0
+	SIF CFLAG:ARG:1230 > CFLAG:ARG:1220
+		CFLAG:ARG:1230 = CFLAG:ARG:1220
+ENDIF
+
+; 処女なのにＶ経験がある不整合の修復（過去のCOM84バグ等による不整合救済）
+IF TALENT:ARG:0 == 1 && EXP:ARG:0 > 0
+	TALENT:ARG:0 = 0
+	SIF CFLAG:ARG:1241 == 0	; 【ARG:[処女喪失記念日]==0】
+		CFLAG:ARG:1241 = GET_CURRENT_DATE_INT()
 ENDIF
 
 ; 体位別の未初期化補正（V経験があるのに体位が全0なら推定分配、身代わり経験者は除外）
@@ -1563,7 +1612,112 @@ IF CFLAG:ARG:104 == 99 && CFLAG:ARG:111 >= 0	; 【ARG:[種提供者]==99 / ARG:[父親]
 	CFLAG:ARG:111 = -1
 ENDIF
 
+; 処女喪失記念日があるのに相手が未記録の場合、以前のプレイ（主人公との行為）として補完
+IF CFLAG:ARG:1241 > 0 && CFLAG:ARG:1246 == 0
+	CFLAG:ARG:1246 = 1
+	CSTR:ARG:1 = %CALLNAME:MASTER%
+ENDIF
+; ファーストキス記念日があるのに相手が未記録の場合、以前のプレイ（主人公とのキス）として補完
+IF CFLAG:ARG:1242 > 0 && CFLAG:ARG:1247 == 0
+	CFLAG:ARG:1247 = 1
+	CSTR:ARG:2 = %CALLNAME:MASTER%
+ENDIF
+
 RETURN 0
+
+;==================================================
+; ファーストキス記録設定関数
+; ARG: 対象キャラ番号
+; ARG:1: 相手キャラ番号（-1ならモブ/不明）
+;==================================================
+@SET_FIRST_KISS_RECORD, ARG, ARG:1
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+
+; 記念日が未記録なら今日の日付を記録
+SIF CFLAG:ARG:1242 == 0
+	CFLAG:ARG:1242 = GET_CURRENT_DATE_INT()
+
+; 相手が未記録なら記録
+IF CFLAG:ARG:1247 == 0
+	IF ARG:1 >= 0 && ARG:1 < CHARANUM
+		CFLAG:ARG:1247 = NO:(ARG:1) + 1
+		CSTR:ARG:2 = %CALLNAME:(ARG:1)%
+	ELSE
+		CFLAG:ARG:1247 = -1
+		CSTR:ARG:2 = 見知らぬ相手
+	ENDIF
+ENDIF
+RETURN 1
+
+;==================================================
+; 処女喪失記録設定関数
+; ARG: 対象キャラ番号
+; ARG:1: 相手キャラ番号（-1ならモブ/不明）
+;==================================================
+@SET_VIRGINITY_RECORD, ARG, ARG:1
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+
+; 記念日が未記録なら今日の日付を記録
+SIF CFLAG:ARG:1241 == 0
+	CFLAG:ARG:1241 = GET_CURRENT_DATE_INT()
+
+; 相手が未記録なら記録
+IF CFLAG:ARG:1246 == 0
+	IF ARG:1 >= 0 && ARG:1 < CHARANUM
+		CFLAG:ARG:1246 = NO:(ARG:1) + 1
+		CSTR:ARG:1 = %CALLNAME:(ARG:1)%
+	ELSE
+		CFLAG:ARG:1246 = -1
+		CSTR:ARG:1 = 見知らぬ相手
+	ENDIF
+ENDIF
+RETURN 1
+
+;==================================================
+; 喪失相手名取得関数
+; ARG: 対象キャラ番号
+; ARGS: "VIRGIN" または "KISS"
+;==================================================
+@GET_FIRST_PARTNER_NAME(ARG, ARGS)
+#FUNCTIONS
+#DIM PARTNER_CFLAG
+#DIMS PARTNER_NAME
+
+IF ARGS == "VIRGIN"
+	PARTNER_CFLAG = CFLAG:ARG:1246
+	PARTNER_NAME = %CSTR:ARG:1%
+ELSEIF ARGS == "KISS"
+	PARTNER_CFLAG = CFLAG:ARG:1247
+	PARTNER_NAME = %CSTR:ARG:2%
+ELSE
+	RETURNF ""
+ENDIF
+
+IF PARTNER_NAME != ""
+	RETURNF PARTNER_NAME
+ELSEIF PARTNER_CFLAG == 1
+	RETURNF CALLNAME:MASTER
+ELSEIF PARTNER_CFLAG > 1
+	LOCAL:90 = PARTNER_CFLAG - 1
+	LOCAL:91 = GETCHARA(LOCAL:90)
+	IF LOCAL:91 >= 0
+		RETURNF CALLNAME:(LOCAL:91)
+	ELSE
+		RETURNF CSVNAME(LOCAL:90, 0)
+	ENDIF
+ELSEIF PARTNER_CFLAG == -1
+	RETURNF "見知らぬ相手"
+ELSE
+	; 未記録かつ記念日がある場合は以前のプレイ（主人公）として補完
+	IF ARGS == "VIRGIN" && CFLAG:ARG:1241 > 0
+		RETURNF CALLNAME:MASTER
+	ELSEIF ARGS == "KISS" && CFLAG:ARG:1242 > 0
+		RETURNF CALLNAME:MASTER
+	ENDIF
+	RETURNF ""
+ENDIF
 
 ;==================================================
 ; キャラクター詳細統計・個人ログ（ステータス2ページ目）
@@ -1660,18 +1814,38 @@ LOCAL:11 = (CFLAG:ARG:1242 > 0 || TALENT:ARG:151 == 0) || (CFLAG:ARG:1241 > 0 ||
 
 IF LOCAL:11
 	SETCOLOR 255, 230, 120
-	PRINTL □ 二人の大切な記念日
+	PRINTL □ 大切な記念日の記録
 	RESETCOLOR
 	IF CFLAG:ARG:1242 > 0	; 【ARG:[初キス記念日]>0】
-		PRINTFORML 　・ファーストキス記念日: %FORMAT_DATE_STR(CFLAG:ARG:1242)%
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "KISS")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・ファーストキス記念日: %FORMAT_DATE_STR(CFLAG:ARG:1242)% （お相手：%LOCALS:10%）
+		ELSE
+			PRINTFORML 　・ファーストキス記念日: %FORMAT_DATE_STR(CFLAG:ARG:1242)%
+		ENDIF
 	ELSEIF TALENT:ARG:151 == 0	; 【ARG:[キス未経験]なし】
-		PRINTL 　・ファーストキス記念日: 達成済み（記録開始前）
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "KISS")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・ファーストキス記念日: 達成済み（記録開始前 / お相手：%LOCALS:10%）
+		ELSE
+			PRINTL 　・ファーストキス記念日: 達成済み（記録開始前）
+		ENDIF
 	ENDIF
 
 	IF CFLAG:ARG:1241 > 0	; 【ARG:[処女喪失記念日]>0】
-		PRINTFORML 　・初めて結ばれた日　　: %FORMAT_DATE_STR(CFLAG:ARG:1241)%
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "VIRGIN")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・初めて結ばれた日　　: %FORMAT_DATE_STR(CFLAG:ARG:1241)% （お相手：%LOCALS:10%）
+		ELSE
+			PRINTFORML 　・初めて結ばれた日　　: %FORMAT_DATE_STR(CFLAG:ARG:1241)%
+		ENDIF
 	ELSEIF TALENT:ARG:0 == 0	; 【ARG:[処女]なし】
-		PRINTL 　・初めて結ばれた日　　: 達成済み（記録開始前）
+		LOCALS:10 = %GET_FIRST_PARTNER_NAME(ARG, "VIRGIN")%
+		IF LOCALS:10 != ""
+			PRINTFORML 　・初めて結ばれた日　　: 達成済み（記録開始前 / お相手：%LOCALS:10%）
+		ELSE
+			PRINTL 　・初めて結ばれた日　　: 達成済み（記録開始前）
+		ENDIF
 	ENDIF
 
 	IF CFLAG:ARG:1243 > 0	; 【ARG:[恋人記念日(日目)]>0】
@@ -1852,8 +2026,37 @@ IF LOCAL:15
 		PRINTFORML 　・恐怖・反発を覚えた回数: {CFLAG:ARG:1236, 6} 回
 ENDIF
 
+;--- 【レズ交友記録（誰と何回）】 ---
+IF CFLAG:ARG:3099 > 0
+	SETCOLOR 255, 180, 220
+	PRINTL ■ レズ交友記録（女同士の交わり）
+	RESETCOLOR
+	PRINTFORML 　・総レズ行為回数: {CFLAG:ARG:3099, 6} 回
+	LOCAL:17 = 0
+	FOR LOCAL:18, 0, 75
+		IF CFLAG:ARG:(3000 + LOCAL:18) > 0
+			IF LOCAL:18 == 0
+				PRINTFORM 　　× %CALLNAME:MASTER, 14, LEFT%: {CFLAG:ARG:3000, 5} 回
+			ELSE
+				LOCAL:19 = GETCHARA(LOCAL:18)
+				IF LOCAL:19 >= 0
+					PRINTFORM 　　× %CALLNAME:(LOCAL:19), 14, LEFT%: {CFLAG:ARG:(3000 + LOCAL:18), 5} 回
+				ELSE
+					PRINTFORM 　　× %CSVNAME(LOCAL:18, 0), 14, LEFT%: {CFLAG:ARG:(3000 + LOCAL:18), 5} 回
+				ENDIF
+			ENDIF
+			LOCAL:17 += 1
+			SIF LOCAL:17 % 2 == 0
+				PRINTL 
+		ENDIF
+	NEXT
+	SIF LOCAL:17 % 2 != 0
+		PRINTL 
+	PRINTL 
+ENDIF
+
 ; まだ何も記録がない場合のフォールバック表示
-IF !LOCAL:10 && !LOCAL:11 && !LOCAL:12 && !LOCAL:13 && !LOCAL:6 && !LOCAL:15 && !LOCAL:16
+IF !LOCAL:10 && !LOCAL:11 && !LOCAL:12 && !LOCAL:13 && !LOCAL:6 && !LOCAL:15 && !LOCAL:16 && CFLAG:ARG:3099 == 0
 	PRINTL
 	PRINTFORML 　（%CALLNAME:ARG%との記録はまだ刻まれていません）
 	PRINTFORML 　（学園生活や調教を共に過ごすことで、様々な個人データがここに記録されていきます）

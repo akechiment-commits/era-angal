@@ -17,12 +17,27 @@ ENDIF
 IF TARGET >= 1 && TARGET < CHARANUM
 	CFLAG:TARGET:1213 += 1
 ENDIF
+;-------------------------------------------------
+; カード収集状況とキャラ固有コマンド(COM280-284/410-414)解放フラグ(CFLAG:69)を同期
+;-------------------------------------------------
+CALL DOKUJI_COM_MIGRATE
+;-------------------------------------------------
+; おあずけ事後暴走判定用：調教開始時点の性交経験合計（Ｖ経験[EXP:0]＋Ａ経験[EXP:1]）を記録
+; ・CFLAG:1285 [調教開始時性交経験合計] に保存し、調教終了時(@SELF_OAZUKE_RAMPAGE_CHECK)に比較する
+;-------------------------------------------------
+FOR LOCAL, 0, CHARANUM
+	CFLAG:LOCAL:1285 = EXP:LOCAL:0 + EXP:LOCAL:1	; 【[調教開始時性交経験合計] = [Ｖ経験] + [Ａ経験]】
+NEXT
 ;前回の調教終了時に立てた、強制終了・追加パートナーターン抑止フラグを戻す。
 TFLAG:999 = 0
 TFLAG:301 = 0
 TFLAG:898 = 0
 TFLAG:899 = 0
+TFLAG:895 = 0
+TFLAG:896 = 0
+TFLAG:897 = 0
 TFLAG:51 = 0
+TFLAG:995 = 0
 ;主人公の射精を0に
 BASE:MASTER:2 = 0
 ;主人公の精神絶頂を0に
@@ -37,6 +52,29 @@ BASE:TARGET:3 = 0
 REPEAT 200
 	TFLAG:COUNT = 0
 REND
+;-------------------------------------------------
+; 行事・定期試験・定期戦後の余韻ボーナス反映処理（TFLAGリセット後に適用）
+; 【発動条件】TARGETが有効 かつ CFLAG:TARGET:1286 [行事後余韻フラグ] > 0（段階1～3）
+; 【獲得パラメータ補正】
+;   ・TFLAG:37 [ムード]     += 25 * 余韻段階（+25 ～ +75）
+;   ・PALAM:5  [欲情]       += 3000 * 余韻段階（+3000 ～ +9000）
+;   ・PALAM:3  [潤滑]       += 1500 * 余韻段階（+1500 ～ +4500）
+;   ・反映後に CFLAG:TARGET:1286 を 0 にリセット
+;-------------------------------------------------
+IF TARGET >= 1 && TARGET < CHARANUM && CFLAG:TARGET:1286 > 0	; 【TARGET:[行事後余韻フラグ]>0】
+	TFLAG:37 += 25 * CFLAG:TARGET:1286	; 【[ムード]加算】
+	PALAM:TARGET:5 += 3000 * CFLAG:TARGET:1286	; 【TARGET:[欲情]加算】
+	PALAM:TARGET:3 += 1500 * CFLAG:TARGET:1286	; 【TARGET:[潤滑]加算】
+	SETCOLOR 255, 170, 220
+	PRINTFORML %CALLNAME:TARGET%の瞳には、先ほど二人きりで重ねた逢瀬の甘い余韻と火照りがまだ色濃く残っている…
+	RESETCOLOR
+	; TARGETの余韻フラグは後続ループで一括クリア
+ENDIF
+; 調教開始により、全キャラの行事後余韻フラグを一括リセット（他キャラへの持ち越し防止）
+FOR LOCAL, 0, CHARANUM
+	CFLAG:LOCAL:1286 = 0
+NEXT
+FLAG:1286 = 0
 SIF TARGET >= 0 && TARGET < CHARANUM
 	TEQUIP:TARGET:53 = 0
 FLAG:22 = 0

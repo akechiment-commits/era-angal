@@ -15,7 +15,7 @@
 ;@INIT_CLUB_FLAGS         - 既存セーブ対応：部活タイプ初期化
 ;---------------------------------------------------------
 ;TFLAG:82 -> アクティビティ種別（0=運動, 1=表現, 2=知識, 3=自習, 4=生活）
-;CFLAG:char:25 -> 部活タイプ（0=帰宅, 1=運動部, 2=表現部, 3=知識部）
+;CFLAG:char:1287 -> 部活タイプ（0=帰宅, 1=運動部, 2=表現部, 3=知識部）
 ;CSTR:char:25  -> 部活名
 ;ABL:93 -> 運動技能   ABL:94 -> 表現技能   ABL:95 -> 知識技能
 ;ABL:54 -> 運動素質   ABL:55 -> 表現素質   ABL:56 -> 知識素質
@@ -37,7 +37,7 @@ IF TARGET < 0
 ENDIF
 
 ;パートナーの部活タイプ（ボーナス判定用）
-A = CFLAG:TARGET:25
+A = CFLAG:TARGET:1287
 
 PRINTFORML 【放課後のアクティビティ】
 PRINTFORML パートナー：%CALLNAME:TARGET%
@@ -111,7 +111,7 @@ ENDIF
 @DO_ACTIVITY
 A = TFLAG:82
 ;パートナーの部活タイプ（0=帰宅, 1=運動, 2=表現, 3=知識）
-B = CFLAG:TARGET:25
+B = CFLAG:TARGET:1287
 	;部活動・アクティビティ参加回数加算
 	SIF TARGET >= 1 && TARGET < CHARANUM
 		CFLAG:TARGET:1270 += 1
@@ -531,38 +531,18 @@ PRINTFORML 　料理技能：{ABL:MASTER:90}/100　（%CALLNAME:TARGET%：{ABL:TARGET:90}
 RETURN 1
 
 ;---------------------------------------------------------
-;既存セーブ対応：CFLAG:25未設定キャラに部活タイプを設定
+;既存セーブ対応：CFLAG:1287未設定キャラに部活タイプを設定
 ;---------------------------------------------------------
 @INIT_CLUB_FLAGS
-A = 0
+;部活専用領域をCSVから復元する。旧25番は初期噴乳経験として使用する。
+;キャラごとに処理し、設定済みキャラがいても未設定キャラの復元を続ける。
 REPEAT CHARANUM
-	IF CFLAG:COUNT:25 > 0	; 【COUNT:[初期噴乳経験]>0】
-		A = 1
-		BREAK
-	ENDIF
+	SIF CFLAG:COUNT:1287 > 0
+		CONTINUE
+	EXISTCSV NO:COUNT, 0
+	SIF RESULT == 0
+		CONTINUE
+	CSVCFLAG NO:COUNT, 1287, 0
+	CFLAG:COUNT:1287 = RESULT
 REND
-SIF A
-	RETURN 0
-
-REPEAT CHARANUM
-	B = NO:COUNT
-	IF B == 1 || B == 4 || B == 9 || B == 13 || B == 20 || B == 27 || B == 30 || B == 34 || B == 36 || B == 52 || B == 62 || B == 63 || B == 66
-		CFLAG:COUNT:25 = 2
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 表現部
-	ELSEIF B == 2 || B == 3 || B == 6 || B == 8 || B == 10 || B == 11 || B == 21 || B == 23 || B == 24 || B == 28 || B == 39 || B == 43 || B == 44 || B == 45 || B == 46 || B == 47 || B == 51 || B == 54 || B == 55 || B == 58 || B == 61 || B == 65 || B == 68 || B == 70
-		CFLAG:COUNT:25 = 3
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 知識部
-	ELSEIF B == 5 || B == 7 || B == 12 || B == 14 || B == 15 || B == 16 || B == 17 || B == 18 || B == 19 || B == 22 || B == 26 || B == 29 || B == 33 || B == 35 || B == 37 || B == 38 || B == 40 || B == 41 || B == 42 || B == 48 || B == 49 || B == 50 || B == 53 || B == 56 || B == 57 || B == 59 || B == 67 || B == 69 || B == 71
-		CFLAG:COUNT:25 = 1
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 運動部
-	ELSE
-		CFLAG:COUNT:25 = 0
-		SIF CSTR:COUNT:25 == ""
-			CSTR:COUNT:25 = 帰宅部
-	ENDIF
-REND
-
 RETURN 1

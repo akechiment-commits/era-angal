@@ -74,14 +74,14 @@ ELSEIF ABL:A == 3
 ELSEIF ABL:A == 4
 	S = 3
 ELSEIF ABL:A >= 5
-	S = 1 + (ABL:A / 2)
+	S = 1 + (MIN(ABL:A, 10) / 2) + SQRT(MAX(ABL:A - 10, 0) * 3)
 ENDIF
 
 ;欲望と奉仕精神によるボーナス
 IF ABL:1 == 4 && ABL:6 >= 4 && PALAM:5 >= PALAMLV:4	; 【[欲望]Lv==4 / [奉仕精神]Lv>=4 / [欲情]>=PALAMLV:4】
 	S += 1
 ELSEIF ABL:1 >= 5 && ABL:6 >= 4 && PALAM:5 >= PALAMLV:4	; 【[欲望]Lv>=5 / [奉仕精神]Lv>=4 / [欲情]>=PALAMLV:4】
-	S += ABL:1 / 2
+	S += (MIN(ABL:1, 10) / 2) + SQRT(MAX(ABL:1 - 10, 0) * 3)
 ENDIF
 
 ;C/V感覚が充分にあれば、欲望ＬＶ３でもSに+1する
@@ -107,6 +107,27 @@ IF ((TALENT:74 && A == 4) || (TALENT:75 && A == 3)) && S	; 【[淫壷] / [淫核]】
 ENDIF
 
 ;回数と経験は能力に応じて上限なく伸びる
+;ソフトキャップ補正（ベッド上のまぐわい回数：最高200回前後）
+IF TALENT:76	; 【淫乱】
+	IF S > 100
+		S = 100 + SQRT((S - 100) * 80)
+	ENDIF
+	SIF S > 200
+		S = 200
+ELSE
+	IF S > 50
+		S = 50 + SQRT((S - 50) * 50)
+	ENDIF
+	SIF S > 120
+		S = 120
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+S = S * (85 + RAND:26) / 100
+S += RAND:5 - 2
+SIF S < 1
+	S = 1
+
 S:1 = S
 
 ;変数退避
@@ -234,13 +255,13 @@ ELSEIF ABL:10 == 3	; 【[自慰中毒]Lv==3】
 ELSEIF ABL:10 == 4	; 【[自慰中毒]Lv==4】
 	A = 6
 ELSEIF ABL:10 >= 5	; 【[自慰中毒]Lv>=5】
-	A = (ABL:10 * 2) - 1
+	A = (MIN(ABL:10, 10) * 2) - 1 + SQRT(MAX(ABL:10 - 10, 0) * 3)
 ENDIF
 
 IF ABL:1 == 4 && ABL:3 >= 4 && PALAM:5 >= PALAMLV:4	; 【[欲望]Lv==4 / [Ｃ感覚]Lv>=4 / [欲情]>=PALAMLV:4】
 	A += 1
 ELSEIF ABL:1 >= 5 && ABL:3 >= 4 && PALAM:5 >= PALAMLV:4	; 【[欲望]Lv>=5 / [Ｃ感覚]Lv>=4 / [欲情]>=PALAMLV:4】
-	A += ABL:1 / 2
+	A += (MIN(ABL:1, 10) / 2) + SQRT(MAX(ABL:1 - 10, 0) * 3)
 ENDIF
 
 ;自慰しやすい
@@ -281,7 +302,7 @@ ELSEIF ABL:5 == 3	; 【[Ａ感覚]Lv==3】
 ELSEIF ABL:5 == 4	; 【[Ａ感覚]Lv==4】
 	B += 4
 ELSEIF ABL:5 >= 5	; 【[Ａ感覚]Lv>=5】
-	B += ABL:5
+	B += MIN(ABL:5, 10) + SQRT(MAX(ABL:5 - 10, 0) * 2)
 ENDIF
 ;Ｃ感覚見る
 IF ABL:3 == 0	; 【[Ｃ感覚]Lv==0】
@@ -316,6 +337,27 @@ IF TALENT:75	; 【[淫核]】
 ENDIF
 
 ;回数と経験は能力に応じて上限なく伸びる
+;ソフトキャップ補正（自慰回数：最高200回前後）
+IF TALENT:76 || TALENT:60	; 【淫乱】または【自慰しやすい】
+	IF A > 100
+		A = 100 + SQRT((A - 100) * 80)
+	ENDIF
+	SIF A > 200
+		A = 200
+ELSE
+	IF A > 50
+		A = 50 + SQRT((A - 50) * 50)
+	ENDIF
+	SIF A > 120
+		A = 120
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+A = A * (85 + RAND:26) / 100
+A += RAND:5 - 2
+SIF A < 1
+	A = 1
+
 A:1 = A
 
 ;変数退避
@@ -447,7 +489,7 @@ ELSEIF ABL:12 == 3	; 【[レズ中毒]Lv==3】
 ELSEIF ABL:12 == 4	; 【[レズ中毒]Lv==4】
 	N += 5
 ELSEIF ABL:12 >= 5	; 【[レズ中毒]Lv>=5】
-	N += 2 + ABL:12
+	N += 2 + MIN(ABL:12, 10) + SQRT(MAX(ABL:12 - 10, 0) * 3)
 ENDIF
 IF ABL:ASSI:12 == 1	; 【ASSI:[レズ中毒]Lv==1】
 	N += 1
@@ -458,7 +500,7 @@ ELSEIF ABL:ASSI:12 == 3	; 【ASSI:[レズ中毒]Lv==3】
 ELSEIF ABL:ASSI:12 == 4	; 【ASSI:[レズ中毒]Lv==4】
 	N += 8
 ELSEIF ABL:ASSI:12 >= 5	; 【ASSI:[レズ中毒]Lv>=5】
-	N += 3 + (ABL:ASSI:12 * 2)
+	N += 3 + (MIN(ABL:ASSI:12, 10) * 2) + SQRT(MAX(ABL:ASSI:12 - 10, 0) * 3)
 ENDIF
 
 R = NO:ASSI
@@ -479,6 +521,27 @@ ENDIF
 IF TALENT:121 && TALENT:ASSI:0 == 0	; 【[ふたなり] / ASSI:[処女]なし】
 	TFLAG:15 += 2
 ENDIF
+
+;ソフトキャップ補正（レズ回数：最高200回前後）
+IF TALENT:76 || TALENT:ASSI:76	; 【淫乱】
+	IF N > 100
+		N = 100 + SQRT((N - 100) * 80)
+	ENDIF
+	SIF N > 200
+		N = 200
+ELSE
+	IF N > 50
+		N = 50 + SQRT((N - 50) * 50)
+	ENDIF
+	SIF N > 120
+		N = 120
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+N = N * (85 + RAND:26) / 100
+N += RAND:5 - 2
+SIF N < 1
+	N = 1
 
 N:1 = N
 
@@ -619,7 +682,7 @@ VARSET S, 0
 IF ABL:0 <= 4	; 【[親密]Lv<=4】
 	S = ABL:0 / 2
 ELSEIF ABL:0 >= 5	; 【[親密]Lv>=5】
-	S = ABL:0 / 2 + 1
+	S = (MIN(ABL:0, 10) / 2) + 1 + SQRT(MAX(ABL:0 - 10, 0) * 3)
 ENDIF
 
 ;キス魔ボーナス
@@ -634,6 +697,27 @@ SIF TALENT:89	; 【[相愛]】
 ;恋人ボーナス
 SIF TALENT:153	; 【[恋人]】
 	S += 1
+
+;ソフトキャップ補正（キス回数：最高200回前後）
+IF TALENT:155 || TALENT:88	; 【キス魔】または【親愛】
+	IF S > 100
+		S = 100 + SQRT((S - 100) * 80)
+	ENDIF
+	SIF S > 200
+		S = 200
+ELSE
+	IF S > 50
+		S = 50 + SQRT((S - 50) * 50)
+	ENDIF
+	SIF S > 120
+		S = 120
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+S = S * (85 + RAND:26) / 100
+S += RAND:5 - 2
+SIF S < 1
+	S = 1
 
 S:1 = S
 
@@ -699,7 +783,7 @@ ELSEIF ABL:6 == 7	; 【[奉仕精神]Lv==7】
 ELSEIF ABL:6 == 8	; 【[奉仕精神]Lv==8】
 	S = 4
 ELSEIF ABL:6 >= 9	; 【[奉仕精神]Lv>=9】
-	S = ABL:6 / 2 + 1
+	S = (MIN(ABL:6, 10) / 2) + 1 + SQRT(MAX(ABL:6 - 10, 0) * 3)
 ENDIF
 
 ;献身的ボーナス
@@ -708,6 +792,27 @@ SIF TALENT:63	; 【[献身的]】
 ;欲望ボーナス
 SIF ABL:1 >= 6	; 【[欲望]Lv>=6】
 	S += 1
+
+;ソフトキャップ補正（奉仕回数：最高160回前後）
+IF TALENT:63 || TALENT:85	; 【献身的】または【恋慕】
+	IF S > 80
+		S = 80 + SQRT((S - 80) * 60)
+	ENDIF
+	SIF S > 160
+		S = 160
+ELSE
+	IF S > 40
+		S = 40 + SQRT((S - 40) * 40)
+	ENDIF
+	SIF S > 100
+		S = 100
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+S = S * (85 + RAND:26) / 100
+S += RAND:5 - 2
+SIF S < 1
+	S = 1
 
 S:1 = S
 
@@ -826,7 +931,7 @@ ENDIF
 IF ABL:A == 4
 	S = 2
 ELSEIF ABL:A >= 5
-	S = ABL:A - 1
+	S = MIN(ABL:A, 10) - 1 + SQRT(MAX(ABL:A - 10, 0) * 3)
 ENDIF
 ;淫核/淫壷
 IF (TALENT:74 && A == 4) || (TALENT:75 && A == 3)	; 【[淫壷] / [淫核]】
@@ -834,6 +939,27 @@ IF (TALENT:74 && A == 4) || (TALENT:75 && A == 3)	; 【[淫壷] / [淫核]】
 ENDIF
 
 ;回数と経験は能力に応じて上限なく伸びる
+;ソフトキャップ補正（夜這いまぐわい回数：最高200回前後）
+IF TALENT:76	; 【淫乱】
+	IF S > 100
+		S = 100 + SQRT((S - 100) * 80)
+	ENDIF
+	SIF S > 200
+		S = 200
+ELSE
+	IF S > 50
+		S = 50 + SQRT((S - 50) * 50)
+	ENDIF
+	SIF S > 120
+		S = 120
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+S = S * (85 + RAND:26) / 100
+S += RAND:5 - 2
+SIF S < 1
+	S = 1
+
 S:1 = S
 
 ;変数退避
@@ -963,7 +1089,7 @@ S = 0
 IF ABL:17 == 4	; 【[Ｍ感覚]Lv==4】
 	S = 2
 ELSEIF ABL:17 >= 5	; 【[Ｍ感覚]Lv>=5】
-	S = ABL:17 - 1
+	S = MIN(ABL:17, 10) - 1 + SQRT(MAX(ABL:17 - 10, 0) * 3)
 ENDIF
 ;恋慕あり
 SIF TALENT:TARGET:85	; 【TARGET:[恋慕]】
@@ -985,6 +1111,27 @@ SIF TALENT:TARGET:155	; 【TARGET:[キス魔]】
 	S += 1
 
 ;回数と経験は能力に応じて上限なく伸びる
+;ソフトキャップ補正（キス夜這い回数：最高160回前後）
+IF TALENT:TARGET:155 || TALENT:TARGET:88	; 【キス魔】または【親愛】
+	IF S > 80
+		S = 80 + SQRT((S - 80) * 60)
+	ENDIF
+	SIF S > 160
+		S = 160
+ELSE
+	IF S > 40
+		S = 40 + SQRT((S - 40) * 40)
+	ENDIF
+	SIF S > 100
+		S = 100
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+S = S * (85 + RAND:26) / 100
+S += RAND:5 - 2
+SIF S < 1
+	S = 1
+
 S:1 = S
 
 ;変数退避
@@ -1066,7 +1213,7 @@ IF ABL:0 < 8	; 【[親密]Lv<8】
 ELSEIF ABL:0 < 15	; 【[親密]Lv<15】
 	S = 1
 ELSE
-	S = ABL:0 - 13
+	S = MIN(ABL:0, 20) - 13 + SQRT(MAX(ABL:0 - 20, 0) * 3)
 ENDIF
 
 ;恋慕あり
@@ -1086,6 +1233,27 @@ SIF TALENT:TARGET:154	; 【TARGET:[童貞]】
 	S += 1
 
 ;回数と経験は能力に応じて上限なく伸びる
+;ソフトキャップ補正（添い寝キス回数：最高120回前後）
+IF TALENT:TARGET:88 || TALENT:TARGET:89	; 【親愛】または【相愛】
+	IF S > 60
+		S = 60 + SQRT((S - 60) * 50)
+	ENDIF
+	SIF S > 120
+		S = 120
+ELSE
+	IF S > 30
+		S = 30 + SQRT((S - 30) * 30)
+	ENDIF
+	SIF S > 70
+		S = 70
+ENDIF
+
+;自然な振れ幅（85%～110%＋微少ブレ）
+S = S * (85 + RAND:26) / 100
+S += RAND:5 - 2
+SIF S < 1
+	S = 1
+
 S:1 = S
 
 ;変数退避

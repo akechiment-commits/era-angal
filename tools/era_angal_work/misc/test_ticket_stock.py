@@ -72,12 +72,13 @@ class TicketStockTests(unittest.TestCase):
         _, state = run("TICKET_BUDGET_CHECK", {"DAY": 40, "GLOBAL:232": 99, "GLOBAL:233": 999999})
         self.assertEqual([state[f"FLAG:{i}"] for i in range(15081, 15086)], [5, 150, 30, 15, 5])
 
-    def test_same_or_earlier_month_never_replenishes(self):
+    def test_same_month_preserves_marker_and_rewind_rebases_without_replenishing(self):
         values = {"DAY": 40, "FLAG:15081": 5, "FLAG:15082": 12,
                   "FLAG:15083": 3, "FLAG:15084": 2, "FLAG:15085": 0}
         for day in (40, 49, 20, 40):
             _, state = run("TICKET_BUDGET_CHECK", dict(values, DAY=day))
-            self.assertEqual([state[f"FLAG:{i}"] for i in range(15081, 15086)], [5, 12, 3, 2, 0])
+            self.assertEqual([state[f"FLAG:{i}"] for i in range(15081, 15086)],
+                             [day // 10 + 1, 12, 3, 2, 0])
 
     def test_elapsed_months_add_stock_and_preserve_remainder(self):
         _, state = run("TICKET_BUDGET_CHECK", {"DAY": 70, "FLAG:15081": 5, "FLAG:15082": 12})

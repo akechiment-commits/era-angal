@@ -24,6 +24,7 @@ IF FLAG:206 == 0
 	REND
 	FLAG:206 = 1
 ENDIF
+CALL CHECK_DECK_RECOVERY_EXCLUSION
 DRAWLINE
 PRINTFORML 【校内定期戦】
 CALL SHOW_CURRENT_DECK
@@ -56,6 +57,7 @@ RETURN 1
 ; スロットZのキャラをAに入れてからCALLNAME:Aで参照
 ;---------------------------------------------------------
 @SHOW_CURRENT_DECK
+CALL CHECK_DECK_RECOVERY_EXCLUSION
 DRAWLINE
 PRINTFORML ── 現在のパーティ ──
 REPEAT 5
@@ -73,6 +75,7 @@ RETURN 1
 ; FOR LOCAL, 0, CHARANUM → CFLAG:LOCAL:X（2引数で正常）
 ;---------------------------------------------------------
 @EDIT_DECK
+CALL CHECK_DECK_RECOVERY_EXCLUSION
 DRAWLINE
 PRINTFORML ── パーティ編成 ──
 CALL SHOW_CURRENT_DECK
@@ -99,6 +102,8 @@ FOR LOCAL, 0, CHARANUM
 		B = 1
 	IF B
 		PRINTFORML [{A, 2}] ★%NAME:LOCAL%（親密{CFLAG:LOCAL:2}  学力Lv{ABL:LOCAL:88}  運動{ABL:LOCAL:93}  表現{ABL:LOCAL:94}  知識{ABL:LOCAL:95}）
+	ELSEIF BASE:LOCAL:0 <= 0
+		PRINTFORML [{A, 2}]  %NAME:LOCAL%（衰弱療養中・編成不可）
 	ELSE
 		PRINTFORML [{A, 2}]  %NAME:LOCAL%（親密{CFLAG:LOCAL:2}  学力Lv{ABL:LOCAL:88}  運動{ABL:LOCAL:93}  表現{ABL:LOCAL:94}  知識{ABL:LOCAL:95}）
 	ENDIF
@@ -131,6 +136,13 @@ ELSEIF RESULT < 1 || RESULT > LOCAL:9
 ENDIF
 
 Z = LOCAL:(10 + RESULT)
+
+; 衰弱療養中のキャラは編成不可
+IF BASE:Z:0 <= 0
+	PRINTFORMW %CALLNAME:Z%は体力が尽きて衰弱療養（お休み）中のため、デッキに編成できません。
+	CALL EDIT_DECK
+	RETURN 1
+ENDIF
 
 ;パーティ在籍確認
 B = -1
@@ -217,8 +229,8 @@ REPEAT 5
 	B += 1
 	;部活タイプ統一チェック
 	IF C == -1
-		C = CFLAG:Z:25
-	ELSEIF C != CFLAG:Z:25 || C == 0	; 【Z:[初期噴乳経験]】
+		C = CFLAG:Z:1287
+	ELSEIF C != CFLAG:Z:1287 || C == 0	; 【Z:[部活タイプ]】
 		D = 0
 	ENDIF
 REND
@@ -247,6 +259,7 @@ RETURN A
 ; スコア確認（内訳表示）
 ;---------------------------------------------------------
 @SHOW_DECK_SCORE
+CALL CHECK_DECK_RECOVERY_EXCLUSION
 CALL CARD_RECALC_BONUSES
 DRAWLINE
 PRINTFORML ── スコア確認 ──
@@ -298,8 +311,8 @@ REPEAT 5
 	E += CFLAG:Z:2
 	B += 1
 	IF C == -1
-		C = CFLAG:Z:25
-	ELSEIF C != CFLAG:Z:25 || C == 0	; 【Z:[初期噴乳経験]】
+		C = CFLAG:Z:1287
+	ELSEIF C != CFLAG:Z:1287 || C == 0	; 【Z:[部活タイプ]】
 		D = 0
 	ENDIF
 REND
@@ -315,6 +328,7 @@ RETURN 1
 ;   ARG:0=難度(1=下級 2=中級 3=上級)
 ;---------------------------------------------------------
 @RUN_DECK_BATTLE
+CALL CHECK_DECK_RECOVERY_EXCLUSION
 DRAWLINE
 PRINTFORML 【校内定期戦 難度選択】
 PRINTFORML [1] 下級戦  勝利:$800  圧勝:$1500
@@ -404,6 +418,8 @@ IF A >= B * 130 / 100
 		FLAG:213 += 1
 		PRINTFORMW 【報酬】ゴールドガチャチケット+1　キミサキダイヤ+5
 	ENDSELECT
+	CALL DECK_BATTLE_HAREM_AFTER, LOCAL:9, 2
+	RETURN 1
 ELSEIF A >= B
 	PRINTFORML 勝利！
 	MONEY += C
@@ -432,6 +448,8 @@ ELSEIF A >= B
 		FLAG:213 += 1
 		PRINTFORMW 【報酬】シルバーガチャチケット+1　キミサキダイヤ+3
 	ENDSELECT
+	CALL DECK_BATTLE_HAREM_AFTER, LOCAL:9, 1
+	RETURN 1
 ELSE
 	PRINTFORML 惜敗……パーティをもっと鍛えよう！
 	MONEY += 200
@@ -640,6 +658,8 @@ REPEAT 5
 			CONTINUE
 		SIF CFLAG:LOCAL:21 == 1	; 【LOCAL:[別れ]==1】
 			CONTINUE
+		SIF BASE:LOCAL:0 <= 0	; 衰弱療養中（お休み）のキャラは自動選出から除外
+			CONTINUE
 		;既に選出済みかチェック
 		C = 0
 		SIF FLAG:200 == LOCAL
@@ -664,3 +684,433 @@ REPEAT 5
 REND
 FLAG:205 = 1
 RETURN 1
+
+
+;---------------------------------------------------------
+; 校内定期戦 勝利後の親愛・淫乱メンバー自動祝勝会（ハーレム搾精） (@DECK_BATTLE_HAREM_AFTER)
+; 【引数】
+;   ・ARG:0 = 定期戦難度 (1=下級 / 2=中級 / 3=上級)
+;   ・ARG:1 = 勝敗ランク (1=勝利 / 2=圧倒的勝利)
+; 【自動選出・発動条件】
+;   ・選択肢なしで、デッキ編成メンバー5枠(FLAG:200～204)のうち
+;     [体力(BASE:0)] > 0 かつ ([親愛(TALENT:88)] または [相愛(TALENT:89)] または [淫乱(TALENT:76)]) を持つキャラを自動選出
+;   ・選出メンバー内の [淫乱(TALENT:76)] 所持人数(LOCAL:8 = 0～5人)に応じて6段階（各RAND:3分岐）で描写と激しさが変化
+;
+; 【獲得経験・獲得珠・好感度・耐力消耗（すべてRANDによるランダム幅付き）】
+;   ・主人公側：
+;       [射精経験(EXP:MASTER:3)]   += 各メンバーに搾り取られた合計射精回数
+;       [キス経験(EXP:MASTER:96)]  += 各メンバーとのキス回数合計
+;       [耐力(BASE:MASTER:4)]      -= 段階0(65～78%) / 段階1(82～89%) / 段階2(91～94%) / 段階3(95～97%) / 段階4(98～99%) / 段階5(残り1～数点までほぼ全損)
+;   ・参加メンバー全員（個人別ランダム算出・未経験ブロック付き）：
+;       [Ｖ経験(EXP:0)] / [膣射経験(EXP:24)] / [快Ｖの珠(1)]（MASTER非[童貞] かつ 対象が非[処女]・[Ｖ経験]>0・非[オトコ]時のみ）
+;       [Ａ経験(EXP:1)] / [快Ａの珠(2)]（対象の[Ａ経験]>=20 かつ ([Ａ感覚]>=3 または [尻穴狂い]) のＡ開発済み時のみ）
+;       [フェラ経験(EXP:22)] / [精飲経験(EXP:26)]（対象が非[キス未経験] かつ 経験・能力条件を満たす時のみ）
+;       [キス経験(EXP:96)] / [快Ｍの珠(18)]（対象・MASTER双方とも非[キス未経験]時のみ）
+;       [絶頂経験(EXP:2)] / [精液経験(EXP:20)] / [奉仕快楽経験(EXP:21)] / [愛情経験(EXP:23)]
+;       [レズ経験(EXP:40)]（参加人数2人以上 かつ 対象が非[オトコ]時）
+;   ・獲得珠（JUEL）：
+;       [快Ｃ(0)] / [快Ｖ(1)] / [快Ａ(2)] / [快Ｂ(14)] / [快Ｍ(18)] / [恭順(4)] / [欲情(5)] / [屈服(6)] / [習得(7)]
+;       ※コンフィグ詳細報告(FLAG:23 & 1p25)がONなら各珠の具体値を表示、OFFなら「宝珠獲得」と簡潔に表示
+;---------------------------------------------------------
+@DECK_BATTLE_HAREM_AFTER(ARG, ARG:1)
+LOCAL:0 = 0
+LOCAL:8 = 0
+FOR LOCAL:1, 0, 5
+	LOCAL:2 = FLAG:(200 + LOCAL:1)
+	SIF LOCAL:2 < 1 || LOCAL:2 >= CHARANUM || LOCAL:2 == MASTER
+		CONTINUE
+	SIF BASE:(LOCAL:2):0 <= 0	; 【対象:[体力]<=0】
+		CONTINUE
+	IF TALENT:(LOCAL:2):88 || TALENT:(LOCAL:2):89 || TALENT:(LOCAL:2):76	; 【対象:[親愛] / [相愛] / [淫乱]】
+		LOCAL:(10 + LOCAL:0) = LOCAL:2
+		LOCAL:(60 + LOCAL:0) = LOCAL:2	; 【報酬ループ用退避（LOCAL:10～29との衝突防止）】
+		LOCAL:0 += 1
+		IF TALENT:(LOCAL:2):76	; 【対象:[淫乱]】
+			LOCAL:(20 + LOCAL:8) = LOCAL:2
+			LOCAL:8 += 1
+		ENDIF
+	ENDIF
+NEXT
+
+SIF LOCAL:0 <= 0	; 【該当メンバー0人】
+	RETURN 0
+
+DRAWLINE
+SETCOLOR 255, 140, 210
+PRINTFORML ★ 定期戦勝利・密室の祝勝会（参加：{LOCAL:0}名 ／ 淫乱：{LOCAL:8}名） ★
+RESETCOLOR
+PRINT 参加メンバー：
+FOR LOCAL:1, 0, LOCAL:0
+	LOCAL:2 = LOCAL:(10 + LOCAL:1)
+	SIF LOCAL:1 > 0
+		PRINT  ／ 
+	PRINTFORM %CALLNAME:(LOCAL:2)%
+	IF (TALENT:(LOCAL:2):88 || TALENT:(LOCAL:2):89) && TALENT:(LOCAL:2):76	; 【([親愛]/[相愛]) かつ [淫乱]】
+		PRINT [親愛・淫乱]
+	ELSEIF TALENT:(LOCAL:2):88 || TALENT:(LOCAL:2):89	; 【[親愛] / [相愛]】
+		PRINT [親愛]
+	ELSE
+		PRINT [淫乱]
+	ENDIF
+NEXT
+PRINTL
+DRAWLINE
+
+;=========================================================
+; 段階別テキスト描写（LOCAL:8 = 淫乱人数 0～5人 × RAND:3分岐）
+;=========================================================
+;--- 【段階0】淫乱0人（親愛・相愛メンバーのみ：深い愛情と独占欲による濃密奉仕） ---
+IF LOCAL:8 == 0
+	IF LOCAL:0 == 1
+		LOCAL:3 = LOCAL:10
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 他の部員たちが引き上げた後の控室で、%CALLNAME:(LOCAL:3)%が内側からそっと扉の鍵を閉めた。
+			PRINTFORML 勝利の喜びと%CALLNAME:MASTER%への溢れんばかりの愛情に瞳を潤ませながら、%CALLNAME:(LOCAL:3)%は自らリボンを解いて胸元へ飛び込んでくる。
+			PRINTFORMW 互いの体温を確かめ合うような深い口付けから始まり、%CALLNAME:(LOCAL:3)%は献身的な腰使いと密着で%CALLNAME:MASTER%を何度も甘い絶頂へと導いた…
+		CASE 1
+			PRINTFORML 試合を終えた二人きりの控室で、%CALLNAME:(LOCAL:3)%は熱っぽい吐息を漏らしながら%CALLNAME:MASTER%の首筋へと腕を絡めた。
+			PRINTFORML 勝利の褒美をねだるように柔らかな頬を擦り寄せ、乱れた制服の隙間から火照った素肌を差し出してくる%CALLNAME:(LOCAL:3)%。
+			PRINTFORMW 愛おしさに満ちた濃密な交わりは夕暮れまで続き、二人は互いの名を吐息に混ぜながら幾度も果てた…
+		CASEELSE
+			PRINTFORML 控室のソファに腰を下ろした%CALLNAME:MASTER%の膝の上へ、%CALLNAME:(LOCAL:3)%が甘えるように跨がり、熱い唇を重ねてきた。
+			PRINTFORML 試合の緊張から解き放たれた安堵と独占欲が溶け合い、%CALLNAME:(LOCAL:3)%は全身を使って%CALLNAME:MASTER%を優しく、かつ深く包み込んでいく。
+			PRINTFORMW とろけるような甘い奉仕と結合の果てに、%CALLNAME:(LOCAL:3)%は幸せそうに震えながら%CALLNAME:MASTER%の精を最後の一滴まで受け止めた…
+		ENDSELECT
+	ELSE
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 控室の扉が閉まると同時、%CALLNAME:MASTER%を深く慕う{LOCAL:0}人の少女たちが一斉に両脇と正面から身を寄せてきた。
+			PRINTFORML 誰が一番に愛されるかを競い合うように、%CALLNAME:(LOCAL:10)%と%CALLNAME:(LOCAL:11)%をはじめとするメンバーたちが熱い唇と柔らかな胸を押し当ててくる。
+			PRINTFORMW ヤキモチと深い愛情が渦巻くハーレムの中で、%CALLNAME:MASTER%は全員が満足して蕩けきるまで休む間もなく求められ続けた…
+		CASE 1
+			PRINTFORML 勝利の熱気が充満する控室で、親愛なる{LOCAL:0}人の少女たちが%CALLNAME:MASTER%をソファへと押し倒し、甘く取り囲んだ。
+			PRINTFORML 一人が唇を奪えば別の一人が胸元や下半身へと愛おしげに指を這わせ、控えめだったはずの少女たちまでが競うように肌を重ねてくる。
+			PRINTFORMW 幾重にも重なる甘い吐息と献身的な奉仕の波に飲まれ、%CALLNAME:MASTER%は心地よい疲労感とともに何度も精を絞り出された…
+		CASEELSE
+			PRINTFORML 試合後の高揚感に背中を押された{LOCAL:0}人の少女たちは、互いに目配せを交わすと%CALLNAME:MASTER%の衣服を優しく、しかし有無を言わせず解き始めた。
+			PRINTFORML 自分だけを見てほしいという一途な想いが重なり合い、代わる代わる%CALLNAME:MASTER%の上に跨がっては深い結合で愛を確かめ合っていく。
+			PRINTFORMW 全員の身体に%CALLNAME:MASTER%の温もりを分け与え終える頃には、控室は甘い余韻と吐息で満たされていた…
+		ENDSELECT
+	ENDIF
+
+;--- 【段階1】淫乱1人（淫乱1人が主導して空気を一変させ、限界まで貪り尽くす） ---
+ELSEIF LOCAL:8 == 1
+	LOCAL:3 = LOCAL:20
+	IF LOCAL:0 == 1
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 控室に二人きりになった瞬間、%CALLNAME:(LOCAL:3)%は獲物を狙うような妖艶な笑みを浮かべて扉に鍵をかけ、%CALLNAME:MASTER%を壁際へと追い詰めた。
+			PRINTFORML 試合中からずっと疼いていたかのように湿り気を帯びた秘所を押しつけ、%CALLNAME:MASTER%が息をつく暇も与えず貪欲にむしゃぶりついてくる。
+			PRINTFORMW 一度果ててもなお緩まらない%CALLNAME:(LOCAL:3)%の激しい腰使いと吸引に、%CALLNAME:MASTER%は膝が震えて立てなくなるまで散々に搾り取られた…
+		CASE 1
+			PRINTFORML 勝利の余韻に浸る間もなく、%CALLNAME:(LOCAL:3)%は自らの衣服を乱暴に寛げると、ソファに座る%CALLNAME:MASTER%の上へと強引に跨がり腰を沈めた。
+			PRINTFORML 快楽に忠実な%CALLNAME:(LOCAL:3)%の肉体は凄まじい密着度で%CALLNAME:MASTER%を締め上げ、さらなる絶頂を求めて休むことなく艶めかしくうねり続ける。
+			PRINTFORMW 何度も達して意識が霞みかける%CALLNAME:MASTER%を上から押さえつけ、%CALLNAME:(LOCAL:3)%は自らが完全に満たされるまで貪り尽くした…
+		CASEELSE
+			PRINTFORML 鍵の落ちた控室で、%CALLNAME:(LOCAL:3)%は熱く濁った吐息を吐きながら%CALLNAME:MASTER%を床へと押し倒し、全身を舌と唇で激しく責め立てた。
+			PRINTFORML 敏感な箇所を知り尽くした執拗な奉仕と、すぐさま続く激しい結合の連続に、%CALLNAME:MASTER%の理性は瞬く間に吹き飛ばされてしまう。
+			PRINTFORMW 乾ききった喉から掠れた吐息しか出なくなるまで、%CALLNAME:(LOCAL:3)%の底なしの性欲に付き合わされ続けた…
+		ENDSELECT
+	ELSE
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 控室の鍵が閉まるなり、淫乱な熱を瞳に宿した%CALLNAME:(LOCAL:3)%が真っ先に自らの衣を脱ぎ捨てて%CALLNAME:MASTER%を押し倒した。
+			PRINTFORML そのあまりに大胆で扇情的な振る舞いに当てられ、周囲にいた親愛なるメンバーたちの理性も次々と決壊して%CALLNAME:MASTER%の身体へと群がり始める。
+			PRINTFORMW %CALLNAME:(LOCAL:3)%が主導する過激なハーレム奉仕と連続交尾の渦の中で、%CALLNAME:MASTER%は息をする間もないほど散々に搾り抜かれた…
+		CASE 1
+			PRINTFORML %CALLNAME:(LOCAL:3)%が他のメンバーに見せつけるように%CALLNAME:MASTER%の急所を咥え込むと、控室の空気は一気に淫靡な熱狂へと塗り替えられた。
+			PRINTFORML 負けじと他の少女たちも両脇から柔肌を密着させ、%CALLNAME:(LOCAL:3)%のリードに合わせて%CALLNAME:MASTER%の全身を休むことなく責め立てていく。
+			PRINTFORMW 誰か一人が果ててもすぐさま次が跨がってくる波状攻撃に、%CALLNAME:MASTER%は体力の限界を超えて何度も精を吐き出させられた…
+		CASEELSE
+			PRINTFORML 勝利に沸く控室で、%CALLNAME:(LOCAL:3)%が淫らに腰をくねらせながら%CALLNAME:MASTER%を誘惑し、そのまま全員を巻き込んだ乱痴気騒ぎへと突入した。
+			PRINTFORML %CALLNAME:(LOCAL:3)%が挑発するように激しい水音と嬌声を響かせるたび、他のメンバーたちの羞恥心も吹き飛んでより深い快楽を貪り始める。
+			PRINTFORMW 暴走した{LOCAL:0}人の少女たちに全身を好き放題に弄ばれ、%CALLNAME:MASTER%は指一本動かせなくなるまで搾り尽くされた…
+		ENDSELECT
+	ENDIF
+
+;--- 【段階2】淫乱2人（上下・左右からのW淫乱挟撃、休みなき二輪責めで精根尽き果てる） ---
+ELSEIF LOCAL:8 == 2
+	LOCAL:3 = LOCAL:20
+	LOCAL:4 = LOCAL:21
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 控室の扉が閉ざされるや否や、%CALLNAME:(LOCAL:3)%と%CALLNAME:(LOCAL:4)%の二人が示し合わせたように前後から%CALLNAME:MASTER%を羽交い締めにした。
+		PRINTFORML 一人が唇と胸元を激しく貪り尽くす間に、もう一人が下半身を容赦なく呑み込み、二人の淫乱な少女による息の合ったW責めが幕を開ける。
+		PRINTFORMW 片方が絶頂に跳ねれば即座にもう片方が入れ替わって腰を打ちつける無間地獄に、%CALLNAME:MASTER%は腰が抜けて意識が遠のくまで連続で搾り取られた…
+	CASE 1
+		PRINTFORML ソファへと押し倒された%CALLNAME:MASTER%の顔面に%CALLNAME:(LOCAL:3)%が、そして腰の上に%CALLNAME:(LOCAL:4)%が同時に跨がり、逃げ場を完全に奪い去った。
+		PRINTFORML 二人の火照りきった柔肌とむせ返るような牝の香りに上下から塞がれ、%CALLNAME:MASTER%は息継ぎすらままならないまま快楽の濁流へと叩き込まれる。
+		PRINTFORMW どちらがより多く%CALLNAME:MASTER%の精を搾り取れるかを競い合う二人の猛攻に、%CALLNAME:MASTER%の身体は悲鳴を上げるほど乾ききるまで貪られた…
+	CASEELSE
+		PRINTFORML %CALLNAME:(LOCAL:3)%と%CALLNAME:(LOCAL:4)%は互いの乱れた姿に一層昂ぶりながら、%CALLNAME:MASTER%の両脇にぴったりと貼りついて同時に奉仕を開始した。
+		PRINTFORML 二つの熱い舌先が同時に急所を這い回り、達した直後の過敏な先端すら休ませることなく交互に深い秘所へと迎え入れていく。
+		PRINTFORMW 他の参加メンバーも加わった容赦のない追撃の連続に、%CALLNAME:MASTER%は全身を痙攣させながら限界を超えて精を絞り出され続けた…
+	ENDSELECT
+
+;--- 【段階3】淫乱3人（三方向からの完全包囲、過呼吸になるほどの波状搾精） ---
+ELSEIF LOCAL:8 == 3
+	LOCAL:3 = LOCAL:20
+	LOCAL:4 = LOCAL:21
+	LOCAL:5 = LOCAL:22
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 試合後の控室は、%CALLNAME:(LOCAL:3)%、%CALLNAME:(LOCAL:4)%、%CALLNAME:(LOCAL:5)%の3人の淫乱少女によって瞬く間に淫靡な檻へと変貌した。
+		PRINTFORML 上半身を押さえつける者、唇を塞いで舌を絡める者、そして腰を激しく打ちつけて精を貪る者が一糸乱れぬ連携で%CALLNAME:MASTER%を責め立てる。
+		PRINTFORMW 3人がローテーションで休みなく跨がり続ける暴力的とも言える快楽の嵐に、%CALLNAME:MASTER%は何度も白目を剥きかけながら限界まで搾り尽くされた…
+	CASE 1
+		PRINTFORML 床に組み敷かれた%CALLNAME:MASTER%を取り囲み、%CALLNAME:(LOCAL:3)%と%CALLNAME:(LOCAL:4)%と%CALLNAME:(LOCAL:5)%が飢えた獣のように一斉に群がった。
+		PRINTFORML 一度に3人分の熱い吐息と濡れそぼった柔肌に揉みくちゃにされ、どこをどう責められているのかすら判別できないほどの過剰な刺激が脳髄を灼く。
+		PRINTFORMW 一度果てるごとにすぐさま次の蜜壺へと飲み込まれる無限ループに、%CALLNAME:MASTER%の体力は底を突き、指先まで痺れるほど精を吸い尽くされた…
+	CASEELSE
+		PRINTFORML %CALLNAME:(LOCAL:3)%、%CALLNAME:(LOCAL:4)%、%CALLNAME:(LOCAL:5)%の3人は、勝利の高揚でタガが外れたように互いの前で淫らな痴態を競い始めた。
+		PRINTFORML 3人の舌と唇、そして3つの熱くうねる秘所が代わる代わる%CALLNAME:MASTER%を襲い、萎えることすら許さない執拗な刺激で強制的に勃起させられていく。
+		PRINTFORMW 控室中に3人の甘い嬌声と激しい水音が反響し続け、%CALLNAME:MASTER%は意識が半分飛びかけるまで散々に弄ばれ続けた…
+	ENDSELECT
+
+;--- 【段階4】淫乱4人（四肢を完全に封じられ、人間ポンプのように休まず搾り取られる極限状態） ---
+ELSEIF LOCAL:8 == 4
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 4人もの淫乱少女が揃った控室で、%CALLNAME:MASTER%は両手両足を4方向から押さえつけられ、完全に身動きを封じられた状態で大の字に組み敷かれた。
+		PRINTFORML 顔面、胸元、両腕、そして股間に至るまで、4人の火照りきった裸体が隙間なく覆い被さり、全身のあらゆる性感帯を同時に責め抜いていく。
+		PRINTFORMW 1人が満足しても残り3人が順番待ちをしている絶望的なまでの快楽地獄に、%CALLNAME:MASTER%は声も出せないほど連続で精を搾り取られ、完全に干からびる寸前まで追い込まれた…
+	CASE 1
+		PRINTFORML 理性の吹き飛んだ4人の淫乱メンバーたちが、%CALLNAME:MASTER%の身体を巡って文字通りの争奪戦を繰り広げながら一斉に襲いかかった。
+		PRINTFORML 口を塞がれて濃厚なディープキスを浴びせられながら、下半身では休む間もない連続挿入と激しい吸引が交互に繰り返され、脳が快楽で真っ白に染まる。
+		PRINTFORMW どれほど達して腰を跳ねさせても4人の暴走は一切止まらず、%CALLNAME:MASTER%は体力の限界をとっくに超えて意識が朦朧とするまで散々に貪り尽くされた…
+	CASEELSE
+		PRINTFORML 鍵のかかった控室は4人の淫乱少女たちの熱気と甘い香りでむせ返り、%CALLNAME:MASTER%は逃げ場のない肉の檻へと沈められた。
+		PRINTFORML 4人が互いに絡み合いながら%CALLNAME:MASTER%の全身を舐め回し、4つの熟れた秘所が競うように%CALLNAME:MASTER%の精を一滴残らず吸い上げていく。
+		PRINTFORMW 魂まで抜き取られるような凄まじい連続搾精の果てに、%CALLNAME:MASTER%は荒い息を吐くことしかできない抜け殻のように床へと沈み込んだ…
+	ENDSELECT
+
+;--- 【段階5】淫乱5人（全員淫乱・完全包囲の狂宴、意識が飛ぶまで終わらない極限のハーレム搾精） ---
+ELSE
+	SELECTCASE RAND:3
+	CASE 0
+		PRINTFORML 選抜メンバー5人全員が【淫乱】という異常な熱気に満ちた控室で、内側から鍵が閉まった瞬間、5人の少女たちが一斉に%CALLNAME:MASTER%へと襲いかかった！
+		PRINTFORML 両腕・両脚・頭部に5人がかりで絡みつかれ、10本の柔らかな腕と5つの熱い唇、そして5つの蜜を滴らせる秘所が%CALLNAME:MASTER%の全身を完全に埋め尽くす。
+		PRINTFORML 1人目が激しい腰使いで精を搾り取った直後、抜く間もなく2人目、3人目、4人目、5人目が次々と跨がり、過敏になりきった先端を容赦なく締め上げていく。
+		PRINTFORMW 5人全員が何度も絶頂して満足するまで決して解放されない狂乱の宴の中、%CALLNAME:MASTER%は意識が真っ白に飛ぶまで極限を超えて搾り尽くされた…
+	CASE 1
+		PRINTFORML 試合後の控室は、全員が【淫乱】へと覚醒した5人の少女たちによる、底なしの肉欲のハーレムへと変貌を遂げた！
+		PRINTFORML 衣服を剥ぎ取られて押し倒された%CALLNAME:MASTER%の視界は、四方八方から押し寄せる5人分の豊かな柔肌と熱く潤んだ瞳だけで完全に塞がれる。
+		PRINTFORML 呼吸すらままならないほどの同時奉仕と、5人が順番待ちで繰り返す終わりなき騎乗位の連鎖に、%CALLNAME:MASTER%の全身は快楽の電流でガクガクと痙攣し続ける。
+		PRINTFORMW やがて中身が空になるほど幾度も果てさせられ、%CALLNAME:MASTER%が完全に失神寸前で動かなくなるまで、5人の猛烈な貪りは止むことがなかった…
+	CASEELSE
+		PRINTFORML 5人の淫乱少女たちに完全包囲された控室で、%CALLNAME:MASTER%は一歩も逃げることを許されず、5人が織りなす快楽の渦へと引きずり込まれた！
+		PRINTFORML 顔面騎乗で視界と呼吸を奪われながら、胸元や指先、そして下半身まで5人がかりで同時にむしゃぶりつかれ、人間の耐えられる限界を遥かに超えた快感が押し寄せる。
+		PRINTFORML 5人が競い合うように腰を振り乱し、互いに溢れ出た蜜と精を舐め取り合いながら、休むことなく次のラウンドへと%CALLNAME:MASTER%を引きずり込んでいく。
+		PRINTFORMW 控室の外まで響きそうなほどの水音と吐息の嵐の中、%CALLNAME:MASTER%は文字通り体力が尽き果ててぴくりとも動けなくなるまで散々に搾り抜かれた…
+	ENDSELECT
+ENDIF
+
+PRINTL
+;=========================================================
+; 報酬・経験・宝珠・消耗計算（各キャラごとにランダム幅を持たせて算出）
+;=========================================================
+LOCAL:5 = (LOCAL:0 + LOCAL:8 * 2 + ARG + ARG:1)	; 【基礎スケール値】
+LOCAL:50 = 0	; 【MASTERの合計射精経験増加量】
+LOCAL:51 = 0	; 【MASTERの合計キス経験増加量】
+
+FOR LOCAL:1, 0, LOCAL:0
+	LOCAL:2 = LOCAL:(60 + LOCAL:1)
+	LOCAL:7 = LOCAL:5 + RAND:3	; 【個人基準回数（ランダム幅付き）】
+	SIF TALENT:(LOCAL:2):76	; 【対象:[淫乱]所持時は1.5倍＋ランダム】
+		LOCAL:7 = LOCAL:7 * 3 / 2 + 1 + RAND:3
+
+	;1. V経験（非処女 かつ Ｖ経験>0 かつ 主人公非童貞時のみ）・A経験（Ａ経験>=20 かつ (Ａ感覚>=3 または 尻穴狂い) の開発済み時のみ）・絶頂経験
+	LOCAL:10 = 0
+	LOCAL:11 = 0
+	IF (TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:MASTER:154 == 0 && TALENT:(LOCAL:2):0 == 0 && EXP:(LOCAL:2):0 > 0 && TALENT:(LOCAL:2):122 == 0	; 【MASTER:ペニス持ち/非[童貞] かつ 対象:非[処女]/[Ｖ経験]>0/非[オトコ]】
+		LOCAL:10 = LOCAL:7 + RAND:3	; 【[Ｖ経験]増加量】
+		EXP:(LOCAL:2):0 += LOCAL:10	; 【対象:[Ｖ経験]加算】
+	ENDIF
+	IF EXP:(LOCAL:2):1 >= 20 && (ABL:(LOCAL:2):5 >= 3 || TALENT:(LOCAL:2):77)	; 【Ａ開発済み：[Ａ経験]>=20 かつ ([Ａ感覚]>=3 / [尻穴狂い])】
+		LOCAL:11 = MAX(LOCAL:7 / 2 + RAND:3, 1)	; 【[Ａ経験]増加量】
+		EXP:(LOCAL:2):1 += LOCAL:11	; 【対象:[Ａ経験]加算】
+	ENDIF
+	LOCAL:12 = LOCAL:7 + 1 + RAND:4	; 【[絶頂経験]増加量】
+	EXP:(LOCAL:2):2 += LOCAL:12	; 【対象:[絶頂経験]加算】
+
+	;2. 射精・精液・膣射・フェラ・精飲経験（処女時は膣射ブロック、キス未経験時はフェラ・精飲ブロック）
+	LOCAL:13 = 0
+	LOCAL:14 = 0
+	LOCAL:15 = 0
+	LOCAL:16 = 0
+	LOCAL:17 = 0
+	IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / [オトコ]】
+		LOCAL:13 = MAX(LOCAL:7 / 2 + 1 + RAND:3, 2)	; 【このキャラに対するMASTER射精回数】
+		LOCAL:50 += LOCAL:13
+		LOCAL:14 = LOCAL:13 * 2 + LOCAL:7 + RAND:5	; 【[精液経験]増加量】
+		EXP:(LOCAL:2):20 += LOCAL:14	; 【対象:[精液経験]加算】
+		IF LOCAL:10 > 0	; 【非処女でＶ挿入ありの時のみ膣射経験加算】
+			LOCAL:15 = MAX(LOCAL:13 - RAND:2, 1)	; 【[膣射経験]増加量】
+			EXP:(LOCAL:2):24 += LOCAL:15	; 【対象:[膣射経験]加算】
+		ENDIF
+		IF TALENT:(LOCAL:2):151 == 0 && (EXP:(LOCAL:2):22 > 0 || ABL:(LOCAL:2):6 >= 3 || TALENT:(LOCAL:2):76)	; 【[キス未経験]なし かつ ([フェラ経験]>0 / [奉仕精神]>=3 / [淫乱])】
+			LOCAL:16 = MAX(LOCAL:7 / 2 + 1 + RAND:3, 1)	; 【[フェラ経験]増加量】
+			EXP:(LOCAL:2):22 += LOCAL:16	; 【対象:[フェラ経験]加算】
+			IF EXP:(LOCAL:2):26 > 0 || ABL:(LOCAL:2):11 >= 1 || TALENT:(LOCAL:2):76	; 【[精飲経験]>0 / [精液中毒]>=1 / [淫乱]】
+				LOCAL:17 = MAX(LOCAL:16 / 2 + RAND:2, 1)	; 【[精飲経験]増加量】
+				EXP:(LOCAL:2):26 += LOCAL:17	; 【対象:[精飲経験]加算】
+			ENDIF
+		ENDIF
+		FLAG:5040 += LOCAL:13 * (10 + RAND:6)	; 【累計総射精量加算】
+		FLAG:(5800 + NO:(LOCAL:2)) += LOCAL:13 * (10 + RAND:6)	; 【キャラ別累計射精量加算】
+	ENDIF
+
+	;3. 奉仕快楽・愛情・キス・レズ経験（キス未経験時はキス経験をブロック）
+	LOCAL:18 = LOCAL:7 + RAND:3	; 【[奉仕快楽経験]増加量】
+	EXP:(LOCAL:2):21 += LOCAL:18	; 【対象:[奉仕快楽経験]加算】
+	LOCAL:19 = MAX(LOCAL:7 / 2 + 1 + RAND:3, 1)	; 【[愛情経験]増加量】
+	EXP:(LOCAL:2):23 += LOCAL:19	; 【対象:[愛情経験]加算】
+	LOCAL:20 = 0
+	IF TALENT:(LOCAL:2):151 == 0 && TALENT:MASTER:151 == 0	; 【双方とも[キス未経験]なし】
+		LOCAL:20 = LOCAL:7 + 1 + RAND:4	; 【[キス経験]増加量】
+		EXP:(LOCAL:2):96 += LOCAL:20	; 【対象:[キス経験]加算】
+		LOCAL:51 += LOCAL:20
+	ENDIF
+	LOCAL:41 = 0
+	IF LOCAL:0 >= 2 && TALENT:(LOCAL:2):122 == 0	; 【複数人参加 かつ 非[オトコ]】
+		LOCAL:41 = LOCAL:7 * 2 + RAND:5	; 【[レズ経験]増加量】
+		EXP:(LOCAL:2):40 += LOCAL:41	; 【対象:[レズ経験]加算】
+	ENDIF
+
+	;4. 宝珠(JUEL)のランダム算出・加算
+	LOCAL:21 = LOCAL:7 * (240 + RAND:90) + RAND:120	; 【[快Ｃの珠]】
+	LOCAL:22 = (LOCAL:10 > 0) ? (LOCAL:10 * (380 + RAND:130) + RAND:150) # 0	; 【[快Ｖの珠]】
+	LOCAL:23 = (LOCAL:11 > 0) ? (LOCAL:11 * (340 + RAND:110) + RAND:120) # 0	; 【[快Ａの珠]】
+	LOCAL:24 = LOCAL:7 * (220 + RAND:80) + RAND:100	; 【[快Ｂの珠]】
+	LOCAL:25 = (LOCAL:20 > 0) ? (LOCAL:20 * (150 + RAND:60) + RAND:90) # 0	; 【[快Ｍの珠]（非キス未経験時のみ）】
+	LOCAL:26 = LOCAL:7 * (300 + RAND:100) + RAND:130	; 【[恭順の珠]】
+	LOCAL:27 = LOCAL:7 * (450 + RAND:150) + RAND:180	; 【[欲情の珠]】
+	LOCAL:28 = LOCAL:7 * (320 + RAND:110) + RAND:140	; 【[屈服の珠]】
+	LOCAL:29 = LOCAL:18 * (200 + RAND:80) + RAND:100	; 【[習得の珠]】
+	JUEL:(LOCAL:2):0 += LOCAL:21	; 【対象:[快Ｃの珠]加算】
+	JUEL:(LOCAL:2):1 += LOCAL:22	; 【対象:[快Ｖの珠]加算】
+	JUEL:(LOCAL:2):2 += LOCAL:23	; 【対象:[快Ａの珠]加算】
+	JUEL:(LOCAL:2):14 += LOCAL:24	; 【対象:[快Ｂの珠]加算】
+	JUEL:(LOCAL:2):18 += LOCAL:25	; 【対象:[快Ｍの珠]加算】
+	JUEL:(LOCAL:2):4 += LOCAL:26	; 【対象:[恭順の珠]加算】
+	JUEL:(LOCAL:2):5 += LOCAL:27	; 【対象:[欲情の珠]加算】
+	JUEL:(LOCAL:2):6 += LOCAL:28	; 【対象:[屈服の珠]加算】
+	JUEL:(LOCAL:2):7 += LOCAL:29	; 【対象:[習得の珠]加算】
+
+	;5. 好感度・余韻フラグ
+	LOCAL:40 = LOCAL:7 * (11 + RAND:5) + RAND:15	; 【[好感度]増加量】
+	CFLAG:(LOCAL:2):2 += LOCAL:40	; 【対象:[好感度]加算】
+	CFLAG:(LOCAL:2):1286 = 2 + (LOCAL:8 >= 3)	; 【対象:[行事後余韻フラグ]設定】
+	FLAG:1286 = 1	; 【行事後余韻新規付与フラグ】
+
+	;--- キャラ別の獲得経験・宝珠表示 ---
+	PRINTFORM 【%CALLNAME:(LOCAL:2)%】好感度＋{LOCAL:40}
+	SIF LOCAL:10 > 0
+		PRINTFORM  ／ %EXPNAME:0%＋{LOCAL:10}
+	SIF LOCAL:11 > 0
+		PRINTFORM  ／ %EXPNAME:1%＋{LOCAL:11}
+	PRINTFORM  ／ %EXPNAME:2%＋{LOCAL:12}
+	SIF LOCAL:14 > 0
+		PRINTFORM  ／ %EXPNAME:20%＋{LOCAL:14}
+	SIF LOCAL:15 > 0
+		PRINTFORM  ／ %EXPNAME:24%＋{LOCAL:15}
+	PRINTFORM  ／ %EXPNAME:21%＋{LOCAL:18}
+	SIF LOCAL:16 > 0
+		PRINTFORM  ／ %EXPNAME:22%＋{LOCAL:16}
+	SIF LOCAL:17 > 0
+		PRINTFORM  ／ %EXPNAME:26%＋{LOCAL:17}
+	PRINTFORM  ／ %EXPNAME:23%＋{LOCAL:19}
+	SIF LOCAL:20 > 0
+		PRINTFORM  ／ %EXPNAME:96%＋{LOCAL:20}
+	SIF LOCAL:41 > 0
+		PRINTFORM  ／ %EXPNAME:40%＋{LOCAL:41}
+	IF (FLAG:23 & 1p25) == 0	; 【コンフィグ:[詳細報告]OFF時は末尾に「宝珠獲得」のみ表示】
+		PRINT  ／ 宝珠獲得
+	ENDIF
+	PRINTL
+	IF FLAG:23 & 1p25	; 【コンフィグ:[詳細報告]ON時は獲得した各珠の内訳を表示】
+		PRINTFORM 　宝珠：%PALAMNAME:0%＋{LOCAL:21}
+		SIF LOCAL:22 > 0
+			PRINTFORM  ／ %PALAMNAME:1%＋{LOCAL:22}
+		SIF LOCAL:23 > 0
+			PRINTFORM  ／ %PALAMNAME:2%＋{LOCAL:23}
+		PRINTFORM  ／ %PALAMNAME:14%＋{LOCAL:24}
+		SIF LOCAL:25 > 0
+			PRINTFORM  ／ %PALAMNAME:18%＋{LOCAL:25}
+		PRINTFORM  ／ %PALAMNAME:4%＋{LOCAL:26}
+		PRINTFORM  ／ %PALAMNAME:5%＋{LOCAL:27}
+		PRINTFORM  ／ %PALAMNAME:6%＋{LOCAL:28}
+		PRINTFORML  ／ %PALAMNAME:7%＋{LOCAL:29}
+	ENDIF
+NEXT
+
+;--- 主人公(MASTER)の獲得経験・耐力消耗表示 ---
+IF LOCAL:50 > 0
+	EXP:MASTER:3 += LOCAL:50	; 【MASTER:[射精経験]加算】
+	CFLAG:MASTER:1150 += LOCAL:50	; 【MASTER:[主人公射精回数]加算】
+	CFLAG:MASTER:1151 += LOCAL:50 * (12 + RAND:8)	; 【MASTER:[累計射精量(ml)]加算】
+	PRINTFORM %NAME:MASTER%の%EXPNAME:3%＋{LOCAL:50}　
+ENDIF
+IF LOCAL:51 > 0
+	EXP:MASTER:96 += LOCAL:51	; 【MASTER:[キス経験]加算】
+	PRINTFORM %NAME:MASTER%の%EXPNAME:96%＋{LOCAL:51}　
+ENDIF
+IF BASE:MASTER:4 > 1	; 【MASTER:[耐力]>1（体力は減らさず耐力のみ割合消耗）】
+	LOCAL:30 = BASE:MASTER:4
+	SELECTCASE LOCAL:8
+	CASE 0
+		LOCAL:31 = LIMIT(65 + LOCAL:0 * 2 + RAND:7, 65, 79)	; 【段階0：65%～79%消耗】
+	CASE 1
+		LOCAL:31 = LIMIT(82 + LOCAL:0 + RAND:6, 82, 89)	; 【段階1：82%～89%消耗】
+	CASE 2
+		LOCAL:31 = 91 + RAND:4	; 【段階2：91%～94%消耗】
+	CASE 3
+		LOCAL:31 = 95 + RAND:3	; 【段階3：95%～97%消耗】
+	CASE 4
+		LOCAL:31 = 98 + RAND:2	; 【段階4：98%～99%消耗】
+	CASEELSE
+		LOCAL:31 = 100	; 【段階5：残り1～数点までほぼ全損】
+	ENDSELECT
+	IF LOCAL:31 >= 100
+		LOCAL:32 = 1 + RAND:3
+		SIF LOCAL:32 >= LOCAL:30
+			LOCAL:32 = 1
+	ELSEIF LOCAL:30 >= 1000000000000
+		LOCAL:32 = MAX(LOCAL:30 / 100 * (100 - LOCAL:31) + RAND:5, 1)
+	ELSE
+		LOCAL:32 = MAX(LOCAL:30 * (100 - LOCAL:31) / 100 + RAND:5, 1)
+	ENDIF
+	LOCAL:6 = MAX(LOCAL:30 - LOCAL:32, 1)
+	BASE:MASTER:4 = LOCAL:32	; 【MASTER:[耐力]更新】
+	CFLAG:MASTER:1286 = 2	; 【直後のBEGIN TURNEND(@EVENTTURNEND)での耐力自動回復を0に抑止】
+	IF LOCAL:8 >= 3 || BASE:MASTER:4 <= MAXBASE:MASTER:4 / 20
+		CFLAG:MASTER:1152 += 40 + LOCAL:8 * 20 + RAND:30	; 【MASTER:[耐力枯渇成長ポイント]加算】
+		CFLAG:MASTER:1154 += 20 + LOCAL:8 * 12 + RAND:20	; 【MASTER:[ドライ絶頂成長ポイント]加算】
+	ENDIF
+	PRINTFORML %NAME:MASTER%の耐力-{LOCAL:6}
+ELSE
+	PRINTL
+ENDIF
+WAIT
+RETURN 1
+
+;---------------------------------------------------------
+; 衰弱療養中・別れキャラのデッキ自動除外処理
+;---------------------------------------------------------
+@CHECK_DECK_RECOVERY_EXCLUSION
+LOCAL:95 = 0
+REPEAT 5
+	LOCAL = FLAG:(200 + COUNT)
+	IF LOCAL >= 0 && LOCAL < CHARANUM
+		; 別れ状態、または体力が0以下（療養中）の場合
+		IF CFLAG:LOCAL:21 == 1 || BASE:LOCAL:0 <= 0
+			PRINTFORML （%CALLNAME:LOCAL%は衰弱療養中のため、校内定期戦デッキから外れました）
+			FLAG:(200 + COUNT) = -1
+			LOCAL:95 = 1
+		ENDIF
+	ENDIF
+REND
+SIF LOCAL:95
+	FLAG:205 = 1
+RETURN LOCAL:95

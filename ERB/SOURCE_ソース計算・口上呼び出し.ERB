@@ -16,10 +16,11 @@ CALL CMD_VARIETY_TRACK
 		SIF TFLAG:44 != 0	; 【[ウフフ中]】
 			CFLAG:TARGET:1235 += 1
 		;キス（ウフフ時および日常キス）
-		IF SELECTCOM == 6 || SELECTCOM == 340 || SELECTCOM == 341 || SELECTCOM == 342	; 【コマンド:[キスする] / コマンド:[バードキス] / コマンド:[ソフトキス] / コマンド:[ディープキス]】
+		IF SELECTCOM == 6 || SELECTCOM == 60 || SELECTCOM == 120 || SELECTCOM == 124 || SELECTCOM == 323 || SELECTCOM == 340 || SELECTCOM == 341 || SELECTCOM == 342 || SELECTCOM == 399
 			CFLAG:TARGET:1231 += 1
-			SIF CFLAG:TARGET:1242 == 0	; 【[初キス記念日]==0】
-				CFLAG:TARGET:1242 = GET_CURRENT_DATE_INT()
+			CALL SET_FIRST_KISS_RECORD, TARGET, PLAYER
+			SIF TALENT:PLAYER:151 == 0
+				CALL SET_FIRST_KISS_RECORD, PLAYER, TARGET
 		ENDIF
 		;体位別結合回数
 		SIF SELECTCOM == 20	; 【コマンド:[正常位]】
@@ -86,8 +87,7 @@ IF EXP:0 && TALENT:0 && TFLAG:19	; 【[処女] / [Ｖ経験]あり / [膣性交]】
 		PRINTW 処女喪失
 	ENDIF
 	TALENT:0 = 0
-	SIF CFLAG:TARGET:1241 == 0	; 【[処女喪失記念日]==0】
-		CFLAG:TARGET:1241 = GET_CURRENT_DATE_INT()
+	CALL SET_VIRGINITY_RECORD, TARGET, PLAYER
 
 	;処女喪失フラグ(このコマンド)
 	TFLAG:3 = 1
@@ -200,6 +200,15 @@ SIF TARGET >= 0 && TFLAG:899	; 【[気絶継続中]】
 ;=============================================================================
 ;ソース計算(快楽系)
 ;=============================================================================
+;非ウフフ時のキャラ固有コマンド(COM410-414)では性感の判定を行わない（キス等の大絶頂を防止）
+IF SELECTCOM >= 410 && SELECTCOM <= 414
+	SOURCE:0 = 0
+	SOURCE:1 = 0
+	SOURCE:2 = 0
+	SOURCE:17 = 0
+	SOURCE:24 = 0
+ENDIF
+
 CALL CALC_SOURCE0
 CALL CALC_SOURCE1
 CALL CALC_SOURCE2
@@ -256,6 +265,15 @@ ENDIF
 ;-------------------------------------------------
 CALL UP_TALENT_CVA_CHECK
 
+;非ウフフ時のキャラ固有コマンド(COM410-414)では快楽系のUPを0に固定
+IF SELECTCOM >= 410 && SELECTCOM <= 414
+	UP:0 = 0
+	UP:1 = 0
+	UP:2 = 0
+	UP:14 = 0
+	UP:18 = 0
+ENDIF
+
 ;-------------------------------------------------
 ;愛液処理
 ;-------------------------------------------------
@@ -264,7 +282,17 @@ CALL LOVE_JUICE
 ;-------------------------------------------------
 ;絶頂処理
 ;-------------------------------------------------
-CALL ORGASM_PROCESS
+;非ウフフ時のキャラ固有コマンド(COM410-414)では絶頂処理を行わない（大絶頂を防止）
+IF SELECTCOM >= 410 && SELECTCOM <= 414
+	C = 0
+	V = 0
+	A = 0
+	B = 0
+	M = 0
+	VARSET NOWEX, 0
+ELSE
+	CALL ORGASM_PROCESS
+ENDIF
 
 ;-------------------------------------------------
 ;射精時のキャラ反応（実行→絶頂の後に表示）
@@ -749,6 +777,22 @@ SIF SELECTCOM != 7	; 【コマンド:[何もしない]以外】
 	PREVCOM = SELECTCOM
 
 ;-------------------------------------------------
+; レズ行為回数の記録（助手調教・レズ系コマンド）
+;-------------------------------------------------
+IF TFLAG:44 && TARGET >= 0 && SELECTCOM != 7 && SELECTCOM != 53
+	; 1. 助手調教時（助手とターゲットが共に女性）
+	IF ASSIPLAY && TALENT:TARGET:122 == 0 && TALENT:PLAYER:122 == 0
+		CALL RECORD_LESBIAN_ACT, TARGET, PLAYER, 1
+	; 2. レズプレイ(COM:65) または 3P(COM:64) で助手とターゲットが共に女性
+	ELSEIF ASSIPLAY == 0 && (SELECTCOM == 65 || SELECTCOM == 64) && ASSI >= 0 && TALENT:TARGET:122 == 0 && TALENT:ASSI:122 == 0
+		CALL RECORD_LESBIAN_ACT, TARGET, ASSI, 1
+	; 3. 女マスターによる通常調教（マスターとターゲットが共に女性）
+	ELSEIF ASSIPLAY == 0 && TALENT:TARGET:122 == 0 && TALENT:MASTER:122 == 0
+		CALL RECORD_LESBIAN_ACT, TARGET, MASTER, 1
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
 ;主人公の体力・耐力による調教の強制終了は行わない。
 ;耐力はパートナーのターン追加をONにした際の消耗リソースとして0で止める。
 ;-------------------------------------------------
@@ -945,6 +989,9 @@ ENDIF
 ;絶頂処理
 ;-------------------------------------------------
 @ORGASM_PROCESS
+;非ウフフ時のキャラ固有コマンド(COM410-414)では絶頂処理を行わない
+SIF SELECTCOM >= 410 && SELECTCOM <= 414
+	RETURN 0
 C = 0
 V = 0
 A = 0

@@ -429,8 +429,24 @@ ELSEIF TFLAG:86 == 2	;委員会室
 
 ENDIF
 
-; 誰もいなかった→ソロイベント
+; 療養中（BASE:0 <= 0）のキャラを候補から除外
+LOCAL:90 = 0
+FOR LOCAL:91, 1, LOCAL:0 + 1
+	LOCAL:92 = LOCAL:(LOCAL:91)
+	LOCAL:93 = GETCHARA(LOCAL:92)
+	; 既に加入済みで、かつ体力が0以下（療養中）の場合は不在として除外
+	IF LOCAL:93 >= 0 && BASE:(LOCAL:93):0 <= 0
+		CONTINUE
+	ENDIF
+	LOCAL:90 += 1
+	LOCAL:(LOCAL:90) = LOCAL:92
+NEXT
+LOCAL:0 = LOCAL:90
+
+; 誰もいなかった（全員療養中または無人）→空室ソロイベント
 IF LOCAL:0 == 0
+	PRINTFORML 中を覗いてみたが、誰もいないようだ……部屋は静まり返っている。
+	PRINTFORMW （所属する生徒は保健室で療養中などのため、空でした）
 	CALL LOCATION_SOLO_EVENT
 	RETURN RESULT
 ENDIF

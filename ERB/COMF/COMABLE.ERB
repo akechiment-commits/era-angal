@@ -3983,16 +3983,383 @@ RETURN 1
 ; COM280-284→bit0-4 / COM410-414→bit5-9（CSTR:80-89に対応）。
 ;------------------------------------------------------------
 @DOKUJI_COM_MIGRATE
-REPEAT CHARANUM
-	FOR LOCAL, 0, 10
-		LOCAL:1 = 80 + LOCAL
-		CSVCSTR NO:COUNT, LOCAL:1, 0
-		IF RESULTS != ""
-			SETBIT CFLAG:COUNT:69, LOCAL
-			CSTR:COUNT:(LOCAL:1) = %RESULTS%
+;全キャラの所持カードボーナス・所持枚数(CFLAG:307)・所持種数(CFLAG:308)・最高レア度(CFLAG:309)を再計算
+CALL CARD_RECALC_BONUSES
+;全キャラの固有コマンド解放ビット(CFLAG:69)を同期
+FOR LOCAL:9, 0, CHARANUM
+	CALL CARD_SYNC_CHARA_DOKUJI_COM, LOCAL:9
+NEXT
+RETURN 0
+
+;------------------------------------------------------------
+; 対象キャラの「SR以上（SR=4 / UR=5 / MR=6）」所持カード種数を取得
+; 【引数】ARG = キャラ登録番号
+; 【戻り値】RESULT = 所持しているSR以上カードの種類数
+;------------------------------------------------------------
+@GET_CHARA_SR_PLUS_CARD_COUNT, ARG
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+LOCAL:90 = NO:ARG
+SIF LOCAL:90 <= 0
+	RETURN 0
+
+LOCAL:10 = 0
+;SR(4), UR(5), MR(6)のカードプールを走査し、所持枚数(FLAG:(3000+カードID))が1以上の種数をカウント
+FOR LOCAL:1, 4, 7
+	CALL CARD_GET_CHARPOOL, LOCAL:90, LOCAL:1
+	LOCAL:20 = GLOBAL:2100
+	IF LOCAL:20 > 0
+		FOR LOCAL:2, 0, LOCAL:20
+			LOCAL:30 = GLOBAL:(2101 + LOCAL:2)
+			SIF FLAG:(3000 + LOCAL:30) > 0	; 【該当カード所持枚数>=1】
+				LOCAL:10 += 1
+		NEXT
+	ENDIF
+NEXT
+RETURN LOCAL:10
+
+;------------------------------------------------------------
+; キャラ個別の独自コマンド(COM280-284/410-414)解放状態をカード収集状況と同期
+; 【引数】ARG = キャラ登録番号
+; 【解放条件】
+;   ・SR以上所持カード種数が 1種 / 2種 / 3種 / 5種 / 7種 に達するごとに第1～第5枠を順次解放
+;   ・最高所持レア度(CFLAG:ARG:309)が MR(6) 以上、または主人公が[Debug/チート素質(TALENT:MASTER:998)]所持なら全5枠解放
+; 【設定フラグ】
+;   ・CFLAG:ARG:69 bit0～4 : ウフフ独自コマンド1～5 (COM280～284 / CSTR:80～84)
+;   ・CFLAG:ARG:69 bit5～9 : 純愛独自コマンド1～5   (COM410～414 / CSTR:85～89)
+;------------------------------------------------------------
+@CARD_SYNC_CHARA_DOKUJI_COM, ARG
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+SIF NO:ARG <= 0
+	RETURN 0
+;1. CSVからコマンド名(CSTR:80-89)を同期し、bit0-9を一旦クリア
+FOR LOCAL, 0, 10
+	LOCAL:1 = 80 + LOCAL
+	CSVCSTR NO:ARG, LOCAL:1, 0
+	IF RESULTS != ""
+		CSTR:ARG:(LOCAL:1) = %RESULTS%
+	ENDIF
+	CLEARBIT CFLAG:ARG:69, LOCAL	; 【[独自コマンド解放フラグ]該当bitクリア】
+NEXT
+;2. SR以上カード種数・MR所持に応じて各枠(0-4)を解放
+CALL GET_CHARA_SR_PLUS_CARD_COUNT, ARG
+LOCAL:10 = RESULT
+FOR LOCAL, 0, 5
+	CALL GET_DOKUJI_REQ_CARDS, LOCAL
+	IF LOCAL:10 >= RESULT || CFLAG:ARG:309 >= 6 || TALENT:MASTER:998	; 【[SR以上種数]>=必要数 / [最高レア度]>=MR(6) / MASTER:[Debug]】
+		SIF CSTR:ARG:(80 + LOCAL) != ""
+			SETBIT CFLAG:ARG:69, LOCAL	; 【ウフフ固有コマンド(COM280+LOCAL)解放】
+		SIF CSTR:ARG:(85 + LOCAL) != ""
+			SETBIT CFLAG:ARG:69, (LOCAL + 5)	; 【純愛固有コマンド(COM410+LOCAL)解放】
+	ENDIF
+NEXT
+RETURN 1
+
+;------------------------------------------------------------
+; 独自コマンド枠(0～4)の解放に必要な「SR以上」カード種数を返す
+; 【引数】ARG = スロット番号(0～4)
+; 【戻り値】枠0=1種 / 枠1=2種 / 枠2=3種 / 枠3=5種 / 枠4=7種
+;------------------------------------------------------------
+@GET_DOKUJI_REQ_CARDS, ARG
+SELECTCASE ARG
+CASE 0
+	RETURN 1
+CASE 1
+	RETURN 2
+CASE 2
+	RETURN 3
+CASE 3
+	RETURN 5
+CASEELSE
+	RETURN 7
+ENDSELECT
+
+;------------------------------------------------------------
+; 対象キャラの現在解放されている独自コマンド枠数(0～5)を返す
+; 【引数】ARG = キャラ登録番号
+; 【戻り値】RESULT = 解放済みスロット数(0～5)
+;------------------------------------------------------------
+@GET_DOKUJI_UNLOCKED_SLOTS, ARG
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+SIF CFLAG:ARG:309 >= 6 || TALENT:MASTER:998	; 【[最高レア度]>=MR(6) / MASTER:[Debug]】
+	RETURN 5
+CALL GET_CHARA_SR_PLUS_CARD_COUNT, ARG
+LOCAL:10 = RESULT
+LOCAL:1 = 0
+FOR LOCAL, 0, 5
+	CALL GET_DOKUJI_REQ_CARDS, LOCAL
+	SIF LOCAL:10 >= RESULT	; 【[SR以上種数]>=枠解放必要数】
+		LOCAL:1 += 1
+NEXT
+RETURN LOCAL:1
+
+;------------------------------------------------------------
+; 1回の調教で独自コマンドを実行できる最大回数を返す
+; 【引数】ARG = キャラ登録番号
+; 【回数条件】
+;   ・SR以上0種                        : 0回（使用不可）
+;   ・SR以上1種以上                    : 1回
+;   ・SR以上2種以上                    : 2回
+;   ・SR以上4種以上 かつ 最高レアUR(5)以上 : 3回
+;   ・最高レアMR(6)所持 または Debug素質 : 4回（上限）
+;------------------------------------------------------------
+@GET_MAX_DOKUJI_COM_USES, ARG
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+SIF TALENT:MASTER:998	; 【MASTER:[Debug]】
+	RETURN 4
+CALL GET_CHARA_SR_PLUS_CARD_COUNT, ARG
+LOCAL:0 = RESULT
+LOCAL:1 = CFLAG:ARG:309	; 【[最高所持カードレア度]】
+;SR以上カード未所持なら0回
+SIF LOCAL:0 <= 0
+	RETURN 0
+
+;基準値：SR以上1種で1回（切り札）
+LOCAL:2 = 1
+
+;第2段階：SR以上2種以上で2回
+SIF LOCAL:0 >= 2
+	LOCAL:2 = 2
+
+;第3段階：SR以上4種以上 かつ 最高レアUR(5)以上で3回
+SIF LOCAL:0 >= 4 && LOCAL:1 >= 5	; 【[SR以上種数]>=4 / [最高レア度]>=UR(5)】
+	LOCAL:2 = 3
+
+;第4段階：最高レアMR(6)所持で4回（最大上限）
+SIF (LOCAL:0 >= 6 && LOCAL:1 >= 6) || LOCAL:1 >= 6	; 【[最高レア度]>=MR(6)】
+	LOCAL:2 = 4
+
+;最大でも厳格に4回までに制限
+LOCAL:2 = LIMIT(LOCAL:2, 1, 4)
+RETURN LOCAL:2
+
+;------------------------------------------------------------
+; 対象キャラのカード収集状況に応じた独自コマンド威力ボーナス(%)を返す
+; 【引数】ARG = キャラ登録番号
+; 【算出式】
+;   ・所持カード種数ボーナス : CFLAG:ARG:308 [所持カード種数] * 5%
+;   ・所持カード総枚数ボーナス: CFLAG:ARG:307 [所持カード枚数] * 2%（最大+60%）
+;   ・最高所持レア度ボーナス : R(2)=+5% / HR(3)=+15% / SR(4)=+30% / UR(5)=+50% / MR(6)=+80%
+;   ・合計上限               : 最大 +250%
+;------------------------------------------------------------
+@GET_CARD_DOKUJI_BONUS_PCT, ARG
+SIF ARG < 0 || ARG >= CHARANUM
+	RETURN 0
+;1種につき+5%
+LOCAL:0 = CFLAG:ARG:308 * 5	; 【[所持カード種数]*5%】
+;総枚数1枚につき+2% (最大+60%)
+LOCAL:1 = CFLAG:ARG:307 * 2	; 【[所持カード枚数]*2%】
+SIF LOCAL:1 > 60
+	LOCAL:1 = 60
+;最高レア度ボーナス (R:+5%, HR:+15%, SR:+30%, UR:+50%, MR:+80%)
+SELECTCASE CFLAG:ARG:309	; 【[最高所持カードレア度]】
+CASE 2
+	LOCAL:2 = 5
+CASE 3
+	LOCAL:2 = 15
+CASE 4
+	LOCAL:2 = 30
+CASE 5
+	LOCAL:2 = 50
+CASE 6
+	LOCAL:2 = 80
+CASEELSE
+	LOCAL:2 = 0
+ENDSELECT
+LOCAL:3 = LOCAL:0 + LOCAL:1 + LOCAL:2
+SIF LOCAL:3 > 250
+	LOCAL:3 = 250
+RETURN LOCAL:3
+
+;------------------------------------------------------------
+; 独自コマンド実行時のカード連動ボーナス適用処理
+; 【引数】ARG = 0:独自ウフフ(COM280-284) / 1:独自純愛(COM410-414)
+; 【発動条件】TARGETの所持カード種数(CFLAG:TARGET:308) >= 1 または MASTER:[Debug(TALENT:MASTER:998)]
+; 【獲得ソース・経験・補正内容】
+;   1. ウフフ独自コマンド(ARG==0)時、解放段階(1～5)と感覚ABL・親密(ABL:0)・調教者技巧(ABL:PLAYER:2)に応じて快感ソースと経験を追加：
+;      ・段階1(SR以上1種～): 快Ｃ(SOURCE:0)・快Ｖ(SOURCE:1) 追加（基礎150, 感覚係数30）
+;      ・段階2(SR以上2種～): 快Ｃ(SOURCE:0)・快Ｖ(SOURCE:1)・快Ｂ(SOURCE:17) 追加（基礎200, 感覚係数50）
+;      ・段階3(SR以上3種～): 快Ｃ・快Ｖ・快Ａ(SOURCE:2)・快Ｂ 追加 ＋ Ａ経験(EXP:1)+1（基礎350, 感覚係数100）
+;      ・段階4(SR以上5種～): 全5部位[快Ｃ・快Ｖ・快Ａ・快Ｂ・快Ｍ(SOURCE:24)] 追加 ＋ Ａ経験(EXP:1)+1, キス経験(EXP:96)+1（基礎600, 感覚係数180）
+;      ・段階5(SR以上7種/MR): 全5部位[快Ｃ・快Ｖ・快Ａ・快Ｂ・快Ｍ] 最大追加 ＋ Ａ経験(EXP:1)+2, キス経験(EXP:96)+2（基礎1000, 感覚係数300）
+;   2. 好影響ソース14種（SOURCE:0,1,2,3,5,9,11,12,16,17,18,20,21,24）をカード威力ボーナス(最大+250%)で乗算増幅
+;   3. 最高レア度SR(4)以上所持時：
+;      ・体力消費(LOSEBASE:0)・気力消費(LOSEBASE:1) を MIN(最高レア度*4, 25)% 軽減
+;      ・ウフフ時さらに 情愛(SOURCE:3)+=400*レア度、欲情追加(SOURCE:11)+=500*レア度
+;   4. ムード(TFLAG:37) および 好感度ボーナス(TFLAG:30) を威力ボーナスに応じて加算
+;------------------------------------------------------------
+@APPLY_CARD_DOKUJI_BONUS, ARG
+;カード所持がない場合は処理なし
+SIF CFLAG:TARGET:308 <= 0 && TALENT:MASTER:998 == 0	; 【TARGET:[所持カード種数]<=0 / MASTER:[Debug]なし】
+	RETURN 0
+
+CALL GET_CARD_DOKUJI_BONUS_PCT, TARGET
+LOCAL:0 = RESULT
+
+;--- ウフフ独自コマンド（ARG == 0）時の快感部位拡張＆絶頂ブースト ---
+IF ARG == 0
+	;解放段階（スロット数：1～5）の判定
+	CALL GET_DOKUJI_UNLOCKED_SLOTS, TARGET
+	LOCAL:10 = RESULT
+	;最高レアMR所持またはチート素質なら無条件で第5段階（極限覚醒）
+	SIF CFLAG:TARGET:309 >= 6 || TALENT:MASTER:998	; 【TARGET:[最高レア度]>=MR(6) / MASTER:[Debug]】
+		LOCAL:10 = 5
+	SIF LOCAL:10 < 1
+		LOCAL:10 = 1
+
+	;親密・技巧による快感増幅倍率の算出
+	;親密補正：(ABL:TARGET:0 * 20 + 100)%
+	LOCAL:11 = ABL:TARGET:0 * 20 + 100	; 【TARGET:[親密]補正(%)】
+	;技巧補正：(ABL:PLAYER:2 * 10 + 100)%
+	LOCAL:12 = ABL:PLAYER:2 * 10 + 100	; 【PLAYER:[技巧]補正(%)】
+
+	;段階(LOCAL:10)に応じた基礎値と能力係数を決定
+	;段階1(SR以上1種～): 基礎150, 係数30 (2部位: 快C・快V)
+	;段階2(SR以上2種～): 基礎200, 係数50 (3部位: 快C・快V・快B)
+	;段階3(SR以上3種～): 基礎350, 係数100 (4部位: 快C・快V・快A・快B)
+	;段階4(SR以上5種～): 基礎600, 係数180 (5部位: 快C・快V・快A・快B・快M)
+	;段階5(SR以上7種/MR): 基礎1000, 係数300 (全5部位最高効率)
+	SELECTCASE LOCAL:10
+	CASE 1
+		LOCAL:30 = 150
+		LOCAL:31 = 30
+	CASE 2
+		LOCAL:30 = 200
+		LOCAL:31 = 50
+	CASE 3
+		LOCAL:30 = 350
+		LOCAL:31 = 100
+	CASE 4
+		LOCAL:30 = 600
+		LOCAL:31 = 180
+	CASE 5
+		LOCAL:30 = 1000
+		LOCAL:31 = 300
+	ENDSELECT
+
+	;各部位の快感量をキャラの感覚能力(ABL)と親密・技巧に基づいて算出
+	;快C（ABL:3: Ｃ感覚）
+	LOCAL:20 = (LOCAL:30 + ABL:TARGET:3 * LOCAL:31) * LOCAL:11 / 100 * LOCAL:12 / 100	; 【TARGET:[Ｃ感覚]による快Ｃ加算量】
+	;快V（ABL:4: Ｖ感覚）
+	LOCAL:21 = (LOCAL:30 + ABL:TARGET:4 * LOCAL:31) * LOCAL:11 / 100 * LOCAL:12 / 100	; 【TARGET:[Ｖ感覚]による快Ｖ加算量】
+	;快A（ABL:5: Ａ感覚）
+	LOCAL:22 = (LOCAL:30 + ABL:TARGET:5 * LOCAL:31) * LOCAL:11 / 100 * LOCAL:12 / 100	; 【TARGET:[Ａ感覚]による快Ａ加算量】
+	;快B（ABL:14: Ｂ感覚）
+	LOCAL:23 = (LOCAL:30 + ABL:TARGET:14 * LOCAL:31) * LOCAL:11 / 100 * LOCAL:12 / 100	; 【TARGET:[Ｂ感覚]による快Ｂ加算量】
+	;快M（ABL:17: Ｍ感覚）
+	LOCAL:24 = (LOCAL:30 + ABL:TARGET:17 * LOCAL:31) * LOCAL:11 / 100 * LOCAL:12 / 100	; 【TARGET:[Ｍ感覚]による快Ｍ加算量】
+
+	;段階に応じた快感部位の追加（処女・Ａ未開発・キス未経験時は該当部位・経験をブロックして他部位へ振り替え）
+	SOURCE:0 += LOCAL:20	; 【[快Ｃ]加算（全段階共通）】
+	;快V：非処女(TALENT:0==0) かつ Ｖ経験あり(EXP:0>0) かつ 非オトコ(TALENT:122==0) の場合のみ加算、それ以外は快C・快Bへ振り替え
+	IF TALENT:TARGET:0 == 0 && EXP:TARGET:0 > 0 && TALENT:TARGET:122 == 0	; 【非[処女] かつ [Ｖ経験]>0 かつ 非[オトコ]】
+		SOURCE:1 += LOCAL:21	; 【[快Ｖ]加算】
+	ELSE
+		SOURCE:0 += LOCAL:21 / 2	; 【処女・Ｖ未経験時は[快Ｃ]へ振り替え】
+		SOURCE:17 += LOCAL:21 / 2	; 【処女・Ｖ未経験時は[快Ｂ]へ振り替え】
+	ENDIF
+	;第2段階以上：快B加算
+	IF LOCAL:10 >= 2
+		SOURCE:17 += LOCAL:23	; 【[快Ｂ]加算】
+	ENDIF
+	;第3段階以上：Ａ開発済み（Ａ経験20以上 かつ (Ａ感覚Lv3以上 または [尻穴狂い])）の場合のみ快A・A経験を加算
+	IF LOCAL:10 >= 3
+		IF EXP:TARGET:1 >= 20 && (ABL:TARGET:5 >= 3 || TALENT:TARGET:77)	; 【[Ａ経験]>=20 かつ ([Ａ感覚]>=3 / [尻穴狂い])】
+			SOURCE:2 += LOCAL:22	; 【[快Ａ]加算】
+			EXP:1 += 1 + (LOCAL:10 >= 5)	; 【[Ａ経験]加算】
+		ELSE
+			SOURCE:0 += LOCAL:22 / 2	; 【Ａ未開発時は[快Ｃ]へ振り替え（Ａ経験は加算しない）】
+			SOURCE:17 += LOCAL:22 / 2	; 【Ａ未開発時は[快Ｂ]へ振り替え】
 		ENDIF
-	NEXT
-REND
+	ENDIF
+	;第4段階以上：双方とも[キス未経験(TALENT:151)]がない場合のみ快M・キス経験を加算
+	IF LOCAL:10 >= 4
+		IF TALENT:TARGET:151 == 0 && TALENT:PLAYER:151 == 0	; 【TARGET・PLAYERともに[キス未経験]なし】
+			SOURCE:24 += LOCAL:24	; 【[快Ｍ]加算】
+			EXP:96 += 1 + (LOCAL:10 >= 5)	; 【TARGET:[キス経験]加算】
+			EXP:PLAYER:96 += 1 + (LOCAL:10 >= 5)	; 【PLAYER:[キス経験]加算】
+		ELSE
+			SOURCE:3 += LOCAL:24	; 【キス未経験時は[情愛]へ振り替え（キス経験は加算しない）】
+		ENDIF
+	ENDIF
+ENDIF
+
+;各好影響ソースを (100 + LOCAL:0)% に増幅（威力ボーナス最大+250%）
+SOURCE:0 = SOURCE:0 * (100 + LOCAL:0) / 100	; 【[快Ｃ]増幅】
+SOURCE:1 = SOURCE:1 * (100 + LOCAL:0) / 100	; 【[快Ｖ]増幅】
+SOURCE:2 = SOURCE:2 * (100 + LOCAL:0) / 100	; 【[快Ａ]増幅】
+SOURCE:3 = SOURCE:3 * (100 + LOCAL:0) / 100	; 【[情愛]増幅】
+SOURCE:5 = SOURCE:5 * (100 + LOCAL:0) / 100	; 【[達成感]増幅】
+SOURCE:9 = SOURCE:9 * (100 + LOCAL:0) / 100	; 【[接触]増幅】
+SOURCE:11 = SOURCE:11 * (100 + LOCAL:0) / 100	; 【[欲情追加]増幅】
+SOURCE:12 = SOURCE:12 * (100 + LOCAL:0) / 100	; 【[露出]増幅】
+SOURCE:16 = SOURCE:16 * (100 + LOCAL:0) / 100	; 【[恭順追加]増幅】
+SOURCE:17 = SOURCE:17 * (100 + LOCAL:0) / 100	; 【[快Ｂ]増幅】
+SOURCE:18 = SOURCE:18 * (100 + LOCAL:0) / 100	; 【[歓楽]増幅】
+SOURCE:20 = SOURCE:20 * (100 + LOCAL:0) / 100	; 【[家務]増幅】
+SOURCE:21 = SOURCE:21 * (100 + LOCAL:0) / 100	; 【[征服]増幅】
+SOURCE:24 = SOURCE:24 * (100 + LOCAL:0) / 100	; 【[快Ｍ]増幅】
+
+;非ウフフ時のキャラ固有コマンド（ARG == 1）では性感（快楽系ソース）を完全に遮断
+IF ARG == 1
+	SOURCE:0 = 0
+	SOURCE:1 = 0
+	SOURCE:2 = 0
+	SOURCE:17 = 0
+	SOURCE:24 = 0
+ENDIF
+
+;SR以上所持時は体力・気力消費を軽減し、ウフフ時は情愛・欲情をさらに上乗せ
+IF CFLAG:TARGET:309 >= 4	; 【TARGET:[最高所持カードレア度]>=SR(4)】
+	LOCAL:6 = MIN(CFLAG:TARGET:309 * 4, 25)
+	LOSEBASE:0 = LOSEBASE:0 * (100 - LOCAL:6) / 100	; 【[体力消費]軽減】
+	LOSEBASE:1 = LOSEBASE:1 * (100 - LOCAL:6) / 100	; 【[気力消費]軽減】
+	IF ARG == 0
+		SOURCE:3 += 400 * CFLAG:TARGET:309	; 【[情愛]追加ボーナス】
+		SOURCE:11 += 500 * CFLAG:TARGET:309	; 【[欲情追加]追加ボーナス】
+	ENDIF
+ENDIF
+
+;ムード(TFLAG:37)と好感度ボーナス(TFLAG:30)を加算
+IF ARG == 0
+	LOCAL:4 = 5 + LOCAL:0 / 15
+	LOCAL:5 = 2 + LOCAL:0 / 20
+ELSE
+	LOCAL:4 = 8 + LOCAL:0 / 12
+	LOCAL:5 = 3 + LOCAL:0 / 15
+ENDIF
+TFLAG:37 += LOCAL:4	; 【[ムード]加算】
+TFLAG:30 += LOCAL:5	; 【[好感度ボーナス]加算】
+
+;最高レア度表記
+SELECTCASE CFLAG:TARGET:309
+CASE 6
+	LOCALS = MR
+CASE 5
+	LOCALS = UR
+CASE 4
+	LOCALS = SR
+CASE 3
+	LOCALS = HR
+CASE 2
+	LOCALS = R
+CASEELSE
+	LOCALS = N
+ENDSELECT
+
+CALL GET_MAX_DOKUJI_COM_USES, TARGET
+LOCAL:7 = RESULT
+LOCAL:8 = MAX(LOCAL:7 - TFLAG:独自コマンド使用済, 0)
+
+SETCOLOR 255, 170, 220
+CALL GET_CHARA_SR_PLUS_CARD_COUNT, TARGET
+LOCAL:9 = RESULT
+PRINTFORML ＜カード絆ボーナス（全{CFLAG:TARGET:308}種/SR以上{LOCAL:9}種/最高[%LOCALS%]）：威力+{LOCAL:0}\%　ムード+{LOCAL:4}　残り実行可能：{LOCAL:8}/{LOCAL:7}回＞
+RESETCOLOR
+RETURN 1
 
 ;-------------------------------------------------
 ;気絶時実行可能コマンド判定（ウフフ中のみ、物理的現実性を考慮した判定）

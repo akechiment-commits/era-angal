@@ -84,6 +84,9 @@ ELSEIF FLAG:5 != 9 && FLAG:5 != 10 && FLAG:24 <= 3
 	LOCAL:6 = DAY % 10 + 1
 	SIF TARGET < 0
 		TARGET = 1
+	;旧セーブで周回前の月が残っている場合も、現在月へ補正する。
+	SIF FLAG:207 > DAY / 10
+		FLAG:207 = DAY / 10
 	;月次定期戦（毎ターン通るここで確実に発火）
 	SIF DAY / 10 > FLAG:207
 		CALL MONTHLY_DECK_RESULT
@@ -408,18 +411,7 @@ ENDIF
 PRINTL
 DRAWLINE
 
-;解禁処理
-IF FLAG:1071 == 0
-	FLAG:1071 = 2
-	SETCOLOR 255, 200, 100
-	PRINTFORML 　※ 謎の転校生「あんず」がパートナー候補に現れた
-	RESETCOLOR
-ENDIF
-IF (FLAG:28 & 1) == 0
-	FLAG:28 |= 1
-	PRINTFORML 　※ 強くてニューゲームが解禁されました
-ENDIF
-PRINTL
+CALL UNLOCK_ENDING_REWARDS
 
 PRINTFORML このエンディングを見た後、どうしますか？
 PRINTFORML [0] 周回プレイ（1年生4月へ・データ全引継ぎ）
@@ -471,6 +463,8 @@ RETURN 1
 ; 周回処理（全データ引継ぎ・1年生4月へ）
 ;--------------------------------------------------
 @ENDING_NEW_CYCLE
+;巻き戻す前の未補充分を受け取り、在庫自体は引き継ぐ。
+CALL TICKET_BUDGET_CHECK
 PRINTFORMW それでは1年生の4月に戻ります。これまでのデータは全て引き継がれます。
 DAY = 0
 TIME = 0
@@ -478,6 +472,8 @@ FLAG:24 = 1	;1年生に戻る
 FLAG:25 = 0
 FLAG:26 += 1	;周回カウンター
 FLAG:27 = 0	;試験ビットマスクリセット
+FLAG:207 = 0	;月次定期戦を新しい周回の4月へ戻す
+FLAG:15081 = 1	;在庫を保持したまま、補充済み月だけ4月へ戻す
 FLAG:15050 = 0	;すごろく盤面位置リセット
 FLAG:67 = 0	;イベントボード月次検出リセット
 FLAG:69 = 0	;イベント通知リセット
@@ -643,23 +639,11 @@ PRINTL
 PRINTFORMW 達成愛好人数：{HAREM_COUNT}名
 PRINTL
 
-; クリアフラグ設定
-FLAG:28 |= 1
+;受取履歴の旧セーブ移行は、今回のクリアフラグを立てる前に行う。
+CALL HAREM_ENDING_REWARD
 FLAG:46 |= 4
-
-; 特典付与
-MONEY += HAREM_COUNT * 100000
-FOR CCOUNT, 0, HAREM_COUNT
-	CID = HAREM_LIST:CCOUNT
-	CFLAG:CID:2 += 500
-NEXT
-
-SETCOLOR 255, 200, 100
-PRINTFORML 【ハーレムエンド達成特典】：
-PRINTFORML  ・全愛好生徒への好感度 +500
-PRINTFORML  ・特別報奨金 {HAREM_COUNT * 100000}円 を獲得！
+CALL UNLOCK_ENDING_REWARDS
 PRINTFORML  ・クリア実績【ハーレムエンド】が記録されました。
-RESETCOLOR
 PRINTL
 DRAWLINE
 PRINTL
@@ -681,3 +665,59 @@ ELSE
 ENDIF
 
 RETURN 0
+
+@UNLOCK_ENDING_REWARDS
+;解禁処理
+IF FLAG:1071 == 0
+	FLAG:1071 = 2
+	SETCOLOR 255, 200, 100
+	PRINTFORML 　※ 謎の転校生「あんず」がパートナー候補に現れた
+	RESETCOLOR
+ENDIF
+IF (FLAG:28 & 1) == 0
+	FLAG:28 |= 1
+	PRINTFORML 　※ 強くてニューゲームが解禁されました
+ENDIF
+PRINTL
+
+RETURN 1
+
+;カードセレクトチケットは人数の節目ごとに一度だけ支給する。
+;FLAG:15089のbit0～7 = 5・10・20・30・40・50・60・70名の受取済み。
+;旧金銭・好感度報酬の履歴は保持するが、新しいチケットの受取判定には使用しない。
+@HAREM_ENDING_REWARD
+#DIM DYNAMIC CID, 1
+#DIM DYNAMIC HAREM_COUNT, 1
+#DIM DYNAMIC STEP, 1
+#DIM DYNAMIC MILESTONE, 1
+#DIM DYNAMIC REWARD_BIT, 1
+#DIM DYNAMIC REWARD_COUNT, 1
+HAREM_COUNT = 0
+REWARD_COUNT = 0
+REWARD_BIT = 1
+FOR CID, 1, CHARANUM
+	SIF TALENT:CID:85 || TALENT:CID:88 || TALENT:CID:89 || TALENT:CID:153
+		HAREM_COUNT += 1
+NEXT
+SETCOLOR 255, 200, 100
+PRINTFORML 【ハーレムエンド達成特典】：
+FOR STEP, 0, 8
+	MILESTONE = 5
+	SIF STEP > 0
+		MILESTONE = STEP * 10
+	IF HAREM_COUNT >= MILESTONE && (FLAG:15089 & REWARD_BIT) == 0
+		FLAG:15089 |= REWARD_BIT
+		REWARD_COUNT += 1
+		PRINTFORML  ・{MILESTONE}名達成：カードセレクトチケット1枚！
+	ENDIF
+	REWARD_BIT *= 2
+NEXT
+ITEM:96 += REWARD_COUNT
+IF REWARD_COUNT > 0
+	PRINTFORML カードセレクトチケットを計{REWARD_COUNT}枚入手しました。（所持{ITEM:96}枚）
+	PRINTFORML ガチャ画面から、好きな未所持カードを選んで入手できます。
+ELSE
+	PRINTFORML 今回の追加報酬はありません。（5名・10名・以降10名ごとに各1枚、各節目で一度限り）
+ENDIF
+RESETCOLOR
+RETURN REWARD_COUNT

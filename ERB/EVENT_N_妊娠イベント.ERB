@@ -188,6 +188,47 @@ SIF RAND:LOCAL < X
 	CFLAG:T:104 = P
 
 ;---------------------------------------------------------
+;待機中動作専用の受精チェック関数
+;普段の調教より低確率（危険日で約3%～5%、通常日は約0.3%～0.5%）に設定
+;T: 判定対象キャラ, P: 種提供者フラグ(1～3), ARG: 行為回数(SまたはN)
+;---------------------------------------------------------
+@NAKADASHI_CHECK_TAIKI, ARG = 10
+;避妊薬使用中なら受精不可
+SIF TEQUIP:T:87
+	RETURN 0
+;既に妊娠確定済みなら戻り
+SIF CFLAG:T:104
+	RETURN 0
+
+;排卵誘発剤使用中: 元仕様通り確実に妊娠
+IF TEQUIP:T:86
+	CFLAG:T:104 = P
+	RETURN 0
+ENDIF
+
+SIF ARG <= 0
+	ARG = 1
+
+LOCAL = 0
+;危険日: 100%確定を緩和し、通常日の約2.5～3倍（約10%～15%）に設定
+IF TALENT:T:137
+	LOCAL = 70 + (ARG * 13 / 10)
+;通常日: 元仕様通り蓄積量1回につき0.1%加算（千分率: ARG/1000 = 約1.5%～6%）
+ELSE
+	LOCAL = ARG
+ENDIF
+
+;小柄体型補正（受胎率75%）
+SIF TALENT:T:100
+	LOCAL = LOCAL * 3 / 4
+
+;千分率判定 (RAND:1000 < LOCAL)
+SIF RAND:1000 < LOCAL
+	CFLAG:T:104 = P
+
+RETURN 0
+
+;---------------------------------------------------------
 ;妊娠処理関数郡
 ;---------------------------------------------------------
 
@@ -196,8 +237,18 @@ SIF RAND:LOCAL < X
 ;CFLAG:108→素質の消滅をカウントする変数
 IF TARGET != -1
 	IF TALENT:TARGET:134 == 0 && CFLAG:TARGET:104 == 1	; 【TARGET:[妊娠]なし / TARGET:[種提供者]==1】
-		PRINTFORMW %CALLNAME:TARGET%の様子がおかしい…
-		PRINTFORML %CALLNAME:TARGET%は子供を身篭った様だ
+		IF TFLAG:117 || TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0
+			IF TFLAG:116 == 0
+				PRINTFORMW 意識を取り戻した%CALLNAME:TARGET%は、下腹部の身に覚えのない重苦しさと身体の異変に気づいて愕然と立ち尽くした…
+				PRINTFORML なんと%CALLNAME:TARGET%は、意識を失っている間に%CALLNAME:MASTER%の子供を身籠っていたようだ…
+			ELSE
+				PRINTFORMW 激しい交わりの果てに意識を失っていた%CALLNAME:TARGET%は、目を覚ますと下腹部に残る濃密な熱と身体の異変に気づいた…
+				PRINTFORML どうやら%CALLNAME:TARGET%は、意識が途切れるほど激しい逢瀬の末に%CALLNAME:MASTER%の子供を身籠ったようだ…
+			ENDIF
+		ELSE
+			PRINTFORMW %CALLNAME:TARGET%の様子がおかしい…
+			PRINTFORML %CALLNAME:TARGET%は子供を身篭った様だ
+		ENDIF
 		CALL PREGNANCY_FEEL, TARGET, MASTER, 1
 		PRINTFORMW %NAME:TARGET%は[%TALENTNAME:134%]した
 		TALENT:TARGET:134 = 1
@@ -248,8 +299,18 @@ ENDIF
 ;助手と奴隷がいるか
 IF ASSI >= 1 && TARGET != -1
 	IF TALENT:TARGET:134 == 0 && CFLAG:TARGET:104 == 2	; 【TARGET:[妊娠]なし / TARGET:[種提供者]==2】
-		PRINTFORMW %CALLNAME:TARGET%の様子がおかしい…
-		PRINTFORML %CALLNAME:TARGET%は%CALLNAME:ASSI%の子供を身篭った様だ
+		IF TFLAG:117 || TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0
+			IF TFLAG:116 == 0
+				PRINTFORMW 意識を取り戻した%CALLNAME:TARGET%は、下腹部の身に覚えのない重苦しさと身体の異変に気づいて愕然と立ち尽くした…
+				PRINTFORML なんと%CALLNAME:TARGET%は、意識を失っている間に%CALLNAME:ASSI%の子供を身籠っていたようだ…
+			ELSE
+				PRINTFORMW 激しい交わりの果てに意識を失っていた%CALLNAME:TARGET%は、目を覚ますと下腹部に残る濃密な熱と身体の異変に気づいた…
+				PRINTFORML どうやら%CALLNAME:TARGET%は、意識が途切れるほど激しい交わりの末に%CALLNAME:ASSI%の子供を身籠ったようだ…
+			ENDIF
+		ELSE
+			PRINTFORMW %CALLNAME:TARGET%の様子がおかしい…
+			PRINTFORML %CALLNAME:TARGET%は%CALLNAME:ASSI%の子供を身篭った様だ
+		ENDIF
 		CALL PREGNANCY_FEEL, TARGET, ASSI, 0
 		PRINTFORMW %NAME:TARGET%は[%TALENTNAME:134%]した
 		TALENT:TARGET:134 = 1
@@ -259,15 +320,19 @@ IF ASSI >= 1 && TARGET != -1
 
 		;妊娠時の口上をイベント口上でやってみるのはいいとして分岐どうしよう…
 		;基本的には口上側で分岐してもらう方向で
+		LOCAL:101 = PLAYER
+		PLAYER = ASSI
 		TFLAG:13 = 20
 		CALL SELF_KOJO
 		;妊娠させた助手＝女性父の認知口上を呼び出す(TFLAG:13=98)
 		;口上用にターゲットを待避してから助手の番号を入れる
 		Z = TARGET
 		TARGET = ASSI
+		PLAYER = Z
 		TFLAG:13 = 98
 		CALL SELF_KOJO
 		TARGET = Z
+		PLAYER = LOCAL:101
 	ENDIF
 ENDIF
 
@@ -293,14 +358,18 @@ IF ASSI >= 1 && TARGET != -1
 		
 		;妊娠させられた助手の口上を呼び出す
 		;口上用にターゲットを待避してから助手の番号を入れる
+		LOCAL:101 = PLAYER
+		PLAYER = TARGET
 		Z = TARGET
 		TARGET = ASSI
 		TFLAG:13 = 20
 		CALL SELF_KOJO
 		TARGET = Z
 		;妊娠させたパートナー＝女性父の認知口上(TFLAG:13=98)
+		PLAYER = ASSI
 		TFLAG:13 = 98
 		CALL SELF_KOJO
+		PLAYER = LOCAL:101
 	ENDIF
 ENDIF
 
@@ -322,13 +391,17 @@ IF TARGET != -1
 
 		;妊娠時の口上をイベント口上でやってみるのはいいとして分岐どうしよう…
 		;基本的には口上側で分岐してもらう方向で
+		LOCAL:101 = PLAYER
+		PLAYER = TARGET
 		Z = TARGET
 		TARGET = MASTER
 		TFLAG:13 = 20
 		CALL SELF_KOJO
 		TARGET = Z
+		PLAYER = MASTER
 		TFLAG:13 = 98
 		CALL SELF_KOJO
+		PLAYER = LOCAL:101
 	ENDIF
 ENDIF
 
@@ -343,6 +416,66 @@ ENDIF
 MOM = ARG
 DAD = ARG:1
 LOVED = ARG:2
+;意識喪失・気絶が絡む調教での妊娠発覚時は専用地の文へ分岐（意識を失う前の性交有無 TFLAG:116 で区別）
+IF MOM == TARGET && (TFLAG:117 || TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0)
+	CALL PREGNANCY_FEEL_UNCONSCIOUS, MOM, DAD, LOVED
+	RETURN
+;女性同士による受胎・妊娠発覚の地の文
+IF DAD >= 0 && TALENT:DAD:122 == 0
+	; 1. レズグッド条件（レズっ気・レズ中毒十分で心からの歓喜）
+	IF (ABL:MOM:9 >= 5 && ABL:MOM:12 >= 5) || (ABL:MOM:9 >= 6 && ABL:MOM:12 >= 3 && (TALENT:MOM:85 == 0 || TALENT:MOM:76 || RELATION:MOM:(NO:DAD) >= 150))
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML %CALLNAME:DAD%との愛撫の果てに命が宿ったと知り、%CALLNAME:MOM%は頬を染めて愛おしそうにお腹を撫でた……
+		CASE 1
+			PRINTFORML 女同士の交わりで%CALLNAME:DAD%の子を身に宿せた奇跡に、%CALLNAME:MOM%は幸福そうに微笑んだ……
+		CASEELSE
+			PRINTFORML %CALLNAME:DAD%と重ね合った温もりが実を結んだ歓喜に、%CALLNAME:MOM%は蕩けるような笑みを浮かべた……
+		ENDSELECT
+	; 2. マスターへの恋慕・想い人あり（愛する人への想いと、女同士で孕んだ事実との葛藤）
+	ELSEIF TALENT:MOM:85 || TALENT:MOM:153 || TALENT:MOM:89 || TALENT:MOM:88
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML %CALLNAME:MASTER%への想いを胸に抱えながらも、%CALLNAME:DAD%との間に宿った命に%CALLNAME:MOM%は複雑な面持ちでお腹に触れた……
+		CASE 1
+			PRINTFORML %CALLNAME:MOM%は女同士の交わりで%CALLNAME:DAD%の子を宿した事実に、戸惑いを隠せない様子だ……
+		CASEELSE
+			PRINTFORML %CALLNAME:DAD%との熱情の果てにお腹に宿った新しい生命を前に、%CALLNAME:MOM%は揺れる胸中を抱えながら腹を撫でた……
+		ENDSELECT
+	; 3. 淫乱・快楽中毒（牝同士の乱れの果ての受胎に背徳的な悦び）
+	ELSEIF TALENT:MOM:76 || TALENT:MOM:33 || TALENT:MOM:79
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 女同士の激しい乱れの果てに孕んでしまった事実に、%CALLNAME:MOM%は背徳の歓喜に身を震わせた……
+		CASE 1
+			PRINTFORML 牝同士で交わり合って子を宿す倒錯した喜びに、%CALLNAME:MOM%は艶めいた吐息を漏らした……
+		CASEELSE
+			PRINTFORML %CALLNAME:MOM%は女同士の悦びの果てに受胎した快感に酔いしれ、蕩けた表情で腹をさすった……
+		ENDSELECT
+	; 4. 貞操観念（女同士での予期せぬ懐妊への狼狽）
+	ELSEIF TALENT:MOM:30
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 女同士の戯れであったはずの交わりから命が宿ったことに、%CALLNAME:MOM%は青ざめて震えた……
+		CASE 1
+			PRINTFORML %CALLNAME:MOM%は女同士で子を宿したという信じがたい現実に、ただ呆然と立ち尽くしている……
+		CASEELSE
+			PRINTFORML 想像もしていなかった事態に、%CALLNAME:MOM%は混乱と困惑に顔を覆った……
+		ENDSELECT
+	; 5. 一般（戸惑いと生命の受容）
+	ELSE
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 女同士の交わりで子を宿したという事実に、%CALLNAME:MOM%は戸惑いながらもお腹へと手を当てた……
+		CASE 1
+			PRINTFORML %CALLNAME:MOM%は身体に起きた信じがたい変化に驚きつつも、そっと自らのお腹を撫でた……
+		CASEELSE
+			PRINTFORML %CALLNAME:DAD%との間に宿った小さな命の鼓動を感じ、%CALLNAME:MOM%は息を呑んだ……
+		ENDSELECT
+	ENDIF
+	RETURN
+ENDIF
+ENDIF
 ;愛する人の子(想い人が父)
 IF LOVED && (TALENT:MOM:85 || TALENT:MOM:153 || TALENT:MOM:89 || TALENT:MOM:88)	; 【MOM:[恋慕] / MOM:[恋人] / MOM:[相愛] / MOM:[親愛]】
 	SELECTCASE RAND:3
@@ -402,6 +535,210 @@ RETURN
 ;体力上限を減らす
 ;体力が上限超えることもあるので、体力501以上なら500にする
 ;---------------------------------------------------------
+;---------------------------------------------------------
+; 意識喪失・気絶が絡む調教での妊娠発覚時の心情描写 (@PREGNANCY_FEEL_UNCONSCIOUS)
+;---------------------------------------------------------
+; 【分岐条件】
+;   ・パターンA（TFLAG:116 == 0：調教中、意識を失う前にＶ性交していなかった場合）
+;       意識がある間は一度も本番行為をしていなかったにもかかわらず妊娠が発覚。
+;       さらに無自覚処女喪失未発覚(CFLAG:MOM:1245 == 1)の場合は、純潔喪失と妊娠を同時に突きつけられる。
+;   ・パターンB（TFLAG:116 == 1：調教中、意識を失う前にＶ性交していた場合）
+;       意識を失う前に交わっていた記憶があり、気絶するほど激しい逢瀬（および気絶後の追撃中出し TFLAG:117）の
+;       末に身籠ったことを悟る。
+;---------------------------------------------------------
+@PREGNANCY_FEEL_UNCONSCIOUS, ARG, ARG:1, ARG:2
+#DIM MOM
+#DIM DAD
+#DIM LOVED
+#DIM PENALTY
+MOM = ARG
+DAD = ARG:1
+LOVED = ARG:2
+PENALTY = 0
+
+;=========================================================
+; 【パターンA】意識を失う前に性交していなかった場合 (TFLAG:116 == 0)
+;=========================================================
+IF TFLAG:116 == 0
+	;--- A-0. 無自覚処女喪失(CFLAG:1245 == 1)が未発覚のまま妊娠まで発覚した場合 ---
+	IF CFLAG:MOM:1245 == 1
+		CFLAG:MOM:1245 = 2
+		IF LOVED && (TALENT:MOM:88 || TALENT:MOM:89 || TALENT:MOM:85 || TALENT:MOM:153 || TALENT:MOM:180)
+			PRINTFORML まだ純潔のはずだった%CALLNAME:MOM%は、交わった記憶がないまま胎内に新しい命が宿っている事実に目を丸くした…
+			PRINTFORML 気を失っている間に%CALLNAME:DAD%に初めてを奪われ、そのまま子種まで注ぎ込まれていたのだと悟り、%CALLNAME:MOM%は涙目になりながらも震える手で下腹を撫でた…
+		ELSE
+			PRINTFORML 処女のはずの自分の胎内に身に覚えのない命が宿っているというあり得ない現実に、%CALLNAME:MOM%は全身の血の気を引かせた…
+			PRINTFORML 意識を失っている間に純潔を散らされたばかりか、一方的に種付けされて身籠らされていたのだと気づき、%CALLNAME:MOM%は蒼白になって下腹を抱え込んだ…
+			PENALTY = 2000 + RAND:501
+			SIF TALENT:MOM:30	; 貞操観念
+				PENALTY += 500
+			CFLAG:MOM:2 -= PENALTY
+			PRINTFORML 意識のないまま純潔を奪われて身籠らされた絶望により、好感度が大幅に低下した…！
+			PRINTFORML 好感度大幅低下:{PENALTY}
+			PRINTFORMW 好感度合計:{CFLAG:MOM:2}
+		ENDIF
+		RETURN
+	ENDIF
+
+	;--- A-1. 親愛・相愛 かつ想い人の子 ---
+	IF LOVED && (TALENT:MOM:88 || TALENT:MOM:89)
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識を失う前には最後まで交わっていなかったはずなのに身籠っていることに気づき、%CALLNAME:MOM%はぱちくりと目を瞬かせた…
+			PRINTFORML 自分が気を失っている間に%CALLNAME:DAD%が我慢できずに種付けしたのだと悟ると、%CALLNAME:MOM%は呆れたように頬を染めながらも愛おしげに下腹をさすった…
+		CASE 1
+			PRINTFORML 記憶にないまま胎内に宿った%CALLNAME:DAD%との新しい命を感じ取り、%CALLNAME:MOM%は寝込みを襲われて孕まされた事実に顔を真っ赤にした…
+			PRINTFORML それでも最愛の人の子を授かった喜びが胸を満たし、%CALLNAME:MOM%は甘い吐息とともにそっとお腹へ手を添えた…
+		CASEELSE
+			PRINTFORML 意識を手放す前には挿入されていなかったはずの下腹に確かな命の鼓動を感じ、%CALLNAME:MOM%は気を失った自分の身体に%CALLNAME:DAD%がたっぷりと精を注ぎ込んだことを知った…
+			PRINTFORML 意識がない間まで独占されていたことへの気恥ずかしさと幸福感に、%CALLNAME:MOM%は満ち足りた笑みを浮かべた…
+		ENDSELECT
+	;--- A-2. 恋慕・恋人 かつ想い人の子 ---
+	ELSEIF LOVED && (TALENT:MOM:85 || TALENT:MOM:153)
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識があるうちは本番行為をしていなかったはずなのに妊娠していると知り、%CALLNAME:MOM%は信じられないといった様子で目を見開いた…
+			PRINTFORML 気を失って無防備になっていた間に%CALLNAME:DAD%に結ばれて中出しされていたのだと気づき、%CALLNAME:MOM%は耳まで赤くして下腹を押さえた…
+		CASE 1
+			PRINTFORML 交わった記憶がないまま唐突に突きつけられた妊娠の事実に、%CALLNAME:MOM%は激しい戸惑いと羞恥に唇を震わせた…
+			PRINTFORML それでもお腹に宿ったのが想い人である%CALLNAME:DAD%の子だと分かると、%CALLNAME:MOM%は複雑な面持ちながらも愛おしそうに腹を撫でた…
+		CASEELSE
+			PRINTFORML 意識を失っていた空白の時間に%CALLNAME:DAD%の子種を注ぎ込まれて身籠っていたことを知り、%CALLNAME:MOM%は驚きに息を呑んだ…
+			PRINTFORML 自分の知らぬ間に母になっていた事実に戸惑いつつも、%CALLNAME:MOM%はそっと下腹へ手を当てて瞳を潤ませた…
+		ENDSELECT
+	;--- A-3. 恋慕・恋人ありで想い人以外の子（背徳） ---
+	ELSEIF (TALENT:MOM:85 || TALENT:MOM:153) && LOVED == 0
+		PENALTY = 1000 + RAND:301
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 交わった記憶すらないまま、意識を失っていた隙に%CALLNAME:DAD%の種を注ぎ込まれて孕まされていたと知り、%CALLNAME:MOM%は激しいショックに立ちすくんだ…
+		CASE 1
+			PRINTFORML 気を失う前には触れられていなかったはずの胎内に想い人以外の命が宿っている事実に、%CALLNAME:MOM%は罪悪感と絶望で下腹を抱え込んだ…
+		CASEELSE
+			PRINTFORML 意識のない無防備な身体を弄ばれ、知らぬ間に主人以外の子を身籠ってしまった背徳に、%CALLNAME:MOM%は唇を噛みしめて震えた…
+		ENDSELECT
+	;--- A-4. 貞操観念（望まぬ無自覚妊娠） ---
+	ELSEIF TALENT:MOM:30
+		PENALTY = 1500 + RAND:501
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識がある間には一度も交わっていなかったにもかかわらず身籠っていると知り、%CALLNAME:MOM%は気を失っていた間に犯されて孕まされた事実に蒼白となった…
+		CASE 1
+			PRINTFORML 記憶のない空白の間に一方的に純潔を汚され、子種まで植え付けられていたというおぞましい現実に、%CALLNAME:MOM%は屈辱と恐怖で顔を覆った…
+		CASEELSE
+			PRINTFORML 抵抗はおろか気づくことすらできない気絶中に孕まされた事実を受け止めきれず、%CALLNAME:MOM%は震える手で下腹を抱え込んだ…
+		ENDSELECT
+	;--- A-5. 淫乱・解放・マゾ ---
+	ELSEIF TALENT:MOM:76 || TALENT:MOM:33 || TALENT:MOM:79
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識を失う前には挿入されていなかったはずなのに胎内に命が宿っていると知り、%CALLNAME:MOM%は気絶中に無防備な肉体へ種付けされた事実にぞくりと身を震わせた…
+		CASE 1
+			PRINTFORML 自分の意識がない間に玩具のように使われて孕まされたという背徳的な現実に、%CALLNAME:MOM%は下腹を撫でながら恍惚と頬を緩めた…
+		CASEELSE
+			PRINTFORML 知らぬ間に子宮までたっぷりと満たされて受精させられていた実感に、%CALLNAME:MOM%は淫らな吐息を漏らして腹をさすった…
+		ENDSELECT
+	;--- A-6. 標準 ---
+	ELSE
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識を失う前には最後までシていなかったはずなのに、なぜ自分が身籠っているのか理解が追いつかず、%CALLNAME:MOM%は呆然と下腹を見下ろした…
+		CASE 1
+			PRINTFORML 交わった記憶がないまま胎内に宿った命の気配に、%CALLNAME:MOM%は気を失っていた間に中出しされていたのだと気づいて息を呑んだ…
+		CASEELSE
+			PRINTFORML 自分の知らぬ間に身体を貫かれ、気づいた時にはすでに母になっていたという事実に、%CALLNAME:MOM%は強い困惑を隠せないでいる…
+		ENDSELECT
+		; 非常に親密でない場合は好感度低下
+		IF TALENT:MOM:180 == 0 && (ABL:MOM:0 < 10 || CFLAG:MOM:2 < 3000)
+			PENALTY = 1000 + RAND:301
+			SIF TALENT:MOM:11 || TALENT:MOM:15 || TALENT:MOM:34
+				PENALTY = PENALTY * 12 / 10
+		ENDIF
+	ENDIF
+
+;=========================================================
+; 【パターンB】調教中、意識を失う前に性交していた場合 (TFLAG:116 == 1)
+;=========================================================
+ELSE
+	;--- B-1. 親愛・相愛 かつ想い人の子 ---
+	IF LOVED && (TALENT:MOM:88 || TALENT:MOM:89)
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識が飛ぶほど激しく求め合い、気を失った後もなお愛され続けて%CALLNAME:DAD%の子を宿したことを知り、%CALLNAME:MOM%は幸せそうに頬を染めて下腹を撫でた…
+		CASE 1
+			PRINTFORML 意識を手放す直前まで深く繋がっていた記憶とともに胎内の新しい命を感じ取り、%CALLNAME:MOM%は限界まで結ばれた喜びに瞳を潤ませた…
+		CASEELSE
+			PRINTFORML 気を失うほど激しい逢瀬の果てに%CALLNAME:DAD%の子種が実を結んだと悟り、%CALLNAME:MOM%は満ち足りた笑みでお腹に手を添えた…
+		ENDSELECT
+	;--- B-2. 恋慕・恋人 かつ想い人の子 ---
+	ELSEIF LOVED && (TALENT:MOM:85 || TALENT:MOM:153)
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識が遠のく直前まで激しく交わっていた記憶を思い返し、気を失っている間にまですっかり種付けされて%CALLNAME:DAD%の子を宿したことに%CALLNAME:MOM%は顔を赤らめた…
+		CASE 1
+			PRINTFORML 気絶するほど激しい交わりの末に%CALLNAME:DAD%の子を身籠ったと知り、%CALLNAME:MOM%は気恥ずかしさと喜びを滲ませながらそっと下腹をさすった…
+		CASEELSE
+			PRINTFORML 意識を失った後もなお注ぎ込まれた%CALLNAME:DAD%の熱が命となって宿ったことを感じ、%CALLNAME:MOM%は愛おしげに腹へ手を当てた…
+		ENDSELECT
+	;--- B-3. 恋慕・恋人ありで想い人以外の子（背徳） ---
+	ELSEIF (TALENT:MOM:85 || TALENT:MOM:153) && LOVED == 0
+		PENALTY = 800 + RAND:201
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識が途切れるまで貫かれ、気を失ったまま想い人ではない%CALLNAME:DAD%の子を孕まされてしまった事実に、%CALLNAME:MOM%は罪悪感で下腹を抱えた…
+		CASE 1
+			PRINTFORML 意識を失う直前の交わりと、目を覚ました後に突きつけられた背徳の妊娠に、%CALLNAME:MOM%は唇を震わせて俯いた…
+		CASEELSE
+			PRINTFORML 気絶して抵抗できない間にまで主人以外の子種を注ぎ込まれて実を結んでしまい、%CALLNAME:MOM%は悔しげに腹を見下ろした…
+		ENDSELECT
+	;--- B-4. 貞操観念（望まぬ妊娠） ---
+	ELSEIF TALENT:MOM:30
+		PENALTY = 1200 + RAND:301
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識が飛ぶまで犯された挙げ句、気を失って抵抗できない間にまで種を注ぎ込まれて孕まされた事実に、%CALLNAME:MOM%は青ざめて下腹を抱え込んだ…
+		CASE 1
+			PRINTFORML 意識を失う前の交わりの記憶と、目を覚ました時にはすでに身籠っていたという過酷な現実に、%CALLNAME:MOM%は屈辱に唇を噛んで震えた…
+		CASEELSE
+			PRINTFORML 気絶した肉体にまで容赦なく種付けされ、望まぬ命を宿してしまったことに%CALLNAME:MOM%は絶望に顔を覆った…
+		ENDSELECT
+	;--- B-5. 淫乱・解放・マゾ ---
+	ELSEIF TALENT:MOM:76 || TALENT:MOM:33 || TALENT:MOM:79
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 気絶するほど激しく貫かれ、意識を失った後もなお子宮へたっぷりと種付けされて孕まされた事実に、%CALLNAME:MOM%は牝の本能を満たされて恍惚と微笑んだ…
+		CASE 1
+			PRINTFORML 意識が飛ぶまで犯し抜かれて仔を孕んだ実感に、%CALLNAME:MOM%は下腹を撫でながら淫らに身を震わせた…
+		CASEELSE
+			PRINTFORML 気を失っている間まで孕み袋を精で満たされ続けた満足感に、%CALLNAME:MOM%はとろけた表情で腹をさすった…
+		ENDSELECT
+	;--- B-6. 標準 ---
+	ELSE
+		SELECTCASE RAND:3
+		CASE 0
+			PRINTFORML 意識を失う前に交わっていた記憶と、目を覚ました後に突きつけられた妊娠の事実に、%CALLNAME:MOM%は戸惑いがちに下腹へ手を当てた…
+		CASE 1
+			PRINTFORML 意識が途切れるほど激しい交わりの末に身籠ってしまったことを知り、%CALLNAME:MOM%は複雑な面持ちでそっと腹を撫でた…
+		CASEELSE
+			PRINTFORML 気を失っている間にまで中出しされて母になっていたという現実に、%CALLNAME:MOM%は呆然と腹を見下ろした…
+		ENDSELECT
+		; 非常に親密でない場合は好感度低下
+		IF TALENT:MOM:180 == 0 && (ABL:MOM:0 < 10 || CFLAG:MOM:2 < 3000)
+			PENALTY = 800 + RAND:201
+			SIF TALENT:MOM:11 || TALENT:MOM:15 || TALENT:MOM:34
+				PENALTY = PENALTY * 12 / 10
+		ENDIF
+	ENDIF
+ENDIF
+
+IF PENALTY > 0
+	CFLAG:MOM:2 -= PENALTY
+	PRINTFORML 意識のない間に身籠らされた不本意な妊娠により、好感度が大幅に低下した…！
+	PRINTFORML 好感度大幅低下:{PENALTY}
+	PRINTFORMW 好感度合計:{CFLAG:MOM:2}
+ENDIF
+RETURN
+
 @GET_CHILD_MOB
 ; 見知らぬ男たち（裏カジノ等）による妊娠発覚時の処理
 FOR LOCAL, 0, CHARANUM
@@ -420,102 +757,187 @@ FOR LOCAL, 0, CHARANUM
 NEXT
 
 @CHANGE_N_STATUS
+#DIM DAD_CHARA
+#DIM IS_LESBIAN_GOOD
+#DIM IS_LESBIAN_ACCEPT
+
+DAD_CHARA = -1
+IS_LESBIAN_GOOD = 0
+IS_LESBIAN_ACCEPT = 0
+
 CALL RECORD_PRE_CARE_MILK, T
 MAXBASE:T:0 -= 500
 IF BASE:T:0 >= 501	; 【T:[体力]>=501】
 	BASE:T:0 = 500
 	IF T == TARGET
-		PRINTFORMW 酷く疲れているようだ……休ませた方が良いだろう
+		PRINTFORMW 疲れているようだ……休ませた方がいいだろう
 		PRINTFORMW 　
 	ENDIF
 ENDIF
 
-;出産系のフラグ設定
+;出産日のフラグ設定
 CFLAG:T:110 = DAY:7 + 20
 CFLAG:T:112 += 1
-IF CFLAG:T:104 == 1	; 【T:[種提供者]==1】
+IF CFLAG:T:104 == 1	; 【T:[提供者]==1】
 	CFLAG:T:111 = NO:MASTER
-ELSEIF CFLAG:T:104 == 2 && ASSI >= 0	; 【T:[種提供者]==2】
+ELSEIF CFLAG:T:104 == 2 && ASSI >= 0	; 【T:[提供者]==2】
 	CFLAG:T:111 = NO:ASSI
-ELSEIF CFLAG:T:104 == 99	; 【T:[種提供者]==99】
+ELSEIF CFLAG:T:104 == 99	; 【T:[提供者]==99】
 	CFLAG:T:111 = -1
 ELSE
-	CFLAG:T:111 = NO:TARGET
+	; すでに有効な父親NOが設定されている場合はそれを優先
+	SIF CFLAG:T:111 < 0
+		CFLAG:T:111 = (TARGET >= 0 ? NO:TARGET # -1)
 ENDIF
 
-;主人→助手、パートナー
-IF CFLAG:T:104 == 1	; 【T:[種提供者]==1】
-	;恋慕なら
-	IF TALENT:T:85 == 1	; 【T:[恋慕]】
-		;相愛なら
-		IF TALENT:T:89 == 1	; 【T:[相愛]】
-			PRINTFORMW %NAME:T%は%CALLNAME:MASTER%の子を授かった喜びに表情を緩ませている
-		;相愛を持っておらず親愛を持っていれば
-		ELSEIF TALENT:T:88 == 1	; 【T:[親愛]】
-			PRINTFORMW %CALLNAME:MASTER%の子を授かった喜びに表情を緩ませている
+SIF CFLAG:T:111 >= 0
+	DAD_CHARA = GETCHARA(CFLAG:T:111)
+
+;---------------------------------------------------------
+; 父親・状況別の精神・素質変化
+;---------------------------------------------------------
+; 1. あなた(MASTER)が妊娠した場合
+IF T == MASTER
+	IF DAD_CHARA >= 0
+		PRINTFORMW %CALLNAME:DAD_CHARA%の子を身籠った……
+		IF TALENT:MASTER:85 == 1
+			PRINTFORM %CALLNAME:DAD_CHARA%は
+			SIF TALENT:DAD_CHARA:122 == 0
+				PRINT 牝同士ながら
+			PRINTFORMW %CALLNAME:MASTER%との間に子ができた喜びに満ち溢れている
+		ELSEIF MARK:MASTER:3 >= 2
+			PRINTFORMW だが、%CALLNAME:DAD_CHARA%は苦い顔をしている……
 		ELSE
-			PRINTFORMW %CALLNAME:MASTER%の子を授かった喜びに表情を緩ませている
+			IF TALENT:DAD_CHARA:122
+				PRINTFORMW %CALLNAME:DAD_CHARA%は複雑ながらも喜んでいる
+			ELSE
+				PRINTFORMW %CALLNAME:DAD_CHARA%は戸惑いながらもそれを受け入れた
+			ENDIF
+		ENDIF
+	ENDIF
+
+; 2. あなた(MASTER)が父親の場合（主人による受胎）
+ELSEIF CFLAG:T:104 == 1 || DAD_CHARA == MASTER
+	;恋慕・親愛・相思相愛
+	IF TALENT:T:85 == 1 || TALENT:T:89 == 1 || TALENT:T:88 == 1
+		IF T == TARGET && (TFLAG:117 || TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0)
+			IF TFLAG:116 == 0
+				PRINTFORMW %NAME:T%は意識のない間に身籠っていたことに苦悩しつつも、%CALLNAME:MASTER%の子を孕み喜びに満ちている
+			ELSE
+				PRINTFORMW %NAME:T%は意識が朦朧とするほど犯された末に%CALLNAME:MASTER%の子を孕み喜びに満ちている
+			ENDIF
+		ELSEIF TALENT:T:89 == 1
+			PRINTFORMW %NAME:T%は%CALLNAME:MASTER%の子を孕み喜びに満ちている
+		ELSEIF TALENT:T:88 == 1
+			PRINTFORMW %CALLNAME:MASTER%の子を孕み喜びに満ちている
+		ELSE
+			PRINTFORMW %CALLNAME:MASTER%の子を孕み喜びに満ちている
 		ENDIF
 		CALL N_TALENT_R
-	;親密10未満なら壊れる
-	ELSEIF ABL:T:0 < 10	; 【T:[親密]Lv<10】
-		PRINTFORML %CALLNAME:T%は幽鬼のような表情をしている
+	;親密10未満なら崩壊
+	ELSEIF ABL:T:0 < 10
+		IF T == TARGET && (TFLAG:117 || TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0)
+			IF TFLAG:116 == 0
+				PRINTFORML 記憶にない、意識のない間に子供を宿された%CALLNAME:T%は茫然自失のような表情をしている
+			ELSE
+				PRINTFORML 意識朦朧のまま抵抗もできぬ間に子供を宿されたことに、%CALLNAME:T%は茫然自失のような表情をしている
+			ENDIF
+		ELSE
+			PRINTFORML %CALLNAME:T%は茫然自失のような表情をしている
+		ENDIF
+		PRINTFORMW %CALLNAME:T%の中で何かが壊れてしまったようだ
+		CALL N_TALENT_K
+	;親密10以上なら受容
+	ELSE
+		IF T == TARGET && (TFLAG:117 || TFLAG:898 || TFLAG:899 || BASE:TARGET:0 <= 0)
+			IF TFLAG:116 == 0
+				PRINTFORMW %CALLNAME:TARGET%は知らぬ間に身籠っていたことに動揺しつつも、%CALLNAME:MASTER%の子を受け入れた
+			ELSE
+				PRINTFORMW %CALLNAME:TARGET%は意識が途切れるほどの快楽の果てに%CALLNAME:MASTER%の子を、戸惑いつつも受け入れた
+			ENDIF
+		ELSE
+			PRINTFORMW %CALLNAME:TARGET%は戸惑いつつも%CALLNAME:MASTER%の子を受け入れた
+		ENDIF
+	ENDIF
+
+; 3. 父親が女性の場合（レズ妊娠・女同士の受胎）
+ELSEIF DAD_CHARA >= 0 && TALENT:DAD_CHARA:122 == 0
+	;--- 厳格なGood判定 ---
+	; レズ中毒Lv5以上 かつ レズっ気Lv5以上なら素質資格あり
+	IF ABL:T:9 >= 5 && ABL:T:12 >= 5
+		IF TALENT:T:85 == 0 || TALENT:T:76 || RELATION:T:(NO:DAD_CHARA) >= 150
+			IS_LESBIAN_GOOD = 1
+		ENDIF
+	ELSEIF ABL:T:9 >= 6 && ABL:T:12 >= 3
+		; マスターへの恋慕がある場合：他の女性の子を喜ぶにはより厳しい条件（淫乱または極めて良好な相性）
+		IF TALENT:T:85
+			IF TALENT:T:76 && ABL:T:12 >= 4
+				IS_LESBIAN_GOOD = 1
+			ELSEIF RELATION:T:(NO:DAD_CHARA) >= 150 && ABL:T:12 >= 4
+				IS_LESBIAN_GOOD = 1
+			ENDIF
+		ELSE
+			; マスターへの恋慕なし
+			IF ABL:T:12 >= 4 && (TALENT:T:81 || TALENT:T:82 || TALENT:T:76 || RELATION:T:(NO:DAD_CHARA) >= 130)
+				IS_LESBIAN_GOOD = 1
+			ELSEIF ABL:T:9 >= 8 && RELATION:T:(NO:DAD_CHARA) >= 120
+				IS_LESBIAN_GOOD = 1
+			ENDIF
+		ENDIF
+	ENDIF
+
+	;--- Good: 心からの歓喜・母性覚醒 ---
+	IF IS_LESBIAN_GOOD
+		PRINTFORML %CALLNAME:T%は%CALLNAME:DAD_CHARA%との愛の営みによって宿った命を慈しむように、そっと愛おしそうにお腹を撫でている……
+		PRINTFORMW 女同士の交わりで結ばれた奇跡の実りに、%CALLNAME:T%は幸福感に満ちた笑みをこぼした
+		CALL N_TALENT_R
+	ELSE
+		;--- 崩壊回避（受容）判定 ---
+		IF ABL:T:0 >= 10
+			IS_LESBIAN_ACCEPT = 1
+		ELSEIF ABL:T:9 >= 3 && (ABL:T:12 >= 1 || TALENT:T:81 || TALENT:T:82)
+			IS_LESBIAN_ACCEPT = 1
+		ELSEIF TALENT:T:76 || ABL:T:1 >= 10
+			IS_LESBIAN_ACCEPT = 1
+		ELSEIF RELATION:T:(NO:DAD_CHARA) >= 120
+			IS_LESBIAN_ACCEPT = 1
+		ENDIF
+
+		;--- Accept: 複雑・戸惑いながらも受容（精神崩壊を回避） ---
+		IF IS_LESBIAN_ACCEPT
+			IF TALENT:T:85
+				PRINTFORML %CALLNAME:T%は%CALLNAME:MASTER%への想いを胸に秘めつつ、%CALLNAME:DAD_CHARA%の子を宿した事実に複雑な表情を浮かべている……
+			ELSE
+				PRINTFORML %CALLNAME:T%は女同士の間に子供を宿した事実に戸惑いを隠せないようだ……
+			ENDIF
+			PRINTFORMW それでも、自らの身体に宿った%CALLNAME:DAD_CHARA%との絆を静かに受け入れた
+		;--- Collapse: 精神崩壊 ---
+		ELSE
+			PRINTFORML 女同士の交わりで子を宿したという現実を受け止めきれず、%CALLNAME:T%は茫然自失の表情を浮かべている……
+			PRINTFORMW %CALLNAME:T%の中で何かが音を立てて壊れてしまったようだ
+			CALL N_TALENT_K
+		ENDIF
+	ENDIF
+
+; 4. 父親が男性（助手や他男性キャラ）の場合
+ELSEIF DAD_CHARA >= 0 && TALENT:DAD_CHARA:122
+	IF ABL:T:0 < 10
+		PRINTFORML %CALLNAME:T%は茫然自失のような表情をしている
 		PRINTFORMW %CALLNAME:T%の中で何かが壊れてしまったようだ
 		CALL N_TALENT_K
 	ELSE
-		PRINTFORMW %CALLNAME:TARGET%は困惑しつつも%CALLNAME:MASTER%の子を授かった事を受け入れた
-	ENDIF
-;助手→パートナー
-ELSEIF CFLAG:T:104 == 2 && ASSI >= 0 && T == TARGET	; 【T:[種提供者]==2】
-	;親密10未満なら壊れる
-	IF ABL:T:0 < 10	; 【T:[親密]Lv<10】
-		PRINTFORML %CALLNAME:T%は幽鬼のような表情をしている
-		PRINTFORMW %CALLNAME:T%の中で何かが壊れてしまったようだ
-		CALL N_TALENT_K
-	ELSE
-		IF TALENT:T:85 == 0	; 【T:[恋慕]なし】
-			PRINTFORM %CALLNAME:TARGET%は困惑しつつも
+		IF TALENT:T:85 == 0
+			PRINTFORM %CALLNAME:T%は戸惑いつつも
 		ELSE
-			PRINTFORM %CALLNAME:TARGET%は複雑な表情を浮かべつつも
+			PRINTFORM %CALLNAME:T%は複雑な表情を浮かべつつも
 		ENDIF
-		PRINTFORMW %CALLNAME:ASSI%の子を授かった事を受け入れた
+		PRINTFORMW %CALLNAME:DAD_CHARA%の子を受け入れた
 	ENDIF
-;パートナー→助手
-ELSEIF CFLAG:T:104 == 3 && ASSI >= 0 && T == ASSI	; 【T:[種提供者]==3】
-	;親密10未満なら壊れる
-	IF ABL:T:0 < 10	; 【T:[親密]Lv<10】
-		PRINTFORML %CALLNAME:T%は幽鬼のような表情をしている
-		PRINTFORMW %CALLNAME:T%の中で何かが壊れてしまったようだ
-		CALL N_TALENT_K
-	ELSE
-		IF TALENT:T:85 == 0	; 【T:[恋慕]なし】
-			PRINTFORM %CALLNAME:ASSI%は困惑しつつも
-		ELSE
-			PRINTFORM %CALLNAME:ASSI%は複雑な表情を浮かべつつも
-		ENDIF
-		PRINTFORMW %CALLNAME:TARGET%の子を授かった事を受け入れた
-	ENDIF
-ELSEIF CFLAG:T:104 == 3 && T == MASTER	; 【T:[種提供者]==3】
-	PRINTFORMW %CALLNAME:TARGET%の子を授かった事を伝えた
-	;恋慕なら
-	IF TALENT:85 == 1	; 【[恋慕]】
-		PRINTFORM %CALLNAME:TARGET%は
-		SIF TALENT:TARGET:122 == 0	; 【TARGET:[オトコ]なし】
-			PRINT 困惑しながらも
-		PRINTFORMW %CALLNAME:MASTER%との間に子供が出来た喜びに表情を緩ませている
-	;反発感情LV2以上
-	ELSEIF MARK:3 >= 2	; 【[反発感情]Lv>=2】
-		PRINTFORMW しかし、%CALLNAME:TARGET%は興味なさそうだ…
-	ELSE
-		IF TALENT:TARGET:122	; 【TARGET:[オトコ]】
-			PRINTFORMW %CALLNAME:TARGET%は困惑しながらもどこか嬉しそうである
-		ELSE
-			PRINTFORMW %CALLNAME:TARGET%は困惑しながらも事態を受け入れた
-		ENDIF
-	ENDIF
-ELSEIF CFLAG:T:104 == 99	; 【T:[種提供者]==99】
+
+; 5. 父親不明・モブ（CFLAG:T:104 == 99 または CFLAG:T:111 == -1）
+ELSE
 	SETCOLOR 0xFF5555
-	PRINTFORML %NAME:T%は誰のものとも知れぬ種を宿した恐怖と絶望に青ざめ、激しく震えている……
+	PRINTFORML %NAME:T%は誰のものとも知れぬ種を宿した恐怖と絶望に青ざめ、震えている……
 	RESETCOLOR
 	CALL N_TALENT_K
 ENDIF
@@ -574,8 +996,10 @@ REPEAT 10
 REND
 ;以下は特殊なため別枠
 ;男嫌い
-F = CFLAG:T:111
-IF TALENT:T:82 == 1 && TALENT:F:122	; 【T:[男嫌い] / F:[オトコ]】
+	F = -1
+	SIF CFLAG:T:111 >= 0
+		F = GETCHARA(CFLAG:T:111)
+	IF TALENT:T:82 == 1 && F >= 0 && TALENT:F:122
 	IF LOCAL:99 == 0
 		PRINTS NAME:T
 		PRINT は
@@ -686,11 +1110,22 @@ ENDIF
 SIF FLAG:97 == 0
 	FLAG:97 = 1
 
+T = CFLAG:COUNT:111
+CALL GET_EXISTANCE
+E = E-1
+LOCAL:101 = PLAYER
+IF E >= 0 && E < CHARANUM
+	PLAYER = E
+ELSE
+	PLAYER = MASTER
+ENDIF
+
 TFLAG:13 = 25
 Z = TARGET
 TARGET = COUNT
 CALL SELF_KOJO
 TARGET = Z
+PLAYER = LOCAL:101
 
 
 IF TARGET == COUNT
@@ -781,10 +1216,20 @@ IF Y > -1
 	;カットフラグを退避
 	LOCAL:100 = CFLAG:Y:99
 
+	LOCAL:101 = PLAYER
+	IF C == MASTER
+		PLAYER = MASTER
+	ELSEIF E >= 0 && E < CHARANUM
+		PLAYER = E
+	ELSE
+		PLAYER = MASTER
+	ENDIF
+
 	Z = TARGET
 	TARGET = Y
 	CALL SELF_MAEKOJO
 	TARGET = Z
+	PLAYER = LOCAL:101
 ENDIF
 
 ;グッド
@@ -835,7 +1280,7 @@ ELSEIF TFLAG:17 == 3	; 【[コマンド内容]==3】
 			A += 1
 	REND
 	IF A > 0
-		CALL SELECT_NURSE
+		CALL SELECT_NURSE, C
 	ELSE
 		PRINTFORMW %CALLNAME:MASTER%はやむなく、赤ん坊を里子に出しました……
 	ENDIF
@@ -868,34 +1313,44 @@ IF E >= 0 && E < CHARANUM
 	A = NO:E
 	B = NO:C
 IF TFLAG:17 == 1	; 【[コマンド内容]==1】
-	;グッド: 双方+50 (未設定の場合は100から開始)
+	;グッド: 双方+25 (未設定の場合は100から開始)
 	IF RELATION:C:A == 0
 		RELATION:C:A = 100
 	ENDIF
-	RELATION:C:A += 50
+	RELATION:C:A += 25
 	RELATION:C:A = LIMIT(RELATION:C:A, 0, 1000)
 	IF RELATION:E:B == 0
 		RELATION:E:B = 100
 	ENDIF
-	RELATION:E:B += 50
+	RELATION:E:B += 25
 	RELATION:E:B = LIMIT(RELATION:E:B, 0, 1000)
 ELSEIF TFLAG:17 == 3	; 【[コマンド内容]==3】
-	;バッド: 双方-50 (未設定の場合は変動なし)
+	;バッド: 双方-25 (未設定の場合は変動なし)
 	IF RELATION:C:A != 0
-		RELATION:C:A -= 50
+		RELATION:C:A -= 25
 		RELATION:C:A = LIMIT(RELATION:C:A, 20, 1000)
 	ENDIF
 	IF RELATION:E:B != 0
-		RELATION:E:B -= 50
+		RELATION:E:B -= 25
 		RELATION:E:B = LIMIT(RELATION:E:B, 20, 1000)
 	ENDIF
 ENDIF
 ENDIF
 IF Y > -1
+	LOCAL:101 = PLAYER
+	IF C == MASTER
+		PLAYER = MASTER
+	ELSEIF E >= 0 && E < CHARANUM
+		PLAYER = E
+	ELSE
+		PLAYER = MASTER
+	ENDIF
+
 	Z = TARGET
 	TARGET = Y
 	CALL SELF_KOJO
 	TARGET = Z
+	PLAYER = LOCAL:101
 	CFLAG:Y:99 = LOCAL:100
 ENDIF
 
@@ -946,6 +1401,7 @@ COUNT = C
 ;赤ん坊の養育選択
 ;---------------------------------------------------------
 @SELECT_NURSE, ARG = -1
+#DIM NURSE_ID
 PRINTFORMW %CALLNAME:MASTER%は赤ん坊の養育を他の者に任せることにした
 PRINTW 
 PRINTL 誰に任せますか？
@@ -971,42 +1427,42 @@ ELSEIF RESULT < 0 || RESULT >= CHARANUM
 ELSEIF CAN_NURSE(RESULT, ARG) == 0
 	GOTO INPUT_LOOP
 ENDIF
-IF RESULT >= 0 && RESULT < CHARANUM
-	PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:RESULT%に乳母をやってもらうことにしました
-	;新しく養育を始める場合のみ元の母乳体質を記録
-	SIF TALENT:RESULT:135 == 0
-		CALL RECORD_PRE_CARE_MILK, RESULT
-	;育児期間を設定する
-	CFLAG:RESULT:110 = DAY:7
-	MARK:RESULT:90 = 1
-	;回復遅いをつける(回復早いは一時的に消去)
-	;CFLAG:RESULT:96に回復遅い等を元々持っていたかを記録
-	IF TALENT:RESULT:135
-		;既に養育中なら、最初に記録した回復素質を維持
-	ELSEIF TALENT:RESULT:111	; 【RESULT:[回復早い]】
-		CFLAG:RESULT:96 = 1
-	ELSEIF TALENT:RESULT:112	; 【RESULT:[回復遅い]】
-		CFLAG:RESULT:96 = 2
-	ELSE
-		CFLAG:RESULT:96 = 0
-	ENDIF
-	IF TALENT:RESULT:112 == 0	; 【RESULT:[回復遅い]なし】
-		PRINTFORMW %CALLNAME:RESULT%は[%TALENTNAME:112%]を得た
-		TALENT:RESULT:111 = 0
-		TALENT:RESULT:112 = 1
-	ENDIF
-	IF TALENT:RESULT:135 == 0	; 【RESULT:[育児中]なし】
-		TALENT:RESULT:135 = 1
-		CFLAG:RESULT:13 = 0
-	ENDIF
+NURSE_ID = RESULT
+PRINTFORMW %CALLNAME:MASTER%は%CALLNAME:NURSE_ID%に乳母をやってもらうことにしました
+;新たに養育を始める場合のみ元の母乳体質を記録
+SIF TALENT:NURSE_ID:135 == 0
+	CALL RECORD_PRE_CARE_MILK, NURSE_ID
+;育児期間を設定する
+CFLAG:NURSE_ID:110 = DAY:7
+MARK:NURSE_ID:90 = 1
+;回復遅いをつける(回復早いは一時的に消す)
+;CFLAG:NURSE_ID:96に回復遅い消去フラグを記録
+IF TALENT:NURSE_ID:135
+	;既に養育中なら、最初に記録した回復素質を保持
+ELSEIF TALENT:NURSE_ID:111
+	CFLAG:NURSE_ID:96 = 1
+ELSEIF TALENT:NURSE_ID:112
+	CFLAG:NURSE_ID:96 = 2
+ELSE
+	CFLAG:NURSE_ID:96 = 0
 ENDIF
+IF TALENT:NURSE_ID:112 == 0
+	PRINTFORMW %CALLNAME:NURSE_ID%は[%TALENTNAME:112%]を得た
+	TALENT:NURSE_ID:111 = 0
+	TALENT:NURSE_ID:112 = 1
+ENDIF
+IF TALENT:NURSE_ID:135 == 0
+	TALENT:NURSE_ID:135 = 1
+	CFLAG:NURSE_ID:13 = 0
+ENDIF
+RETURN 1
 
 ;養育先の適性。記憶を消した本人・別れ中のキャラは除外する
 @CAN_NURSE(ARG, ARG:1)
 #FUNCTION
 SIF ARG < 0 || ARG >= CHARANUM
 	RETURNF 0
-SIF ARG == ARG:1 || CFLAG:ARG:21 || TALENT:ARG:134
+	SIF ARG == MASTER || ARG == ARG:1 || CFLAG:ARG:21 || TALENT:ARG:134
 	RETURNF 0
 RETURNF TALENT:ARG:135 || TALENT:ARG:136
 
@@ -1082,6 +1538,8 @@ PRINTW
 
 ;育児室での口上をイベント口上でやってみるのはいいとして分岐どうしよう…
 ;基本的には口上側で分岐してもらう方向で
+LOCAL:101 = PLAYER
+PLAYER = MASTER
 Z = TARGET
 TARGET = RESULT
 ;臨月(まだ出産前)か育児中(出産後)かで口上を分岐する
@@ -1091,6 +1549,8 @@ ELSE
 	TFLAG:13 = 23
 ENDIF
 CALL SELF_KOJO
+TARGET = Z
+PLAYER = LOCAL:101
 
 ;地の文章カット
 IF (CFLAG:99 & 1) == 0	; 【[地の文カットフラグ]】
@@ -1190,11 +1650,22 @@ COUNT = C
 
 ;親離れ時の口上をイベント口上でやってみるのはいいとして分岐どうしよう…
 ;基本的には口上側で分岐してもらう方向で
+T = CFLAG:C:111
+CALL GET_EXISTANCE
+E = E-1
+LOCAL:101 = PLAYER
+IF E >= 0 && E < CHARANUM
+	PLAYER = E
+ELSE
+	PLAYER = MASTER
+ENDIF
+
 TFLAG:13 = 22
 Z = TARGET
 TARGET = C
 CALL SELF_KOJO
 TARGET = Z
+PLAYER = LOCAL:101
 
 ;---------------------------------------------------------
 ;妊娠パッチまわりのフラグをリセット
@@ -1257,3 +1728,25 @@ CALL BUST_ADJUST, C, -(RAND:51 + 40)
 
 MARK:C:89 = 0
 
+
+;==================================================
+; 主人の不正な臨月・育児状態の修復処理
+;==================================================
+@FIX_MASTER_INVALID_PREGNANCY_STATE
+; 主人が妊娠していないのに臨月/育児中になっている場合の救済
+IF TALENT:MASTER:134 == 0
+	IF MARK:MASTER:90 != 0 || TALENT:MASTER:135 != 0 || (TALENT:MASTER:112 != 0 && CFLAG:MASTER:96 != 2)
+		MARK:MASTER:90 = 0
+		TALENT:MASTER:135 = 0
+		CFLAG:MASTER:110 = 0
+		; 回復素質の復元（CFLAG:96に記録があれば復元、なければ回復遅いを消去）
+		IF CFLAG:MASTER:96 == 1
+			TALENT:MASTER:111 = 1
+			TALENT:MASTER:112 = 0
+		ELSEIF CFLAG:MASTER:96 != 2
+			TALENT:MASTER:112 = 0
+		ENDIF
+		CFLAG:MASTER:96 = 0
+		CFLAG:MASTER:1284 = 0
+	ENDIF
+ENDIF

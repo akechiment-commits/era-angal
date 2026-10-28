@@ -9,6 +9,15 @@ DRAWLINE
 TFLAG:99 = 1
 
 @SHOW_SHOP
+; 行事後余韻フラグの有効期限管理（直後ショップターンのみ有効、未消費なら全キャラクリア）
+IF FLAG:1286 == 1
+	FLAG:1286 = 2
+ELSE
+	FOR LOCAL, 0, CHARANUM
+		CFLAG:LOCAL:1286 = 0
+	NEXT
+	FLAG:1286 = 0
+ENDIF
 ;フラグ移動の互換処理
 CALL SAVEDATA_CONVERT
 ;追加システムが旧予約領域へ書き込んでいたセーブを一度だけ移行
@@ -19,6 +28,8 @@ CALL MIGRATE_CALENDAR_DATES
 CALL MIGRATE_MIKE_CAT_TONGUE
 ;旧周期の移行・妊娠状態の反映（経過日数は変えない）
 CALL REFRESH_MENSTRUAL_STATUS
+;主人の不正な臨月・育児状態があれＱ修復
+CALL FIX_MASTER_INVALID_PREGNANCY_STATE
 ;グローバル変数読み込み
 CALL LOAD_GLOBAL_CONFIGURE
 CALL LOGIN_BONUS_CHECK
@@ -41,6 +52,8 @@ CALL INIT_CLUB_FLAGS
 CALL SYNC_CLUB_ABL
 ;全キャラ指定中の待機中行動をできるか判定し、できなくなっている場合は何もさせないに変更
 CALL ALL_ACT_ABLE
+;衰弱療養キャラのデッキ自動除外
+CALL CHECK_DECK_RECOVERY_EXCLUSION
 ;自動発動イベントチェック（試験・学校行事）
 CALL CHECK_AUTO_EVENTS
 SIF RESULT
@@ -158,6 +171,14 @@ SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
 	A = 0
 CALL PRINT_BAR, A, MAXBASE:MASTER:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
 PRINTFORML ({BASE:MASTER:1,4}/{MAXBASE:MASTER:1,4})
+IF MAXBASE:MASTER:4 > 0	; 【MASTER:[最大耐力]>0】
+	PRINT           耐力
+	A = BASE:MASTER:4
+	SIF BASE:MASTER:4 < 0	; 【MASTER:[耐力]<0】
+		A = 0
+	CALL PRINT_BAR_4, A, MAXBASE:MASTER:4, 32
+	PRINTFORML ({BASE:MASTER:4,4}/{MAXBASE:MASTER:4,4})
+ENDIF
 PRINTL 
 
 ;PRINT_ITEM
@@ -321,7 +342,7 @@ IF FLAG:211 > 0
 	PRINTFORML [103] - 追試に向けて自習する
 	PRINTFORML [109] - 追試を受ける
 ENDIF
-REPEAT 32
+REPEAT 33
 	;追試期間中はターン進行・女の子・部活コマンドを非表示
 	IF FLAG:211 > 0
 		SIF COUNT == 0 || COUNT == 1 || COUNT == 2 || COUNT == 5 || COUNT == 15 || COUNT == 16 || COUNT == 19 || COUNT == 21
@@ -394,7 +415,7 @@ REPEAT 32
 		LOCALS '= @"[119] - キャラ検索"
 		PRINTFORM %LOCALS,28,LEFT%
 	ELSEIF COUNT == 15 && DAY:5 <= 4 && TIME == 1 && TARGET >= 0
-		IF CFLAG:TARGET:25 > 0	; 【TARGET:[初期噴乳経験]>0】
+		IF CFLAG:TARGET:1287 > 0	; 【TARGET:[部活タイプ]>0】
 			LOCALS '= @"[120] - 放課後の活動★"
 			PRINTFORM %LOCALS,28,LEFT%
 		ELSE
@@ -445,6 +466,9 @@ REPEAT 32
 		PRINTFORM %LOCALS,28,LEFT%
 	ELSEIF COUNT == 31 && FLAG:15031
 		LOCALS '= @"[128] - 子宝図鑑"
+		PRINTFORM %LOCALS,28,LEFT%
+	ELSEIF COUNT == 32 && FLAG:15032
+		LOCALS '= @"[129] - 生徒交友録"
 		PRINTFORM %LOCALS,28,LEFT%
 	ELSE
 		CONTINUE
@@ -640,6 +664,8 @@ ELSEIF RESULT == 125
 	CALL CARD_COLLECTION_MAIN
 ELSEIF RESULT == 128
 	CALL CHILD_COLLECTION_MAIN
+ELSEIF RESULT == 129
+	CALL LESBIAN_COLLECTION_MAIN
 ELSEIF RESULT == 126
 	CALL EVENT_BOARD_MAIN
 	IF RESULT > 0
@@ -2296,35 +2322,62 @@ IF RESULT == 0
 		RETURN 1
 	ENDIF
 
-	P = (ABL:MASTER:2 + 10) * (RAND:11 + 15)
+	;基礎能力（技巧）
+	LOCAL:2 = ABL:MASTER:2
+	SIF LOCAL:2 > 5
+		LOCAL:2 = 5 + SQRT((LOCAL:2 - 5) * 10)
+	P = (LOCAL:2 + 10) * 20
 	PRINTFORM %CALLNAME:MASTER%は
 	IF TFLAG:17 == 1	; 【[コマンド内容]==1】
 		P *= 50
-		PRINT 内職をして
+		PRINT 配達、
 	ELSEIF TFLAG:17 == 2	; 【[コマンド内容]==2】
 		P *= 85
-		PRINT コンビニでアルバイトをして
+		PRINT コンビニでアルバイト、
 	ELSEIF TFLAG:17 == 3	; 【[コマンド内容]==3】
 		P *= 100
 		SIF TALENT:MASTER:209	; 【MASTER:[野菜を育てる程度の能力]】
-			P *= 10
-		PRINT イベントスタッフをして
+			P *= 3
+		PRINT イベントスタッフ、
 	ELSEIF TFLAG:17 == 4	; 【[コマンド内容]==4】
 		P *= 120
-		PRINT フリマアプリで稼いで
+		PRINT フリマアプリで稼ぎ、
 	ELSE
 		P *= 250
-		PRINT 懸賞に当たって
+		PRINT 懸賞に当たり、
 	ENDIF
 
-	;獲得資金増加ボーナス
+	;買物ボーナス（獲得資金増加）
 	IF ABL:MASTER:86 == 1	; 【MASTER:[獲得資金増加]Lv==1】
 		TIMES P , 1.50
 	ELSEIF ABL:MASTER:86 > 1	; 【MASTER:[獲得資金増加]Lv>1】
-		P *= ABL:MASTER:86
+		LOCAL:86 = ABL:MASTER:86
+		SIF LOCAL:86 > 5
+			LOCAL:86 = 5 + SQRT((LOCAL:86 - 5) * 8)
+		P *= LOCAL:86
 	ENDIF
+
+	;高額所得補正（異常インフレ防止）
+	IF P > 1000000
+		LOCAL:10 = MIN(P, 5000000) - 1000000
+		LOCAL:11 = 0
+		SIF P > 5000000
+			LOCAL:11 = MIN(P, 20000000) - 5000000
+		LOCAL:12 = 0
+		SIF P > 20000000
+			LOCAL:12 = P - 20000000
+		P = 1000000 + LOCAL:10 / 2 + LOCAL:11 / 4 + LOCAL:12 / 10
+	ENDIF
+	P = LIMIT(P, 0, 50000000)
+
+	;成果・出来栄えによる振れ幅（80%～100%＋端数）
+	;高額補正・上限キャップ後に掛けることで、能力向上時の逆転を防ぎつつキャップ時も毎回変動
+	P = P * (8000 + RAND:2001) / 10000
+	SIF P > 1000
+		P += RAND:1000 - 500
+	P = LIMIT(P, 0, 50000000)
 	
-	PRINTFORMW ${P}の収入を得た
+	PRINTFORMW ${P}の収入を得た。
 	MONEY += P
 	;素材を得る(COMF309.ERB)
 	CALL EARN_SOZAI_1
@@ -2351,38 +2404,70 @@ ELSEIF RESULT == 1 && I == 1
 	B = 0
 	SIF CFLAG:MASTER:24 == NO:TARGET	; 【MASTER:[アクセサリ2]==NO:TARGET】
 		B = 1
-	P = (ABL:MASTER:2 * 2 + ABL:TARGET:2 + ABL:TARGET:6 * 2 + B + 15) * (RAND:5 + 8)
+	;基礎能力（技巧・奉仕精神）
+	LOCAL:1 = ABL:MASTER:2 * 2 + ABL:TARGET:2 + ABL:TARGET:6 * 2
+	SIF LOCAL:1 > 25
+		LOCAL:1 = 25 + SQRT((LOCAL:1 - 25) * 20)
+	P = (LOCAL:1 + B + 15) * 10
 	PRINTFORM %CALLNAME:MASTER%と%CALLNAME:TARGET%は２人で
 	IF TFLAG:17 == 1	; 【[コマンド内容]==1】
 		P *= 60
-		PRINT カフェでアルバイトをして
+		PRINT カフェでアルバイト、
 	ELSEIF TFLAG:17 == 2	; 【[コマンド内容]==2】
 		P *= 90
-		PRINT 内職をして
+		PRINT 配達、
 	ELSEIF TFLAG:17 == 3	; 【[コマンド内容]==3】
 		P *= 110
-		PRINT コンビニでアルバイトをして
+		PRINT コンビニでアルバイト、
 	ELSEIF TFLAG:17 == 4	; 【[コマンド内容]==4】
 		P *= 140
-		PRINT イベントスタッフをして
+		PRINT イベントスタッフ、
 		SIF TALENT:MASTER:209	; 【MASTER:[野菜を育てる程度の能力]】
-			P *= 10
+			P *= 3
 	ELSE
 		P *= 400
-		PRINT 懸賞に当たって
+		PRINT 懸賞に当たり、
 	ENDIF
 
-	;獲得資金増加ボーナス
+	;買物ボーナス（獲得資金増加）
 	IF ABL:MASTER:86 == 1	; 【MASTER:[獲得資金増加]Lv==1】
 		TIMES P , 1.50
 	ELSEIF ABL:MASTER:86 > 1	; 【MASTER:[獲得資金増加]Lv>1】
-		P *= ABL:MASTER:86
+		LOCAL:86 = ABL:MASTER:86
+		SIF LOCAL:86 > 5
+			LOCAL:86 = 5 + SQRT((LOCAL:86 - 5) * 8)
+		P *= LOCAL:86
 	ENDIF
+
 	;金銭感覚ボーナス（MASTER＋TARGETの合算）
-	SIF ABL:MASTER:89 + ABL:TARGET:89 > 0	; 【MASTER:[金銭感覚] / TARGET:[金銭感覚]Lv>0】
-		P += P * (ABL:MASTER:89 + ABL:TARGET:89) * 3 / 100
+	IF ABL:MASTER:89 + ABL:TARGET:89 > 0	; 【MASTER:[金銭感覚] / TARGET:[金銭感覚]Lv>0】
+		LOCAL:89 = ABL:MASTER:89 + ABL:TARGET:89
+		SIF LOCAL:89 > 10
+			LOCAL:89 = 10 + SQRT((LOCAL:89 - 10) * 10)
+		P += P * LOCAL:89 * 3 / 100
+	ENDIF
+
+	;高額所得補正（異常インフレ防止）
+	IF P > 1000000
+		LOCAL:10 = MIN(P, 5000000) - 1000000
+		LOCAL:11 = 0
+		SIF P > 5000000
+			LOCAL:11 = MIN(P, 20000000) - 5000000
+		LOCAL:12 = 0
+		SIF P > 20000000
+			LOCAL:12 = P - 20000000
+		P = 1000000 + LOCAL:10 / 2 + LOCAL:11 / 4 + LOCAL:12 / 10
+	ENDIF
+	P = LIMIT(P, 0, 50000000)
+
+	;成果・出来栄えによる振れ幅（80%～100%＋端数）
+	;高額補正・上限キャップ後に掛けることで、能力向上時の逆転を防ぎつつキャップ時も毎回変動
+	P = P * (8000 + RAND:2001) / 10000
+	SIF P > 1000
+		P += RAND:1000 - 500
+	P = LIMIT(P, 0, 50000000)
 	
-	PRINTFORML ${P}の収入を得た
+	PRINTFORML ${P}の収入を得た。
 	MONEY += P
 	;素材を得る(COMF309.ERB)
 	CALL EARN_SOZAI_2

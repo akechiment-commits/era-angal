@@ -93,6 +93,14 @@ ELSE
 	P = PLAYER
 ENDIF
 
+;射精する対象（受け手・搾り手）の設定（ドライ絶頂メッセージより先に設定して自己参照を防ぐ）
+;助手を犯す、助手を犯させる
+IF SELECTCOM == 56 || SELECTCOM == 65	; 【コマンド:[助手を犯す] / コマンド:[助手を犯させる]】
+	T = ASSI
+ELSE
+	T = TARGET
+ENDIF
+
 ;耐力消費の対象を射精した瞬間に記録する。後段の処理でPが変わっても判定を失わない。
 TFLAG:994 = 0
 TFLAG:996 = P
@@ -107,26 +115,83 @@ IF TFLAG:994 && BASE:(TFLAG:996):4 <= 0 && TFLAG:302	; 【[同時絶頂]】
 	TFLAG:714 = 0
 	SIF EJAC > 0
 		BASE:(TFLAG:996):2 = EJAC - 1
-	SELECTCASE RAND(4)
-	CASE 0
-		PRINTFORML もう何も出せないのに、%CALLNAME:TARGET%の責めに%CALLNAME:(TFLAG:996)%の身体だけが震えている……
-	CASE 1
-		PRINTFORML 空になったはずの奥をなお弄ばれ、%CALLNAME:(TFLAG:996)%は声もなく絶頂だけを繰り返した……
-	CASE 2
-		PRINTFORML %CALLNAME:TARGET%は容赦なく快感を重ね、%CALLNAME:(TFLAG:996)%から残り香まで搾り取っていく……
-	CASEELSE
-		PRINTFORML これ以上は出せない。それでも続く刺激に、%CALLNAME:(TFLAG:996)%は力なく身体を跳ねさせた……
-	ENDSELECT
+	LOCAL = T
+	IF LOCAL == TFLAG:996 || LOCAL < 0
+		IF ASSI > 0 && ASSI != TFLAG:996
+			LOCAL = ASSI
+		ELSE
+			LOCAL = PLAYER
+		ENDIF
+	ENDIF
+	;相手の意識があるか判定（0=意識あり、1=気絶・意識なし）
+	LOCAL:1 = 0
+	IF LOCAL >= 0 && LOCAL < CHARANUM
+		IF TFLAG:898 || TFLAG:899 || BASE:LOCAL:0 <= 0
+			LOCAL:1 = 1
+		ELSEIF LOCAL == TARGET && (BASE:LOCAL:0 - LOSEBASE:0 <= 0)
+			LOCAL:1 = 1
+		ENDIF
+	ENDIF
+
+	;今回のコマンド開始時にはまだ耐力があった（今回出し切った）か、調教中初めて出なくなった場合
+	IF TFLAG:993 > 0 || TFLAG:995 == 0
+		TFLAG:995 = 1
+		IF LOCAL:1
+			;相手の意識が無い場合のメッセージ（出し切った瞬間）
+			SELECTCASE RAND(4)
+			CASE 0
+				PRINTFORML 意識を失いぐったりと横たわる%CALLNAME:LOCAL%の中で、%CALLNAME:(TFLAG:996)%は最後の一滴まで出し尽くし、完全に精根を使い果たした……
+			CASE 1
+				PRINTFORML 気を失った%CALLNAME:LOCAL%の生ぬるい肉体に全てを搾り取られ、%CALLNAME:(TFLAG:996)%は力なくその上に倒れ込んだ……
+			CASE 2
+				PRINTFORML 眠るように静まり返った%CALLNAME:LOCAL%を相手に限界まで絞り出され、%CALLNAME:(TFLAG:996)%は出し切った快感に震えながら果てた……
+			CASEELSE
+				PRINTFORML これで完全に空っぽだ。反応のない%CALLNAME:LOCAL%の身体に最後の一滴まで吸い取られ、%CALLNAME:(TFLAG:996)%は虚脱感に沈んだ……
+			ENDSELECT
+		ELSE
+			;相手の意識がある場合のメッセージ（出し切った瞬間）
+			SELECTCASE RAND(4)
+			CASE 0
+				PRINTFORML 今回の絶頂で最後の一滴まで出し尽くし、%CALLNAME:(TFLAG:996)%の余力は完全に底を突いた……
+			CASE 1
+				PRINTFORML 全てを搾り取られた%CALLNAME:(TFLAG:996)%は、激しい快感の余韻の中で力なく身体を脱力させた……
+			CASE 2
+				PRINTFORML %CALLNAME:LOCAL%の激しい責めに限界まで絞り出され、%CALLNAME:(TFLAG:996)%は出し切った快感に震えながら果てた……
+			CASEELSE
+				PRINTFORML これで完全に空っぽだ。%CALLNAME:(TFLAG:996)%は最後の一滴まで搾り取られ、熱いため息を漏らした……
+			ENDSELECT
+		ENDIF
+	ELSE
+		TFLAG:995 += 1
+		IF LOCAL:1
+			;相手の意識が無い場合のメッセージ（既に出し切っている状態での空撃ち）
+			SELECTCASE RAND(4)
+			CASE 0
+				PRINTFORML とっくに身体は出し尽くし、何も出せないはずなのに……意識のない%CALLNAME:LOCAL%の体温に刺激され、%CALLNAME:(TFLAG:996)%は空撃ちの絶頂に震えた……
+			CASE 1
+				PRINTFORML 気を失った%CALLNAME:LOCAL%の肉体が無意識に締め付け、空っぽの%CALLNAME:(TFLAG:996)%は一滴も出ないまま乾いたオーガズムを強いられた……
+			CASE 2
+				PRINTFORML もうこれ以上は何も出ない。ぐったりと動かない%CALLNAME:LOCAL%の上で、%CALLNAME:(TFLAG:996)%は声もなくただ身体を跳ねさせる……
+			CASEELSE
+				PRINTFORML 意識のない%CALLNAME:LOCAL%の温もりになお弄ばれ、出し尽くしたはずの身体は出ない快感に何度も引き攣っている……
+			ENDSELECT
+		ELSE
+			;相手の意識がある場合のメッセージ（既に出し切っている状態での空撃ち）
+			SELECTCASE RAND(4)
+			CASE 0
+				PRINTFORML もう何も出せないはずなのに、%CALLNAME:LOCAL%の執拗な責めが%CALLNAME:(TFLAG:996)%の身体を何度も震わせる……
+			CASE 1
+				PRINTFORML とっくに空になったはずの奥をなお弄ばれ、%CALLNAME:(TFLAG:996)%は一滴も出ないまま声のない絶頂を繰り返した……
+			CASE 2
+				PRINTFORML %CALLNAME:LOCAL%は限界を超えても容赦なく快感を重ね、出ない%CALLNAME:(TFLAG:996)%から残り香まで搾り取っていく……
+			CASEELSE
+				PRINTFORML もうこれ以上は何も出ない。それなのに容赦なく続く刺激に、%CALLNAME:(TFLAG:996)%は力なく身悶えさせられている……
+			ENDSELECT
+		ENDIF
+	ENDIF
+	;次回以降の空撃ち判定用にコマンド開始時耐力を0に更新
+	TFLAG:993 = 0
 	RETURN 0
-ENDIF
-
-
-;射精する対象の設定
-;助手を犯す、助手を犯させる
-IF SELECTCOM == 56 || SELECTCOM == 65	; 【コマンド:[助手を犯す] / コマンド:[助手を犯させる]】
-	T = ASSI
-ELSE
-	T = TARGET
 ENDIF
 
 S = 0
@@ -265,11 +330,11 @@ CALL IN_VAGINA_CHECK
 ;精液汚れの設定
 STAIN:P:2 |= 4
 
-IF TFLAG:302 == 4	; 【[同時絶頂]==4】
-	PRINTFORML 超大量射精×{TFLAG:714}（{TFLAG:719}ml）
-ELSEIF TFLAG:302 == 2	; 【[同時絶頂]==2】
+IF TFLAG:302 == 4	; 【[絶頂]==4】
+	PRINTFORML 超量射精×{TFLAG:714}（{TFLAG:719}ml）
+ELSEIF TFLAG:302 == 2	; 【[絶頂]==2】
 	PRINTFORML 大量射精×{TFLAG:714}（{TFLAG:719}ml）
-ELSEIF TFLAG:302 == 1	; 【[同時絶頂]==1】
+ELSEIF TFLAG:302 == 1	; 【[絶頂]==1】
 	PRINTFORML 射精×{TFLAG:714}（{TFLAG:719}ml）
 ENDIF
 
@@ -279,26 +344,26 @@ EXP:P:3 += TFLAG:302
 IF P == PLAYER || P == MASTER
 	FLAG:5040 += TFLAG:719
 	FLAG:(5800 + NO:T) += TFLAG:719
-	;相手別射精統計の記録
+	;相手別射精統計の記録（絶頂強度ではなく実際の射精回数＝1回として加算）
 	IF T >= 0 && T < CHARANUM
-		CFLAG:T:1220 += TFLAG:714
+		CFLAG:T:1220 += 1
 		CFLAG:T:1221 += TFLAG:719
 		SIF TFLAG:719 > CFLAG:T:1240	; 【T:[1回の最高射精量(mL)]】
 			CFLAG:T:1240 = TFLAG:719
 		IF TFLAG:703 == 1	; 【[射精箇所]==1】
-			CFLAG:T:1222 += TFLAG:714
+			CFLAG:T:1222 += 1
 			CFLAG:T:1223 += TFLAG:719
 		ELSEIF TFLAG:703 == 2	; 【[射精箇所]==2】
-			CFLAG:T:1224 += TFLAG:714
+			CFLAG:T:1224 += 1
 			CFLAG:T:1225 += TFLAG:719
 		ELSEIF TFLAG:703 == 4	; 【[射精箇所]==4】
-			CFLAG:T:1226 += TFLAG:714
+			CFLAG:T:1226 += 1
 			CFLAG:T:1227 += TFLAG:719
 		ELSE
-			CFLAG:T:1228 += TFLAG:714
+			CFLAG:T:1228 += 1
 			CFLAG:T:1229 += TFLAG:719
 		ENDIF
-		CFLAG:T:1230 += TFLAG:714
+		CFLAG:T:1230 += 1
 	ENDIF
 	;パートナーのターン追加中の主人公射精は、回数と実射精量で最大耐力を鍛える。
 	SIF TFLAG:994 && TFLAG:996 == MASTER
@@ -311,6 +376,8 @@ ENDIF
 BASE:P:2 -= EJAC*TFLAG:302
 SIF BASE:P:2 >= EJAC
 	BASE:P:2 = EJAC-1
+SIF BASE:P:2 < 0
+	BASE:P:2 = 0
 
 
 ;-------------------------------------------------------------------------

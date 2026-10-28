@@ -177,6 +177,8 @@ REPEAT 30
 REND
 TFLAG:100 = 0
 TFLAG:540 = 0
+;コマンド開始時の耐力を記録（今回出し切ったか判定用）
+TFLAG:993 = BASE:MASTER:4
 ;自慰・レズ経験のセッション開始値を保存（デルタ判定用）
 SIF TARGET >= 0
 	TFLAG:55 = EXP:10
@@ -373,6 +375,11 @@ F = 0
 G = 0
 H = 0
 I = 0
+;待機行動のペア処理フラグ初期化
+FOR LOCAL:10, 0, CHARANUM
+	CFLAG:(LOCAL:10):1290 = 0
+NEXT
+
 REPEAT CHARANUM
 	Y:COUNT = -1
 REND
@@ -512,14 +519,13 @@ REPEAT CHARANUM
 	D = 0
 ;体力の回復
 	IF COUNT == MASTER
-		;主人公: 体力は昼10%、夜20%。耐力は昼夜切替20%、日付切替50%。
+		;主人公: 体力は昼10%、夜20%。耐力は昼夜切替(TIME==0)20%、日付切替(TIME==1)50%。
 		IF TIME == 0
 			A = MAXBASE:COUNT:0 / 10
-			;TIME==0は新しい日が始まる側。
-			B = MAXBASE:COUNT:4 / 2
+			B = MAXBASE:COUNT:4 / 5
 		ELSE
 			A = MAXBASE:COUNT:0 / 5
-			B = MAXBASE:COUNT:4 / 5
+			B = MAXBASE:COUNT:4 / 2
 		ENDIF
 	ELSE
 		;女の子: 昼25%、夜50%
@@ -687,6 +693,7 @@ REPEAT CHARANUM
 		C = 0
 
 	;待機中指示コマンド実行はSHOP_COM_ACT.ERBに移動
+	D = 0
 	CALL TURNEND_COM
 
 	;回復処理
@@ -705,6 +712,12 @@ REPEAT CHARANUM
 	BASE:COUNT:0 += A
 	SIF BASE:COUNT:0 > MAXBASE:COUNT:0	; 【COUNT:[体力]>MAXBASE:COUNT:0】
 		BASE:COUNT:0 = MAXBASE:COUNT:0
+	;おあずけ事後暴走(@SELF_OAZUKE_RAMPAGE_CHECK)・定期戦祝勝会(@DECK_BATTLE_HAREM_AFTER)・行事後イチャイチャ(@SCHOOL_EVENT_AFTER_ICHA)発生時は、
+	;直後のBEGIN TURNEND(@EVENTTURNEND)で耐力が即座に回復してしまわないよう、そのターンの耐力自動回復を0に抑止する
+	IF COUNT == MASTER && CFLAG:MASTER:1286 > 0	; 【MASTER:[事後暴走消耗フラグ]>0】
+		B = 0
+		CFLAG:MASTER:1286 = 0	; 【MASTER:[事後暴走消耗フラグ]リセット】
+	ENDIF
 	BASE:COUNT:4 += B
 	SIF BASE:COUNT:4 > MAXBASE:COUNT:4	; 【COUNT:[耐力]>MAXBASE:COUNT:4】
 		BASE:COUNT:4 = MAXBASE:COUNT:4
@@ -747,7 +760,7 @@ REPEAT CHARANUM
 	
 
 	;リフレッシュ(2)とイチャイチャ(7)のみ生活費発生
-	IF CFLAG:COUNT:13 == 2 || CFLAG:COUNT:13 == 7 || CFLAG:COUNT:13 == 8 || CFLAG:COUNT:13 == 11	; 【COUNT:[待機中行動]==2 / COUNT:[待機中行動]==7 / COUNT:[待機中行動]==8 / COUNT:[待機中行動]==11】
+	IF CFLAG:COUNT:13 == 2 || CFLAG:COUNT:13 == 7 || CFLAG:COUNT:13 == 8 || CFLAG:COUNT:13 == 10 || CFLAG:COUNT:13 == 11 || CFLAG:COUNT:13 == 12 || CFLAG:COUNT:13 == 13
 		LOCAL:0 += C
 	ENDIF
 	LOCAL:1 += D
@@ -808,6 +821,11 @@ REPEAT CHARANUM
 		ENDIF
 	ENDIF
 REND
+
+;待機行動のペア処理フラグをクリア
+FOR LOCAL:10, 0, CHARANUM
+	CFLAG:(LOCAL:10):1290 = 0
+NEXT
 
 ;待機行動中に入手した経験や宝珠や好感度を表示する場合確認用に最後に1回だけWAIT
 ;それが無くても宝探し詳細報告アリなら、確認用に最後に1回だけWAIT
@@ -882,7 +900,7 @@ ENDIF
 
 MONEY += LOCAL:1
 SIF LOCAL:1 > 0
-	PRINTFORML バイトで${LOCAL:1}入手しました
+	PRINTFORML 待機中の仲間のバイトで${LOCAL:1}入手しました
 
 ;キャラ独自イベント
 ;恋慕等取得

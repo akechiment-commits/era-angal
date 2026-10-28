@@ -71,32 +71,30 @@ ELSEIF RESULT == 300 && CHARANUM >= 3
 		;選択された待機中行動を保存
 		D = RESULT
 		IF RESULT == 20
-			;[13] リフレッシュ(耐力○％以下)
-			PRINTFORML 耐力が○％以下の仲間にリフレッシュを指示します。
-			PRINTFORML 何％以下の仲間に指示しますか？ （1-100、0で戻る）
-			$INPUT_LOOP_REFRESH2
-			INPUT
-			IF RESULT == 0
-				CALL SHOP_ACT_LIST
-				GOTO INPUT_LOOP_ACT_TOTAL
-			ELSEIF RESULT < 0 || RESULT > 100
-				PRINTFORML 正しい値を入力してください
-				GOTO INPUT_LOOP_REFRESH2
+			LOCAL:1 = 0
+			;キャラごとに選択された待機中行動を判定し、療養中のキャラはリフレッシュに変更する
+			FOR A, 0, CHARANUM
+				;MASTERは変更できない
+				SIF A == MASTER
+					CONTINUE
+				;U == 0の時（休憩中のキャラが表示されていない時）は休憩中のキャラの行動を変えない
+				SIF U == 0 && CFLAG:A:16	; 【A:[非表示]】
+					CONTINUE
+				
+				;療養中（体力0以下）のキャラならリフレッシュに変更
+				IF BASE:A:0 <= 0
+					CFLAG:A:13 = 2
+					LOCAL:1 += 1
+				ENDIF
+			NEXT
+			IF LOCAL:1 > 0
+				PRINTFORMW 療養中の仲間{LOCAL:1}人にリフレッシュを指示しました
 			ELSE
-				;キャラごとに選択された待機中行動を判定し、可能なキャラは変更する
-				FOR A, 0, CHARANUM
-					;MASTERは変更できない
-					SIF A == MASTER
-						CONTINUE
-					;U == 0の時（休憩中のキャラが表示されていない時）は休憩中のキャラの行動を変えない
-					SIF U == 0 && CFLAG:A:16	; 【A:[非表示]】
-						CONTINUE
-					
-					;耐力が○(選択された値)％以下ならリフレッシュに変更
-					SIF (BASE:A:4 <= MAXBASE:A:4 * RESULT / 100)	; 【A:[耐力]<=MAXBASE:A:4】
-						CFLAG:A:13 = 2
-				NEXT
+				PRINTFORMW 療養中の仲間はいませんでした
 			ENDIF
+			CALL ACTION_LIST
+			CALL SHOP_ACT_LIST
+			GOTO INPUT_LOOP_ACT_TOTAL
 		ELSE
 			;キャラごとに選択された待機中行動を判定し、可能なキャラは変更する
 			FOR A, 0, CHARANUM
@@ -191,8 +189,8 @@ FOR LOCAL, 0, 15
 	SIF C:LOCAL
 		PRINTFORML [{LOCAL, 3}] %TSTR:LOCAL,16,LEFT% ：%TSTR:(100+LOCAL)%
 NEXT
-PRINTFORML [ 20] リフレッシュ(耐力○％以下)
-C:13 = 1
+PRINTFORML [ 20] リフレッシュ（療養中キャラ） ：%TSTR:120%
+C:20 = 1
 PRINTFORML [100] キャンセル
 
 @SHOP_ACT_NAME
@@ -207,23 +205,28 @@ TSTR:6  = お金稼ぎ
 TSTR:7  = イチャイチャする
 TSTR:8  = 朝フェラ
 TSTR:9  = 自慰
-TSTR:10 = レズ行為
-TSTR:11 = 性行為
-TSTR:12 = 宝探し
-;TSTR:20 = リフレッシュ(耐力○％以下)
+TSTR:10 = レズ行為(避妊)
+TSTR:11 = レズ行為(生)
+TSTR:12 = 性行為(避妊)
+TSTR:13 = 性行為(生)
+TSTR:14 = 宝探し
+TSTR:20 = リフレッシュ（療養中キャラ）
+TSTR:120 = 療養中（体力0以下）の仲間に指示
 TSTR:100 = 変化なし
-TSTR:101 = 回復量↓   学習経験↑
-TSTR:102 = 回復量↑↑ 生活費↑↑
-TSTR:103 = 回復量↓↓ 宝珠↑
-TSTR:104 = 回復量↓   学習経験↑ 好感度↑
-TSTR:105 = 回復量↓   宝珠↑   家事経験↑
-TSTR:106 = 回復量０   家事経験↑ 金↑
-TSTR:107 = 生活費↑↑ 好感度↑
-TSTR:108 = 回復量↓   生活費↑ 経験↑ 宝珠↑
-TSTR:109 = 回復量↓   経験↑ 宝珠↑
-TSTR:110 = 回復量↓   経験↑ 宝珠↑
-TSTR:111 = 回復量↓   生活費↑ 経験↑ 宝珠↑ 好感度↑
-TSTR:112 = 回復量↓   アイテム発見
+TSTR:101 = 回復量中   学習経験
+TSTR:102 = 回復量大 珠なし
+TSTR:103 = 回復量小 珠中
+TSTR:104 = 回復量中   学習経験 好意
+TSTR:105 = 回復量小   珠大   家事経験
+TSTR:106 = 回復量０   家事経験 ＄
+TSTR:107 = 珠なし 好意大
+TSTR:108 = 回復量小   珠大 経験 欲
+TSTR:109 = 回復量小   経験 欲
+TSTR:110 = 回復量小   快／経験・欲／好意 (避妊)
+TSTR:111 = 回復量小   快／中出・欲／好意 (生・仲間妊娠あり)
+TSTR:112 = 回復量小   快／奉仕・欲／好意 (避妊)
+TSTR:113 = 回復量小   快／中出・欲／好意 (生・子作り)
+TSTR:114 = 回復量小   アイテム
 
 @SHOP_ACT_ABLE
 ;事前にAにTARGET等キャラを指定しておき、Aが各待機中行動をできるか判定する
@@ -264,15 +267,21 @@ SIF TALENT:A:54 == 0 && A != MASTER && (TALENT:A:152 || TALENT:A:153) && (ABL:A:
 ;[9] 自慰
 SIF A != MASTER && (TALENT:A:152 || TALENT:A:153) && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:10 >= 1)	; 【A:[合意] / A:[恋人] / A:[親密]Lv>=10 / A:[欲望]Lv>=10 / A:[自慰中毒]Lv>=1】
 	B:9 = 1
-;[10] レズ行為
-SIF A != MASTER && ABL:A:1 >= 5 && ABL:A:9 >= 3 && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:9 >= 10 || ABL:A:12 >= 1) && TALENT:MASTER:122 == 0 && TALENT:A:122 == 0	; 【MASTER:[オトコ]なし / A:[オトコ]なし / A:[欲望]Lv>=5 / A:[レズっ気]Lv>=3 / A:[親密]Lv>=10 / A:[欲望]Lv>=10 / A:[レズっ気]Lv>=10 / A:[レズ中毒]Lv>=1】
+;[10] レズ行為(避妊)
+SIF A != MASTER && TALENT:A:122 == 0 && ABL:A:1 >= 5 && ABL:A:9 >= 3 && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:9 >= 10 || ABL:A:12 >= 1)
 	B:10 = 1
-;[11] 性行為
-SIF A != MASTER && TALENT:MASTER:154 == 0 && TALENT:A:88 && TALENT:A:0 == 0 && (ABL:A:0 + ABL:A:1 + ABL:A:4 + ABL:A:6 >= 55) && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122)	; 【MASTER:[童貞]なし / A:[親愛] / A:[処女]なし / MASTER:[半人半妖] / MASTER:[ふたなり] / MASTER:[オトコ] / A:[親密] / A:[欲望] / A:[Ｖ感覚] / A:[奉仕精神]Lv>=55】
+;[11] レズ行為(生)
+SIF A != MASTER && TALENT:A:122 == 0 && ABL:A:1 >= 5 && ABL:A:9 >= 3 && (ABL:A:0 >= 10 || ABL:A:1 >= 10 || ABL:A:9 >= 10 || ABL:A:12 >= 1)
 	B:11 = 1
-;[12] 宝探し
-SIF A == MASTER || ABL:A:0 >= 3 || CFLAG:A:2 >= 300 || TALENT:A:153	; 【A:[恋人] / A:[親密]Lv>=3 / A:[好感度]>=300】
+;[12] 性行為(避妊)
+SIF A != MASTER && TALENT:MASTER:154 == 0 && TALENT:A:88 && TALENT:A:0 == 0 && (ABL:A:0 + ABL:A:1 + ABL:A:4 + ABL:A:6 >= 55) && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122)
 	B:12 = 1
+;[13] 性行為(生・子作り)
+SIF A != MASTER && TALENT:MASTER:154 == 0 && TALENT:A:88 && TALENT:A:0 == 0 && (ABL:A:0 + ABL:A:1 + ABL:A:4 + ABL:A:6 >= 55) && (TALENT:MASTER:119 || TALENT:MASTER:121 || TALENT:MASTER:122)
+	B:13 = 1
+;[14] 宝探し
+SIF A == MASTER || ABL:A:0 >= 3 || CFLAG:A:2 >= 300 || TALENT:A:153
+	B:14 = 1
 
 @ALL_ACT_ABLE
 ;全キャラ指定中の待機中行動をできるか判定し、できなくなっている場合は何もさせないに変更
@@ -348,9 +357,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		TIMES A , 0.70
 		TIMES B , 0.70
 		TIMES C , 0.75
-		LOCAL = 1
-		SIF RAND:4 == 0
-			LOCAL = 2
+		LOCAL = RAND:3 + 2
 		EXP:COUNT:95 += LOCAL
 		CALL TURNEND_COM_PRINT, "EXP", 95, LOCAL
 		Y:COUNT = 1
@@ -384,6 +391,11 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		LOCAL = RAND:3 + 3
 		EXP:COUNT:95 += LOCAL
 		CALL TURNEND_COM_PRINT, "EXP", 95, LOCAL
+		;主人公も一緒に学習
+		EXP:MASTER:95 += MAX(LOCAL / 2, 1)
+		;二人で過ごす時間による愛情経験
+		EXP:COUNT:23 += 1
+		CALL TURNEND_COM_PRINT, "EXP", 23, 1
 		LOCAL = RAND:21 + 20
 		CFLAG:COUNT:2 += LOCAL
 		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL
@@ -398,6 +410,9 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		LOCAL = SQRT(ABL:COUNT:6 + ABL:COUNT:90) + RAND:6 / 2 + 1
 		EXP:COUNT:90 += LOCAL
 		CALL TURNEND_COM_PRINT, "EXP", 90, LOCAL
+		;奉仕快楽経験
+		EXP:COUNT:21 += 1
+		CALL TURNEND_COM_PRINT, "EXP", 21, 1
 		LOCAL = (ABL:COUNT:6 * SQRT(ABL:COUNT:6) * (ABL:COUNT:90 * 2 + ABL:COUNT:2) / 3 + 5) * (RAND:10 + 5) / 10
 		JUEL:COUNT:16 += LOCAL
 		CALL TURNEND_COM_PRINT, "JUEL", 16, LOCAL
@@ -445,6 +460,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 
 			;実行したコマンドを保存
 			Y:COUNT = 6
+			PRINTFORML %CALLNAME:COUNT%はバイトで${D}稼ぎました。
 		ELSE
 			PRINTFORML %CALLNAME:COUNT%はかなり疲労しているようだ…
 		ENDIF
@@ -458,6 +474,17 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		CFLAG:COUNT:2 += LOCAL
 		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL
 		BASE:MASTER:4 -= MAXBASE:MASTER:4 / 200
+		;キス未経験（ファーストキス未済）でない場合のみキス経験を加算
+		IF TALENT:COUNT:151 == 0 && TALENT:MASTER:151 == 0
+			LOCAL:92 = RAND:3 + 2
+			EXP:COUNT:96 += LOCAL:92
+			EXP:MASTER:96 += LOCAL:92
+			CFLAG:COUNT:1231 += LOCAL:92
+			CALL TURNEND_COM_PRINT, "EXP", 96, LOCAL:92
+		ENDIF
+		LOCAL:93 = RAND:2 + 2
+		EXP:COUNT:23 += LOCAL:93
+		CALL TURNEND_COM_PRINT, "EXP", 23, LOCAL:93
 		;実行したコマンドを保存
 		Y:COUNT = 7
 	ELSEIF CFLAG:COUNT:13 == 8 && H == 1	; 【COUNT:[待機中行動]==8】
@@ -479,7 +506,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		ELSEIF ABL:COUNT:11 == 4	; 【COUNT:[精液中毒]Lv==4】
 			G = 4
 		ELSEIF ABL:COUNT:11 >= 5	; 【COUNT:[精液中毒]Lv>=5】
-			G = 3 + ABL:COUNT:11 / 2
+			G = 3 + MIN(ABL:COUNT:11, 10) / 2 + SQRT(MAX(ABL:COUNT:11 - 10, 0))
 		ENDIF
 
 		;汚臭鈍感
@@ -510,10 +537,54 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		SIF G <= 0
 			G = 1
 
-		EXP:COUNT:22 += G
+		;ソフトキャップ補正（朝フェラ）
+		IF TALENT:COUNT:76	; 【COUNT:[親愛]】
+			IF G > 15
+				G = 15 + SQRT((G - 15) * 2)
+			ENDIF
+			SIF G > 22
+				G = 22
+		ELSE
+			IF G > 10
+				G = 10 + SQRT((G - 10) * 2)
+			ENDIF
+			SIF G > 16
+				G = 16
+		ENDIF
+		;自然な振れ幅（85%～110%＋微小ブレ）によりカンスト張り付き感を解消
+		G = G * (85 + RAND:26) / 100
+		G += RAND:3 - 1
+		SIF G <= 0
+			G = 1
+		;相手の経験加算
+		EXP:COUNT:22 += G	; フェラ経験
 		CALL TURNEND_COM_PRINT, "EXP", 22, G
-		EXP:COUNT:20 += G*2
-		CALL TURNEND_COM_PRINT, "EXP", 20, G*2
+		EXP:COUNT:20 += G * 2	; 精液経験
+		CALL TURNEND_COM_PRINT, "EXP", 20, G * 2
+		EXP:COUNT:26 += G	; 精飲経験（口内で飲み干している）
+		CALL TURNEND_COM_PRINT, "EXP", 26, G
+		EXP:COUNT:23 += G	; 愛情経験
+		CALL TURNEND_COM_PRINT, "EXP", 23, G
+
+		;主人公の射精経験
+		EXP:MASTER:3 += G
+		IF (FLAG:23 & 1p25)
+			PRINTFORML %CALLNAME:MASTER%は射精経験を{G}だけ得ることができた。
+		ENDIF
+
+		;射精量・個人記録の加算
+		CFLAG:COUNT:1220 += G	; 総射精回数
+		CFLAG:COUNT:1226 += G	; 口内射精回数
+		CFLAG:COUNT:1230 += G	; 主人公を射精させた回数
+		LOCAL:91 = G * (4 + RAND:3)	; 射精量(mL)
+		CFLAG:COUNT:1221 += LOCAL:91	; 総射精量
+		CFLAG:COUNT:1227 += LOCAL:91	; 口内射精量
+		SIF LOCAL:91 > CFLAG:COUNT:1240
+			CFLAG:COUNT:1240 = LOCAL:91
+		FLAG:5040 += LOCAL:91
+		FLAG:(5800 + NO:COUNT) += LOCAL:91
+		CFLAG:COUNT:108 = 1	; 口内精液フラグ
+
 		JUEL:COUNT:4 += G*100
 		CALL TURNEND_COM_PRINT, "JUEL", 4, G*100
 		JUEL:COUNT:6 += G*30
@@ -545,7 +616,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		ELSEIF ABL:COUNT:10 == 4	; 【COUNT:[自慰中毒]Lv==4】
 			G = 6
 		ELSEIF ABL:COUNT:10 >= 5	; 【COUNT:[自慰中毒]Lv>=5】
-			G = (ABL:COUNT:10 * 2) - 1
+			G = (MIN(ABL:COUNT:10, 10) * 2) - 1 + SQRT(MAX(ABL:COUNT:10 - 10, 0) * 2)
 		ENDIF
 
 		;言われてやってるので普段より多い
@@ -554,7 +625,7 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		IF ABL:COUNT:1 == 4 && ABL:COUNT:3 >= 4	; 【COUNT:[欲望]Lv==4 / COUNT:[Ｃ感覚]Lv>=4】
 			G += 1
 		ELSEIF ABL:COUNT:1 >= 5 && ABL:COUNT:3 >= 4	; 【COUNT:[欲望]Lv>=5 / COUNT:[Ｃ感覚]Lv>=4】
-			G += ABL:COUNT:1
+			G += MIN(ABL:COUNT:1, 10) + SQRT(MAX(ABL:COUNT:1 - 10, 0) * 2)
 		ENDIF
 		
 		;自慰しやすい
@@ -578,10 +649,35 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		SIF G <= 0
 			G = 1
 
+		;ソフトキャップ補正（自慰）
+		IF TALENT:COUNT:76	; 【COUNT:[親愛]】
+			IF G > 45
+				G = 45 + SQRT((G - 45) * 2)
+			ENDIF
+			SIF G > 60
+				G = 60
+		ELSE
+			IF G > 30
+				G = 30 + SQRT((G - 30) * 2)
+			ENDIF
+			SIF G > 40
+				G = 40
+		ENDIF
+		;自然な振れ幅（85%～110%＋微小ブレ）によりカンスト張り付き感を解消
+		G = G * (85 + RAND:26) / 100
+		G += RAND:5 - 2
+		SIF G <= 0
+			G = 1
 		EXP:COUNT:10 += G
 		CALL TURNEND_COM_PRINT, "EXP", 10, G
-		EXP:COUNT:2 += G / 5
-		CALL TURNEND_COM_PRINT, "EXP", 2, G/5
+		LOCAL:94 = MAX(G / 2, 1)	; 最低1回は絶頂
+		EXP:COUNT:2 += LOCAL:94
+		CALL TURNEND_COM_PRINT, "EXP", 2, LOCAL:94
+		CFLAG:COUNT:1232 += LOCAL:94	; 絶頂させた総回数
+		IF TALENT:COUNT:121	; ふたなりなら射精経験も加算
+			EXP:COUNT:3 += LOCAL:94
+			CALL TURNEND_COM_PRINT, "EXP", 3, LOCAL:94
+		ENDIF
 		JUEL:COUNT:0 += G*500
 		CALL TURNEND_COM_PRINT, "JUEL", 0, G*500
 		JUEL:COUNT:4 += G*100
@@ -596,62 +692,420 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		
 		;実行したコマンドを保存
 		Y:COUNT = 9
-	ELSEIF CFLAG:COUNT:13 == 10	; 【COUNT:[待機中行動]==10】
-		;レズ行為
-		TIMES A , 0.80
-		TIMES B , 0.80
-		TIMES C , 1.30
-
-		N = 0
-
-		IF ABL:COUNT:12 == 1	; 【COUNT:[レズ中毒]Lv==1】
-			N += 1
-		ELSEIF ABL:COUNT:12 == 2	; 【COUNT:[レズ中毒]Lv==2】
-			N += 2
-		ELSEIF ABL:COUNT:12 == 3	; 【COUNT:[レズ中毒]Lv==3】
-			N += 3
-		ELSEIF ABL:COUNT:12 == 4	; 【COUNT:[レズ中毒]Lv==4】
-			N += 5
-		ELSEIF ABL:COUNT:12 >= 5	; 【COUNT:[レズ中毒]Lv>=5】
-			N += 2 + ABL:COUNT:12
-		ENDIF
-		G = RAND:100 + 1
-		IF G <= 30
-			N += 1
-		ELSEIF G <= 65
-			N += 2
-		ELSEIF G <= 85
-			N += 5
-		ELSEIF G <= 95
-			N += 8
+	ELSEIF (CFLAG:COUNT:13 == 10 || CFLAG:COUNT:13 == 11)	; 【COUNT:[待機行動]==10(避妊) / 11(生)】
+		;既にペア相手のターンで処理済みの場合はスキップ
+		IF CFLAG:COUNT:1290 == 1
+			TIMES A , 0.80
+			TIMES B , 0.80
+			TIMES C , 1.30
+			Y:COUNT = CFLAG:COUNT:13
 		ELSE
-			N += 15
-		ENDIF
-		
-		R = RAND:76 + 75
-		N *= R
-		N /= 100
+			;ペア相手を探す（百合指示・未処理の仲間キャラから候補を収集）
+			LOCAL:50 = -1
+			LOCAL:58 = 0
+			;第1優先: 同一の指示（性同士、または百合同士）
+			FOR LOCAL:51, 1, CHARANUM
+				IF LOCAL:51 != COUNT && CFLAG:(LOCAL:51):17 == 0 && CFLAG:(LOCAL:51):1290 == 0
+					IF CFLAG:(LOCAL:51):13 == CFLAG:COUNT:13
+						LOCAL:(500 + LOCAL:58) = LOCAL:51
+						LOCAL:58 += 1
+					ENDIF
+				ENDIF
+			NEXT
+			IF LOCAL:58 > 0
+				LOCAL:50 = LOCAL:(500 + RAND:(LOCAL:58))
+			ELSE
+				;第2優先: 異なる指示（性×百合のペア）
+				LOCAL:58 = 0
+				FOR LOCAL:51, 1, CHARANUM
+					IF LOCAL:51 != COUNT && CFLAG:(LOCAL:51):17 == 0 && CFLAG:(LOCAL:51):1290 == 0
+						IF CFLAG:(LOCAL:51):13 == 10 || CFLAG:(LOCAL:51):13 == 11
+							LOCAL:(500 + LOCAL:58) = LOCAL:51
+							LOCAL:58 += 1
+						ENDIF
+					ENDIF
+				NEXT
+				SIF LOCAL:58 > 0
+					LOCAL:50 = LOCAL:(500 + RAND:(LOCAL:58))
+			ENDIF
 
-		EXP:COUNT:40 += N*20
-		CALL TURNEND_COM_PRINT, "EXP", 40, N*20
-		EXP:COUNT:2 += N*100*ABL:COUNT:0/500
-		CALL TURNEND_COM_PRINT, "EXP", 2, N*100*ABL:COUNT:0/500
-		
-		JUEL:COUNT:6 += N*75*(ABL:COUNT:2+ABL:COUNT:6)
-		CALL TURNEND_COM_PRINT, "JUEL", 6, N*75*(ABL:COUNT:2+ABL:COUNT:6)
-		JUEL:COUNT:7 += N*75*(ABL:COUNT:2+ABL:COUNT:6)
-		CALL TURNEND_COM_PRINT, "JUEL", 7, N*75*(ABL:COUNT:2+ABL:COUNT:6)
-		IF TALENT:COUNT:121	; 【COUNT:[ふたなり]】
-			EXP:COUNT:3 += N
-			CALL TURNEND_COM_PRINT, "EXP", 3, N
-			JUEL:COUNT:8 += N*100
-			CALL TURNEND_COM_PRINT, "JUEL", 8, N*100
+			TIMES A , 0.80
+			TIMES B , 0.80
+			TIMES C , 1.30
+
+			;-------------------------------------------------------------
+			; ペアが成立した場合（二人でレズ行為）
+			;-------------------------------------------------------------
+			IF LOCAL:50 >= 1
+				;自身と相手の両方を処理済みにセット
+				CFLAG:COUNT:1290 = 1
+				CFLAG:(LOCAL:50):1290 = 1
+				LOCAL:52 = LOCAL:50	; ペア相手キャラID
+				;レズ行為回数の記録（待機中ペア）
+				CALL RECORD_LESBIAN_ACT, COUNT, LOCAL:52, 1
+
+				;両方が生指示(11)なら生性交あり、片方でも避妊(10)なら避妊具使用
+				LOCAL:53 = (CFLAG:COUNT:13 == 11 && CFLAG:(LOCAL:52):13 == 11) ? 1 # 0
+
+				;ペアがわかる簡素な1行のみ表示（くどい性描写や見出しは全廃）
+				IF (FLAG:23 & 1p25)
+					PRINTFORML %CALLNAME:COUNT%と%CALLNAME:(LOCAL:52)%はレズ行為を行った。
+				ENDIF
+
+				;回数 N の算出（二人のレズ能力から算出）
+				LOCAL:61 = MIN(ABL:COUNT:12, 10) + SQRT(MAX(ABL:COUNT:12 - 10, 0) * 2) + MIN(ABL:COUNT:9, 10) / 2 + MIN(ABL:COUNT:1, 10) / 2
+				LOCAL:62 = MIN(ABL:(LOCAL:52):12, 10) + SQRT(MAX(ABL:(LOCAL:52):12 - 10, 0) * 2) + MIN(ABL:(LOCAL:52):9, 10) / 2 + MIN(ABL:(LOCAL:52):1, 10) / 2
+				N = 3 + (LOCAL:61 + LOCAL:62) / 2
+
+				;素質補正
+				SIF TALENT:COUNT:70 || TALENT:(LOCAL:52):70	; 淫乱
+					N = N * 3 / 2
+				SIF TALENT:COUNT:76 || TALENT:(LOCAL:52):76	; 親愛
+					N = N * 3 / 2
+				SIF TALENT:COUNT:81 || TALENT:(LOCAL:52):81	; 両刀
+					N += 2
+
+				;ソフトキャップ補正
+				IF TALENT:COUNT:76 || TALENT:(LOCAL:52):76
+					IF N > 35
+						N = 35 + SQRT((N - 35) * 2)
+					ENDIF
+					SIF N > 50
+						N = 50
+				ELSE
+					IF N > 25
+						N = 25 + SQRT((N - 25) * 2)
+					ENDIF
+					SIF N > 35
+						N = 35
+				ENDIF
+
+				;自然な振れ幅（85%～110%＋微小ブレ）
+				N = N * (85 + RAND:26) / 100
+				N += RAND:5 - 2
+				SIF N <= 0
+					N = 1
+
+				;-------------------------------------------------------------
+				; 経験値・宝珠の付与（COUNT と LOCAL:52 の両方に加算）
+				;-------------------------------------------------------------
+				FOR LOCAL:54, 0, 2
+					LOCAL:55 = (LOCAL:54 == 0) ? COUNT # LOCAL:52
+					LOCAL:56 = (LOCAL:54 == 0) ? LOCAL:52 # COUNT
+
+					;レズ経験
+					EXP:(LOCAL:55):40 += N * 2
+					;絶頂経験
+					EXP:(LOCAL:55):2 += N
+					CFLAG:(LOCAL:55):1232 += N
+					;奉仕快楽経験
+					EXP:(LOCAL:55):21 += MAX(N / 2, 1)
+
+					;キス経験（双方がキス未経験でない場合のみ加算）
+					IF TALENT:(LOCAL:55):151 == 0 && TALENT:(LOCAL:56):151 == 0
+						EXP:(LOCAL:55):96 += N
+						CFLAG:(LOCAL:55):1231 += N
+					ENDIF
+
+					;好感度・相性
+					LOCAL:57 = RAND:11 + 10
+					CFLAG:(LOCAL:55):2 += LOCAL:57
+					;相性上昇（低確率15%で発生、未設定時は基準値100から開始して上限200まで）
+					IF RAND:100 < 15
+						SIF RELATION:(LOCAL:55):(NO:(LOCAL:56)) == 0
+							RELATION:(LOCAL:55):(NO:(LOCAL:56)) = 100
+						SIF RELATION:(LOCAL:55):(NO:(LOCAL:56)) < 200
+							RELATION:(LOCAL:55):(NO:(LOCAL:56)) += 1
+					ENDIF
+
+					;ふたなりの射精経験
+					SIF TALENT:(LOCAL:55):121
+						EXP:(LOCAL:55):3 += N
+
+					;母乳体質の噴乳経験
+					SIF TALENT:(LOCAL:55):130
+						EXP:(LOCAL:55):54 += N
+
+					;おもらし癖の放尿経験
+					SIF TALENT:(LOCAL:55):57
+						EXP:(LOCAL:55):31 += N
+
+					;宝珠
+					JUEL:(LOCAL:55):0 += N * 100	; 快Ｃ
+					JUEL:(LOCAL:55):5 += N * 100	; 欲情
+					JUEL:(LOCAL:55):6 += N * 50		; 屈服
+					JUEL:(LOCAL:55):7 += N * 50		; 習得
+					JUEL:(LOCAL:55):15 += N * 80	; 好意
+
+					;ログ表示（性行為指示時と同様の簡素な獲得ログ）
+					IF (FLAG:23 & 1p25)
+						LOCAL:99 = COUNT
+						COUNT = LOCAL:55
+						CALL TURNEND_COM_PRINT, "EXP", 40, N * 2
+						CALL TURNEND_COM_PRINT, "EXP", 2, N
+						SIF TALENT:(LOCAL:55):151 == 0 && TALENT:(LOCAL:56):151 == 0
+							CALL TURNEND_COM_PRINT, "EXP", 96, N
+						SIF TALENT:(LOCAL:55):121
+							CALL TURNEND_COM_PRINT, "EXP", 3, N
+						SIF TALENT:(LOCAL:55):130
+							CALL TURNEND_COM_PRINT, "EXP", 54, N
+						SIF TALENT:(LOCAL:55):57
+							CALL TURNEND_COM_PRINT, "EXP", 31, N
+						CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL:57
+						CALL TURNEND_COM_PRINT, "JUEL", 0, N * 100
+						CALL TURNEND_COM_PRINT, "JUEL", 5, N * 100
+						CALL TURNEND_COM_PRINT, "JUEL", 15, N * 80
+						COUNT = LOCAL:99
+					ENDIF
+				NEXT
+
+				;-------------------------------------------------------------
+				; レズ性交・射精・中出し・妊娠判定
+				; ※相手が非処女(TALENT:0 == 0)の場合のみ挿入・射精を実行し処女を完全保護
+				;-------------------------------------------------------------
+				;COUNT(ふたなり)から相手(LOCAL:52/非処女)への性交・射精判定
+				IF TALENT:COUNT:121 && TALENT:(LOCAL:52):0 == 0
+					EXP:(LOCAL:52):0 += N	; Ｖ経験
+					LOCAL:92 = 100 + ABL:(LOCAL:52):4 * 20
+					SIF TALENT:(LOCAL:52):70
+						LOCAL:92 = LOCAL:92 * 3 / 2
+					SIF TALENT:(LOCAL:52):71
+						LOCAL:92 = LOCAL:92 / 2
+					LOCAL:93 = N * LOCAL:92
+					JUEL:(LOCAL:52):1 += LOCAL:93	; 快Ｖ
+					EXP:(LOCAL:52):20 += N * 10	; 精液経験
+					CFLAG:(LOCAL:52):1220 += N	; 総射精回数
+					LOCAL:91 = N * (4 + RAND:3)
+					CFLAG:(LOCAL:52):1221 += LOCAL:91	; 総射精量
+
+					IF LOCAL:53 == 1
+						;生レズ：膣内射精
+						EXP:(LOCAL:52):24 += N	; 膣射経験
+						CFLAG:(LOCAL:52):1222 += N	; 膣内射精数
+						CFLAG:(LOCAL:52):1223 += LOCAL:91	; 膣内射精量
+					ELSE
+						;避妊レズ：避妊具使用・外出し射精
+						CFLAG:(LOCAL:52):1228 += N	; 避妊・外出し射精数
+						CFLAG:(LOCAL:52):1229 += LOCAL:91	; 避妊・外出し射精量
+					ENDIF
+
+					IF (FLAG:23 & 1p25)
+						LOCAL:99 = COUNT
+						COUNT = LOCAL:52
+						CALL TURNEND_COM_PRINT, "EXP", 0, N
+						CALL TURNEND_COM_PRINT, "JUEL", 1, LOCAL:93
+						SIF LOCAL:53 == 1
+							CALL TURNEND_COM_PRINT, "EXP", 24, N
+						CALL TURNEND_COM_PRINT, "EXP", 20, N * 10
+						COUNT = LOCAL:99
+					ENDIF
+
+					;生性交時のみ妊娠判定
+					IF LOCAL:53 == 1 && (FLAG:62 & 1) && TALENT:(LOCAL:52):134 == 0
+						T = LOCAL:52
+						P = 3
+						CALL NAKADASHI_CHECK_TAIKI, N
+						IF CFLAG:(LOCAL:52):104 == 3
+							PRINTL
+							DRAWLINE
+							PRINTFORMW 待機中の%CALLNAME:(LOCAL:52)%の様子が……
+							PRINTFORML %CALLNAME:(LOCAL:52)%はどうやら%CALLNAME:COUNT%の子を宿しているようだ！
+							CALL PREGNANCY_FEEL, LOCAL:52, COUNT, 0
+							PRINTFORMW %NAME:(LOCAL:52)%は[%TALENTNAME:134%]した
+							TALENT:(LOCAL:52):134 = 1
+
+							T = LOCAL:52
+							CFLAG:(LOCAL:52):111 = NO:COUNT	; 父親を先にCOUNTに設定！
+							CALL CHANGE_N_STATUS
+
+							;妊娠口上呼び出し
+							LOCAL:98 = PLAYER
+							LOCAL:99 = TARGET
+							PLAYER = COUNT
+							TARGET = LOCAL:52
+							TFLAG:13 = 20
+							CALL SELF_KOJO
+							;相手側の妊娠認知口上呼び出し(TFLAG:13=98)
+							PLAYER = LOCAL:52
+							TARGET = COUNT
+							TFLAG:13 = 98
+							CALL SELF_KOJO
+							TARGET = LOCAL:99
+							PLAYER = LOCAL:98
+
+							CFLAG:(LOCAL:52):101 = 0
+							CFLAG:(LOCAL:52):104 = 0
+							DRAWLINE
+						ENDIF
+					ENDIF
+				ENDIF
+
+				;相手(LOCAL:52/ふたなり)からCOUNT(非処女)への性交・射精判定
+				IF TALENT:(LOCAL:52):121 && TALENT:COUNT:0 == 0
+					EXP:COUNT:0 += N	; Ｖ経験
+					LOCAL:92 = 100 + ABL:COUNT:4 * 20
+					SIF TALENT:COUNT:70
+						LOCAL:92 = LOCAL:92 * 3 / 2
+					SIF TALENT:COUNT:71
+						LOCAL:92 = LOCAL:92 / 2
+					LOCAL:93 = N * LOCAL:92
+					JUEL:COUNT:1 += LOCAL:93	; 快Ｖ
+					EXP:COUNT:20 += N * 10	; 精液経験
+					CFLAG:COUNT:1220 += N	; 総射精回数
+					LOCAL:91 = N * (4 + RAND:3)
+					CFLAG:COUNT:1221 += LOCAL:91	; 総射精量
+
+					IF LOCAL:53 == 1
+						;生レズ：膣内射精
+						EXP:COUNT:24 += N	; 膣射経験
+						CFLAG:COUNT:1222 += N	; 膣内射精数
+						CFLAG:COUNT:1223 += LOCAL:91	; 膣内射精量
+					ELSE
+						;避妊レズ：避妊具使用・外出し射精
+						CFLAG:COUNT:1228 += N	; 避妊・外出し射精数
+						CFLAG:COUNT:1229 += LOCAL:91	; 避妊・外出し射精量
+					ENDIF
+
+					IF (FLAG:23 & 1p25)
+						CALL TURNEND_COM_PRINT, "EXP", 0, N
+						CALL TURNEND_COM_PRINT, "JUEL", 1, LOCAL:93
+						SIF LOCAL:53 == 1
+							CALL TURNEND_COM_PRINT, "EXP", 24, N
+						CALL TURNEND_COM_PRINT, "EXP", 20, N * 10
+					ENDIF
+
+					;生性交時のみ妊娠判定
+					IF LOCAL:53 == 1 && (FLAG:62 & 1) && TALENT:COUNT:134 == 0
+						T = COUNT
+						P = 3
+						CALL NAKADASHI_CHECK_TAIKI, N
+						IF CFLAG:COUNT:104 == 3
+							PRINTL
+							DRAWLINE
+							PRINTFORMW 待機中の%CALLNAME:COUNT%の様子が……
+							PRINTFORML %CALLNAME:COUNT%はどうやら%CALLNAME:(LOCAL:52)%の子を宿しているようだ！
+							CALL PREGNANCY_FEEL, COUNT, LOCAL:52, 0
+							PRINTFORMW %NAME:COUNT%は[%TALENTNAME:134%]した
+							TALENT:COUNT:134 = 1
+
+							T = COUNT
+							CFLAG:COUNT:111 = NO:(LOCAL:52)	; 父親を先にLOCAL:52に設定！
+							CALL CHANGE_N_STATUS
+
+							;妊娠口上呼び出し
+							LOCAL:98 = PLAYER
+							LOCAL:99 = TARGET
+							PLAYER = LOCAL:52
+							TARGET = COUNT
+							TFLAG:13 = 20
+							CALL SELF_KOJO
+							;相手側の妊娠認知口上呼び出し(TFLAG:13=98)
+							PLAYER = COUNT
+							TARGET = LOCAL:52
+							TFLAG:13 = 98
+							CALL SELF_KOJO
+							TARGET = LOCAL:99
+							PLAYER = LOCAL:98
+
+							CFLAG:COUNT:101 = 0
+							CFLAG:COUNT:104 = 0
+							DRAWLINE
+						ENDIF
+					ENDIF
+				ENDIF
+
+				;行動コマンド保存
+				Y:COUNT = CFLAG:COUNT:13
+				Y:(LOCAL:52) = CFLAG:(LOCAL:52):13
+
+			;-------------------------------------------------------------
+			; ペア相手がおらず単独の場合
+			;-------------------------------------------------------------
+			ELSE
+				CFLAG:COUNT:1290 = 1
+				IF (FLAG:23 & 1p25)
+					PRINTFORML %CALLNAME:COUNT%はレズ行為を行った。
+				ENDIF
+
+				N = 0
+				IF ABL:COUNT:12 == 1
+					N += 1
+				ELSEIF ABL:COUNT:12 == 2
+					N += 2
+				ELSEIF ABL:COUNT:12 == 3
+					N += 3
+				ELSEIF ABL:COUNT:12 == 4
+					N += 5
+				ELSEIF ABL:COUNT:12 >= 5
+					N += 2 + MIN(ABL:COUNT:12, 10) + SQRT(MAX(ABL:COUNT:12 - 10, 0) * 2)
+				ENDIF
+				G = RAND:100 + 1
+				IF G <= 30
+					N += 1
+				ELSEIF G <= 65
+					N += 2
+				ELSEIF G <= 85
+					N += 5
+				ELSEIF G <= 95
+					N += 8
+				ELSE
+					N += 15
+				ENDIF
+				
+				;ソフトキャップ補正
+				IF N > 25
+					N = 25 + SQRT((N - 25) * 2)
+				ENDIF
+				SIF N > 40
+					N = 40
+
+				;自然な振れ幅
+				N = N * (85 + RAND:26) / 100
+				N += RAND:5 - 2
+				SIF N <= 0
+					N = 1
+
+				EXP:COUNT:40 += N * 20
+				CALL TURNEND_COM_PRINT, "EXP", 40, N * 20
+				LOCAL:94 = MAX(N * 100 * ABL:COUNT:0 / 500, 1)
+				EXP:COUNT:2 += LOCAL:94
+				CALL TURNEND_COM_PRINT, "EXP", 2, LOCAL:94
+				CFLAG:COUNT:1232 += LOCAL:94
+
+				IF TALENT:COUNT:151 == 0
+					LOCAL:92 = MAX(N / 2, 1)
+					EXP:COUNT:96 += LOCAL:92
+					CALL TURNEND_COM_PRINT, "EXP", 96, LOCAL:92
+				ENDIF
+				LOCAL:93 = MAX(N, 1)
+				EXP:COUNT:21 += LOCAL:93
+				CALL TURNEND_COM_PRINT, "EXP", 21, LOCAL:93
+				JUEL:COUNT:6 += N * 75 * (ABL:COUNT:2 + ABL:COUNT:6)
+				CALL TURNEND_COM_PRINT, "JUEL", 6, N * 75 * (ABL:COUNT:2 + ABL:COUNT:6)
+				JUEL:COUNT:7 += N * 75 * (ABL:COUNT:2 + ABL:COUNT:6)
+				CALL TURNEND_COM_PRINT, "JUEL", 7, N * 75 * (ABL:COUNT:2 + ABL:COUNT:6)
+
+				IF TALENT:COUNT:121
+					EXP:COUNT:3 += N
+					CALL TURNEND_COM_PRINT, "EXP", 3, N
+				ENDIF
+				IF TALENT:COUNT:130
+					EXP:COUNT:54 += N
+					CALL TURNEND_COM_PRINT, "EXP", 54, N
+				ENDIF
+				IF TALENT:COUNT:57
+					EXP:COUNT:31 += N
+					CALL TURNEND_COM_PRINT, "EXP", 31, N
+				ENDIF
+
+				SIF TALENT:COUNT:121
+					JUEL:COUNT:8 += N * 100
+
+				Y:COUNT = CFLAG:COUNT:13
+			ENDIF
 		ENDIF
-		
-		;実行したコマンドを保存
-		Y:COUNT = 10
-	ELSEIF CFLAG:COUNT:13 == 11 && H == 1	; 【COUNT:[待機中行動]==11】
-		;性行為
+	ELSEIF CFLAG:COUNT:13 == 12 && H == 1	; 【COUNT:[待機中行動]==11】
+		;性行為（避妊）
 		TIMES A , 0.70
 		TIMES B , 0.70
 		TIMES C , 1.50
@@ -670,14 +1124,14 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 		ELSEIF ABL:COUNT:4 == 4	; 【COUNT:[Ｖ感覚]Lv==4】
 			S += 3
 		ELSEIF ABL:COUNT:4 >= 5	; 【COUNT:[Ｖ感覚]Lv>=5】
-			S += 1 + (ABL:COUNT:4 * 3/4)
+			S += 1 + (MIN(ABL:COUNT:4, 10) * 3/4) + SQRT(MAX(ABL:COUNT:4 - 10, 0))
 		ENDIF
 		
 		;欲望と奉仕精神によるボーナス
 		IF ABL:COUNT:1 == 4 && ABL:COUNT:6 >= 4	; 【COUNT:[欲望]Lv==4 / COUNT:[奉仕精神]Lv>=4】
 			S += 1
 		ELSEIF ABL:COUNT:1 >= 5 && ABL:COUNT:6 >= 4	; 【COUNT:[欲望]Lv>=5 / COUNT:[奉仕精神]Lv>=4】
-			S += ABL:COUNT:1
+			S += MIN(ABL:COUNT:1, 10) + SQRT(MAX(ABL:COUNT:1 - 10, 0) * 2)
 		ENDIF
 		
 		;V感覚が充分にあれば、欲望ＬＶ３でもSに+1する
@@ -698,40 +1152,291 @@ IF COUNT != MASTER && CFLAG:COUNT:17 == 0	; 【COUNT:[臨月・育児中]==0】
 	
 		SIF S <= 0
 			S = 1
-		EXP:COUNT:0 += S
-		CALL TURNEND_COM_PRINT, "EXP", 0, S
-		EXP:COUNT:2 += S
-		CALL TURNEND_COM_PRINT, "EXP", 2, S
-		CFLAG:MASTER:2 += S
-		;待機中の性行為も射精を伴う扱いにする。主人公の射精経験を取りこぼさない。
-		EXP:MASTER:3 += S
-		CALL TURNEND_COM_PRINT, "EXP", 3, S
-		CFLAG:COUNT:2 += S*5
-		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL+S*5
-		IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
-			EXP:COUNT:20 += S * 10
-			CALL TURNEND_COM_PRINT, "EXP", 20, S*10
+
+		;ソフトキャップ補正（極限育成時の過剰インフレ防止と自然な飽和）
+		IF TALENT:COUNT:76	; 【COUNT:[親愛]】
+			IF S > 50
+				S = 50 + SQRT((S - 50) * 3)
+			ENDIF
+			SIF S > 65
+				S = 65
+		ELSE
+			IF S > 30
+				S = 30 + SQRT((S - 30) * 3)
+			ENDIF
+			SIF S > 45
+				S = 45
 		ENDIF
-		JUEL:COUNT:1 += S*800
-		CALL TURNEND_COM_PRINT, "JUEL", 1, S*800
-		JUEL:COUNT:4 += S*500
-		CALL TURNEND_COM_PRINT, "JUEL", 4, S*500
-		JUEL:COUNT:5 += S*500
-		CALL TURNEND_COM_PRINT, "JUEL", 5, S*500
-		JUEL:COUNT:15 += S*500
-		CALL TURNEND_COM_PRINT, "JUEL", 15, S*500
+
+		;自然な振れ幅（85%～110%＋微小ブレ）によりカンスト張り付き感を解消
+		S = S * (85 + RAND:26) / 100
+		S += RAND:5 - 2
+		SIF S <= 0
+			S = 1
+		;相手の経験加算
+		EXP:COUNT:0 += S	; Ｖ経験
+		CALL TURNEND_COM_PRINT, "EXP", 0, S
+		EXP:COUNT:2 += S	; 絶頂経験
+		CALL TURNEND_COM_PRINT, "EXP", 2, S
+		EXP:COUNT:23 += S * 2	; 愛情経験
+		CALL TURNEND_COM_PRINT, "EXP", 23, S * 2
+
+		;ふたなりの射精経験
+		IF TALENT:COUNT:121
+			EXP:COUNT:3 += S
+			CALL TURNEND_COM_PRINT, "EXP", 3, S
+		ENDIF
+
+		;母乳体質の噴乳経験
+		IF TALENT:COUNT:130
+			EXP:COUNT:54 += S
+			CALL TURNEND_COM_PRINT, "EXP", 54, S
+		ENDIF
+
+		;おもらし癖の放尿経験
+		IF TALENT:COUNT:57
+			EXP:COUNT:31 += S
+			CALL TURNEND_COM_PRINT, "EXP", 31, S
+		ENDIF
+		;キス未経験でない場合のみキス経験を加算
+		IF TALENT:COUNT:151 == 0 && TALENT:MASTER:151 == 0
+			EXP:COUNT:96 += S * 2
+			EXP:MASTER:96 += S * 2
+			CFLAG:COUNT:1231 += S * 2
+			CALL TURNEND_COM_PRINT, "EXP", 96, S * 2
+		ENDIF
+
+		;主人公側の経験加算
+		CFLAG:MASTER:2 += S	; 主人公好感度
+		EXP:MASTER:3 += S	; 主人公射精経験
+		IF (FLAG:23 & 1p25)
+			PRINTFORML %CALLNAME:MASTER%は射精経験を{S}だけ得ることができた。
+		ENDIF
+
+		CFLAG:COUNT:2 += S * 5	; 好感度ボーナス
+		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL + S * 5
+
+		IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
+			EXP:COUNT:20 += S * 10	; 精液経験
+			CALL TURNEND_COM_PRINT, "EXP", 20, S * 10
+		ENDIF
+
+		;射精量・個人記録の加算（避妊：外出し・コンドーム射精として記録）
+		CFLAG:COUNT:1220 += S	; 総射精回数
+		CFLAG:COUNT:1228 += S	; 外出し射精回数
+		CFLAG:COUNT:1230 += S	; 主人公を射精させた回数
+		CFLAG:COUNT:1232 += S	; 絶頂させた総回数
+		LOCAL:91 = S * (4 + RAND:3)	; 射精量(mL)
+		CFLAG:COUNT:1221 += LOCAL:91	; 総射精量
+		CFLAG:COUNT:1229 += LOCAL:91	; 外出し射精量
+		SIF LOCAL:91 > CFLAG:COUNT:1240
+			CFLAG:COUNT:1240 = LOCAL:91
+		FLAG:5040 += LOCAL:91
+		FLAG:(5800 + NO:COUNT) += LOCAL:91
+
+		JUEL:COUNT:1 += S * 800
+		CALL TURNEND_COM_PRINT, "JUEL", 1, S * 800
+		JUEL:COUNT:4 += S * 500
+		CALL TURNEND_COM_PRINT, "JUEL", 4, S * 500
+		JUEL:COUNT:5 += S * 500
+		CALL TURNEND_COM_PRINT, "JUEL", 5, S * 500
+		JUEL:COUNT:15 += S * 500
+		CALL TURNEND_COM_PRINT, "JUEL", 15, S * 500
 		
 		;実行したコマンドを保存
-		Y:COUNT = 11
-	ELSEIF CFLAG:COUNT:13 == 12	; 【COUNT:[待機中行動]==12】
+		Y:COUNT = 12
+	ELSEIF CFLAG:COUNT:13 == 13 && H == 1	; 【COUNT:[待機行動]==12】
+		;性行為（生・子作り）
+		TIMES A , 0.70
+		TIMES B , 0.70
+		TIMES C , 1.50
+		LOCAL = RAND:41 + 30
+		CFLAG:COUNT:2 += LOCAL
+		BASE:MASTER:4 -= MAXBASE:MASTER:4 / 50
+
+		S = 1
+		;V感覚
+		IF ABL:COUNT:4 == 1	; 【COUNT:[Ｖ感覚]Lv==1】
+			S += 1
+		ELSEIF ABL:COUNT:4 == 2	; 【COUNT:[Ｖ感覚]Lv==2】
+			S += 2
+		ELSEIF ABL:COUNT:4 == 3	; 【COUNT:[Ｖ感覚]Lv==3】
+			S += 2
+		ELSEIF ABL:COUNT:4 == 4	; 【COUNT:[Ｖ感覚]Lv==4】
+			S += 3
+		ELSEIF ABL:COUNT:4 >= 5	; 【COUNT:[Ｖ感覚]Lv>=5】
+			S += 1 + (MIN(ABL:COUNT:4, 10) * 3/4) + SQRT(MAX(ABL:COUNT:4 - 10, 0))
+		ENDIF
+		
+		;欲望と奉仕精神によるボーナス
+		IF ABL:COUNT:1 == 4 && ABL:COUNT:6 >= 4	; 【COUNT:[欲望]Lv==4 / COUNT:[奉仕精神]Lv>=4】
+			S += 1
+		ELSEIF ABL:COUNT:1 >= 5 && ABL:COUNT:6 >= 4	; 【COUNT:[欲望]Lv>=5 / COUNT:[奉仕精神]Lv>=4】
+			S += MIN(ABL:COUNT:1, 10) + SQRT(MAX(ABL:COUNT:1 - 10, 0) * 2)
+		ENDIF
+		
+		;V感覚が充分にあれば、欲望ＬＶ３でもSに+1する
+		IF ABL:COUNT:1 >= 3 && ABL:COUNT:4 >= 3	; 【COUNT:[欲望]Lv>=3 / COUNT:[Ｖ感覚]Lv>=3】
+			S += 1
+		ENDIF
+		
+		;快感に素直、快感の否定、淫乱化
+		IF TALENT:COUNT:70	; 【COUNT:[快感に素直]】
+			S *= 3/2
+		ELSEIF TALENT:COUNT:71	; 【COUNT:[快感の否定]】
+			S /= 2
+		ENDIF
+		
+		IF TALENT:COUNT:76	; 【COUNT:[淫乱]】
+			S *= 2
+		ENDIF
+	
+		SIF S <= 0
+			S = 1
+
+		;ソフトキャップ補正（極限育成時の過剰インフレ防止と自然な飽和）
+		IF TALENT:COUNT:76	; 【COUNT:[親愛]】
+			IF S > 50
+				S = 50 + SQRT((S - 50) * 3)
+			ENDIF
+			SIF S > 65
+				S = 65
+		ELSE
+			IF S > 30
+				S = 30 + SQRT((S - 30) * 3)
+			ENDIF
+			SIF S > 45
+				S = 45
+		ENDIF
+
+		;自然な振れ幅（85%～110%＋微小ブレ）によりカンスト張り付き感を解消
+		S = S * (85 + RAND:26) / 100
+		S += RAND:5 - 2
+		SIF S <= 0
+			S = 1
+		;相手の経験加算
+		EXP:COUNT:0 += S	; Ｖ経験
+		CALL TURNEND_COM_PRINT, "EXP", 0, S
+		EXP:COUNT:2 += S	; 絶頂経験
+		CALL TURNEND_COM_PRINT, "EXP", 2, S
+		EXP:COUNT:24 += S	; 膣射経験（中出しされている）
+		CALL TURNEND_COM_PRINT, "EXP", 24, S
+		EXP:COUNT:23 += S * 2	; 愛情経験（愛し合う性行為）
+		CALL TURNEND_COM_PRINT, "EXP", 23, S * 2
+
+		;ふたなりの射精経験
+		IF TALENT:COUNT:121
+			EXP:COUNT:3 += S
+			CALL TURNEND_COM_PRINT, "EXP", 3, S
+		ENDIF
+
+		;母乳体質の噴乳経験
+		IF TALENT:COUNT:130
+			EXP:COUNT:54 += S
+			CALL TURNEND_COM_PRINT, "EXP", 54, S
+		ENDIF
+
+		;おもらし癖の放尿経験
+		IF TALENT:COUNT:57
+			EXP:COUNT:31 += S
+			CALL TURNEND_COM_PRINT, "EXP", 31, S
+		ENDIF
+		;キス未経験でない場合のみキス経験を加算
+		IF TALENT:COUNT:151 == 0 && TALENT:MASTER:151 == 0
+			EXP:COUNT:96 += S * 2
+			EXP:MASTER:96 += S * 2
+			CFLAG:COUNT:1231 += S * 2
+			CALL TURNEND_COM_PRINT, "EXP", 96, S * 2
+		ENDIF
+
+		;主人公側の経験加算
+		CFLAG:MASTER:2 += S	; 主人公好感度
+		EXP:MASTER:3 += S	; 主人公射精経験
+		IF (FLAG:23 & 1p25)
+			PRINTFORML %CALLNAME:MASTER%は射精経験を{S}だけ得ることができた。
+		ENDIF
+
+		CFLAG:COUNT:2 += S * 5	; 好感度ボーナス
+		CALL TURNEND_COM_PRINT, "CFLAG", 2, LOCAL + S * 5
+
+		IF TALENT:MASTER:121 || TALENT:MASTER:122	; 【MASTER:[ふたなり] / MASTER:[オトコ]】
+			EXP:COUNT:20 += S * 10	; 精液経験
+			CALL TURNEND_COM_PRINT, "EXP", 20, S * 10
+		ENDIF
+
+		;射精量・個人記録の加算（生中出し）
+		CFLAG:COUNT:1220 += S	; 総射精回数
+		CFLAG:COUNT:1222 += S	; 膣内射精回数
+		CFLAG:COUNT:1230 += S	; 主人公を射精させた回数
+		CFLAG:COUNT:1232 += S	; 絶頂させた総回数
+		CFLAG:COUNT:1238 += 1	; 同時絶頂回数
+		LOCAL:91 = S * (4 + RAND:3)	; 射精量(mL)
+		CFLAG:COUNT:1221 += LOCAL:91	; 総射精量
+		CFLAG:COUNT:1223 += LOCAL:91	; 膣内射精量
+		SIF LOCAL:91 > CFLAG:COUNT:1240
+			CFLAG:COUNT:1240 = LOCAL:91
+		FLAG:5040 += LOCAL:91
+		FLAG:(5800 + NO:COUNT) += LOCAL:91
+
+		;妊娠判定およびその場での即時発覚
+		IF (FLAG:62 & 1) && TALENT:COUNT:134 == 0	; 【妊娠機能ON && 未妊娠】
+			T = COUNT
+			P = 1
+			CALL NAKADASHI_CHECK_TAIKI, S
+			IF CFLAG:COUNT:104 == 1
+				PRINTL
+				DRAWLINE
+				PRINTFORMW 待機中の%CALLNAME:COUNT%の様子がおかしい……
+				PRINTFORML %CALLNAME:COUNT%は愛する%CALLNAME:MASTER%の子を身ごもったようだ！
+				CALL PREGNANCY_FEEL, COUNT, MASTER, 1
+				PRINTFORMW %NAME:COUNT%は[%TALENTNAME:134%]した
+				TALENT:COUNT:134 = 1
+
+				T = COUNT
+				CALL CHANGE_N_STATUS
+
+				;妊娠口上呼び出し
+				LOCAL:98 = PLAYER
+				PLAYER = MASTER
+				LOCAL:99 = TARGET
+				TARGET = COUNT
+				TFLAG:13 = 20
+				CALL SELF_KOJO
+				TARGET = LOCAL:99
+				PLAYER = LOCAL:98
+
+				;妊娠発覚（待機指示は維持）
+				CFLAG:COUNT:101 = 0
+				CFLAG:COUNT:104 = 0
+				DRAWLINE
+			ENDIF
+		ENDIF
+
+		JUEL:COUNT:1 += S * 800
+		CALL TURNEND_COM_PRINT, "JUEL", 1, S * 800
+		JUEL:COUNT:4 += S * 500
+		CALL TURNEND_COM_PRINT, "JUEL", 4, S * 500
+		JUEL:COUNT:5 += S * 500
+		CALL TURNEND_COM_PRINT, "JUEL", 5, S * 500
+		JUEL:COUNT:15 += S * 500
+		CALL TURNEND_COM_PRINT, "JUEL", 15, S * 500
+		
+		;実行したコマンドを保存
+		Y:COUNT = 13
+	ELSEIF CFLAG:COUNT:13 == 14	; 【COUNT:[待機行動]==14】
 		;宝探し
 		TIMES A , 0.70
 		TIMES B , 0.70
 		TIMES C , 1.50
+		;探索の疲労と放置デメリット
+		BASE:COUNT:4 -= RAND:11 * 20 + 150
+		LOCAL = RAND:6 + 5
+		CFLAG:COUNT:2 -= LOCAL
+		CALL TURNEND_COM_PRINT, "CFLAG", 2, -LOCAL
 		CALL TREASURE
 		
 		;実行したコマンドを保存
-		Y:COUNT = 12
+		Y:COUNT = 14
 	ENDIF
 	;恋人ボーナス：今回の好感度増加分にボーナス
 	IF TALENT:MASTER:恋人ボーナス || TALENT:MASTER:恋人ボーナス強化
@@ -771,3 +1476,23 @@ SELECTCASE ARGS
 		PRINTFORML %CALLNAME:COUNT%は%PALAMNAME:ARG%の宝珠を{ARG:1}だけ得ることができた。
 ENDSELECT
 RETURN 1
+
+@SHOP_ACT_SWAP_MIGRATE
+;待機行動のペア処理フラグをクリア
+FOR LOCAL, 0, CHARANUM
+	CFLAG:LOCAL:1290 = 0
+NEXT
+;旧待機指示番号を新番号(10:レズ避妊, 11:レズ生, 12:性交避妊, 13:性交生, 14:宝探し)に自動移行
+IF FLAG:600 == 0
+	FOR LOCAL, 0, CHARANUM
+		;旧11(性交避妊) -> 新12
+		IF CFLAG:LOCAL:13 == 11
+			CFLAG:LOCAL:13 = 12
+		;旧12(旧宝探し) -> 新14
+		ELSEIF CFLAG:LOCAL:13 == 12
+			CFLAG:LOCAL:13 = 14
+		;旧13(旧性交生) -> 新13 (そのまま)
+		ENDIF
+	NEXT
+	FLAG:600 = 1
+ENDIF

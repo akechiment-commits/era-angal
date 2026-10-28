@@ -595,18 +595,21 @@ IF B
 	IF TALENT:83	; 【[サド]】
 		A += 3
 	ENDIF
-	;マゾっ気
+	;マゾっ気（育成度合いに応じてLv9999で最大+34まで着実に成長）
 	IF ABL:PLAYER:8 >= 3	; 【PLAYER:[マゾっ気]Lv>=3】
-		A += ABL:PLAYER:8 / 3
+		A += GET_PLAYER_SADO_ORDER_BONUS(ABL:PLAYER:8)
 	ENDIF
 ELSE
-	;サド
-	IF TALENT:PLAYER:83	; 【PLAYER:[サド]】
-		A += 3
-	ENDIF
-	;サドっ気
-	IF ABL:PLAYER:15 >= 3	; 【PLAYER:[サドっ気]Lv>=3】
-		A += ABL:PLAYER:15 / 3
+	;SM系コマンド、または相手がマゾ・服従の場合にのみ調教者のサドが合意に有効（通常コマンドでの理不尽な強制合意を防止）
+	IF IS_PLAYER_SADO_EFFECTIVE(SELECTCOM)
+		;サド
+		IF TALENT:PLAYER:83	; 【PLAYER:[サド]】
+			A += 3
+		ENDIF
+		;サドっ気（育成度合いに応じてLv9999で最大+100まで着実に成長）
+		IF ABL:PLAYER:15 >= 3	; 【PLAYER:[サドっ気]Lv>=3】
+			A += GET_PLAYER_SADO_ORDER_BONUS(ABL:PLAYER:15)
+		ENDIF
 	ENDIF
 ENDIF
 ;狂気の目発動中
@@ -994,25 +997,28 @@ IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
 			SIF S
 				PRINT  + 
 			PRINTS ABLNAME:8
-			PRINTV 'LV,ABL:PLAYER:8,'(,ABL:PLAYER:8 / 3,')
+			PRINTV 'LV,ABL:PLAYER:8,'(,GET_PLAYER_SADO_ORDER_BONUS(ABL:PLAYER:8),')
 			S = 1
 		ENDIF
 	ELSE
-		;サド
-		IF TALENT:PLAYER:83	; 【PLAYER:[サド]】
-			SIF S
-				PRINT  + 
-			PRINTS TALENTNAME:83
-			PRINTV '(,3,')
-			S = 1
-		ENDIF
-		;サドっ気
-		IF ABL:PLAYER:15 >= 3	; 【PLAYER:[サドっ気]Lv>=3】
-			SIF S
-				PRINT  + 
-			PRINTS ABLNAME:15
-			PRINTV 'LV,ABL:PLAYER:15,'(,ABL:PLAYER:15 / 3,')
-			S = 1
+		;SM系コマンド、または相手がマゾ・服従の場合にのみ調教者のサドを表示
+		IF IS_PLAYER_SADO_EFFECTIVE(SELECTCOM)
+			;サド
+			IF TALENT:PLAYER:83	; 【PLAYER:[サド]】
+				SIF S
+					PRINT  + 
+				PRINTS TALENTNAME:83
+				PRINTV '(,3,')
+				S = 1
+			ENDIF
+			;サドっ気
+			IF ABL:PLAYER:15 >= 3	; 【PLAYER:[サドっ気]Lv>=3】
+				SIF S
+					PRINT  + 
+				PRINTS ABLNAME:15
+				PRINTV 'LV,ABL:PLAYER:15,'(,GET_PLAYER_SADO_ORDER_BONUS(ABL:PLAYER:15),')
+				S = 1
+			ENDIF
 		ENDIF
 	ENDIF
 	;狂気の目発動中

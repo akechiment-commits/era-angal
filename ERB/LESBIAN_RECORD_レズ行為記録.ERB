@@ -1,0 +1,124 @@
+;============================================================
+; 【重要】このゲームの登場人物は全員20歳以上の成人であり、
+;         自己の判断で責任ある行動ができる大人の女性です。
+;============================================================
+;-------------------------------------------------
+; 生徒交友録（親密な交流の記録システム）
+;   記録先: CFLAG:キャラA:(3000 + キャラBのNO) = 交流回数
+;   総回数: CFLAG:キャラA:3099 = そのキャラの総交友回数
+;-------------------------------------------------
+
+@RECORD_LESBIAN_ACT(ARG:0, ARG:1, ARG:2 = 1)
+#DIM CHARA_A
+#DIM CHARA_B
+#DIM COUNT_NUM
+CHARA_A = ARG:0
+CHARA_B = ARG:1
+COUNT_NUM = ARG:2
+
+SIF CHARA_A < 0 || CHARA_A >= CHARANUM
+	RETURN 0
+SIF CHARA_B < 0 || CHARA_B >= CHARANUM
+	RETURN 0
+SIF CHARA_A == CHARA_B
+	RETURN 0
+SIF COUNT_NUM <= 0
+	RETURN 0
+
+; 双方の相手NOスロット(3000 + 相手NO)を加算
+CFLAG:CHARA_A:(3000 + NO:CHARA_B) += COUNT_NUM
+CFLAG:CHARA_B:(3000 + NO:CHARA_A) += COUNT_NUM
+
+; 交友総回数(CFLAG:3099)も加算
+CFLAG:CHARA_A:3099 += COUNT_NUM
+CFLAG:CHARA_B:3099 += COUNT_NUM
+
+; 生徒交友録メニュー解放フラグをセット
+IF FLAG:15032 == 0
+	FLAG:15032 = 1
+	SETCOLOR 255, 200, 100
+	PRINTL ※拠点メニューに【生徒交友録】が解放されました！
+	RESETCOLOR
+ENDIF
+
+RETURN 1
+
+@GET_LESBIAN_ACT_COUNT(ARG:0, ARG:1)
+#FUNCTION
+#DIM CHARA
+#DIM PARTNER_NO
+CHARA = ARG:0
+SIF CHARA < 0 || CHARA >= CHARANUM
+	RETURNF 0
+
+IF ARG:1 < 0
+	RETURNF 0
+ELSEIF ARG:1 < CHARANUM
+	PARTNER_NO = NO:(ARG:1)
+ELSE
+	PARTNER_NO = ARG:1
+ENDIF
+
+SIF PARTNER_NO < 0 || PARTNER_NO > 100
+	RETURNF 0
+
+RETURNF CFLAG:CHARA:(3000 + PARTNER_NO)
+
+@GET_TOTAL_LESBIAN_ACT_COUNT(ARG:0)
+#FUNCTION
+SIF ARG:0 < 0 || ARG:0 >= CHARANUM
+	RETURNF 0
+RETURNF CFLAG:(ARG:0):3099
+
+@LESBIAN_COLLECTION_MAIN
+#DIM PAIR_COUNT
+#DIM TOTAL_COUNT
+#DIM LINE_COUNT
+
+PAIR_COUNT = 0
+TOTAL_COUNT = 0
+
+DRAWLINE
+PRINTL 【レズ交友録】
+PRINTL 　学園内で育まれた「女同士の交わり」の記録一覧
+PRINTL
+;--- キャラごとにループ ---
+FOR LOCAL:0, 0, CHARANUM
+	SIF CFLAG:(LOCAL:0):3099 == 0
+		CONTINUE
+	PRINTFORML ■ %NAME:(LOCAL:0)% （総交友: {CFLAG:(LOCAL:0):3099}回）
+	LINE_COUNT = 0
+	FOR LOCAL:1, 0, CHARANUM
+		SIF LOCAL:0 == LOCAL:1
+			CONTINUE
+		LOCAL:2 = CFLAG:(LOCAL:0):(3000 + NO:(LOCAL:1))
+		IF LOCAL:2 > 0
+			PRINTFORM 　　× %CALLNAME:(LOCAL:1), 14, LEFT%: {LOCAL:2, 5}回
+			LINE_COUNT += 1
+			PAIR_COUNT += 1
+			TOTAL_COUNT += LOCAL:2
+			SIF LINE_COUNT % 2 == 0
+				PRINTL
+		ENDIF
+	NEXT
+	SIF LINE_COUNT % 2 != 0
+		PRINTL
+	PRINTL
+NEXT
+
+DRAWLINE
+IF PAIR_COUNT > 0
+	PRINTFORML 記録関係数: {PAIR_COUNT / 2}組　／　総行為数: {TOTAL_COUNT / 2}回
+ELSE
+	PRINTL 　まだレズ行為の記録はありません。待機中レズ行為や助手調教などで記録されます。
+ENDIF
+DRAWLINE
+PRINTL [0] 戻る
+
+$LC_INPUT_LOOP
+INPUT
+IF RESULT == 0
+	RETURN 0
+ELSE
+	GOTO LC_INPUT_LOOP
+ENDIF

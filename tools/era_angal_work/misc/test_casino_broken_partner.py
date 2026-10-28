@@ -106,7 +106,7 @@ class TestCasinoBrokenPartner(unittest.TestCase):
     def test_bankruptcy_event_no_prompt_when_broken(self):
         # In @UNDERGROUND_BANKRUPTCY_EVENT, when WAS_BROKEN is true, choices are skipped
         bank_pattern = re.compile(
-            r"IF\s+WAS_BROKEN[\s\S]*?連行されていく……！[\s\S]*?"
+            r"IF\s+WAS_BROKEN[\s\S]*?連行されていく……[\s\S]*?"
             r"ELSE[\s\S]*?"
             r"PRINTL \[0\] パートナーを担保としてステージに差し出す[\s\S]*?"
             r"ENDIF",
@@ -151,7 +151,8 @@ class TestCasinoBrokenPartner(unittest.TestCase):
             r"; 既に壊れきったパートナーの場合は救済チップなし[\s\S]*?"
             r"IF\s+WAS_BROKEN[\s\S]*?"
             r"RETURN\s+ARG[\s\S]*?"
-            r"ARG\s*=\s*20\s*\+\s*\(TFLAG:110\s*\*\s*15\)",
+            r"RESCUE_CHIP\s*=\s*20\s*\+\s*\(TFLAG:110\s*\*\s*15\)[\s\S]*?"
+            r"ARG\s*\+=\s*RESCUE_CHIP",
             re.MULTILINE
         )
         self.assertRegex(self.content, rescue_pattern)

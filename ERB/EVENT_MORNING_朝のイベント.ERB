@@ -8,28 +8,34 @@
 @EVENT_NEWDAY
 ;ƒXƒyƒ‹‚Ì–¼‘O•ÏX
 TRYCALL SPELL_NAME_CHANGE
-IF TARGET > -1
-	IF TFLAG:121	; y[’©ƒCƒxƒ“ƒgƒXƒLƒbƒvƒtƒ‰ƒO]z
-		;ƒCƒxƒ“ƒgƒXƒLƒbƒv
-	ELSEIF BASE:TARGET:0 <= 0	; yTARGET:[‘Ì—Í]<=0z
-		SETCOLOR 150, 150, 150
-		PRINTFORML i%CALLNAME:TARGET%‚ÍŠŽã—Ã—{’†i‚¨‹x‚Ýj‚Ì‚½‚ßA’©‚ÌƒCƒxƒ“ƒg‚Í”­¶‚µ‚Ü‚¹‚ñj
-		RESETCOLOR
-		;’©ƒCƒxƒ“ƒgƒXƒLƒbƒv
-	ELSEIF MARK:3 >= 3	; y[”½”­Š´î]Lv>=3z
-		;‘›‰¹‚Å‹N‚±‚³‚ê‚é
-		CALL EVENT_NEWDAY_OTO
-	ELSEIF TALENT:85 == 0 && TALENT:76 == 0	; y[—ö•ç]‚È‚µ / [ˆú—]‚È‚µz
-		;’©ƒCƒxƒ“ƒg‚Í‹N‚«‚È‚¢
-	ELSE
-		;’©‚É‹N‚±‚éƒCƒxƒ“ƒg‚ª”­¶‚·‚é‚©ƒ`ƒFƒbƒN
-		CALL EVENT_NEWDAY_CHECK
+IF TFLAG:121	; yƒCƒxƒ“ƒgƒXƒLƒbƒvƒtƒ‰ƒOz
+	;ƒCƒxƒ“ƒgƒXƒLƒbƒv
+ELSE
+	; W’cˆú—ƒCƒxƒ“ƒgƒ`ƒFƒbƒNiˆú—3lˆÈã‚Å‹H‚É”­¶j
+	CALL EVENT_NEWDAY_INRAN_GROUP
+	IF RESULT == 0 && TARGET > -1
+		IF BASE:TARGET:0 <= 0	; TARGET:y‘Ì—Íz<=0
+			SETCOLOR 150, 150, 150
+			PRINTFORML i%CALLNAME:TARGET%‚Í‘Ì—ÍÁ–Õi‹x‚Ýj‚Ì‚½‚ßA’©‚ÌƒCƒxƒ“ƒg‚Í”­¶‚µ‚Ü‚¹‚ñj
+			RESETCOLOR
+			;ƒCƒxƒ“ƒgƒXƒLƒbƒv
+		ELSEIF MARK:3 >= 3	; y”½”­Š´îzLv>=3
+			;”½”­ˆó3
+			CALL EVENT_NEWDAY_OTO
+		ELSEIF TALENT:85 == 0 && TALENT:76 == 0	; y—ö•çz‚È‚µ / yˆú—z‚È‚µ
+			;ƒCƒxƒ“ƒg‚Í‹N‚«‚È‚¢
+		ELSE
+			;’©ƒCƒxƒ“ƒg‚ª‹N‚«‚é‚©ƒ`ƒFƒbƒN
+			CALL EVENT_NEWDAY_CHECK
+		ENDIF
 	ENDIF
 ENDIF
 ;oŽYŠÖŒWƒ`ƒFƒbƒN
 CALL NINSSINXTU
 ;ŽålŒö‚ª—ÕŒŽ‚Ìê‡oŽY‚Ü‚ÅŽ©“®is
-IF MARK:MASTER:90
+;Žål‚Ì•s³‚È—ÕŒŽEˆçŽ™ó‘Ô‚ª‚ ‚ê‚pC•œ
+CALL FIX_MASTER_INVALID_PREGNANCY_STATE
+IF TALENT:MASTER:134 && MARK:MASTER:90
 	FOR LOCAL, 0, 3
 		CALL EVENT_NEXTDAY
 		CALL EVENT_DANGERDAY
@@ -226,7 +232,7 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTE
 	ELSEIF ABL:6+ABL:11 < 24	; y[•òŽd¸_] / [¸‰t’†“Å]Lv<24z
 		A = 4
 	ELSEIF ABL:6+ABL:11 >= 24	; y[•òŽd¸_] / [¸‰t’†“Å]Lv>=24z
-		A = 2 + (ABL:6 / 6) + (ABL:11 / 4)
+		A = 2 + (MIN(ABL:6, 10) / 6) + (MIN(ABL:11, 10) / 4) + SQRT(MAX(ABL:6 - 10, 0)) + SQRT(MAX(ABL:11 - 10, 0))
 	ENDIF
 	
 	;’jŒ™‚¢
@@ -263,9 +269,21 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && ABL:11 >= 1 && (TALENT:MASTER:119 || TALENT:MASTE
 	SIF TALENT:78	; y[ˆú“û]z
 		A += 1
 	
+		;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìsˆ×‰ñ”ƒXƒgƒbƒp[j
+	IF TALENT:76 || TALENT:85	; yˆú—z‚Ü‚½‚Íy—ö•çz
+		IF A > 8
+			A = 8 + SQRT((A - 8) * 2)
+		ENDIF
+		SIF A > 12
+			A = 12
+	ELSE
+		IF A > 5
+			A = 5 + SQRT((A - 5) * 2)
+		ENDIF
+		SIF A > 8
+			A = 8
+	ENDIF
 	A:1 = A
-	SIF A >= 64
-		A = 64
 	
 	IF A > 0
 		DRAWLINE
@@ -378,7 +396,7 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 		ELSEIF ABL:1+ABL:6 < 24	; y[—~–]] / [•òŽd¸_]Lv<24z
 			A = 4
 		ELSEIF ABL:1+ABL:6 >= 24	; y[—~–]] / [•òŽd¸_]Lv>=24z
-			A = 3 + (ABL:1 / 6) + (ABL:6 / 6)
+			A = 3 + (MIN(ABL:1, 10) / 6) + (MIN(ABL:6, 10) / 6) + SQRT(MAX(ABL:1 - 10, 0)) + SQRT(MAX(ABL:6 - 10, 0))
 		ENDIF
 		
 		;’jŒ™‚¢
@@ -415,9 +433,21 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 		SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 			RETURN 0
 		
+				;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìsˆ×‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:85	; yˆú—z‚Ü‚½‚Íy—ö•çz
+			IF A > 8
+				A = 8 + SQRT((A - 8) * 2)
+			ENDIF
+			SIF A > 12
+				A = 12
+		ELSE
+			IF A > 5
+				A = 5 + SQRT((A - 5) * 2)
+			ENDIF
+			SIF A > 8
+				A = 8
+		ENDIF
 		A:1 = A
-		SIF A >= 9
-			A = 9
 		
 		IF A > 0
 			DRAWLINE
@@ -481,7 +511,7 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 		ELSEIF ABL:1+ABL:6 < 24	; y[—~–]] / [•òŽd¸_]Lv<24z
 			A = 4
 		ELSEIF ABL:1+ABL:6 >= 24	; y[—~–]] / [•òŽd¸_]Lv>=24z
-			A = 3 + (ABL:1 / 6) + (ABL:6 / 6)
+			A = 3 + (MIN(ABL:1, 10) / 6) + (MIN(ABL:6, 10) / 6) + SQRT(MAX(ABL:1 - 10, 0)) + SQRT(MAX(ABL:6 - 10, 0))
 		ENDIF
 		
 		;—¼“
@@ -515,9 +545,21 @@ IF ABL:1 >= 8 && ABL:6 >= 8 && (TALENT:TARGET:85 || TALENT:TARGET:76) && TALENT:
 		SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 			RETURN 0
 		
+				;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìsˆ×‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:85	; yˆú—z‚Ü‚½‚Íy—ö•çz
+			IF A > 8
+				A = 8 + SQRT((A - 8) * 2)
+			ENDIF
+			SIF A > 12
+				A = 12
+		ELSE
+			IF A > 5
+				A = 5 + SQRT((A - 5) * 2)
+			ENDIF
+			SIF A > 8
+				A = 8
+		ENDIF
 		A:1 = A
-		SIF A >= 9
-			A = 9
 		
 		IF A > 0
 			DRAWLINE
@@ -590,7 +632,7 @@ IF ITEM:19 == 1 && TALENT:89	; y[‘Šˆ¤] / ƒAƒCƒeƒ€:[ƒGƒvƒƒ“]==1z
 		ELSEIF ABL:6+ABL:7 < 24	; y[•òŽd¸_] / [˜Io•È]Lv<24z
 			A = 3
 		ELSEIF ABL:6+ABL:7 >= 24	; y[•òŽd¸_] / [˜Io•È]Lv>=24z
-			A = 2 + (ABL:6 / 6) + (ABL:7 / 6)
+			A = 2 + (MIN(ABL:6, 10) / 6) + (MIN(ABL:7, 10) / 6) + SQRT(MAX(ABL:6 - 10, 0)) + SQRT(MAX(ABL:7 - 10, 0))
 		ENDIF
 	
 		;’jŒ™‚¢
@@ -627,9 +669,21 @@ IF ITEM:19 == 1 && TALENT:89	; y[‘Šˆ¤] / ƒAƒCƒeƒ€:[ƒGƒvƒƒ“]==1z
 		SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 			RETURN 0
 		
+				;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìsˆ×‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:85	; yˆú—z‚Ü‚½‚Íy—ö•çz
+			IF A > 8
+				A = 8 + SQRT((A - 8) * 2)
+			ENDIF
+			SIF A > 12
+				A = 12
+		ELSE
+			IF A > 5
+				A = 5 + SQRT((A - 5) * 2)
+			ENDIF
+			SIF A > 8
+				A = 8
+		ENDIF
 		A:1 = A
-		SIF A >= 9
-			A = 9
 		
 		IF A > 0
 			DRAWLINE
@@ -693,7 +747,7 @@ IF ITEM:19 == 1 && TALENT:89	; y[‘Šˆ¤] / ƒAƒCƒeƒ€:[ƒGƒvƒƒ“]==1z
 		ELSEIF ABL:6+ABL:7 < 24	; y[•òŽd¸_] / [˜Io•È]Lv<24z
 			A = 3
 		ELSEIF ABL:6+ABL:7 >= 24	; y[•òŽd¸_] / [˜Io•È]Lv>=24z
-			A = 2 + (ABL:6 / 6) + (ABL:7 / 6)
+			A = 2 + (MIN(ABL:6, 10) / 6) + (MIN(ABL:7, 10) / 6) + SQRT(MAX(ABL:6 - 10, 0)) + SQRT(MAX(ABL:7 - 10, 0))
 		ENDIF
 	
 		;’jŒ™‚¢
@@ -746,6 +800,26 @@ IF ITEM:19 == 1 && TALENT:89	; y[‘Šˆ¤] / ƒAƒCƒeƒ€:[ƒGƒvƒƒ“]==1z
 		SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 			RETURN 0
 		
+		;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìsˆ×‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:85	; yˆú—z‚Ü‚½‚Íy—ö•çz
+			SIF A > 6
+				A = 6 + SQRT((A - 6) * 2)
+			SIF A > 9
+				A = 9
+			SIF B > 6
+				B = 6 + SQRT((B - 6) * 2)
+			SIF B > 9
+				B = 9
+		ELSE
+			SIF A > 4
+				A = 4 + SQRT((A - 4) * 2)
+			SIF A > 6
+				A = 6
+			SIF B > 4
+				B = 4 + SQRT((B - 4) * 2)
+			SIF B > 6
+				B = 6
+		ENDIF
 		IF A > 0 || B > 0
 			DRAWLINE
 			DRAWLINE
@@ -819,7 +893,7 @@ IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0	; yTA
 	ELSEIF ABL:6+ABL:0 < 18	; y[•òŽd¸_] / [e–§]Lv<18z
 		A = 2
 	ELSEIF ABL:6+ABL:0 >= 18	; y[•òŽd¸_] / [e–§]Lv>=18z
-		A = (ABL:6 / 6) + (ABL:0 / 6)
+		A = (MIN(ABL:6, 10) / 6) + (MIN(ABL:0, 10) / 6) + SQRT(MAX(ABL:6 - 10, 0)) + SQRT(MAX(ABL:0 - 10, 0))
 	ENDIF
 
 	;’jŒ™‚¢
@@ -850,6 +924,20 @@ IF ABL:6 >= 6 && ABL:0 >= 6 && TALENT:TARGET:85 && TALENT:TARGET:151 == 0	; yTA
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
 	
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚ÌƒLƒX‰ñ”ƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89 || TALENT:155	; yeˆ¤zy‘Šˆ¤zyƒLƒX–‚z
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -936,7 +1024,7 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TAR
 		ELSEIF ABL:1+ABL:15 < 20	; y[—~–]] / [ƒTƒh‚Á‹C]Lv<20z
 			B = 4
 		ELSEIF ABL:1+ABL:15 >= 20	; y[—~–]] / [ƒTƒh‚Á‹C]Lv>=20z
-			B = 3 + (ABL:1 / 6) + (ABL:15 / 3)
+			B = 3 + (MIN(ABL:1, 10) / 6) + (MIN(ABL:15, 10) / 3) + SQRT(MAX(ABL:1 - 10, 0)) + SQRT(MAX(ABL:15 - 10, 0))
 		ENDIF
 		
 		;—¼“
@@ -966,6 +1054,20 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TAR
 		;ˆúŠj
 		SIF TALENT:75	; y[ˆúŠj]z
 			B += 1
+		;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìsˆ×‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:83	; yˆú—z‚Ü‚½‚ÍyƒTƒhz
+			IF B > 8
+				B = 8 + SQRT((B - 8) * 2)
+			ENDIF
+			SIF B > 12
+				B = 12
+		ELSE
+			IF B > 5
+				B = 5 + SQRT((B - 5) * 2)
+			ENDIF
+			SIF B > 8
+				B = 8
+		ENDIF
 		IF B > 0
 			DRAWLINE
 			DRAWLINE
@@ -1028,7 +1130,7 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TAR
 		ELSEIF ABL:1+ABL:15 < 20	; y[—~–]] / [ƒTƒh‚Á‹C]Lv<20z
 			B = 4
 		ELSEIF ABL:1+ABL:15 >= 20	; y[—~–]] / [ƒTƒh‚Á‹C]Lv>=20z
-			B = 3 + (ABL:1 / 6) + (ABL:15 / 3)
+			B = 3 + (MIN(ABL:1, 10) / 6) + (MIN(ABL:15, 10) / 3) + SQRT(MAX(ABL:1 - 10, 0)) + SQRT(MAX(ABL:15 - 10, 0))
 		ENDIF
 		
 		;—¼“
@@ -1064,6 +1166,20 @@ IF ABL:1 >= 8 && ABL:15 >= 4 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TAR
 		;ƒ}ƒXƒ^[‚ª‹“û
 		SIF TALENT:MASTER:110	; yMASTER:[‹“û]z
 			B += 1
+		;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìsˆ×‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:83	; yˆú—z‚Ü‚½‚ÍyƒTƒhz
+			IF B > 8
+				B = 8 + SQRT((B - 8) * 2)
+			ENDIF
+			SIF B > 12
+				B = 12
+		ELSE
+			IF B > 5
+				B = 5 + SQRT((B - 5) * 2)
+			ENDIF
+			SIF B > 8
+				B = 8
+		ENDIF
 		IF B > 0
 			DRAWLINE
 			DRAWLINE
@@ -1150,7 +1266,7 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TARG
 		ELSEIF ABL:11 == 4	; y[¸‰t’†“Å]Lv==4z
 			A = 4
 		ELSEIF ABL:11 >= 5	; y[¸‰t’†“Å]Lv>=5z
-			A = 3 + (ABL:11 / 2)
+			A = 3 + (MIN(ABL:11, 10) / 2) + SQRT(MAX(ABL:11 - 10, 0))
 		ENDIF
 		
 		;”Lã‚¾‚Æƒ_ƒ
@@ -1189,6 +1305,20 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TARG
 		;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 		SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 			RETURN 0
+		;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚ÌƒtƒFƒ‰‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:85	; yˆú—z‚Ü‚½‚Íy—ö•çz
+			IF A > 8
+				A = 8 + SQRT((A - 8) * 2)
+			ENDIF
+			SIF A > 12
+				A = 12
+		ELSE
+			IF A > 5
+				A = 5 + SQRT((A - 5) * 2)
+			ENDIF
+			SIF A > 8
+				A = 8
+		ENDIF
 		IF A > 0
 			DRAWLINE
 			DRAWLINE
@@ -1255,7 +1385,7 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TARG
 		ELSEIF ABL:12 == 4	; y[ƒŒƒY’†“Å]Lv==4z
 			A = 4
 		ELSEIF ABL:12 >= 5	; y[ƒŒƒY’†“Å]Lv>=5z
-			A = 3 + (ABL:12 / 2)
+			A = 3 + (MIN(ABL:12, 10) / 2) + SQRT(MAX(ABL:12 - 10, 0))
 		ENDIF
 		
 		;”Lã‚¾‚Æƒ_ƒ
@@ -1291,6 +1421,20 @@ IF ABL:1 >= 8 && ABL:6 >= 6 && (TALENT:85 || TALENT:TARGET:76)	; y[—ö•ç] / TARG
 		;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 		SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 			RETURN 0
+		;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚ÌƒtƒFƒ‰‰ñ”ƒXƒgƒbƒp[j
+		IF TALENT:76 || TALENT:85	; yˆú—z‚Ü‚½‚Íy—ö•çz
+			IF A > 8
+				A = 8 + SQRT((A - 8) * 2)
+			ENDIF
+			SIF A > 12
+				A = 12
+		ELSE
+			IF A > 5
+				A = 5 + SQRT((A - 5) * 2)
+			ENDIF
+			SIF A > 8
+				A = 8
+		ENDIF
 		IF A > 0
 			DRAWLINE
 			DRAWLINE
@@ -1350,7 +1494,7 @@ IF ABL:0 >= 6 && TALENT:85	; y[—ö•ç] / [e–§]Lv>=6z
 	ELSEIF ABL:0 == 4	; y[e–§]Lv==4z
 		A = 5
 	ELSEIF ABL:0 >= 5	; y[e–§]Lv>=5z
-		A = 4 + (ABL:0 / 2)
+		A = 4 + (MIN(ABL:0, 10) / 2) + SQRT(MAX(ABL:0 - 10, 0))
 	ENDIF
 
 	;’jŒ™‚¢
@@ -1374,6 +1518,20 @@ IF ABL:0 >= 6 && TALENT:85	; y[—ö•ç] / [e–§]Lv>=6z
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ì“Y‚¢QƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89	; yeˆ¤z‚Ü‚½‚Íy‘Šˆ¤z
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -1431,7 +1589,7 @@ IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0	; y[—ö•ç] / [e–§]Lv>=6 / 
 	ELSEIF ABL:0 == 4	; y[e–§]Lv==4z
 		B = 5
 	ELSEIF ABL:0 >= 5	; y[e–§]Lv>=5z
-		B = 4 + (ABL:0 / 2)
+		B = 4 + (MIN(ABL:0, 10) / 2) + SQRT(MAX(ABL:0 - 10, 0))
 	ENDIF
 	
 	;’jŒ™‚¢
@@ -1455,6 +1613,20 @@ IF ABL:0 >= 6 && TALENT:85 && (CFLAG:97 & 4096) == 0	; y[—ö•ç] / [e–§]Lv>=6 / 
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚ÌQŠçƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89	; yeˆ¤z‚Ü‚½‚Íy‘Šˆ¤z
+		IF B > 6
+			B = 6 + SQRT((B - 6) * 2)
+		ENDIF
+		SIF B > 10
+			B = 10
+	ELSE
+		IF B > 4
+			B = 4 + SQRT((B - 4) * 2)
+		ENDIF
+		SIF B > 7
+			B = 7
+	ENDIF
 	IF B > 0
 		DRAWLINE
 		DRAWLINE
@@ -1538,7 +1710,7 @@ IF MARK:3 >= 3	; y[”½”­Š´î]Lv>=3z
 	ELSEIF ABL:15 == 4	; y[ƒTƒh‚Á‹C]Lv==4z
 		B = 4
 	ELSEIF ABL:15 >= 5	; y[ƒTƒh‚Á‹C]Lv>=5z
-		B = 3 + (ABL:15 / 2)
+		B = 3 + (MIN(ABL:15, 10) / 2) + SQRT(MAX(ABL:15 - 10, 0))
 	ENDIF
 
 	;”½R“I
@@ -1583,6 +1755,20 @@ IF MARK:3 >= 3	; y[”½”­Š´î]Lv>=3z
 	;‘Šˆ¤
 	SIF TALENT:89	; y[‘Šˆ¤]z
 		B -= 1
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’jŒ™‚¢Qž‚ÝP‚¢ƒXƒgƒbƒp[j
+	IF TALENT:83	; yƒTƒhz
+		IF B > 6
+			B = 6 + SQRT((B - 6) * 2)
+		ENDIF
+		SIF B > 10
+			B = 10
+	ELSE
+		IF B > 4
+			B = 4 + SQRT((B - 4) * 2)
+		ENDIF
+		SIF B > 7
+			B = 7
+	ENDIF
 	IF B > 0
 		DRAWLINE
 		DRAWLINE
@@ -1639,7 +1825,7 @@ IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)	; y[—ö•ç] 
 	ELSEIF ABL:0+ABL:1 < 22	; y[e–§] / [—~–]]Lv<22z
 		A = 2
 	ELSEIF ABL:0+ABL:1 >= 22	; y[e–§] / [—~–]]Lv>=22z
-		A = 1 + (ABL:0 / 5) + (ABL:1 / 5)
+		A = 1 + (MIN(ABL:0, 10) / 5) + (MIN(ABL:1, 10) / 5) + SQRT(MAX(ABL:0 - 10, 0)) + SQRT(MAX(ABL:1 - 10, 0))
 	ENDIF
 
 	;Œ£g“I
@@ -1654,6 +1840,20 @@ IF ABL:0 >= 8 && ABL:1 >= 8 && (TALENT:85 || TALENT:76 || TALENT:89)	; y[—ö•ç] 
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚ÌŽèŒq‚¬ƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89	; yeˆ¤z‚Ü‚½‚Íy‘Šˆ¤z
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -1728,7 +1928,7 @@ IF ABL:0 >= 6 && ABL:6 >= 5	; y[e–§]Lv>=6 / [•òŽd¸_]Lv>=5z
 	ELSEIF ABL:0+ABL:6 < 17	; y[e–§] / [•òŽd¸_]Lv<17z
 		A = 2
 	ELSEIF ABL:0+ABL:6 >= 17	; y[e–§] / [•òŽd¸_]Lv>=17z
-		A = (ABL:0 / 5) + (ABL:6 / 5)
+		A = (MIN(ABL:0, 10) / 5) + (MIN(ABL:6, 10) / 5) + SQRT(MAX(ABL:0 - 10, 0)) + SQRT(MAX(ABL:6 - 10, 0))
 	ENDIF
 
 	;Œ£g“I
@@ -1752,6 +1952,20 @@ IF ABL:0 >= 6 && ABL:6 >= 5	; y[e–§]Lv>=6 / [•òŽd¸_]Lv>=5z
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚ÌŽ¨Œ³š‘‚«ƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89	; yeˆ¤z‚Ü‚½‚Íy‘Šˆ¤z
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -1823,7 +2037,7 @@ IF ABL:0 >= 8 && ABL:1 >= 7 && (TALENT:83 || TALENT:16 >= 1)	; y[ƒTƒh] / [¶ˆÓ‹
 	ELSEIF ABL:0+ABL:1 < 21	; y[e–§] / [—~–]]Lv<21z
 		A = 2
 	ELSEIF ABL:0+ABL:1 >= 21	; y[e–§] / [—~–]]Lv>=21z
-		A = (ABL:0 / 5) + (ABL:1 / 5)
+		A = (MIN(ABL:0, 10) / 5) + (MIN(ABL:1, 10) / 5) + SQRT(MAX(ABL:0 - 10, 0)) + SQRT(MAX(ABL:1 - 10, 0))
 	ENDIF
 
 	;ƒTƒh
@@ -1838,6 +2052,20 @@ IF ABL:0 >= 8 && ABL:1 >= 7 && (TALENT:83 || TALENT:16 >= 1)	; y[ƒTƒh] / [¶ˆÓ‹
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ìæ‚Á‚©‚èƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89 || TALENT:83	; yeˆ¤zy‘Šˆ¤zyƒTƒhz
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -1907,7 +2135,7 @@ IF ABL:0 >= 7 && ABL:1 >= 6	; y[e–§]Lv>=7 / [—~–]]Lv>=6z
 	ELSEIF ABL:0+ABL:1 < 19	; y[e–§] / [—~–]]Lv<19z
 		A = 2
 	ELSEIF ABL:0+ABL:1 >= 19	; y[e–§] / [—~–]]Lv>=19z
-		A = (ABL:0 / 5) + (ABL:1 / 5)
+		A = (MIN(ABL:0, 10) / 5) + (MIN(ABL:1, 10) / 5) + SQRT(MAX(ABL:0 - 10, 0)) + SQRT(MAX(ABL:1 - 10, 0))
 	ENDIF
 
 	;ƒTƒh
@@ -1928,6 +2156,20 @@ IF ABL:0 >= 7 && ABL:1 >= 6	; y[e–§]Lv>=7 / [—~–]]Lv>=6z
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚ÌŽñ‹ØƒLƒXƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89 || TALENT:83	; yeˆ¤zy‘Šˆ¤zyƒTƒhz
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -2004,7 +2246,7 @@ IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >=
 	ELSEIF ABL:0+ABL:1 < 24	; y[e–§] / [—~–]]Lv<24z
 		A = 2
 	ELSEIF ABL:0+ABL:1 >= 24	; y[e–§] / [—~–]]Lv>=24z
-		A = (ABL:0 / 5) + (ABL:1 / 4)
+		A = (MIN(ABL:0, 10) / 5) + (MIN(ABL:1, 10) / 4) + SQRT(MAX(ABL:0 - 10, 0)) + SQRT(MAX(ABL:1 - 10, 0))
 	ENDIF
 
 	;ˆú—
@@ -2022,6 +2264,20 @@ IF ABL:0 >= 9 && ABL:1 >= 9 && (TALENT:76 || TALENT:89 || (TALENT:85 && ABL:1 >=
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ì‚·‚è‚·‚èƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89 || TALENT:76	; yeˆ¤zy‘Šˆ¤zyˆú—z
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -2099,7 +2355,7 @@ IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 
 	ELSEIF ABL:0+ABL:1 < 26	; y[e–§] / [—~–]]Lv<26z
 		A = 2
 	ELSEIF ABL:0+ABL:1 >= 26	; y[e–§] / [—~–]]Lv>=26z
-		A = (ABL:0 / 5) + (ABL:1 / 4)
+		A = (MIN(ABL:0, 10) / 5) + (MIN(ABL:1, 10) / 4) + SQRT(MAX(ABL:0 - 10, 0)) + SQRT(MAX(ABL:1 - 10, 0))
 	ENDIF
 
 	;ƒTƒh
@@ -2117,6 +2373,20 @@ IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 
 	;”½”­Š´î‚ª‚ ‚é‚Æƒ_ƒ
 	SIF MARK:3 > 0	; y[”½”­Š´î]Lv>0z
 		RETURN 0
+	;ƒ\ƒtƒgƒLƒƒƒbƒv•â³i’©‚Ì‘«˜ŽC‚è•t‚¯ƒXƒgƒbƒp[j
+	IF TALENT:88 || TALENT:89 || TALENT:76 || TALENT:83	; yeˆ¤zy‘Šˆ¤zyˆú—zyƒTƒhz
+		IF A > 6
+			A = 6 + SQRT((A - 6) * 2)
+		ENDIF
+		SIF A > 10
+			A = 10
+	ELSE
+		IF A > 4
+			A = 4 + SQRT((A - 4) * 2)
+		ENDIF
+		SIF A > 7
+			A = 7
+	ENDIF
 	IF A > 0
 		DRAWLINE
 		DRAWLINE
@@ -2180,3 +2450,377 @@ IF ABL:0 >= 10 && ABL:1 >= 10 && (TALENT:83 || TALENT:76 || (TALENT:89 && ABL:1 
 ELSE
 	RETURN 0
 ENDIF
+
+;-------------------------------------------------
+; ˆú—W’c’©ïŽæƒCƒxƒ“ƒg
+; ˆú—‚Ìl”‚ª3lˆÈã‚¢‚éê‡A‹H‚É”­¶il”‚É‰ž‚¶‚ÄŠm—¦ã¸jB
+; l”‚É‰ž‚¶‚Ä3’iŠK‚ÉŒƒ‰»i3`4l: ’iŠK1 / 5`7l: ’iŠK2 / 8lˆÈã: ’iŠK3j
+; Še’iŠK‚²‚Æ‚Éƒ‰ƒ“ƒ_ƒ€3ƒpƒ^[ƒ“‚Ì–Ò—ó‚È’n‚Ì•¶‚ðŠ®”õB
+; ŽålŒö‚Ì‘Ì—Í‚ÌŒÀŠE‚ð’´‚¦‚½ïŽæ‚ÆAŽQ‰ÁŽÒ‘Sˆõ‚Ö‚ÌŒoŒ±EŽì‚Ì‰ÁŽZ‚ðs‚¤B
+;-------------------------------------------------
+@EVENT_NEWDAY_INRAN_GROUP
+#DIM INRAN_COUNT
+#DIM PARTICIPANTS, 100
+#DIM TIER
+#DIM SEED
+#DIM EJAC_COUNT
+#DIM CHARA_ID
+#DIM R_NAME1
+#DIM R_NAME2
+#DIM R_NAME3
+#DIM R_NAME4
+#DIM LOSE_TAIRYOKU
+
+; ŽQ‰Á‰Â”\‚Èˆú—ƒLƒƒƒ‰‚ðŽûW
+INRAN_COUNT = 0
+VARSET PARTICIPANTS, 0
+
+FOR LOCAL, 0, CHARANUM
+	SIF LOCAL == MASTER
+		CONTINUE
+	; —ÕŒŽEˆçŽ™’†E‘Ì—ÍØ‚ê‚ÍœŠO
+	SIF CFLAG:LOCAL:16 == 1	; —ÕŒŽ‹x—{
+		CONTINUE
+	SIF CFLAG:LOCAL:21 > 0	; ˆçŽ™’†
+		CONTINUE
+	SIF BASE:LOCAL:0 <= 0	; ‘Ì—ÍØ‚ê
+		CONTINUE
+	; yˆú—zŠŽŽÒ‚ðƒŠƒXƒgƒAƒbƒv
+	IF TALENT:LOCAL:76
+		PARTICIPANTS:INRAN_COUNT = LOCAL
+		INRAN_COUNT += 1
+		SIF INRAN_COUNT >= 90
+			BREAK
+	ENDIF
+NEXT
+
+; Å’á3lˆÈã‚¢‚È‚¢‚Æ”­¶‚µ‚È‚¢
+SIF INRAN_COUNT < 3
+	RETURN 0
+
+; ”­¶Šm—¦ƒ`ƒFƒbƒNiˆú—l”‚É‰ž‚¶‚ÄŠÉ‚â‚©‚É”÷‘F3l‚Å2%A12l‚Å3%A24l‚Å4%A36l‚Å5%A48l‚Å6%A60l‚Å7%AÅ‘å8%j
+LOCAL:1 = LIMIT(2 + INRAN_COUNT / 12, 2, 8)
+SIF RAND:100 >= LOCAL:1
+	RETURN 0
+
+; ’iŠKiTIERj”»’èF72l‘Sˆæ‚ðƒJƒo[‚·‚é6’iŠK§
+; ‘æ1’iŠK: 3`5li­l”EQŽº•ïˆÍj
+; ‘æ2’iŠK: 6`11li’†‹K–ÍE•¡”l“¯ŽžU‚ßj
+; ‘æ3’iŠK: 12`19li‘å‹K–ÍEQŠè—ÌEs—ñïŽæj
+; ‘æ4’iŠK: 20`35li‹³Žº‹K–ÍE‹¶—‚Ì”gó—ÖŠ­j
+; ‘æ5’iŠK: 36`50liŠw‰€”¼”‹K–ÍEŠ´ŠoŽÕ’fE‹ÉŒÀï¸j
+; ‘æ6’iŠK: 51`72liŠw‰€§”eE‘SZˆú“ E_ˆæ‘åƒn[ƒŒƒ€j
+IF INRAN_COUNT >= 51
+	TIER = 6
+ELSEIF INRAN_COUNT >= 36
+	TIER = 5
+ELSEIF INRAN_COUNT >= 20
+	TIER = 4
+ELSEIF INRAN_COUNT >= 12
+	TIER = 3
+ELSEIF INRAN_COUNT >= 6
+	TIER = 2
+ELSE
+	TIER = 1
+ENDIF
+
+; ŽQ‰ÁŽÒ‚ð‘ã•\‚·‚éƒLƒƒƒ‰‚ð’ŠoiÅ‘å4–¼E’n‚Ì•¶‚Å‚ÌîŒi•`ŽÊ—pj
+LOCAL:2 = RAND:INRAN_COUNT
+R_NAME1 = PARTICIPANTS:(LOCAL:2)
+
+LOCAL:3 = RAND:INRAN_COUNT
+WHILE LOCAL:3 == LOCAL:2 && INRAN_COUNT > 1
+	LOCAL:3 = RAND:INRAN_COUNT
+WEND
+R_NAME2 = PARTICIPANTS:(LOCAL:3)
+
+LOCAL:4 = RAND:INRAN_COUNT
+WHILE (LOCAL:4 == LOCAL:2 || LOCAL:4 == LOCAL:3) && INRAN_COUNT > 2
+	LOCAL:4 = RAND:INRAN_COUNT
+WEND
+R_NAME3 = PARTICIPANTS:(LOCAL:4)
+
+LOCAL:5 = RAND:INRAN_COUNT
+WHILE (LOCAL:5 == LOCAL:2 || LOCAL:5 == LOCAL:3 || LOCAL:5 == LOCAL:4) && INRAN_COUNT > 3
+	LOCAL:5 = RAND:INRAN_COUNT
+WEND
+R_NAME4 = PARTICIPANTS:(LOCAL:5)
+
+; ’n‚Ì•¶‚Ìƒ‰ƒ“ƒ_ƒ€ƒoƒŠƒG[ƒVƒ‡ƒ“i0`2j
+SEED = RAND:3
+
+DRAWLINE
+DRAWLINE
+SETCOLOR 255, 100, 180
+IF TIER == 1
+	PRINTFORML W’c’©PŒ‚EˆÍ‚¢ž‚Ýï¸iˆú—l”F{INRAN_COUNT}lj
+ELSEIF TIER == 2
+	PRINTFORML W’c’©PŒ‚EŒQ‚ª‚è—‚êŒð‚í‚èiˆú—l”F{INRAN_COUNT}lj
+ELSEIF TIER == 3
+	PRINTFORML W’c’©PŒ‚EQŠè—ÌEs—ñïŽæiˆú—l”F{INRAN_COUNT}lj
+ELSEIF TIER == 4
+	PRINTFORML W’c’©PŒ‚E‹¶—‚Ì”gó—ÖŠ­iˆú—l”F{INRAN_COUNT}lj
+ELSEIF TIER == 5
+	PRINTFORML W’c’©PŒ‚EŠw‰€‹¶—EŒÀŠEï¸iˆú—l”F{INRAN_COUNT}lj
+ELSE
+	PRINTFORML W’c’©PŒ‚E‘SZˆú“ E_ˆæ‘åƒn[ƒŒƒ€iˆú—l”F{INRAN_COUNT}lj
+ENDIF
+RESETCOLOR
+DRAWLINE
+
+; --- •`ŽÊ•”iŒûã‚È‚µEŠ®‘S’n‚Ì•¶isj ---
+IF TIER == 1
+	; y‘æ1’iŠKF3`5lz
+	IF SEED == 0
+		PRINTFORML ’©‚Ì”–ˆÃ‚¢QŽºA”÷‚©‚È“f‘§‚ÆˆßŽC‚ê‚Ì‰¹‚Å–Ú‚ðŠo‚Ü‚µ‚½%CALLNAME:MASTER%‚ÌŽüˆÍ‚ÍA
+		PRINTFORML ‚·‚Å‚É%CALLNAME:R_NAME1%‚â%CALLNAME:R_NAME2%‚½‚¿­—‚ÉŠ®‘S‚É•ïˆÍ‚³‚ê‚Ä‚¢‚½B
+		PRINTFORMW ­—‚½‚¿‚Í”÷‚©‚È”E‚ÑÎ‚¢‚Æ”M‚Á‚Û‚¢“f‘§‚ð˜R‚ç‚µ‚È‚ª‚çA–°‚é%CALLNAME:MASTER%‚ÌŽüˆÍ‚ðŽæ‚èˆÍ‚ÞB
+		PRINTFORML Q‚Ú‚¯Šá‚Ì‚Ü‚ÜAŠôd‚É‚àd‚È‚é_‚ç‚©‚Èg‘Ì‚Ìd‚Ý‚Å‰Ÿ‚³‚¦ž‚Ü‚êAQŠÔ’…‚ð”‚¬Žæ‚ç‚ê‚Ä‚¢‚­B
+		PRINTFORML g“®‚«‚ÌŽæ‚ê‚È‚¢–³–h”õ‚È“÷‘Ì‚ÉA”Þ—‚½‚¿‚Ì”G‚ê‚½Žè‚ªAã‚ª”‡‚¢‰ñ‚èŽn‚ß‚éB
+		PRINTFORMW Ž¨Œ³‚ÉŠÃ‚¢“f‘§‚ð‚«‚©‚¯‚ç‚êA–L–ž‚È‹¹‚É‹²‚Ýž‚Ü‚ê‚È‚ª‚çA–§Žº‚Ìˆ¤•‚ªŒƒ‚µ‚³‚ð‘‚µ‚Ä‚¢‚­B
+		PRINTFORML Ž~‚Ü‚ç‚È‚¢‰õŠ´‚Ì”góUŒ‚‚ÉA%CALLNAME:MASTER%‚Í–ÚŠo‚ß‚½‚Î‚©‚è‚Ìg‘Ì‚ðáz¹‚³‚¹AƒrƒNƒrƒN‚Æ’µ‚Ëã‚°‚½B
+		PRINTFORMW Šôd‚É‚àd‚È‚éî”M“I‚Èˆ¤•‚Æ”M‚¢“f‘§‚É“Û‚Ü‚êA‘§‚Â‚­ŠÔ‚à‚È‚­‰õŠy‚Ì[‚Ý‚Ö‚Æˆø‚«‚¸‚èž‚Ü‚ê‚éB
+		PRINTFORML ‘Sg‚ð•ï‚Ýž‚Þ_‚ç‚©‚È‰õŠ´‚Ì’†‚ÅŒƒ‚µ‚­‹z‚¢ã‚°‚ç‚êAR‚¤ŠÔ‚à‚È‚­”ZŒú‚È”’‘÷‚ð¨‚¢‚æ‚­“f‚«o‚³‚¹‚ç‚ê‚½B
+	ELSEIF SEED == 1
+		PRINTFORML ‚Ü‚¾Ã‚Ü‚è•Ô‚é‘’©A%CALLNAME:MASTER%‚Ì•”‰®‚Ì”à‚ªÃ‚©‚ÉŠJ‚¯•ú‚½‚êA”E‚Ñ‘«‚ÅQŠ‚ª•ïˆÍ‚³‚ê‚½B
+		PRINTFORML –Ú‚ðŠo‚Ü‚·uŠÔA%CALLNAME:R_NAME1%‚Ì”G‚ê‚»‚Ú‚é“÷‘Ì‚ªƒyƒiƒX‚Ìã‚ÉƒYƒVƒŠ‚Æ—Ž‚Æ‚³‚êAŠ®‘S‚É™ø‚¦ž‚Ü‚ê‚½B
+		PRINTFORMW Q‚Ú‚¯Šá‚Ì%CALLNAME:MASTER%‚Ìã‚ÉA_‚ç‚©‚Èg‘Ì‚Ìd‚Ý‚Æ”M‚¢“f‘§‚ªd‚È‚è‡‚Á‚Ä‚­‚éB
+		PRINTFORML %CALLNAME:R_NAME2%‚ªã”¼g‚Ö•¢‚¢‚©‚Ô‚³‚èA‘§‚Ì‹l‚Ü‚é‚æ‚¤‚È•ø—i‚Å‹©‚Ñº‚ð••‚¶ž‚ß‚Ä‚­‚éB
+		PRINTFORML ‰º”¼g‚Å‚Í%CALLNAME:R_NAME1%‚ª—eŽÍ‚È‚­˜‚ð—Ž‚Æ‚µA”M‚¢–¨’Ù‚ÅªŒ³‚Ü‚Åˆê‹C‚É“Û‚Ýž‚ñ‚ÅŒƒ‚µ‚­—h‚·‚Ô‚éB
+		PRINTFORMW ¶‰E‚©‚ç‚Í•Ê‚Ì­—‚½‚¿‚Ì”M‚¢Žè‚ªL‚ÑA“ûŽñ‚Æ‘¾ŒÒ‚ð—eŽÍ‚È‚­ŽC‚èã‚°A‘Sg‚Ì«Š´‘Ñ‚ð“¯Žž‚É˜M‚Ñs‚­‚·B
+		PRINTFORML ŒÄ‹z‚·‚ç’D‚í‚ê‚½–§Žº‚Ì‰õŠy‚Ì’†‚ÅA%CALLNAME:MASTER%‚Í”w‹Ø‚ð”½‚ç‚µA‘Sg‚ðk‚í‚¹‚È‚ª‚ç¨‚¢‚æ‚­â’¸‚ðŒ}‚¦‚½B
+	ELSE
+		PRINTFORML –ÚŠo‚ß‚é‚ÆA‘Sg‚ª‚Ü‚Æ‚í‚è‚Â‚­‚æ‚¤‚È”M‹C‚ÆŠÃ‚¢‚è‚É–ž‚¿‚Ä‚¢‚½B
+		PRINTFORML %CALLNAME:R_NAME1%‚Æ%CALLNAME:R_NAME2%‚ªƒxƒbƒh‚Ìã‚ÉŠŠ‚èž‚ÝA%CALLNAME:MASTER%‚Ì’©—§‚¿‚ð•i’è‚ß‚·‚é‚æ‚¤‚ÉŒ©‚Â‚ß‚Ä‚¢‚éB
+		PRINTFORMW ­—‚½‚¿‚Ì”M‚Á‚Û‚¢Ž‹ü‚Æ‚ñ‚¾“f‘§‚ªA“¦‚°ê‚Ì‚È‚¢Q°‚ð–ž‚½‚µ‚Ä‚¢‚­B
+		PRINTFORML Œû‚ÉŠÜ‚ÞŽÒAŽè‚ÅŒƒ‚µ‚­ŽC‚èã‚°‚éŽÒA‘¾‘Ú‚Å‹²‚Ýž‚ÞŽÒ\\Šôd‚à‚Ì•òŽd‚ª‹x‚ÞŠÔ‚à‚È‚­P‚¢‚©‚©‚éB
+		PRINTFORML ”Þ—‚½‚¿‚Ìî”M“I‚È˜Žg‚¢‚Æ‚Æ‚à‚ÉŒ×‚ª‚êA—eŽÍ‚Ì‚È‚¢‰õŠy‚Ì‚¤‚Ë‚è‚ª%CALLNAME:MASTER%‚ðŠÑ‚­B
+		PRINTFORMW º‚É‚È‚ç‚È‚¢“f‘§‚ð˜R‚ç‚µ‚È‚ª‚çAŒÀŠE‚Ü‚Å’B‚µ‚½g‘Ì‚ÍŠô“x‚Æ‚È‚­’µ‚Ëã‚°‚ç‚êA”Z–§‚È¸‚ðæÃ‚èŽæ‚ç‚ê‚½B
+	ENDIF
+ELSEIF TIER == 2
+	; y‘æ2’iŠKF6`11lz
+	IF SEED == 0
+		PRINTFORML ’©‚ÌŒõ‚ª·‚µž‚ÞQŽº‚ÍA‚·‚Å‚É”ZŒú‚Èˆú‰t‚Ì“õ‚¢‚Æ­—‚½‚¿‚ÌƒtƒFƒƒ‚ƒ“‚Å[–ž‚µ‚Ä‚¢‚½B
+		PRINTFORML ƒxƒbƒh‚Ìã‚Ç‚±‚ë‚©°‚É‚Ü‚ÅŒQ‚ª‚é‚Ì‚ÍA%CALLNAME:R_NAME1%A%CALLNAME:R_NAME2%A%CALLNAME:R_NAME3%‚ð‚Í‚¶‚ß‚Æ‚·‚é­—‚½‚¿B
+		PRINTFORMW ­—‚½‚¿‚Í‰äæ‚É‚Æ‰Ÿ‚µ‡‚¢‚Ö‚µ‡‚¢AŒÝ‚¢‚ÉŒ¡§‚µ‡‚¢‚È‚ª‚çƒxƒbƒh‚Ìã‚ÖŽE“ž‚·‚éB
+		PRINTFORML ‚à‚Í‚â‡”Ô‘Ò‚¿‚·‚ç‚à‚Ç‚©‚µ‚¢‚Æ‚Î‚©‚è‚ÉA—~–]‚ð”‚«o‚µ‚É‚µ‚½­—‚½‚¿‚ªá•ö‚Ì‚æ‚¤‚É%CALLNAME:MASTER%‚Ìã‚ÉŽE“ž‚·‚éB
+		PRINTFORML 1l‚ª˜‚ðŒƒ‚µ‚­U‚Á‚Äâ’¸‚ðŒ}‚¦‚é‚ÆAˆø‚«”²‚­ŠÔ‚à‚È‚­•Ê‚Ì­—‚ªƒyƒjƒX‚ð’D‚¢Žæ‚èAŽ©‚ç‚Ì‰œ[‚­‚Ö‚Ë‚¶‚èž‚ÞB
+		PRINTFORMW ŽË¸‚Ì—]‰C‚Å‰ß•q‚É‚È‚è’µ‚Ëã‚ª‚éƒyƒjƒX‚ð‹x‚Ü‚¹‚é‚±‚Æ‚È‚­A—eŽÍ‚Ì‚È‚¢ƒsƒXƒgƒ“‚ª’@‚«‚Â‚¯‚ç‚ê‚éB
+		PRINTFORML ŽŸX‚É‰Ÿ‚µŠñ‚¹‚é“÷—~‚Ì‘÷—¬B%CALLNAME:MASTER%‚Ìg‘Ì‚ÍŒÀŠE‚ð’´‚¦‚ÄƒKƒNƒKƒN‚Æk‚¦A
+		PRINTFORMW ”M‚¢“f‘§‚Æ“÷‚ª‘Å‚¿•t‚¯‡‚¤Œƒ‚µ‚¢‰¹‚Ì‰Q‚Ì’†‚ÅA‰½“x‚à‰½“x‚à”Z–§‚È¸‚ð’‚¬ž‚Ü‚³‚ê‚½B
+	ELSEIF SEED == 1
+		PRINTFORML –ÚŠo‚ß‚½uŠÔAŽ‹ŠE‚àŒÄ‹z‚à‚·‚×‚Ä_‚ç‚©‚È­—‚½‚¿‚Ì“÷‘Ì‚ÉŠ®‘S‚Éˆù‚Ýž‚Ü‚ê‚Ä‚¢‚½B
+		PRINTFORML ³–Ê‚©‚ç‚Í%CALLNAME:R_NAME1%‚ªg‘Ì‚ðŽC‚èŠñ‚¹A—¼˜r‚Í%CALLNAME:R_NAME2%‚Ì–L–ž‚È‹¹‚É–„‚ßž‚Ü‚êA
+		PRINTFORMW ‰º”¼g‚Í%CALLNAME:R_NAME3%‚ð‚Í‚¶‚ß‚Æ‚·‚é•¡”‚Ì­—‚½‚¿‚É‚æ‚Á‚ÄA‚Ü‚é‚Å“÷‚ÌŸB‚Ì‚æ‚¤‚É•ï‚Ýž‚Ü‚ê‚Ä‚¢‚éB
+		PRINTFORML å¿‚­”§‚ªŽC‚ê‡‚¤‚½‚Ñ‚ÉŠÃ‚¢“õ‚¢‚ª—§‚¿ã‚èA”]‚Ì‰œ‚Ü‚Åáƒ‚ê‚³‚¹‚ÄŽvl—Í‚ð’D‚Á‚Ä‚¢‚­B
+		PRINTFORML ­—‚½‚¿‚Ì‚ñ‚¾“µ‚Ær‚¢ŒÄ‹z‚ªŒðö‚µA‹x‚ÞŠÔ‚à‚È‚­ƒyƒjƒX‚Ö‚ÌÓ‚ß‹ê‚ªŒJ‚è•Ô‚³‚ê‚éB
+		PRINTFORMW ‘OŒã¶‰E‚©‚ç‰Ÿ‚µŠñ‚¹‚é‰õŠ´‚Ì–z—¬‚ÉA%CALLNAME:MASTER%‚Ì_Œo‚ÍÄ‚«Ø‚ê‚é¡‘O‚Ü‚Å’Ç‚¢‹l‚ß‚ç‚ê‚éB
+		PRINTFORML Ž~‚Ü‚ç‚ÊŽË¸‚Ì˜A‘Å‚É˜‚ª•‚‚«A”’–Ú‚ð”‚«‚È‚ª‚çAŒÀŠE‚ð’´‚¦‚½‰õŠy‚ÌŠC‚Ö‚Æ’¾‚ß‚ç‚ê‚Ä‚¢‚Á‚½B
+	ELSE
+		PRINTFORML QŽº‚Ì”à‚Í“à‘¤‚©‚çŒÅ‚­•Â‚´‚³‚êA•”‰®‘S‘Ì‚ª‘§‹ê‚µ‚¢‚Ù‚Ç‚ÌŠÃ‚¢–F‚É•ï‚Ü‚ê‚Ä‚¢‚½B
+		PRINTFORML ”M‹¶‚µ‚½Šá·‚µ‚ðŒü‚¯‚é%CALLNAME:R_NAME1%‚½‚¿‚ÉˆÍ‚Ü‚êA%CALLNAME:MASTER%‚Íƒxƒbƒh‚Ìã‚ÅŠ®‘S‚Ég“®‚«‚ð’D‚í‚ê‚Ä‚¢‚½B
+		PRINTFORMW ”wŒã‚©‚ç‚Í_‚ç‚©‚È‹¹‚ª‰Ÿ‚µ•t‚¯‚ç‚êA³–Ê‚©‚ç‚Í“H‚éˆ¤‰t‚Ì‚è‚ª•@o‚ð‚­‚·‚®‚éB
+		PRINTFORML 6l‚ð’´‚¦‚é­—‚½‚¿‚ªAŽèAŒûA‹¹A”éŠAŽwæA”¯‚ÉŽŠ‚é‚Ü‚ÅA‚·‚×‚Ä‚Ì«Š´‘Ñ‚ð—]‚·‚Æ‚±‚ë‚È‚­æÃ‚ès‚­‚·B
+		PRINTFORML “¯Žž‚É‰Ÿ‚µŠñ‚¹‚é‰õŠy‚Ì—’‚ÉA%CALLNAME:MASTER%‚ÌA‚©‚ç‚Í™ï‚«º‚µ‚©ã‚ª‚ç‚È‚¢B
+		PRINTFORMW ­—‚½‚¿‚Í—‚ê‚½“f‘§‚ð˜R‚ç‚µ‚È‚ª‚ç‹£‚¢‡‚¤‚æ‚¤‚É˜‚ð‘Å‚¿•t‚¯AƒyƒjƒX‚ðŒÀŠE‚Ü‚Åï‚è—§‚Ä‚éB
+		PRINTFORML â’¸‚Æ‚Æ‚à‚ÉŠô“x‚Æ‚È‚­‘å—Ê‚Ì¸‰t‚ð•¬‚«o‚³‚¹‚ç‚êA°‚Ì’ê‚Ü‚Å‹z‚¢s‚­‚³‚ê‚é‚æ‚¤‚È‰õŠy‚Ì—’‚É“Û‚Ýž‚Ü‚ê‚½B
+	ENDIF
+ELSEIF TIER == 3
+	; y‘æ3’iŠKF12`19lz
+	IF SEED == 0
+		PRINTFORML •”‰®‚ð–„‚ßs‚­‚·”M‹CA[–ž‚·‚éˆ¤‰t‚Ì“õ‚¢A‚»‚µ‚Ä—«‚Ìƒ^ƒK‚ªŠO‚ê‚½\”l‚à‚Ì­—‚½‚¿B
+		PRINTFORML %CALLNAME:R_NAME1%A%CALLNAME:R_NAME2%A%CALLNAME:R_NAME3%‚ç‚ÍŽè‚ðŽæ‚è‡‚Á‚Ä%CALLNAME:MASTER%‚ðŽæ‚èˆÍ‚ÝA
+		PRINTFORMW ˜L‰º‚É‚Ü‚Å•À‚ñ‚¾­—‚½‚¿‚ª”à‚ÌŒ„ŠÔ‚©‚ç”M‚¢Ž‹ü‚ð’‚¢‚Å‚¢‚éB
+		PRINTFORML ‚à‚Í‚â’©‚Ìˆ¥ŽA‚È‚Ç’Nˆêl‚Æ‚µ‚ÄŒû‚É‚¹‚¸A‚½‚¾‚Ð‚½‚·‚ç‚ÉæÃ—~‚È“÷—~‚ÌÕ“®‚¾‚¯‚ª‰QŠª‚¢‚Ä‚¢‚½B
+		PRINTFORML ­—‚½‚¿‚ÍŒÝ‚¢‚É–Ú”z‚¹‚µA‘ã‚í‚é‘ã‚í‚é%CALLNAME:MASTER%‚Ì˜‚Ìã‚ÉŒ×‚ª‚Á‚Ä‚ÍŒƒ‚µ‚­g‚ð—h‚·‚éB
+		PRINTFORMW ‰Ê‚Ä‚½‚Î‚©‚è‚ÌƒyƒjƒX‚Í‹x‚ÞŠÔ‚à‚È‚­ŽŸ‚Ì­—‚Ì”M‚¢“÷šâ‚Ö‚Æˆù‚Ýž‚Ü‚êA—eŽÍ‚Ì‚È‚¢˜U‚è‚ªÄŠJ‚³‚ê‚éB
+		PRINTFORML Šôd‚É‚àd‚È‚éâ’¸‚Ì’Ã”g‚ÉA%CALLNAME:MASTER%‚ÍR‚¤‚±‚Æ‚·‚ç–Y‚êA‰õŠy‚Ì”gŠÔ‚É–|˜M‚³‚ê‘±‚¯‚½B
+	ELSEIF SEED == 1
+		PRINTFORML QŽº‚Ì”à‚ªŠJ‚¯•ú‚½‚êA˜L‰º‚©‚çƒxƒbƒh‚Ü‚Å­—‚½‚¿‚Ìs—ñ‚ª˜A‚È‚Á‚Ä‚¢‚½B
+		PRINTFORML ƒxƒbƒh‚Ì’†‰›‚É‹ÂŒü‚¯‚ÉS‘©‚³‚ê‚½%CALLNAME:MASTER%‚Ìg‘Ì‚ÍAŠ®‘S‚É­—‚½‚¿‚Ì‹¤—L•¨‚Æ‰»‚µ‚Ä‚¢‚éB
+		PRINTFORMW ‡”Ô‚ð‘Ò‚¿‚«‚ê‚È‚¢­—‚½‚¿‚ªQ°‚ðŽæ‚èˆÍ‚ÝA”M‚¢“f‘§‚ÆŽ‹ü‚ðˆêg‚É—‚Ñ‚¹‚©‚¯‚Ä‚­‚éB
+		PRINTFORML 1l‚ªâ’¸‚µ‚Äˆø‚«”²‚­‚â”Û‚âA‘Ò‚¿‚«‚ê‚È‚¢­—‚ª‚·‚®‚É•¢‚¢‚©‚Ô‚³‚èAªŒ³‚Ü‚Åˆê‹C‚É“Û‚Ýž‚ñ‚Å˜‚ð‘Å‚¿•t‚¯‚éB
+		PRINTFORML Žè‚É‚Í•Ê‚Ì­—‚Ì”G‚ê‚»‚Ú‚é”éO‚ª‰Ÿ‚µ•t‚¯‚ç‚êAŒû‚ÍÇ‚ª‚êA“ûŽñ‚ÍŽwæ‚ÅŒƒ‚µ‚­˜M‚ç‚ê‚éB
+		PRINTFORMW ˆêØ‚ÌŒ„ŠÔ‚à‚È‚¢‘S•ûˆÊ‚Ì”góUŒ‚‚ÉA%CALLNAME:MASTER%‚ÌˆÓŽ¯‚ÍžNžO‚Æ‚µA
+		PRINTFORML ‰Ê‚Ä‚Ä‚à‰Ê‚Ä‚Ä‚àI‚í‚ç‚È‚¢ƒŠƒŒ[ïŽæ‚Ì’†‚ÅA‘Sg‚ðŒƒ‚µ‚­áz¹‚³‚¹‚È‚ª‚ç”’‘÷‚ð•¬‚«o‚µ‘±‚¯‚½B
+	ELSE
+		PRINTFORML ’©‚ÌŒõ‚ª‘‹‚©‚ç·‚µž‚Þ’†A•”‰®’†‚É‹¿‚«“n‚é‚Ì‚ÍŒƒ‚µ‚¢…‰¹‚ÆA­—‚½‚¿‚Ì‹¶‚¨‚µ‚¢“f‘§‚Ì‡¥‚¾‚Á‚½B
+		PRINTFORML %CALLNAME:R_NAME1%‚½‚¿‚ª‘ã‚í‚é‘ã‚í‚é%CALLNAME:MASTER%‚Ìã‚É˜‚ð‰º‚ë‚µA—eŽÍ‚È‚­“÷åü‚ð’÷‚ßã‚°‚Ä‚¢‚­B
+		PRINTFORMW \”l‚à‚Ì­—‚½‚¿‚ÉˆÍ‚Ü‚êAˆêlˆêl‚ªŽålŒö‚ðŒÀŠE‚Ü‚Åï‚ès‚­‚»‚¤‚Æ‹ZI‚ð‹Ã‚ç‚·B
+		PRINTFORML ­—‚½‚¿‚Ì‚ñ‚¾“f‘§‚ªd‚È‚è‡‚¢A•”‰®‚Ì”M‹C‚Í—¯‚Ü‚éŠ‚ð’m‚ç‚¸ã¸‚µ‚Ä‚¢‚­B
+		PRINTFORML ‚à‚Í‚â‰½‰ñŽË¸‚µ‚½‚©‚à”‚¦Ø‚ê‚¸Ag‘Ì‚Ìc‚©‚ç‰õŠy‚Ì”M•a‚ÉN‚³‚ê‚Ä‚¢‚­B
+		PRINTFORMW ‘Sg‚Ì—Í‚ð”²‚«‹Ž‚ç‚êA‚½‚¾‰õŠ´‚Éšb‚®‚¾‚¯‚Ì“÷‰ò‚Æ‚È‚è‚È‚ª‚çA’©‚ÌQŠ‚Í‰Ê‚Ä‚µ‚È‚¢ˆú‰ƒ‚Ìê‚Æ‰»‚µ‚½B
+	ENDIF
+ELSEIF TIER == 4
+	; y‘æ4’iŠKF20`35lz
+	IF SEED == 0
+		PRINTFORML ’©‚ÌQŽº‚Ì”à‚Í‰Ÿ‚µ”j‚ç‚êA•”‰®‚©‚ç˜L‰º‚Ü‚Å20l‚ð’´‚¦‚é”­î‚µ‚½­—‚½‚¿‚Å–„‚ßs‚­‚³‚ê‚Ä‚¢‚½B
+		PRINTFORML ‹³Žºˆê‚Â•ª‚à‚Ì­—‚½‚¿‚ªˆêÄ‚É‰Ÿ‚µŠñ‚¹A[–ž‚·‚é”Z–§‚ÈƒtƒFƒƒ‚ƒ“‚Å•”‰®‘S‘Ì‚Ì‹ó‹C‚ª”’‚­‰à‚Þ‚Ù‚Ç‚¾B
+		PRINTFORMW ˆÙ—l‚È”M‹C‚Ì’†A­—‚½‚¿‚Ì“µ‚É‚Í—«‚ð‚«”ò‚Î‚µ‚½–Ò—ó‚Èî—~‚Ì‰Š‚ªh‚Á‚Ä‚¢‚éB
+		PRINTFORML %CALLNAME:R_NAME1%A%CALLNAME:R_NAME2%A%CALLNAME:R_NAME3%A%CALLNAME:R_NAME4%‚ç‚ªŒQ‚ª‚èA
+		PRINTFORML ‹ÂŒü‚¯‚É“|‚ê‚½%CALLNAME:MASTER%‚ÌŽè‘«‚ðƒKƒbƒ`ƒŠ‚Æ‰Ÿ‚³‚¦ž‚ñ‚ÅŠ®‘S‚Ég“®‚«‚ð’D‚¤B
+		PRINTFORMW 1l‚ªŒ×‚ª‚Á‚ÄŒƒ‚µ‚­˜‚ðU‚èAâ’¸‚µ‚Ä˜‚ð•‚‚©‚¹‚½™‹“ßAŽŸ‚Ì­—‚ªŠŠ‚èž‚ñ‚Å‚«‚ÄªŒ³‚Ü‚Åˆê‘§‚É“Û‚Ýž‚ÞB
+		PRINTFORML ‘§‚ð‚Â‚­ŠÔ‚à‚È‚¢ƒxƒ‹ƒgƒRƒ“ƒxƒA‚Ì‚æ‚¤‚È‹¶—‚Ì—ÖŠ­ƒŠƒŒ[‚ÉA%CALLNAME:MASTER%‚Íº‚ðã‚°‚é‚±‚Æ‚·‚ç‚Å‚«‚¸A
+		PRINTFORMW ŒÀŠE‚ð—y‚©‚É’´‰z‚µ‚½˜A‘±ŽË¸‚Ì‚ ‚Ü‚èA”’–Ú‚ð”‚¢‚ÄƒKƒNƒKƒN‚ÆŒƒ‚µ‚­‘Sg‚ð’µ‚Ë‚³‚¹‘±‚¯‚½B
+	ELSEIF SEED == 1
+		PRINTFORML ƒxƒbƒh‚ðŽæ‚èˆÍ‚Þ­—‚½‚¿‚ÌŒQ‚ê‚ÍA‚à‚Í‚â—«‚Ìƒ^ƒK‚ªŠ®‘S‚ÉÁ‚µ”ò‚ñ‚Å‚¢‚½B
+		PRINTFORML ŽŸ‚©‚çŽŸ‚Ö‚Æ­—‚½‚¿‚ªÜ‚èd‚È‚èA%CALLNAME:MASTER%‚Ìg‘Ì‚ðŠ®‘S‚É•¢‚¢s‚­‚µ‚Ä‚¢‚­B
+		PRINTFORMW %CALLNAME:R_NAME1%‚ªŒƒ‚µ‚­˜‚ð‘Å‚¿•t‚¯‚È‚ª‚ç‘§‚ðr‚°AŽüˆÍ‚Ì­—‚½‚¿‚Í‰äæ‚É‚Æ‹¹‚âŽèAŒû‚ð·‚µo‚µA
+		PRINTFORML %CALLNAME:MASTER%‚Ì‘Sg‚Ì‚ ‚ç‚ä‚é«Š´‘Ñ‚ÉŒQ‚ª‚Á‚Ä‹x‚ÞŠÔ‚à‚È‚­‹z‚¢ã‚°AŽC‚è—§‚Ä‚éB
+		PRINTFORML ŽË¸‚ªI‚í‚éuŠÔ‚·‚ç‘Ò‚½‚¸‚ÉV‚½‚È‰õŠ´‚ÌŽhŒƒ‚ª’@‚«ž‚Ü‚êAƒI[ƒKƒYƒ€‚Ì”g‚ª“rØ‚ê‚é‚±‚Æ‚È‚­˜A½‚·‚éB
+		PRINTFORMW ­—‚½‚¿‚Ìr‚¢“f‘§‚Æˆ¤‰t‚Ì”ò–—‚ªâ‚¦ŠÔ‚È‚­~‚è’‚¬AQŽº‚Í‹¶‹C‚Ì‰ƒ‚Æ‰»‚·B
+		PRINTFORML ‰ß•‰‰×‚ð‹N‚±‚µ‚½_ŒoŒn‚ª”æ•¾‚Æ‹Éã‚Ì‰õŠy‚ð¬‘÷‚³‚¹A%CALLNAME:MASTER%‚ÍŸµ‚ð‚‚ç‚µ‚È‚ª‚çA
+		PRINTFORMW R‚¤p‚Ì‚È‚¢“÷—~‚Ì‰Q‚Ì’†‚Å–³‰ä–²’†‚É˜‚ðk‚í‚¹‘±‚¯‚½B
+	ELSE
+		PRINTFORML ‘’©‚ÌÃŽâ‚Í‚Ç‚±‚Ö‚â‚çA•”‰®’†‚ªb‚Ì‚æ‚¤‚Èr‚¢‘§Œ­‚¢‚Æˆ¤‰t‚ÌŒƒ‚µ‚¢”ò–—‰¹‚Å–ž‚¿‚Ä‚¢‚½B
+		PRINTFORML 20lˆÈã‚Ì­—‚½‚¿‚ª‡”Ô‚ð‘Ò‚¿‚«‚ê‚¸A%CALLNAME:MASTER%‚Ìg‘Ì‚Ìã‚ÅÜ‚èd‚È‚é‚æ‚¤‚É—‚ê‹¶‚Á‚Ä‚¢‚éB
+		PRINTFORMW ­—‚½‚¿‚Í–³‰ä–²’†‚Åg‘Ì‚ðŽC‚èŠñ‚¹‡‚¢A”M•a‚Ì‚æ‚¤‚È‹»•±‚É•ï‚Ü‚ê‚Ä‚¢‚éB
+		PRINTFORML %CALLNAME:R_NAME1%‚½‚¿‚É‚æ‚Á‚ÄAŒÀŠE‚ð‰z‚¦‚ÄˆÞ‚¦‚©‚¯‚½ƒyƒjƒX‚ª‹­ˆø‚É”M‚¢“÷åü‚Ö‚Æ‰Ÿ‚µž‚Ü‚ê‚éB
+		PRINTFORML ¸‰t‚ªos‚­‚µ‚Ä“§–¾‚È‘Ì‰t‚µ‚©•¬‚«o‚³‚È‚­‚È‚Á‚Ä‚àA­—‚½‚¿‚Ì—eŽÍ‚Ì‚È‚¢ƒsƒXƒgƒ“‚ÍŽ~‚Ü‚ç‚È‚¢B
+		PRINTFORMW ‰ß•q‚É‚È‚è‚·‚¬‚½_Œo‚É’¼ÚG‚ê‚ç‚ê‚é‚æ‚¤‚È‹ÉŒÀ‚Ì‰õŠy‚ÉA%CALLNAME:MASTER%‚Í”w‹Ø‚ð‹|‚È‚è‚É”½‚ç‚¹A
+		PRINTFORML s‚«‚é‚±‚Æ‚Ì‚È‚¢ïŽæ‚Ì—’‚Ì’†‚ÅŠ®‘S‚ÉŽvl‚ð’âŽ~‚³‚¹‚ç‚ê‚½B
+	ENDIF
+ELSEIF TIER == 5
+	; y‘æ5’iŠKF36`50lz
+	IF SEED == 0
+		PRINTFORML ”à‚ÌŒü‚±‚¤A˜L‰º‚Ì‰Ê‚Ä‚Ü‚Å­—‚½‚¿‚Ì—ñ‚ªL‚ÑAŠw‰€‚Ì”¼”ˆÈã‚ðè‚ß‚é30`40lˆÈã‚Ì­—‚½‚¿‚ª‰Ÿ‚µŠñ‚¹‚Ä‚¢‚½B
+		PRINTFORML •”‰®‚Ì’†‚É—§‚¿ž‚ß‚éŽ“‚ÌŠÃ‚¢“õ‚¢‚Æˆ¤‰t‚Ì–F‚Í”Z–§‚ð‹É‚ßAŒÄ‹z‚·‚é‚¾‚¯‚Å”]‚ª“ ‚¯‚»‚¤‚È‚Ù‚Ç‚¾B
+		PRINTFORMW ‚à‚Í‚âƒxƒbƒh‚Í•ö‰ó¡‘O‚Å‚ ‚èA%CALLNAME:MASTER%‚Í_—`‚Ì‚æ‚¤‚É–³”‚Ì_‚ç‚©‚ÈŽè‚Å’S‚¬ã‚°‚ç‚êA
+		PRINTFORML %CALLNAME:R_NAME1%A%CALLNAME:R_NAME2%A%CALLNAME:R_NAME3%A%CALLNAME:R_NAME4%‚ç­—‚½‚¿‚ÉŽŸX‚ÆŒ×‚ª‚ê‚Ä‚¢‚­B
+		PRINTFORML ­—‚½‚¿‚Í”M‚¢“f‘§‚ð—‚Ü‚¹‡‚¢‚È‚ª‚çA–³‰ä–²’†‚Å%CALLNAME:MASTER%‚Ì“÷‘Ì‚ðæÃ‚ès‚­‚·B
+		PRINTFORMW ˆêl‚ª‰Ê‚Ä‚ê‚Î“ñl‚ª‚©‚è‚ÅŒû‚Æ”é•”‚ðU‚ß—§‚ÄAŽŸ‚©‚çŽŸ‚Ö‚Æ‹x‚Þ‰É‚È‚­­—‚½‚¿‚ª˜‚ð—Ž‚Æ‚·B
+		PRINTFORML ”\l‚à‚Ìî”M“I‚È˜U‚è‚ÆŒƒ‚µ‚¢’÷‚ß•t‚¯‚ÉA%CALLNAME:MASTER%‚Ìg‘Ì‚ÍŠ®‘S‚ÉŒÀŠE‚ð“Ë‚«”j‚èA
+		PRINTFORMW A‚©‚ç‰¹‚É‚È‚ç‚È‚¢â‹©‚ð˜R‚ç‚µ‚È‚ª‚çA‘Sg‚Ì¶‹C‚ð‘S‚Ä’‚¬ž‚Þ‚æ‚¤‚ÉŠô“x‚àŠô“x‚à’µ‚Ëã‚ª‚Á‚½B
+	ELSEIF SEED == 1
+		PRINTFORML ‚»‚ê‚Í‚à‚Í‚â’©‚Ìˆ¥ŽA‚È‚Ç‚Å‚Í‚È‚­AŠw‰€‚ð—h‚é‚ª‚·‹¶—‚Ìï¸‹VŽ®‚»‚Ì‚à‚Ì‚¾‚Á‚½B
+		PRINTFORML 36l‚ð’´‚¦‚é­—‚½‚¿‚ªQŠ‚ðŠ®‘S‚É•ïˆÍEè—Ì‚µA’Nˆêl‚Æ‚µ‚Ä“¦‚°ê‚ð—^‚¦‚é‹C‚Í‚È‚¢B
+		PRINTFORMW •”‰®’†‚ª­—‚½‚¿‚Ì—‚ê‚½‘§Œ­‚¢‚Æî”M“I‚È“f‘§‚Å–ž‚¿A”M‹C‚ÅŽ‹ŠE‚ª˜c‚Þ‚Ù‚Ç‚¾B
+		PRINTFORML %CALLNAME:R_NAME1%‚ªŒ×‚ª‚èA%CALLNAME:R_NAME2%‚ªŠç‚Ìã‚É•¢‚¢‚©‚Ô‚³‚èA%CALLNAME:R_NAME3%‚ª—¼˜r‚ð–L–ž‚È’JŠÔ‚Å‹²‚Ýž‚ÞB
+		PRINTFORML ‚ ‚ç‚ä‚éŒÜŠ´‚ª_‚ç‚©‚È”§‚Æ”M‚¢“f‘§‚Æˆ¤‰t‚Ì–¡‚ÅÇ‚ª‚êAŠO•”‚Ì¢ŠE‚Æ‚ÌŒq‚ª‚è‚ðŠ®‘S‚É’f‚¿Ø‚ç‚ê‚éB
+		PRINTFORMW ŽË¸‚µ‚Ä‚àŽË¸‚µ‚Ä‚àI‚í‚ç‚È‚¢B‹óŒ‚‚¿‚Ìáz¹‚ðŒJ‚è•Ô‚·ƒyƒjƒX‚ÍA‚»‚ê‚Å‚à­—‚½‚¿‚Ì”M‚¢“÷•Ç‚ÉæÃ‚ç‚ê‘±‚¯A
+		PRINTFORML %CALLNAME:MASTER%‚Í”’–Ú‚ð”‚«A‰õŠy‚Ì“Þ—Ž‚Ì’ê‚Ö‚Æˆø‚«‚¸‚èž‚Ü‚ê‚Ä‚¢‚Á‚½B
+	ELSE
+		PRINTFORML ‘’©‚©‚ç’‹‹ß‚­‚Ü‚Å‘±‚­A‰Ê‚Ä‚È‚«‰õŠy‚Ì’n–ŠG}B
+		PRINTFORML •”‰®‚Ì’†‚Í°ˆê–Ê‚ªˆ¤‰t‚Æ”’‘÷‚Å‰˜‚êA”M‹¶‚µ‚½­—‚½‚¿‚ÌŠ¾‚Æ‘Ì‰·‚ª¬‚´‚è‡‚Á‚Ä”’‚­ö‚¹•Ô‚Á‚Ä‚¢‚éB
+		PRINTFORMW %CALLNAME:MASTER%‚Ìg‘Ì‚Í“xd‚È‚éŽË¸‚ÅŠ®‘S‚É’E—Í‚µAŽwˆê–{‚·‚ç“®‚©‚·‚±‚Æ‚ª‚Å‚«‚È‚¢B
+		PRINTFORML ‚»‚ê‚Å‚àAŒQ‚ª‚é­—‚½‚¿‚Ìˆ¤•‚ÌŽè‚Æ˜‚Ì“®‚«‚ÍŽ~‚Ü‚ç‚È‚¢B
+		PRINTFORML ­—‚½‚¿‚Í–ž‚¿‘«‚è‚½“f‘§‚ð˜R‚ç‚µ‚È‚ª‚çA—Ís‚«‚½ŽålŒö‚Ìg‘Ì‚ðŒðŒÝ‚É•ø‚«‚µ‚ßAæÃ‚è‘±‚¯‚éB
+		PRINTFORMW ­—‚½‚¿‚É’”q‚³‚ê‚é‚æ‚¤‚É•ø‚«‚µ‚ß‚ç‚êAŠôd‚É‚àd‚È‚éâ’¸‚ÌÕŒ‚‚ð’@‚«ž‚Ü‚ê‚È‚ª‚çA
+		PRINTFORML %CALLNAME:MASTER%‚ÍŽ©‚ç‚Ì‘¶Ý‚ª“ ‚¯‚Ä‚¢‚­‚æ‚¤‚È‹ÉŒÀ‚Ì–Y‰ä‚Ì‹«’n‚Ö‚Æ’¾‚ñ‚Å‚¢‚Á‚½B
+	ENDIF
+ELSE
+	; y‘æ6’iŠKF51`72lz
+	IF SEED == 0
+		PRINTFORML ‘SZ§”eE_ˆæ‚Ì‘åƒn[ƒŒƒ€\\Šw‰€‚Ì‚Ù‚Ú‘SˆæA50l`70lˆÈã‚à‚Ì­—‚½‚¿‚ª’©‚ÌQŠ‚ð–„‚ßs‚­‚·‘O‘ã–¢•·‚ÌŒõŒiB
+		PRINTFORML •”‰®‚Í‚¨‚ë‚©˜L‰ºAŠK’i‚É‚Ü‚Å­—‚½‚¿‚ªˆì‚ê•Ô‚èAŠw‰€‘S‘Ì‚ª”Z–§‚Èî—~‚Ì”M‹C‚É•ï‚Ü‚ê‚Ä‚¢‚½B
+		PRINTFORMW %CALLNAME:R_NAME1%A%CALLNAME:R_NAME2%A%CALLNAME:R_NAME3%A%CALLNAME:R_NAME4%‚ç‘Sˆõ‚Ì“µ‚ª”M‚­‚ÝA
+		PRINTFORML ‹ÂŒü‚¯‚É“|‚ê‚½%CALLNAME:MASTER%‚ÌŽü‚è‚É‰½d‚à‚Ì”M‹¶‚Ì—Ö‚ªì‚ç‚ê‚Ä‚¢‚éB
+		PRINTFORML Œ¾—t‚É‚æ‚é‰ï˜b‚·‚ç•s—v‚È‚Ù‚ÇA‘Sˆõ‚ª‚½‚¾ˆê‚Â‚Ì—~–]‚É“Ë‚«“®‚©‚³‚ê‚ÄQŠ‚Ö‰Ÿ‚µŠñ‚¹‚Ä‚¢‚½B
+		PRINTFORMW “{““‚Ì¨‚¢‚Å­—‚½‚¿‚ªŽŸX‚Æ˜‚ð‘Å‚¿•t‚¯AI‚í‚è‚Ì‚È‚¢—ÖŠ­ƒŠƒŒ[‚ª–‹‚ðŠJ‚¯‚éB
+		PRINTFORML 1l‚ªâ’¸‚ðŒ}‚¦‚é‚ÆŽüˆÍ‚©‚ç”M‚¢“f‘§‚ª˜R‚êA‘Ò‹@‚µ‚Ä‚¢‚½­—‚ª‘¦À‚É“÷åü‚ðŠŠ‚èž‚Ü‚¹‚ÄŒƒ‚µ‚­˜‚ðU‚éB
+		PRINTFORML lŠÔ‚Æ‚µ‚Ä‚Ì¶—“IŒÀŠE‚È‚Ç—y‚©Ì‚ÉÁ‚µ”ò‚ÑA30‰ñA40‰ñ‚ð’´‚¦‚é‹¶—‚Ì˜A‘±ŽË¸B
+		PRINTFORMW ‘Sg‚Ì‹Ø“÷‚ªŒƒ‚µ‚­d’¼‚Æ’oŠÉ‚ðŒJ‚è•Ô‚µA%CALLNAME:MASTER%‚ÍŽŠ‚‚Ì‰õŠy‚ÌŒõ‚Ì’†‚ÅŠ®‘S‚ÉˆÓŽ¯‚ð—Z‰ð‚³‚¹‚½B
+	ELSEIF SEED == 1
+		PRINTFORML •”‰®‚Ì•Ç‚à°‚àA‘S‚Ä‚ª­—‚½‚¿‚Ì‰ÎÆ‚Á‚½‘f”§‚ÆŠÃ‚¢‘§Œ­‚¢‚Å–„‚ßs‚­‚³‚ê‚Ä‚¢‚éB
+		PRINTFORML 70l‹ß‚­‚ÌƒqƒƒCƒ“‚½‚¿‚ÉˆÍ‚Ü‚ê‚½%CALLNAME:MASTER%‚ÍA‚à‚Í‚âˆêŒÂ‚ÌlŠÔ‚Å‚Í‚È‚­A
+		PRINTFORMW Šw‰€’†‚Ì—~–]‚ðˆêg‚ÉŽó‚¯Ž~‚ß‚Ä–ž‚½‚·‚½‚ß‚Ì_¹‚È‚éï¸‚Ì¶æÑ‚Æ‰»‚µ‚Ä‚¢‚½B
+		PRINTFORML ”M‹¶‚µ‚½­—‚½‚¿‚ª‹£‚¢‡‚¤‚æ‚¤‚ÉŒ×‚ª‚èA‘Sg‚Ì”§‚ðŽC‚èŠñ‚¹AŒû‚Ã‚¯‚ð~‚ç‚¹A‹x‚ÞŠÔ‚à‚È‚­˜‚ð‘Å‚¿–Â‚ç‚·B
+		PRINTFORML ‰Ê‚Ä‚é‚½‚Ñ‚É‘Sg‚ð‹ì‚¯”²‚¯‚éŒƒ‚µ‚¢“dŒ‚B‚à‚Í‚â¸‰t‚Å‚Í‚È‚­“§–¾‚È‘Ì‰t‚Æ¶‹C‚»‚Ì‚à‚Ì‚ð‹z‚¢o‚³‚ê‚é‚æ‚¤‚ÉA
+		PRINTFORMW ƒrƒNƒrƒN‚Æ’µ‚Ë‚éƒyƒjƒX‚Í­—‚½‚¿‚Ì”M‚¢“÷’Ù‚ÉŽŸ‚©‚çŽŸ‚Ö‚Æ“Û‚Ýž‚Ü‚êAï‚ès‚­‚³‚ê‚Ä‚¢‚­B
+		PRINTFORML ­—‚½‚¿‚Ì‚ñ‚¾Šá·‚µ‚Æ”M‹¶“I‚È•ø—i‚É•ï‚Ü‚ê‚È‚ª‚çA
+		PRINTFORMW %CALLNAME:MASTER%‚ÍK•ŸŠ´‚É–ž‚¿‚½â’¸‚Ì‰Ê‚Ä‚É”’–Ú‚ð”‚¢‚Ä“|‚ê•š‚µ‚½B
+	ELSE
+		PRINTFORML ’‹‚ð‰ß‚¬‚Ä‚à‚È‚¨Žû‚Ü‚ç‚È‚¢AŠw‰€ŽjãÅ‘å‚Ìˆú‰ƒB
+		PRINTFORML 50lˆÈã‚Ì­—‚½‚¿‚ª–ž‘«‚°‚É–j‚ðg’ª‚³‚¹A‘§‚ð’e‚Ü‚¹‚È‚ª‚çAƒxƒbƒh‚ÌŽü‚è‚ÅK‚¹‚»‚¤‚ÉŠñ‚è“Y‚¢‡‚Á‚Ä‚¢‚éB
+		PRINTFORMW ‚»‚Ì’†S‚ÅA%CALLNAME:MASTER%‚Í‘Sg‚Ì—Í‚ðŠ®‘S‚Éï‚èŽæ‚ç‚êAƒsƒNƒsƒN‚Æáz¹‚µ‚È‚ª‚ç‘å‚ÌŽš‚É“|‚ê‚Ä‚¢‚½B
+		PRINTFORML ”\‰ñ‚É‹y‚Ô‹ÉŒÀ‚ÌŽË¸A‹óŒ‚‚¿‚É‚È‚Á‚Ä‚àŽ~‚Ü‚ç‚È‚©‚Á‚½Œƒ‚µ‚¢ƒsƒXƒgƒ“‚Ì—’B
+		PRINTFORML g‘Ì‚Ì‰œ’ê‚©‚ç‚ ‚ç‚ä‚é¶‹C‚ð‹z‚¢s‚­‚³‚êA—§‚Á‚Ä‚¢‚é‚±‚Æ‚·‚ç•s‰Â”\‚ÈŠ®‘S‚È’E—Íó‘ÔB
+		PRINTFORMW ‚µ‚©‚µAŽüˆÍ‚ðŽæ‚èˆÍ‚Þ­—‚½‚¿‚ÌŠç‚É‚ÍA‚©‚Â‚Ä‚È‚¢‚Ù‚Ç‚Ì–ž‚¿‘«‚è‚½ÎŠç‚ÆA[‚¢îˆ¤‚ª•‚‚©‚ñ‚Å‚¢‚½B
+		PRINTFORML %CALLNAME:R_NAME1%‚½‚¿‚ª—D‚µ‚­“ª‚ð•‚ÅAŒû‚Ã‚¯‚ð—Ž‚Æ‚µ‚È‚ª‚çA—Ís‚«‚½%CALLNAME:MASTER%‚ð—D‚µ‚­•ø‚«‚µ‚ß‚éB
+		PRINTFORMW ‘Sg‚ªáƒ‚ê‚é‚æ‚¤‚È’E—ÍŠ´‚ÆŠÃ‚â‚©‚È‰õŠ´‚Ì—]‰C‚É•ï‚Ü‚ê‚È‚ª‚çA%CALLNAME:MASTER%‚ÍS’n‚æ‚¢–°‚è‚Ì’†‚Ö‚Æ—Ž‚¿‚Ä‚¢‚Á‚½B
+	ENDIF
+ENDIF
+
+; --- Œø‰ÊE”’lŒvŽZ ---
+; ŽË¸‰ñ”Œˆ’è
+IF TIER == 1
+	EJAC_COUNT = 3 + RAND:3
+ELSEIF TIER == 2
+	EJAC_COUNT = 6 + RAND:5
+ELSEIF TIER == 3
+	EJAC_COUNT = 11 + RAND:6
+ELSEIF TIER == 4
+	EJAC_COUNT = 18 + RAND:8
+ELSEIF TIER == 5
+	EJAC_COUNT = 27 + RAND:10
+ELSE
+	; ‘æ6’iŠKi51`72ljF‹ÉŒÀ’´‰zi38`52‰ñŽË¸j
+	EJAC_COUNT = 38 + RAND:15
+ENDIF
+
+; ‘Ì—ÍE‹C—Í‚ÍˆêØŒ¸‚ç‚³‚¸A‘Ï—ÍiBASE:MASTER:4j‚Ì‚Ý‚ðŠ„‡Á”ïiŽc‘Ï—Í 1 ‚ð‰ºŒÀ‚Æ‚·‚éj
+LOSE_TAIRYOKU = 0
+IF BASE:MASTER:4 > 1
+	LOCAL:30 = BASE:MASTER:4
+	IF TIER == 1
+		LOCAL:31 = 30
+	ELSEIF TIER == 2
+		LOCAL:31 = 45
+	ELSEIF TIER == 3
+		LOCAL:31 = 60
+	ELSEIF TIER == 4
+		LOCAL:31 = 75
+	ELSEIF TIER == 5
+		LOCAL:31 = 85
+	ELSE
+		LOCAL:31 = 95
+	ENDIF
+	LOCAL:32 = MAX(LOCAL:30 * (100 - LOCAL:31) / 100, 1)
+	LOSE_TAIRYOKU = LOCAL:30 - LOCAL:32
+	BASE:MASTER:4 = LOCAL:32
+ENDIF
+
+; Žål‚ÌŽË¸Eâ’¸ŒoŒ±‰ÁŽZ
+EXP:MASTER:3 += EJAC_COUNT
+FLAG:5040 += EJAC_COUNT
+
+; Žål‚ª—Ž™E—‚Ìê‡‚ÌƒŒƒYEâ’¸ŒoŒ±‰ÁŽZ
+IF TALENT:MASTER:122 == 0
+	EXP:MASTER:40 += TIER * 6
+	EXP:MASTER:2 += TIER * 4
+ENDIF
+
+; ŽQ‰ÁŽÒ‘Sˆõ‚Ö‚ÌŒoŒ±EŽì‰ÁŽZ
+FOR LOCAL, 0, INRAN_COUNT
+	CHARA_ID = PARTICIPANTS:LOCAL
+	; ¸‰tŒoŒ±
+	EXP:CHARA_ID:20 += TIER * 2
+	; â’¸ŒoŒ±
+	EXP:CHARA_ID:2 += TIER
+	; ”ñˆ—‚È‚çVŒoŒ±
+	SIF TALENT:CHARA_ID:0 == 0
+		EXP:CHARA_ID:0 += TIER
+	; Žì‰ÁŽZ
+	JUEL:CHARA_ID:1 += TIER * 150	; ‰õV‚ÌŽì
+	JUEL:CHARA_ID:4 += TIER * 100	; ‹±‡‚ÌŽì
+	JUEL:CHARA_ID:5 += TIER * 200	; —~î‚ÌŽì
+	JUEL:CHARA_ID:17 += TIER * 100	; ’pî‚ÌŽì
+	; DŠ´“x‰ÁŽZ
+	CFLAG:CHARA_ID:2 += TIER * 3
+	; äS“àŽË¸—ÊiŽó‘Ùƒ`ƒFƒbƒN—pj
+	CFLAG:CHARA_ID:101 += TIER
+	; —ÝÏŽË¸—Ê
+	FLAG:(5800 + NO:CHARA_ID) += TIER * 2
+NEXT
+
+DRAWLINE
+SETCOLOR 255, 120, 180
+PRINTFORML %CALLNAME:MASTER%‚ÍŒÀŠE‚Ì‰õŠy‚É’B‚µ‚Äy{EJAC_COUNT}‰ñz‚ÌŽË¸‚ð‹­§‚³‚ê‚½c
+IF LOSE_TAIRYOKU > 0
+	PRINTFORML %CALLNAME:MASTER%‚Ì‘Ï—Í -{LOSE_TAIRYOKU}iŽc‚è {BASE:MASTER:4}j
+ENDIF
+PRINTFORML ŽQ‰Á‚µ‚½y{INRAN_COUNT}lz‚Ì‘Sˆõ‚Ì¸‰tŒoŒ±Eâ’¸ŒoŒ±EDŠ´“xEŠeŽíŽì‚ª‘å•‚Éã¸‚µ‚Ü‚µ‚½I
+RESETCOLOR
+DRAWLINE
+WAIT
+RETURN 1
