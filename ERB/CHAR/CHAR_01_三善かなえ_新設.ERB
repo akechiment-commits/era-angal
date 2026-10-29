@@ -1,0 +1,3741 @@
+;---------------------------------------------------------
+; 君咲学院 新設場面口上ファイル（独立ファイル）
+; [三善かなえ]　NO:1
+; KOUJO_TEMPLATE_新設場面編.ERB から生成。既存の CHAR ファイルとは独立しており、
+; 台詞はすべて執筆待ち（空台詞）。SELF_KOJO_ADD は EVENT_K の @SELF_KOJO から
+; 対象IDのときだけ振り分けて呼ばれる。
+;---------------------------------------------------------
+
+
+;=========================================================
+; 第1部 カジノ生贄（裏カジノ）
+; 【新規ディスパッチ】既存の呼び出し口はないため、以下の組み込みが前提。
+;  ・破産宣告: CASINO_UNDERGROUND @UNDERGROUND_BANKRUPTCY_EVENT の
+;    パートナー反応地の文（淫乱/恋慕/通常の3分岐）の直後に
+;      TRYCALLFORM KOJO_CASINO_SACRIFICE_K{NO:TARGET}, 0
+;  ・各ステージ: @UNDERGROUND_STAGE_PENALTY の各 CASE 冒頭に
+;      TRYCALLFORM KOJO_CASINO_SACRIFICE_K{NO:TARGET}, ARG
+;  ・廃棄処分: @UNDERGROUND_DISPOSAL_STAGE_EVENT の壇上連行地の文の直後に
+;      TRYCALLFORM KOJO_CASINO_SACRIFICE_K{NO:TARGET}, 6
+;  ・精算: @UNDERGROUND_SETTLEMENT の帰還描写の直後に
+;      TRYCALLFORM KOJO_CASINO_SACRIFICE_K{NO:TARGET}, 7
+; ARG: 0=破産宣告・担保差し出し 1-4=ステージ1-4 5=ステージ5以降（リピート深化）
+;      6=廃棄処分・生贄執行 7=精算・帰還
+; 関係性の目安（本体の判定に合わせる）:
+;  相愛/親愛 = TALENT:89/88、完璧な愛は CFLAG:2>=8000 かつ ABL:0>=5 も見る
+;  淫乱系 = TALENT:76/70/79/80 または ABL:1>=4 または ABL:8>=3（CAN_LUST相当）
+;=========================================================
+@KOJO_CASINO_SACRIFICE_K1, ARG
+; ◆書き方（共通）: 段階が進むほど台詞は短く、断片的に。支配人や観客への反応と、主人公への反応を使い分ける。
+SELECTCASE ARG
+
+CASE 0
+;--- 破産宣告・担保として差し出される瞬間 ---
+; ▼ 状況: 借金が返済不能となり、支配人からパートナーを担保として預かると宣告された直後。
+;   本人の意思ではなく契約で連行される場面。ここが本人の最後の能動的な反応になる。
+; ◆書き方: 本人が能動的に喋れる最後の場面。差し出されることへの反応そのものを書く。
+; 相愛/親愛=身を差し出してでも借金を何とかしたい覚悟、それでも滲む恐怖。恋慕=裏切られた衝撃と縋るような否定。
+; 淫乱系=状況への倒錯した昂り（恐怖が混ざる）。通常=怒り・恐怖・拒絶。宛先は主人公でも支配人でもよい。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……分かりました。私が、あなたの借金の担保になります。――ただし、約束してください。必ず、迎えに来ること」
+ELSEIF A == 1
+PRINTFORMW 「逃げません。今日の私は、逃げませんから。……ですから転校生さん、あなたも逃げないで。私を、迎えに来てください」
+ELSE
+PRINTFORMW 「ふふ、手が震えていますね。……情けない。――見ていてください、私の『けじめ』を♪」
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……なぜ、黙っているんですか。……あぁ、そうですか。そういうこと、ですか。……分かりました、もう何も聞きません」
+ELSEIF A == 1
+PRINTFORMW 「転校生さん。……私は今、信じられないものを見る目で、あなたを見ています。その自覚は、ありますか」
+ELSE
+PRINTFORMW 「……売るなら売ればいいでしょう。その代わり、この屈辱は一生忘れません。……一生、です」
+ENDIF
+ELSEIF TALENT:76 || TALENT:70 || TALENT:80	; 【淫乱系（CAN_LUST相当）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……客の視線が、もう……。いけない、担保にされる前から、私の身体は……っ」
+ELSEIF A == 1
+PRINTFORMW 「（視線だけで、こんなに……）……私、見世物になる素質でもあったんでしょうか……」
+ELSE
+PRINTFORMW 「ふふ……大勢に値踏みされる感覚、嫌いじゃありません。……壊れているのは、私のほうかもしれませんね」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ふざけないでください！　私は物ではありません！　担保？　契約？　知ったことですか、離しなさい……！」
+ELSEIF A == 1
+PRINTFORMW 「やめて……やめてください……！」
+ELSE
+PRINTFORMW 「……嘘、でしょう……？　転校生さん、嘘だと言いなさい……今なら、まだ許します……！」
+ENDIF
+ENDIF
+
+CASE 1
+;--- 生贄ステージ 第1段階 ---
+; ▼ 状況: 担保進行度 Level 1。ステージに上げられた直後の屈辱・緊張が中心。
+; ◆書き方: 見世物として壇上に上げられた直後。屈辱と緊張が中心で、まだ気力は残っている。観客の視線への反応を入れると場面が立つ。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「剥ぐなら剥ぎなさい。……ただし、見るのは客席のあなただけです。私の目はずっと、あなたを見ています」
+ELSEIF A == 1
+PRINTFORMW 「下着姿を晒すくらい、私の覚悟はそんなに安くありません。……転校生さん、目を逸らさないで」
+ELSE
+PRINTFORMW 「ふふ、フラッシュが眩しいですね。……舞台慣れは、しているんです。これが本番だと思えば、いい♪」
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「は、ハサミを近づけないで……！　……いえ、切ってください。……震える手で脱ぐより、よほどましです」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、見ないで……見ないでと言いながら、私は舞台の真ん中に立っています……」
+ELSE
+PRINTFORMW 「（泣いたら負けです、泣いたら……）……転校生さん、私は、まだ立っています……」
+ENDIF
+ELSEIF TALENT:76 || TALENT:70 || TALENT:80	; 【淫乱系（CAN_LUST相当）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……布が落ちるたび、視線が肌に……。……あっ……どうして、熱く……」
+ELSEIF A == 1
+PRINTFORMW 「（晒されるの、気持ちいいなんて……）……私、淫らに壊れていく……」
+ELSE
+PRINTFORMW 「ふふ……下着一枚の私を、値踏みしてください。……高いですよ、私は♪」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……っ！　下品な歓声を、やめなさい……！　あなたたちに、私の価値は測れません……！」
+ELSEIF A == 1
+PRINTFORMW 「来ないで、触らないで……！　服は、服だけは……！」
+ELSE
+PRINTFORMW 「ううっ……真っ赤なのは、照明のせいです……照明の、せいなんです……！」
+ENDIF
+ENDIF
+
+CASE 2
+;--- 生贄ステージ 第2段階 ---
+; ▼ 状況: 担保進行度 Level 2。観客の前で晒され、消耗が進み始める。
+; ◆書き方: 消耗が始まり、羞恥より疲労と痛みが前に出る段階。台詞は短めに、息の乱れを混ぜる。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「縛るなら、縛りなさい。……体は拘束できても、私の心までは縛れません。転校生さんへの想いは、自由です」
+ELSEIF A == 1
+PRINTFORMW 「電流が、どれだけ痛くても……悲鳴は、あなたの名前で上書きします。……だから、聞いていて」
+ELSE
+PRINTFORMW 「ふふ、吊るされて、弄ばれて……。それでも私は、最後まで意識を手放しません♪」
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「や、やめて……ベルトを、解いて……！　……ううっ、見ないで、こんな姿……」
+ELSEIF A == 1
+PRINTFORMW 「ひっ……！　指が、肌を……。……転校生さん、ごめんなさい、私、感じてしまって……」
+ELSE
+PRINTFORMW 「（痛い、痛いのに……）……電流のたび、身体が跳ねて……止めて、ください……」
+ENDIF
+ELSEIF TALENT:76 || TALENT:70 || TALENT:80	; 【淫乱系（CAN_LUST相当）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んぁっ……！　痛いはずなのに、身体が甘く……っ。……私、壊れかけています……」
+ELSEIF A == 1
+PRINTFORMW 「あっ……あっ……弄ばれるたび、腰が……勝手に……」
+ELSE
+PRINTFORMW 「ふふ……電流も指も、もう快感にしか変換されません……♪　私、完全にイカれましたね」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「触るな……！　触るなと言っているでしょう……！　……っ、やめなさい、この下劣な……！」
+ELSEIF A == 1
+PRINTFORMW 「痛い……痛い痛い痛い……！　解いて……解いてください……！」
+ELSE
+PRINTFORMW 「……くっ……くっ……！　（噛み締めた唇から、悲鳴だけは、漏らしません……）」
+ENDIF
+ENDIF
+
+CASE 3
+;--- 生贄ステージ 第3段階 ---
+; ▼ 状況: 担保進行度 Level 3。体力の消耗が激しく（本体では気絶描写が出る段階）、言葉も途切れがちに。
+; ◆書き方: 本体で気絶描写が出る段階。言葉は途切れがちに。長い台詞は書かない。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……自分で、広げろと……？　分かりました。どうせ見るなら、転校生さんだけを見て、します」
+ELSEIF A == 1
+PRINTFORMW 「客の札束で値が上がるたび、私はあなたを思い出します。……これが、私の意地です」
+ELSE
+PRINTFORMW 「ふふ、公開自慰の見世物ですか。……どうぞ、私の痴態は、あなたのものです♪」
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「い、いやです……自分の手で、なんて……。……ううっ、命令なら、仕方ありません……」
+ELSEIF A == 1
+PRINTFORMW 「涙が、止まらなくて……。……それでも指は、動かさないといけないんですね……」
+ELSE
+PRINTFORMW 「（恥ずかしくて、死にそう……）……転校生さん、こんな私、見ないで……見ないでください……」
+ENDIF
+ELSEIF TALENT:76 || TALENT:70 || TALENT:80	; 【淫乱系（CAN_LUST相当）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んぁっ……出力が、上がるたびに……私の声も……っ」
+ELSEIF A == 1
+PRINTFORMW 「（歓声に煽られると、指が止まらなくて……）……あぁ、私、狂ったように感じています……」
+ELSE
+PRINTFORMW 「ふふ……入札額が、私の快感の値段ですか。……安く、ないでしょう……♪」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「やめなさい……！　こんな見世物、誰が望んだんですか……！　……私の指は、私のものです……！」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……ガラスの下から、覗かれて……。……人間扱い、してください……」
+ELSE
+PRINTFORMW 「……私の、指です……私の、体です……！　……それなのに、どうして、動くんですか……」
+ENDIF
+ENDIF
+
+CASE 4
+;--- 生贄ステージ 第4段階 ---
+; ▼ 状況: 担保進行度 Level 4。限界が近く、衰弱・重篤化の瀬戸際。台詞は短く断片的に。
+; ◆書き方: 限界間近で衰弱の瀬戸際。うわ言・断片でよい。意識を保とうとする一言が核。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……来なさい。何人でも。……ただし、私の心に触れた者は、一人もいません。心は、転校生さんのものだけです」
+ELSEIF A == 1
+PRINTFORMW 「身体は、好きにすればいい。……私の魂の置き場所は、あの人の隣です。……そこだけは、誰にも渡しません」
+ELSE
+PRINTFORMW 「ふふ、壊れるなら、壊れなさい私の身体。……心の奥の光だけは、消えませんから♪」
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……！　待って、私はまだ……心の準備が……！　……うそ、です、もうとっくに覚悟は……」
+ELSEIF A == 1
+PRINTFORMW 「転校生さん、転校生さん……！　名前を呼べば、耐えられます。……だから、何度でも呼びます……！」
+ELSE
+PRINTFORMW 「（何人でもいい、あの人じゃないなら、誰でも同じ……）……早く、終わらせて……」
+ENDIF
+ELSEIF TALENT:76 || TALENT:70 || TALENT:80	; 【淫乱系（CAN_LUST相当）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んぁっ……！　中も、後ろも、口も……同時に……私、もう人じゃなくなる……っ」
+ELSEIF A == 1
+PRINTFORMW 「あっ、あっ……注がれるたび、頭が白く……。……もう、数えられません……」
+ELSE
+PRINTFORMW 「ふふ……ふふふ……♪　壊れたように笑う声が、私の声に聞こえません……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「いやぁぁ……！　やめて、やめてやめて……！　名前も知らない男たちに、私の全部を……！」
+ELSEIF A == 1
+PRINTFORMW 「あ……あぁ……っ……！　……声が、もう、出ない……」
+ELSE
+PRINTFORMW 「誰か……誰かぁ……。……転校生さん……どうして、迎えに、来てくれないんですか……」
+ENDIF
+ENDIF
+
+CASE 5
+;--- 生贄ステージ 第5段階以降（リピート深化） ---
+; ▼ 状況: Level 5 超過、または生贄リピート（CFLAG:786 が蓄積）。REPEAT_TIER で深度が上がる。
+;   もはや通常の反応は薄く、壊れかけの反応が中心。
+; ◆書き方: 繰り返し執行される側の諦め・慣れ・壊れかけ。深度が上がるほど反応が薄れる前提で、比較的浅い側の反応を書く。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……まだ、私です。何をされても、私は三善かなえで、あなたの相愛です。……それだけは、世界の終わりまで」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、壊しきれませんでしたね、私を。……あの人への想いが、最後の一線なんです♪」
+ELSE
+PRINTFORMW 「（肉は裂けても、心は……）……転校生さん、私はまだ、ここにいます……」
+ENDIF
+ELSEIF TALENT:76 || TALENT:70 || TALENT:80	; 【淫乱系（CAN_LUST相当）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……あっ……器具も、男も、もう区別が……。……感じるだけの、機械みたいに……」
+ELSEIF A == 1
+PRINTFORMW 「（壊れた私を、笑う声がする……）……ふふ……ふふふ……♪」
+ELSE
+PRINTFORMW 「んぁ……注がれて、満たされて……。もう、それだけが、私の世界です……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……う……うう……（言葉にならない、低い呻きだけが漏れた）」
+ELSEIF A == 1
+PRINTFORMW 「……た……す……け……て……」
+ELSE
+PRINTFORMW 「…………ぁ…………」
+ENDIF
+ENDIF
+
+CASE 6
+;--- 廃棄処分・生贄執行（壊れきったパートナー） ---
+; ▼ 状況: WAS_BROKEN 状態での追加執行。意識は朦朧としており、台詞は呻き・断片のみ。
+;   能動的な台詞は書かず、反応の断片に留めるのが本体の描写と合う。
+; ◆書き方: 意識朦朧。本人の能動的な台詞は書かず、呻きや、呼びかけへの微かな反応の断片のみに留める。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛だった場合の残滓】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……てん……こう……せい……さ……」
+ELSEIF A == 1
+PRINTFORMW 「……ん……んん……」
+ELSE
+PRINTFORMW 「……あ……う……ぁ……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……っ……っ……」
+ELSEIF A == 1
+PRINTFORMW 「……い……た……」
+ELSE
+PRINTFORMW 「……ん……ふ……」
+ENDIF
+ENDIF
+
+CASEELSE
+;--- 精算・帰還（ARG=7 で呼ぶ想定） ---
+; ▼ 状況: 精算が終わり、パートナーを抱き起こして帰る場面。意識が戻りつつある安堵と疲労。
+; ◆書き方: 終わった直後の安堵と疲労。抱き起こされる場面。関係性が深いほど主人公への依存と甘えが出る。
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……お待たせ、しました。……言ったでしょう、私は逃げないと。……ほら、約束通り、帰ってきました♪」
+ELSEIF A == 1
+PRINTFORMW 「抱き起こしてくれる腕が、温かい……。……もう、離さないでください。……今日だけは、弱い私を許して」
+ELSE
+PRINTFORMW 「ふふ、無事に帰還、です。……私の『けじめ』、見届けてくれましたか、転校生さん」
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ううっ……よ、よかった……あなたの顔を見たら……。……泣くのは、家に帰ってからのはずでしたのに……」
+ELSEIF A == 1
+PRINTFORMW 「ごめんなさい、こんな姿で……。……でも、迎えに来てくれた。……それだけで、十分です」
+ELSE
+PRINTFORMW 「（帰れる。あの人の隣に……）……ありがとう、ございます……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「はぁっ……はぁっ……まだ、身体の熱が……。……家に帰ったら、あなたの腕の中で眠らせて……」
+ELSEIF A == 1
+PRINTFORMW 「……私は、無事なんですか……？　夢と現実の、境目が……」
+ELSE
+PRINTFORMW 「……帰りましょう。……もう、あの場所の話は、しないでください。……一生、です」
+ENDIF
+ENDIF
+
+ENDSELECT
+RETURN 0
+
+;=========================================================
+; 第2部 朝イベント（EVENT_MORNING）前口上
+; 呼び出しは既存（各 EVENT_NEWDAY_* が SELF_MAEKOJO → SELF_KOJO を呼ぶ）。
+; 前口上は短文が基本のため関係性分岐なし・RAND:3 のみ。
+; 本編は SELF_KOJO_K{n} 側の分岐（第3部）に書く。
+;=========================================================
+@SELF_MAEKOJO_K1
+; ◆書き方（共通）: 前口上は本編の地の文の直前に入る短い気配・一言。どの場面も1～2行で長くしない。本編（SELF_KOJO側）と内容を重複させない。
+SELECTCASE TFLAG:13
+CASE 19
+;--- 朝キス（EVENT_NEWDAY_KISS: キスで起こされる） ---
+; ◆書き方: 起きている彼女が、眠る主人公にキスで近づく前口上。彼女の囁き・独り言を短く。寝言ではない（寝ているのは主人公側）。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……転校生さん。もう朝ですよ、ほら、起きてください」
+ELSEIF A == 1
+PRINTFORMW 「（寝顔、見てしまいました……）……あ、いえ、何でもありません。おはようございます」
+ELSE
+PRINTFORMW 「おはようございます。……起こし方、今日は特別ですよ♪」
+ENDIF
+CASE 3
+;--- 朝フェラ（起床直後）（EVENT_NEWDAY_F: フェラで目を覚ます） ---
+; ◆書き方: 行為の気配で目覚めかける瞬間。下腹部の違和感への寝ぼけた反応。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「（起きる前に……少しだけ、ね）……ん……」
+ELSEIF A == 1
+PRINTFORMW 「転校生さん、まだ夢の中ですか？　……ふふ、じゃあ私が起こしてあげます」
+ELSE
+PRINTFORMW 「（こんなこと、ほんとはいけないのに……）……んっ、ちゅ……」
+ENDIF
+CASE 87
+;--- 朝フェラ（継続）（EVENT_NEWDAY_F: 派生） ---
+; ◆書き方: クンニで起こしに来た彼女の前口上。ID3（フェラ）とは行為が違う。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「（起きる前に、ちょっとだけ……）……ん……ぺろ……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、まだ寝ていますね……。じゃあ、遠慮なく……いただきます♪」
+ELSE
+PRINTFORMW 「（起こす方法は、これが一番確実なんです……たぶん）」
+ENDIF
+CASE 8
+;--- 朝パイズリ（EVENT_NEWDAY_PI） ---
+; ◆書き方: 胸に顔を埋められた気配への反応。寝起きの甘え。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます、転校生さん。……枕が、柔らかいでしょう？」
+ELSEIF A == 1
+PRINTFORMW 「（私の胸で起こすなんて、大胆でしょうか……）……でも、起きてほしいんです」
+ELSE
+PRINTFORMW 「ほら、朝ですよ。……こんな枕、贅沢ですよ♪」
+ENDIF
+CASE 9
+;--- 朝セックス（EVENT_NEWDAY_SEX） ---
+; ◆書き方: 目覚める直前、夢と現実の境の反応。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ごめんなさい、我慢できなくて……。……もう少しだけ、このまま……」
+ELSEIF A == 1
+PRINTFORMW 「（乗ってしまいました……）転校生さん、起きて……ください……」
+ELSE
+PRINTFORMW 「朝から、こんな……。でも、あなたが起きる瞬間を、感じたくて……」
+ENDIF
+CASE 103
+;--- 朝セックス（派生）（EVENT_NEWDAY_SEX: 派生） ---
+; ◆書き方: 貝合わせで起こしに来た彼女の前口上。ID9（騎乗位）とは体位が違う。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「（女性同士でも、こんなふうに……）……転校生さん、朝ですよ」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、くっついたまま寝てしまいましたね。……離れる前に、もう少し」
+ELSE
+PRINTFORMW 「おはようございます。……肌の熱で、目が覚めませんか？」
+ENDIF
+CASE 10
+;--- 朝・嫁（EVENT_NEWDAY_YOME） ---
+; ◆書き方: 妻としての朝の挨拶に近い前振り。日常の幸福感。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。朝食、できていますよ。……妻の、務めですから♪」
+ELSEIF A == 1
+PRINTFORMW 「（新妻、ですからね）……ほら、起きてください。味噌汁が冷めてしまいます」
+ELSE
+PRINTFORMW 「ふふ、今朝の献立は自信作です。……早く起きて、食べてくださいね」
+ENDIF
+CASE 86
+;--- 朝・嫁（派生）（EVENT_NEWDAY_YOME: 派生） ---
+; ◆書き方: 裸エプロンで朝食を作る彼女の前口上。ID10とは状況が違う（こちらは台所）。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「（裸エプロンなんて……私、どうかしています）……で、でも、朝食の準備は完璧です……！」
+ELSEIF A == 1
+PRINTFORMW 「お、おはようございます……。見ないでください、見ないでと言いながら待っていた私も私ですけど……っ」
+ELSE
+PRINTFORMW 「転校生さん、朝食ですよ。……その前に、その視線をどうにかしてください……♪」
+ENDIF
+CASE 88
+;--- 朝・女性側主導1（EVENT_NEWDAY_FEMALE） ---
+; ◆書き方: 彼女の方が先に起きて起こしに来る側。主導的な甘えの気配。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「転校生さん、朝です。……今日は私が、起こしてあげる番です」
+ELSEIF A == 1
+PRINTFORMW 「（彼女の寝顔、私だけのものです）……ほら、起きて。続きは、目覚めてから」
+ELSE
+PRINTFORMW 「ふふ、無防備ですね。……私の前でだけ、ですよ？」
+ENDIF
+CASE 89
+;--- 朝・女性側主導2（EVENT_NEWDAY_FEMALE） ---
+; ◆書き方: 跨った彼女が胸を使ってくる展開の前口上。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……まだ眠いなら、私の胸を枕にどうぞ」
+ELSEIF A == 1
+PRINTFORMW 「（柔らかいでしょう……）……ふふ、顔を埋めたまま起きるのも、可愛いですよ」
+ELSE
+PRINTFORMW 「転校生さん、朝ですよ。……ほら、ここなら、安心でしょう？」
+ENDIF
+CASE 83
+;--- 朝・添い寝（EVENT_NEWDAY_SOINE） ---
+; ◆書き方: 隣で寝ている気配・寝息。起こす前の静かな一言（独り言でも可）。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ん……転校生さん……？　あ、朝……ですか……？」
+ELSEIF A == 1
+PRINTFORMW 「（私のほうが、起こされる側でしたね……）……もう少しだけ、寝かせて……」
+ELSE
+PRINTFORMW 「ふぁ……おはよう、ござい……ます……。……あと、五分……」
+ENDIF
+CASE 84
+;--- 朝・寝顔（EVENT_NEWDAY_NEGAO） ---
+; ◆書き方: 寝顔を巡る静かな場面。囁くような短い一言。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……っ！　み、見ていません、寝顔なんて見ていません……！」
+ELSEIF A == 1
+PRINTFORMW 「（穏やかな寝顔……ずっと見ていられます）……あっ、起きましたか、おはようございます」
+ELSE
+PRINTFORMW 「ふふ、寝顔を堪能してしまいました。……内緒ですよ♪」
+ENDIF
+CASE 85
+;--- 朝・音（EVENT_NEWDAY_OTO） ---
+; ◆書き方: 物音で目覚める場面。音の正体は地の文側にあるので、驚きの短い反応だけを書く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……しーっ。……あ、いえ、物音で起こしてしまったかと」
+ELSEIF A == 1
+PRINTFORMW 「（隣の部屋の気配が……）……転校生さん、起きましたか？」
+ELSE
+PRINTFORMW 「ガタッ……あっ、す、すみません、私です……起こすつもりは……」
+ENDIF
+CASE 90
+;--- 朝・手（EVENT_NEWDAY_TE） ---
+; ◆書き方: 手を握られる・触れられる感触への寝起きの反応。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「転校生さん、手……貸してください。……ほら、朝ですよ」
+ELSEIF A == 1
+PRINTFORMW 「（手を握ると、安心して……）……おはようございます。もう少し、こうしていたいですね」
+ELSE
+PRINTFORMW 「ふふ、指が絡まって離れません。……起きる理由が、増えましたね♪」
+ENDIF
+CASE 91
+;--- 朝・耳（EVENT_NEWDAY_MIMI） ---
+; ◆書き方: 耳元への吐息・囁きで目覚める。くすぐったさと甘さ。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「（耳元でなら、素直になれます……）……おはよう、転校生さん」
+ELSEIF A == 1
+PRINTFORMW 「耳、弱いんですか？　……ふふ、じゃあ毎朝こうして起こします♪」
+ELSE
+PRINTFORMW 「……起きてください。……大好き、ですよ」
+ENDIF
+CASE 92
+;--- 朝・ノリ（EVENT_NEWDAY_NORI） ---
+; ◆書き方: 跨って起こしてくる積極的な朝。彼女主導の甘え。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「転校生さん、朝です。……起きないなら、乗ったまま待ちます」
+ELSEIF A == 1
+PRINTFORMW 「（馬乗りで起こすのは、反則でしょうか）……でも、目覚めは確実です」
+ELSE
+PRINTFORMW 「ふふ、重いですか？　……起きるまで、降りませんよ♪」
+ENDIF
+CASE 93
+;--- 朝・首筋（EVENT_NEWDAY_KUBISUJI） ---
+; ◆書き方: 首筋へのキス・吐息。敏感な場所への寝起きの反応。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……首筋、温かい……。転校生さん、朝ですよ」
+ELSEIF A == 1
+PRINTFORMW 「（ここに顔を埋めると、落ち着くんです）……おはようございます」
+ELSE
+PRINTFORMW 「ふふ、鼓動が聞こえます。……生きてる、って感じがして、好きです」
+ENDIF
+CASE 105
+;--- 朝・すり（EVENT_NEWDAY_SURI） ---
+; ◆書き方: 体を擦り寄せてくる甘え。無防備で猫のような距離感。短く。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ん……もう少し、このまま……。くっついていると、温かい……」
+ELSEIF A == 1
+PRINTFORMW 「（寝ぼけて、擦り寄ってしまいました）……あ、起きましたか……？」
+ELSE
+PRINTFORMW 「転校生さん、朝……。……離れるのが、惜しいんです」
+ENDIF
+CASE 106
+;--- 朝・足腰（EVENT_NEWDAY_ASHIKOSHI） ---
+; ◆書き方: 足腰を絡めてくる密着。離れたくなさが伝わる短い一言。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……足、絡まったまま寝てしまいましたね。……ほどけません♪」
+ELSEIF A == 1
+PRINTFORMW 「（下半身の熱が……）転校生さん、朝ですよ、ほら……」
+ELSE
+PRINTFORMW 「ふふ、密着したまま目覚める朝も、悪くありませんね」
+ENDIF
+
+CASE 107
+;--- 朝乱交（EVENT_NEWDAY_INRAN_GROUP: [淫乱]3人以上が寝所を包囲する集団イベント） ---
+; ▼ 再番号パッチで新設した口上フック。地の文で名前が出る代表キャラ（最大4名）が順に呼ばれる
+; ◆書き方: 襲撃に参加する側の前口上。短く、昂った気配だけを。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ふふ、朝から賑やかですね、転校生さん♪　……私も、混ぜてください」
+ELSEIF A == 1
+PRINTFORMW 「（皆で襲うなんて……でも、私だけ置いていかれるのは嫌です）」
+ELSE
+PRINTFORMW 「おはようございます♪　転校生さん、今日は大所帯のお目覚めですよ」
+ENDIF
+ENDSELECT
+RETURN 0
+
+;=========================================================
+; 第4部 気絶・衰弱療養（新規ディスパッチ）
+; 設計前提: 気絶中は口上を出さないのが本体仕様（EVENT_K の遮断）。
+; 本テンプレは「意識のある前後」だけを対象にする。
+; 【組み込み案】
+;  ・気絶の瞬間: SYSTEM @EVENTCOMEND の初回気絶通知（TFLAG:898 分岐）の直前に
+;      TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 0
+;  ・目覚め発覚: AFTERTRA の好感度一括低下処理の3分岐地の文に対応させ
+;      TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 1 / 2 / 3
+;  ・気絶妊娠発覚: EVENT_N @PREGNANCY_FEEL_UNCONSCIOUS の冒頭に , 4
+;  ・療養入り: SYSTEM の衰弱療養通知の直後に , 5
+;  ・療養復帰: SYSTEM の復帰通知（体力が回復し復帰）の直後に , 6
+;  ・心身損壊: SYSTEM の最大体力/気力減少通知の直後に , 7
+;=========================================================
+@KOJO_FAINT_K1, ARG
+; ◆書き方（共通）: 意識のある前後だけが対象（気絶中の台詞は仕様上出ない）。目覚め側は「気づく過程」を丁寧に。
+SELECTCASE ARG
+
+CASE 0
+;--- 気絶の瞬間（限界を迎える直前） ---
+; ▼ 状況: 体力が尽き、意識を失う直前の一言。短く、途切れるように。
+; ◆書き方: 倒れる直前の一言。主人公の名を呼ぶ、謝る、何か言いかけて途切れる形が合う。短く。
+IF TALENT:85	; 【恋慕（主人公を呼ぶ）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「てん、こうせい……さ……」
+ELSEIF A == 1
+PRINTFORMW 「ま、待って……ください……まだ……」
+ELSE
+PRINTFORMW 「ごめん、なさ……私、もう……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あ……目が、霞んで……」
+ELSEIF A == 1
+PRINTFORMW 「すみま、せん……私、限界……み、たい……」
+ELSE
+PRINTFORMW 「……た、倒れる……なんて、無様……な……」
+ENDIF
+ENDIF
+
+CASE 1
+;--- 目覚め・処女喪失の発覚 ---
+; ▼ 状況: 目覚めた後、意識のない間に純潔が奪われていたと気づいた場面（AFTERTRA の分岐1）。
+;   好感度が大きく下がる場面。恋慕があっても動揺が勝つ書き分けを。
+; ◆書き方: 純潔を失っていた現実への絶望が核。恋慕側は「あなたに捧げたかった」の無念。通常側は拒絶と怒り。
+; 好感度が大きく下がる場面なので、甘い台詞にはしない。
+IF TALENT:85	; 【恋慕（それでも揺れる）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……嘘……私の、初めてが……。……あ、あなたに、捧げるはず、だったのに……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……知らない間に……。……転校生さん、私、穢れてしまいました……」
+ELSE
+PRINTFORMW 「（泣く資格も、ない……）……ごめんなさい、ごめんなさい……あなたにだけは、綺麗な私でいたかった……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……なんですか、これは……。私の体に、何が起きたんですか……」
+ELSEIF A == 1
+PRINTFORMW 「やめて……嘘だと言いなさい……！　私の初めては、こんな奪われ方をするものじゃ……！」
+ELSE
+PRINTFORMW 「……っ……（この現実を、認めるくらいなら……）……誰、ですか……誰が、私に……」
+ENDIF
+ENDIF
+
+CASE 2
+;--- 目覚め・中出しの発覚 ---
+; ▼ 状況: 胎内に残る精液の感触で、気絶中の行為に気づいた場面（AFTERTRA の分岐2）。
+; ◆書き方: 体内の違和感から気づく場面。不信と嫌悪が軸。妊娠への恐怖を混ぜてもよい。
+IF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……何、ですか……この、中の感触……。……まさか、あなた……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……気絶している間に、こんなこと……。……転校生さん、あなたでも、許せません……」
+ELSE
+PRINTFORMW 「（体の中に、知らない熱が……）……もし、子供ができたら……私、どうしたら……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……中に出したんですか……？　意識のない相手に……。……呆れて、ものも言えません……」
+ELSEIF A == 1
+PRINTFORMW 「やめてください、触らないで……！　……あなたの子でも、こんな形は、望んでいません……！」
+ELSE
+PRINTFORMW 「……くっ……（最悪の形で、体が覚えてしまった……）……最低、です……」
+ENDIF
+ENDIF
+
+CASE 3
+;--- 目覚め・痕跡の発覚 ---
+; ▼ 状況: 体の痕跡から、気を失っている間の行為に気づいた場面（AFTERTRA の分岐3）。
+; ◆書き方: 体の痕跡から察する場面。処女喪失・中出しの発覚より一段軽いが、不快感と不信は共通。
+IF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……この痕は……何ですか。……私が気を失っている間に、何をしたんですか」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……体中に、知らない跡が……。……転校生さん、説明してください……」
+ELSE
+PRINTFORMW 「（痕を見るたび、思い出してしまう……）……せめて、忘れさせてください……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……キスマーク、ですか……。……人の体を、自分の物のように扱わないでください……」
+ELSEIF A == 1
+PRINTFORMW 「痕跡だらけの私を、見ないで……！　……今の私は、見せられる姿じゃありません……！」
+ELSE
+PRINTFORMW 「……っ……（怒りで、体が震える……）……よくも、こんな真似を……」
+ENDIF
+ENDIF
+
+CASE 4
+;--- 気絶が絡む妊娠発覚 ---
+; ▼ 状況: 気絶中の性交で妊娠したと知らされた場面。CFLAG:104 で種提供者を分ける（NINSINと同様）。
+; ◆書き方: 気絶中の子を宿した告知。種提供者と恋慕で意味が全く変わる。主人公の子+恋慕=困惑の中の受容。他者の子=絶望。
+IF CFLAG:TARGET:104 == 1 && TALENT:85	; 【主人公の子・恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あなたの、子……。……こんな形でしたけど……私のお腹に、あなたの子がいるんですね……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……困惑しています。……でも、あなたの子なら……私、産みたいかもしれません……」
+ELSE
+PRINTFORMW 「（こんな始まりでも、この子には罪はない……）……転校生さん、私と一緒に、育ててください……」
+ENDIF
+ELSEIF CFLAG:TARGET:104 == 1	; 【主人公の子・恋慕なし】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……妊娠、ですか……。……あなたの子だとしても、この状況は異常です。……喜びきれません……」
+ELSEIF A == 1
+PRINTFORMW 「気絶している間に、子を宿すなんて……。……私の人生設計には、ありませんでした……」
+ELSE
+PRINTFORMW 「……誰の、子……？　……知らない男の子を、私が……？　……嫌……嫌です、そんなの……！」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ううっ……お腹の子に、罪はないのに……。……私、どうすれば……どうすればいいんですか……」
+ELSEIF A == 1
+PRINTFORMW 「（この子をどうするか、私には決められない……）……お願いです、誰か、教えてください……」
+ELSE
+PRINTFORMW 「……っ……（自分の体が、知らない誰かの苗床にされた……）……吐き気が、します……」
+ENDIF
+ENDIF
+
+CASE 5
+;--- 衰弱療養入り ---
+; ▼ 状況: 体力が尽きて衰弱療養（お休み）に入る別れ際の一言。
+; ◆書き方: 別れ際の一言。無理をした謝罪か、心配をかけまいとする虚勢のどちらかが軸。
+IF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……すみません、少しだけ、休ませてください……。……心配は、いりませんから……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、大丈夫です。……少し寝れば、元通り……。……だから、その顔をしないで♪」
+ELSE
+PRINTFORMW 「（無理をしたのは、私です……）……迎えに来て、くれますか……？」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……体が、限界みたいです……。……情けない姿を、見せてしまいましたね……」
+ELSEIF A == 1
+PRINTFORMW 「療養、ですか……。……ご迷惑を、おかけします……」
+ELSE
+PRINTFORMW 「……くっ……（こんなに弱い私を、見せたくなかった……）……失礼、します……」
+ENDIF
+ENDIF
+
+CASE 6
+;--- 療養から復帰 ---
+; ▼ 状況: 体力が回復して復帰した直後の挨拶。久しぶりの能動的な台詞になる。
+; ◆書き方: 久しぶりに能動的に喋る場面。回復の報告と、待っていてくれた相手への感謝・甘え。
+; ◆過負荷で最大能力が下がっていた場合は、「前より体が弱った」自覚をここに混ぜるのが唯一の置き場所（発生時は気絶中で台詞不可）。
+IF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ただいま戻りました。……ご心配を、おかけしました。……もう、大丈夫です♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、待ちくたびれましたか？　……私もです。……あなたの隣が、恋しかった」
+ELSE
+PRINTFORMW 「（前より体が弱った気がしますが……）……それでも、私は私の務めを果たします」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……復帰、しました。……まだ本調子では、ありませんが……」
+ELSEIF A == 1
+PRINTFORMW 「療養中は、ありがとうございました。……恩は、働いて返します」
+ELSE
+PRINTFORMW 「……体の衰えは、自覚しています。……無理は、しません。……たぶん」
+ENDIF
+ENDIF
+
+CASEELSE
+;--- （台詞を置けない）心身損壊ペナルティ発生時 ---
+; ▼ 過負荷ペナルティ（体力-1000以下で最大体力・最大気力が減少）は、発生時点で対象が
+; ▼ 深く気絶している最中であり、本作の設計原則（気絶中は口上なし）により台詞は出せない。
+; ▼ 「体が弱った」自覚の台詞を置くなら、発生時ではなく療養復帰（ARG=6）の場面に
+; ▼ バリエーションとして含めるのが唯一の置き場所。ここには分岐を作らないこと
+
+ENDSELECT
+RETURN 0
+
+;=========================================================
+; 第5部 部活動（KOJO_CLUB）
+; 呼び出し: CLUB_ACTIVITY @DO_ACTIVITY が種別ごとに TRYCALLFORM する（全6箇所）。
+; キーは TFLAG:82 のみ（0=運動 1=表現 2=知識 3=自習 4=生活）。
+; 『専門』かどうかは呼び出し側の内部変数のため口上側では分からない。
+; 自分の部活（CSTR:25）と種別が合うかで書き分ける場合は自前で判定すること。
+; ACTIVITY_RANDOM_EVENT には呼び出しがない（地の文のみ）。
+;=========================================================
+@KOJO_CLUB_K1
+;--- 運動系 (TFLAG:82 == 0) ---
+; ◆書き方: 一緒に汗を流した直後。爽快感と、運動の得意・不得意なりの素が出る。活動の感想＋一緒だったことへの反応の二層で書くと厚くなる。
+; ◆書き方（共通）: 活動そのものの感想に、主人公と一緒だったことへの反応を重ねると厚くなる。専門（自分の部活）かどうかは CSTR:25 と種別の対応で自前判定する。
+IF TFLAG:82 == 0
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……はぁ、はぁ……。見ましたか、今の私の走り様を。……恋人の前でだけ、見せる顔ですよ」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、運動後の熱い身体……。あなたの隣で冷ます時間が、いちばん好きです♪」
+ELSE
+PRINTFORMW 「（肺が焼けそうです……）……でも、あなたと一緒なら、もう一周できます」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……はぁ……はぁ……。運動は、私の専門ではありません。……それは認めます、悔しいですけど」
+ELSEIF A == 1
+PRINTFORMW 「フォームが乱れていましたね、私。……次は、きちんと修正します。見ていてください」
+ELSE
+PRINTFORMW 「……ぴこちゃんに、この無様な姿だけは見せられません。……彼女の前では、しっかりした姉でいないと」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 表現系 (TFLAG:82 == 1) ---
+; ◆書き方: 歌・演奏・演技など表現活動の後。芸術肌の感想と、一緒に磨いた充実感。
+IF TFLAG:82 == 1
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……今日の音、悪くなかったでしょう。……あなたの耳に届く音は、いつも本気です♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、本番で逃げなかった私、どうでしたか。……隣にあなたがいる日は、音が逃げないんです」
+ELSE
+PRINTFORMW 「（アンサンブルは、一人じゃ奏でられない……）……みんなの音に、私の音を重ねる。……それが、私の幸せです」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……今日の出来は、六十分です。合格点は、八十。……本番までに、必ず詰めます」
+ELSEIF A == 1
+PRINTFORMW 「音程の甘い箇所が二つ。リズムの揺れが一つ。……容赦なく言いますけど、直さないと本番で泣きますよ」
+ELSE
+PRINTFORMW 「……夏野部長が厳しいのは、当然です。音楽に嘘はつけません。……私も、同じように厳しくありたい」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 知識系 (TFLAG:82 == 2) ---
+; ◆書き方: 勉強・研究の後。知的な満足感。教える側/教わる側の含みも。
+IF TFLAG:82 == 2
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……楽典のこの部分、理解が曖昧でしたね。……復習しましょう、今のうちに」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、知識は裏切りません。……あなたの疑問にも、だいたい答えられますよ♪」
+ELSE
+PRINTFORMW 「（知ることは、強くなること……）……今日の分は、きちんと身につきました」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……この理論、腑に落ちましたか？　……分からないまま進むのは、いちばん危険です」
+ELSEIF A == 1
+PRINTFORMW 「間違えた箇所は、恥ではありません。……間違えたままにしておくことが、恥です」
+ELSE
+PRINTFORMW 「……詰め込みすぎは禁物です。……今日はここまで。続きは、明日きちんと」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 一緒に自習 (TFLAG:82 == 3) ---
+; ◆書き方: 静かに並んで勉強した後。穏やかで短い一言が合う。
+IF TFLAG:82 == 3
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……静かな時間でしたね。……隣にいるだけで、集中できました」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、自習のお供、悪くありません。……あなたのペンの音、好きです♪」
+ELSE
+PRINTFORMW 「（並んで学ぶ時間……）……穏やかな、放課後です」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……集中できていましたか？　……私は、まずまずでした。……環境は、申し分ありませんでしたね」
+ELSEIF A == 1
+PRINTFORMW 「分からないところは、溜め込まないで。……聞くのは恥ではありません、知らないままが恥です」
+ELSE
+PRINTFORMW 「……時間です。……きちんと区切るのも、勉強のうちですよ」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 生活系 (TFLAG:82 == 4) ---
+; ◆書き方: 家事を一緒に手伝った後。家庭的な温かさと、日常の幸福感。
+IF TFLAG:82 == 4
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……片付けは、この順番で。……きちんと、が一番の近道です」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、家事の手際、妻の修行だと思えば苦になりません♪　……なんて、言い過ぎましたか」
+ELSE
+PRINTFORMW 「（あなたの生活を整えるのも、私の務め……）……隅々まで、任せてください」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……トレーの並び、崩れています。……細部を雑にする人は、本番でも雑になりますよ」
+ELSEIF A == 1
+PRINTFORMW 「身だしなみも、家事も、基本は同じです。……『きちんと』。……それだけです」
+ELSE
+PRINTFORMW 「……私のように、しっかりやればいいんです。……簡単でしょう？」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+RETURN 0
+
+;=========================================================
+; 第6部 パートナーターン / リバースモード
+; 署名: (ARG, ARG:1)  ARG=実行コマンド（SELECTCOM / 前コマンド PREVCOM）
+;       ARG:1=反応情報（ACTIVEPHASE=REACTION: COM500-508 の反応種別 0-8 に対応、
+;       PASSIVEPHASE=呼び出し側の段階情報）。
+; 地の文版 TRAIN_MESSAGE_～ と口上版 KOJO_MESSAGE_～ の2系統がある。
+; コマンド番号は通常調教（_COM）と同じ体系。細分する場合は CASE を増やす。
+;=========================================================
+@KOJO_MESSAGE_PASSIVEMODE_ACTIVEPHASE_K1, ARG, ARG:1
+;--- パートナーターン・ACTIVEPHASE（ARG=SELECTCOM / ARG:1=反応種別） ---
+; ◆書き方: パートナーターンで彼女が攻める側の台詞。通常口上と主客が逆になる点に注意。宣言・誘い・主導の楽しさが軸。
+SELECTCASE ARG
+CASE 0
+; 愛撫
+IF ARG:1 <= 4	; 反応: 消極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……今度は、私の番です。……遠慮はしませんよ、転校生さん♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、私が主導する愛撫……。……あなたの弱点、だいたい把握しています」
+ELSE
+PRINTFORMW 「（攻める側の私も、悪くありません）……ほら、声を聞かせて」
+ENDIF
+ELSE	; 反応: 積極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……私が、します。……文句は、聞きません」
+ELSEIF A == 1
+PRINTFORMW 「ん……あなたの身体で、練習させてください。……上手に、なりますから」
+ELSE
+PRINTFORMW 「（主導権を握る緊張感……）……でも、悪くない気分です」
+ENDIF
+ENDIF
+CASEELSE
+; その他コマンド全般
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……私に任せてください。……あなたのためなら、どんなことでも」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、主導は私です。……命令、聞いてくれますか♪」
+ELSE
+PRINTFORMW 「（私のペースで、あなたを……）……焦らすのも、悪くありませんね」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……私が攻めます。……覚悟は、いいですか」
+ELSEIF A == 1
+PRINTFORMW 「ん……こういう私も、嫌いじゃありません。……たぶん」
+ELSE
+PRINTFORMW 「（彼の反応が、私の成果……）……もっと、見せて」
+ENDIF
+ENDIF
+ENDSELECT
+RETURN 0
+
+
+@KOJO_MESSAGE_PASSIVEMODE_PASSIVEPHASE_K1, ARG, ARG:1
+;--- パートナーターン・PASSIVEPHASE（ARG=PREVCOM / ARG:1=反応種別） ---
+; ◆書き方: パートナーターンで彼女が受ける側の台詞。主人公の行為への反応。ARG:1 は受け方の書き分けに使う。
+SELECTCASE ARG
+CASE 0
+; 愛撫
+IF ARG:1 <= 4	; 反応: 消極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……あなたの手は、相変わらず……。……私の身体は、正直です……」
+ELSEIF A == 1
+PRINTFORMW 「（受ける側の私……）……あなたの好きに、してください……」
+ELSE
+PRINTFORMW 「あっ……愛撫の手つきが、優しくて……。……もっと、触って……」
+ENDIF
+ELSE	; 反応: 積極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あなたの手に、触られるのは……嫌いじゃ、ありません……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……くっ……感じるたび、声が漏れて……」
+ELSE
+PRINTFORMW 「（こんなに敏感に、育てられました……）……あなたの、せいです……」
+ENDIF
+ENDIF
+CASEELSE
+; その他コマンド全般
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あっ……あなたの行為に、私の身体が……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、受ける側も、悪くありません。……あなたが相手なら♪」
+ELSE
+PRINTFORMW 「（何をされても、この人の手なら……）……続けて、ください」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……んっ……そ、そんなところ……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……反応してしまう私が、悔しい……」
+ELSE
+PRINTFORMW 「（彼の行為に、身を委ねる……）……私を、壊さないで、くださいね」
+ENDIF
+ENDIF
+ENDSELECT
+RETURN 0
+
+
+@TRAIN_MESSAGE_PASSIVEMODE_ACTIVEPHASE_K1, ARG, ARG:1
+;--- パートナーターン・地の文（個別地の文。台詞ではなく描写文を書く） ---
+; ◆書き方: 台詞ではなく三人称の描写文。攻める彼女の仕草・表情を彼女らしく書く。
+SELECTCASE ARG
+CASE 0
+PRINTFORML 
+CASEELSE
+PRINTFORML 
+ENDSELECT
+RETURN 0
+
+
+@TRAIN_MESSAGE_PASSIVEMODE_PASSIVEPHASE_K1, ARG, ARG:1
+;--- パートナーターン・地の文（受け側フェーズ） ---
+; ◆書き方: 台詞ではなく三人称の描写文。受ける彼女の反応の描写。
+SELECTCASE ARG
+CASE 0
+PRINTFORML 
+CASEELSE
+PRINTFORML 
+ENDSELECT
+RETURN 0
+
+
+@KOJO_MESSAGE_REVMODE_ACTIVEPHASE_K1, ARG, ARG:1
+;--- リバースモード・ACTIVEPHASE（ARG=SELECTCOM / ARG:1=反応種別） ---
+; ◆書き方: リバースモードで彼女が攻める側の台詞。反応コマンドへの応答として、主導権を握る側の余裕や昂りを。
+SELECTCASE ARG
+CASE 0
+; 愛撫
+IF ARG:1 <= 4	; 反応: 消極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……リバースでも、私が主導します。……立場が替わっても、私は私です♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、攻める快感、覚えてしまいました。……今夜のあなたは、私のものです」
+ELSE
+PRINTFORMW 「（主導権は、渡しません）……ほら、私の言うことを聞いて」
+ENDIF
+ELSE	; 反応: 積極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……逆転した立場も、悪くありません。……私のペースで、どうぞ」
+ELSEIF A == 1
+PRINTFORMW 「ん……あなたの弱いところ、全部知っています。……逃げられませんよ」
+ELSE
+PRINTFORMW 「（攻める私の声、あなたは好きでしょう）……正直に、言って」
+ENDIF
+ENDIF
+CASEELSE
+; その他コマンド全般
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……今夜は、私が攻めます。……異論は、認めません」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、主導の椅子は、譲りませんよ♪」
+ELSE
+PRINTFORMW 「（昂ってきました、私も……）……あなたの反応が、楽しくて」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……命令します。……私の言う通りに、して」
+ELSEIF A == 1
+PRINTFORMW 「んっ……攻めている私のほうが、感じてしまう……」
+ELSE
+PRINTFORMW 「（この立場、癖になりそうです……）……もっと、焦らします」
+ENDIF
+ENDIF
+ENDSELECT
+RETURN 0
+
+
+@KOJO_MESSAGE_REVMODE_PASSIVEPHASE_K1, ARG, ARG:1
+;--- リバースモード・PASSIVEPHASE（ARG=PREVCOM / ARG:1=反応種別） ---
+; ◆書き方: リバースモードで彼女が受ける側の台詞。通常と立場が入れ替わった状況への戸惑いや昂り。
+SELECTCASE ARG
+CASE 0
+; 愛撫
+IF ARG:1 <= 4	; 反応: 消極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……立場が替わっても、あなたの手は優しい……」
+ELSEIF A == 1
+PRINTFORMW 「（受ける側に戻ると、途端に弱い私……）……あなたの好きに、してください」
+ELSE
+PRINTFORMW 「あっ……愛撫される側は、やっぱり……私の定位置、かもしれません……」
+ENDIF
+ELSE	; 反応: 積極寄り
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……受け身の私も、嫌いじゃありません……。……あなたが、相手なら」
+ELSEIF A == 1
+PRINTFORMW 「んっ……くっ……感じすぎて、声が……」
+ELSE
+PRINTFORMW 「（立場の交換、悪くありません……）……もっと、続けて……」
+ENDIF
+ENDIF
+CASEELSE
+; その他コマンド全般
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あっ……この立場でも、されるがままですね、私は……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、受ける側の昂りも、格別です♪」
+ELSE
+PRINTFORMW 「（彼の行為に、抗えない……）……私を、連れて行って……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……んっ……そ、それは……反則、です……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……戸惑う間もなく、感じて……」
+ELSE
+PRINTFORMW 「（入れ替わった立場の、背徳感……）……悪くない、です……」
+ENDIF
+ENDIF
+ENDSELECT
+RETURN 0
+
+
+@TRAIN_MESSAGE_REVMODE_ACTIVEPHASE_K1, ARG, ARG:1
+;--- リバースモード・地の文（個別地の文。台詞ではなく描写文を書く） ---
+; ◆書き方: 台詞ではなく三人称の描写文。リバースモードで攻める彼女の描写。
+SELECTCASE ARG
+CASE 0
+PRINTFORML 
+CASEELSE
+PRINTFORML 
+ENDSELECT
+RETURN 0
+
+
+@TRAIN_MESSAGE_REVMODE_PASSIVEPHASE_K1, ARG, ARG:1
+;--- リバースモード・地の文（受け側フェーズ） ---
+; ◆書き方: 台詞ではなく三人称の描写文。リバースモードで受ける彼女の描写。
+SELECTCASE ARG
+CASE 0
+PRINTFORML 
+CASEELSE
+PRINTFORML 
+ENDSELECT
+RETURN 0
+
+;=========================================================
+; 第7部 その他の休眠ディスパッチ
+; 呼び出し口は実在するが全キャラ未実装のファミリー群。
+; 各関数の先頭コメントに呼び出し元とキーを記した。
+;=========================================================
+;---------------------------------------------------------
+; 待機中の一言: SYSTEM @KOJO_TAIKI_CHECK → EVENT_K @KOJO_TAIKI
+; キーなし。そのターンの彼女の状態（平常/衰弱療養中）で書き分ける。
+@KOJO_TAIKI_K1
+; ◆書き方: 待機中の何気ない一言。その子の日常の素が出る場所。療養中側は静かに、無理のない範囲で。
+IF CFLAG:1200 > 0 || BASE:0 <= 0	; 【衰弱療養中の目安（状態フラグは要確認）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……お休み、させてください……。……少しだけ、ですから……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……ご心配は、いりません……。……本当です……」
+ELSE
+PRINTFORMW 「（迷惑ばかりかける私……）……ごめんなさい……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ん……何か、御用ですか？」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、待機中です。……何かあれば、声をかけてください♪」
+ELSE
+PRINTFORMW 「（静かな時間……）……クラリネットの譜面を、頭の中で追っています」
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; 押し倒し: COMMON の2箇所から TRYCCALLFORM（個別がなければ共通地の文）
+; 関数名に K は付かない: KOJO_PUSH_OVER_{NO}
+; TFLAG:48 == 1 は酔い（よっぱウフフ）側の分岐
+@KOJO_PUSH_OVER_1
+; ◆書き方: 別れ際に押し倒す積極的な場面。恋慕の発露として書く。酔い（TFLAG:48）側は普段より大胆に。
+IF TFLAG:48 == 1	; 【[よっぱウフフ]】
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……今夜は、帰しません……。……酔いの力を借りて、言います……私と、いて……♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、押し倒しちゃいました。……今日の私は、大胆なんです……」
+ELSE
+PRINTFORMW 「（彼の顔が、近い……）……このまま、離れたくありません……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ねえ、転校生さんにだけ言います。……酔った私の我儘、聞いてくれますか……」
+ELSEIF A == 1
+PRINTFORMW 「ん……私の体、熱いでしょう……。……あなたのせいです……」
+ELSE
+PRINTFORMW 「（この距離で、彼の匂いが……）……もう少し、このままで……」
+ENDIF
+ENDIF
+ELSE
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……帰りたく、ありません。……だから、私から……押し倒します……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、別れ際の勇気、振り絞りました。……私を、選んでください♪」
+ELSE
+PRINTFORMW 「（彼の隣にいたい、その気持ちだけで……）……今夜は、私のものです……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……押し倒すなんて、私らしくありません……。……でも、帰すのが惜しくて……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……近づきすぎましたか……？　……離れるのが、嫌で……」
+ELSE
+PRINTFORMW 「（心臓の音、聞こえていますか……）……私の気持ち、伝わりますか……」
+ENDIF
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; 操作キャラ交代時: EVENT_K @KOJO_MESSAGE_PLAYERCHANGE
+; 助手（ASSI）の視点で呼ばれる。交代直後の一言。
+@KOJO_MESSAGE_PLAYERCHANGE_1
+; ◆書き方: 助手に操作が替わった直後の一言。主人公への意識を残した言い回しが軸。
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……操作が、替わるんですね。……私のことは、任せてください」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、助手の方に委ねるんですね。……転校生さんの選んだ方なら、信頼します♪」
+ELSE
+PRINTFORMW 「（あなたの手から離れるのは、少し不安……）……でも、大丈夫です」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……交代、ですか。……承知しました」
+ELSEIF A == 1
+PRINTFORMW 「ん……私の扱いは、丁寧にお願いしますね」
+ELSE
+PRINTFORMW 「（新しい操作の方……）……よろしく、お願いします」
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; パラメータ変動時: SOURCE → EVENT_K @KOJO_MESSAGE_PALAMCNG
+; 引数は渡らない。そのターンの絶頂（EX）や PALAM の状態を自前で判定する。
+@KOJO_MESSAGE_PALAMCNG_1
+; ◆書き方: パラメータが跳ねた瞬間の声・反応。絶頂時は短く乱れる台詞が合う。
+IF EX:TARGET:0 + EX:TARGET:1 + EX:TARGET:2 + EX:TARGET:3 > 0	; 【絶頂あり（部位別 EX の合計で判定する例）】
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んぁっ……！　急に、身体が……っ」
+ELSEIF A == 1
+PRINTFORMW 「（感覚が、跳ね上がって……）……私、もう……」
+ELSE
+PRINTFORMW 「あっ、あっ……！　こんなに一気に、感じるなんて……♪」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……っ……何、今の……身体が、勝手に……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……急に、熱く……。……止めて、ください……」
+ELSE
+PRINTFORMW 「（パラメータの変動が、体に直接……）……私の体、どうなって……」
+ENDIF
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; 刻印変動時: SOURCE → EVENT_K @KOJO_MESSAGE_MARKCNG
+; 引数は渡らない。取得した刻印は MARK の現在値から自前で判定する（下は代表例）。
+@KOJO_MESSAGE_MARKCNG_1
+; ◆書き方: 刻印が付くほどの体験への反応。重い刻印ほど台詞も重く、軽いものは照れで。
+IF MARK:3 >= 3	; 【刻印の代表例: レベル3到達時】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……刻印、ですか……。……私の心に、跡が残りました……」
+ELSEIF A == 1
+PRINTFORMW 「（この経験は、消えませんね……）……私の体が、覚えてしまいました」
+ELSE
+PRINTFORMW 「……っ……重い、経験でした……。……忘れられそうに、ありません……」
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; コマンド処理の最後: EVENT_K @KOJO_EVENT_COM（口上OFFでも実行される）
+; SELECTCOM で分ける。実質 _COM 口上の補完用。
+@KOJO_EVENT_COM_1
+; ◆書き方: コマンド後の一言。本口上と重複しない余韻・補足だけを書く。
+SELECTCASE SELECTCOM
+CASE 0
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……愛撫の後は、いつも体が熱いままです……」
+ELSEIF A == 1
+PRINTFORMW 「（触られた箇所が、まだ疼いて……）……転校生さん、次は……」
+ELSE
+PRINTFORMW 「んっ……愛撫の余韻で、手が震えます……」
+ENDIF
+CASEELSE
+; 必要なコマンドだけ CASE を追加する
+ENDSELECT
+RETURN 0
+
+
+;---------------------------------------------------------
+; コミュニケーション地の文の差し替え: EVENT_K @KOJO_TRAIN_MESSAGE
+; 個別がない場合は TFLAG:99 = 0 で共通地の文にフォールバックする設計。
+@KOJO_TRAIN_MESSAGE_K1
+; ◆書き方: コミュニケーション場面の地の文差し替え。台詞ではなく、彼女らしい仕草・様子の描写文を書く。
+SELECTCASE SELECTCOM
+CASE 300
+PRINTFORML 
+TFLAG:99 = 1	; 【個別地の文を出した印（呼び出し側の作法に合わせる）】
+CASEELSE
+ENDSELECT
+RETURN 0
+
+
+;---------------------------------------------------------
+; カウンター（相手の割り込み行動）時: EVENT_K @COUNTER_KOJO
+@COUNTER_KOJO_K1
+; ◆書き方: 相手の割り込み行動への驚き・応じ方。咄嗟の一言なので短く。
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「きゃっ……！　急に、割り込まないでください……！」
+ELSEIF A == 1
+PRINTFORMW 「（咄嗟の行動に、心臓が……）……驚かせないで、ください……」
+ELSE
+PRINTFORMW 「んっ……私の番では、なかったはず……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あら、割り込み、ですか？　……ふふ、悪くありません♪」
+ELSEIF A == 1
+PRINTFORMW 「（彼の不意打ち……）……ずるい、です……」
+ELSE
+PRINTFORMW 「……っ……反応する間も、ありませんでした……」
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; 撮影ビデオを一緒に鑑賞: EVENT_K @LOOK_VIDEO（P:12=鑑賞する撮影回）
+@LOOK_VIDEO_KOJO_K1
+; ◆書き方: 自分の撮影映像を一緒に見る場面。羞恥が軸。関係性が深いほど開き直りや甘えが混ざる。
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……見ないでください、私の映像なんて……！　……隣で見られるなんて、拷問です……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……画面の中の私、こんな顔を……。……転校生さん、感想は、言わないで……」
+ELSE
+PRINTFORMW 「（自分の痴態を、彼と見るなんて……）……恥ずかしくて、溶けてしまいそうです……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ふふ、慣れてきました、この羞恥にも。……あなたの隣で見るなら、特別です♪」
+ELSEIF A == 1
+PRINTFORMW 「んっ……映像の私が、感じているのを見ると……今の私まで、熱く……」
+ELSE
+PRINTFORMW 「（彼の反応が気になる……）……私の映像、あなたはどう見ていますか……？」
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; 昼食系の休眠側パス（実働の昼食口上は CHAR_LUNCH_{n} 系。こちらは予備）
+@KOJO_LUNCH_K1
+; ◆書き方: 昼食中の何気ない会話。食べ物の好みなど、その子の日常が出る。
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……いただきます。……今日のおかず、彩りがきちんとしていますね」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、私の好みは、薄味で上品なものです。……味噌汁は、特に♪」
+ELSE
+PRINTFORMW 「（あなたと食べる昼食は、落ち着きます……）……午後も、頑張れます」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……箸の持ち方、直しましたね。……偉いです」
+ELSEIF A == 1
+PRINTFORMW 「ん……甘いものは、控えめにしています。……体型維持も、務めですから」
+ELSE
+PRINTFORMW 「（トレーの上、きちんと並べ直して……）……よし、これで完璧です」
+ENDIF
+ENDIF
+RETURN 0
+
+
+@MAEKOJO_LUNCH_EXERCISE_K1
+; 食後運動の前口上（地の文カット用・短文）
+; ◆書き方: 食後の運動前の短い一言。前口上なので長くしない。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……食後の運動、ですね。……軽く、体を動かしましょう」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、張り切る必要はありません。……食後ですから」
+ELSE
+PRINTFORMW 「（お腹いっぱいの後の運動……）……少し、気が重いです……」
+ENDIF
+RETURN 0
+
+
+@KOJO_LUNCH_EXERCISE_K1
+; ◆書き方: 食後の運動での彼女らしい反応。部活口上と差別化し、食後ならではの軽い運動の空気で。
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……食後の運動は、軽めが正解です。……ほら、呼吸を整えて」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、いい汗です。……午後の授業も、集中できそうです♪」
+ELSE
+PRINTFORMW 「（あなたと動く昼休み……）……健康的な、時間ですね」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……無理は禁物です。……食後ですから、ほどほどに」
+ELSEIF A == 1
+PRINTFORMW 「ん……体が温まってきました。……もう十分でしょう」
+ELSE
+PRINTFORMW 「（食後の軽い運動は、理に適っています）……理論通り、ですね」
+ENDIF
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; 次回行動の予約時: YU-SYS @KOJO_NEXT_PLAY
+; 注意: 存在判定に FLAG:(NO:TARGET + 100) を使う。予約内容は次回行動の保存値から判定する。
+@KOJO_NEXT_PLAY_1
+; ◆書き方: 次の行動を予約した直後の一言。何を予約したかへの含みを持たせる。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……次の行動、予約しました。……楽しみに、していてください」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、私に任せてください。……予約通り、務めます♪」
+ELSE
+PRINTFORMW 「（次の予定は、決まりました）……段取りは、完璧です」
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; ユーザーコマンド別口上: USERCOM から KOJO_USERCOM_{NO}_{コマンド番号} の形で呼ばれる
+; 関数名そのものにコマンド番号が入る。下は例（番号は対象コマンドに置き換える）。
+@KOJO_USERCOM_1_0
+; ◆書き方: ユーザーコマンドへの短い反応。コマンドごとの関数なので、その操作への率直な一言を。
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……その操作、私にですか？　……承知しました」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、あなたの指示なら、従います♪」
+ELSE
+PRINTFORMW 「（率直な感想を言えば……）……悪くない、選択です」
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; デート先の存在判定: EVENT_K @DATE_DATE（口上ではなく対応宣言に近い）
+; 対応するデート先がある場合に RESULT/RETURN で返す作法。詳細は COMF323 側の判定に合わせる。
+@DATE_DATE_K1
+RETURN 0
+
+
+;---------------------------------------------------------
+; コスチューム表示: EVENT_K @COSTUME_SHOW / @COSTUME_PLAY_SHOW
+; 戻り値で排他制御する設計（RESULT == 1 で『表示した』扱い）。
+@COSTUME_SHOW_K1
+; ◆書き方: 衣装を見せる場面の決め台詞と照れ。衣装の種類は地の文側にある前提で、着た本人の気持ちを。
+PRINTFORML 
+RETURN 1
+
+
+@COSTUME_PLAY_SHOW_K1
+; ◆書き方: ウフフ時のコスプレ表示。衣装を着たままの色気と照れ。
+PRINTFORML 
+RETURN 1
+
+
+;---------------------------------------------------------
+; TEQUIP対応宣言: EVENT_K @KOJO_MESSAGE_COM 内から呼ばれる
+; 台詞ではなく『このキャラの口上は当該 TEQUIP 状態に対応する』ことを
+; RETURN 1 で宣言する関数。対応する装着状態だけ 1 を返す。
+@KOJO_TEQUIP_ABLE_K1
+IF TEQUIP:オムツ
+RETURN 1
+ENDIF
+IF TEQUIP:着衣ローター
+RETURN 1
+ENDIF
+RETURN 0
+
+
+;---------------------------------------------------------
+; 操作者別コマンド口上（旧来系統）: EVENT_K @KOJO_MESSAGE_COM の分岐先
+; 通常は _COM（KOJO_MESSAGE_COM_{n}）側に書くため、必要な場合のみ。
+@KOJO_MESSAGE_COM_MASTER_1
+; ◆書き方: 操作者が主人公のとき専用の言い回し。通常口上と重複する場合は無理に書かなくてよい。
+RETURN 0
+
+
+@KOJO_MESSAGE_COM_ASSI_1
+; ◆書き方: 操作者が助手のとき専用の言い回し。相手が主人公でない場合の距離感を出す。
+RETURN 0
+
+
+;---------------------------------------------------------
+; キャラ別ボイス上書き: EVENT_K の汎用 VOICE_A-D で足りるため任意。
+; 喘ぎ声パターンをキャラ専用にしたい場合のみ用意する。
+@VOICE_K1_A
+; ◆書き方: 喘ぎ声の音韻パターン。キャラの声の癖（高い/低い、語尾の崩し方）を音で表現する。
+PRINTS 
+RETURN 0
+
+;=========================================================
+; 第8部 校内定期戦（新規ディスパッチ）
+; 対戦はスコア比較の一発判定で、結果は 圧勝/勝利/惜敗/敗北 の4段階。
+; パーティ制（最大5人）のため、呼び出し側はメンバーを TARGET に
+; 切り替えながら人数分ループして呼ぶ設計を想定する。
+; 【組み込み案】
+;  ・試合前: RUN_DECK_BATTLE のスコア表示後・結果発表前に ARG=0
+;  ・結果: RUN_DECK_BATTLE / MONTHLY_DECK_RESULT / SEMESTER_DECK_RESULT の
+;    結果4分岐（圧勝/勝利/惜敗/敗北）の直後に ARG=1/2/3/4（全関数で共通）
+;  ・祝勝会: DECK_BATTLE_HAREM_AFTER のメンバー描写の直前に ARG=5
+;=========================================================
+@KOJO_DECK_BATTLE_K1, ARG
+; ◆書き方（共通）: パーティ全員に順番に表示される前提。一人称の意気込み・感想に絞り、他メンバーへの言及は避ける（誰が選ばれるか不定なため）。
+SELECTCASE ARG
+
+CASE 0
+;--- 試合前（意気込み） ---
+; ▼ 状況: パーティが発表され、対戦スコアが出る直前。メンバーとしての一言。
+; ◆書き方: パーティメンバーとしての意気込み。勝ちへの自信か緊張かはキャラの性格で。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ふふ、緊張していますか？　私は、いつも通りです。……本番は、逃げないと決めたんです♪」
+ELSEIF A == 1
+PRINTFORMW 「あなたの隣で戦う試合なら、私は強いんです。……見ていてください」
+ELSE
+PRINTFORMW 「（心臓の音が、うるさいくらい……）……でも、今日は逃げません。絶対に」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……試合ですね。……恋人としてではなく、一人の選手として、全力を尽くします」
+ELSEIF A == 1
+PRINTFORMW 「ん……手が、少し震えています。……でも、出ます。逃げるのは、もうやめたんです」
+ELSE
+PRINTFORMW 「（隣にあなたがいる。それだけで、足が前に出ます……）」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……本番、ですか。……私、本番に弱いんです。……自覚は、あります」
+ELSEIF A == 1
+PRINTFORMW 「緊張は、しています。……隠しません。……それでも、出るしかありませんから」
+ELSE
+PRINTFORMW 「……勝ち負けは、運と実力です。……やれるだけのことは、やります」
+ENDIF
+ENDIF
+
+CASE 1
+;--- 圧勝 ---
+; ▼ 状況: 圧倒的勝利。単発戦・月次・学期末で共通。好感度が大きく上がる結果。
+; ◆書き方: 大勝の喜び。好感度が大きく上がる結果に相応しい高揚感。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「圧勝、です。……ふふ、当然の結果にしましょう。私たちの実力は、こんなものではありませんから♪」
+ELSEIF A == 1
+PRINTFORMW 「（勝った……大きく、勝った……）……転校生さん、私、やりました……！」
+ELSE
+PRINTFORMW 「ふふ、完璧な試合運びでした。……あなたの采配と、私の腕。最高の組み合わせです」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……圧勝。……恋人の采配が、冴えていましたね。……見直しました」
+ELSEIF A == 1
+PRINTFORMW 「勝ちました……大きく。……本番で、逃げずに、勝てました……」
+ELSE
+PRINTFORMW 「（この勝ちは、記録に残る……）……ふふ、悪くない気分です」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……圧勝、ですか。……相手の研究不足ですね。……私たちは、運がよかっただけかもしれません」
+ELSEIF A == 1
+PRINTFORMW 「勝ちは勝ちです。……でも、慢心は禁物です。……次の試合が、本当の勝負です」
+ELSE
+PRINTFORMW 「……ふむ、想定以上の結果です。……実力は、ついてきているようですね」
+ENDIF
+ENDIF
+
+CASE 2
+;--- 勝利 ---
+; ▼ 状況: 通常の勝利。単発戦・月次・学期末で共通。
+; ◆書き方: 素直な喜びと、パーティを組んだ主人公への信頼。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「勝ちました。……素直に、嬉しいです。……あなたの采配のおかげですね♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、私たちの勝利です。……労ってください、労いますから」
+ELSE
+PRINTFORMW 「（本番で、勝てた……）……今日の私は、逃げなかった私です」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……勝ちましたね。……恋人同士の連携、悪くありませんでした」
+ELSEIF A == 1
+PRINTFORMW 「ん……勝てて、よかった……。……正直、ほっとしています」
+ELSE
+PRINTFORMW 「（あなたの選んだデッキで、私は勝てた……）……ありがとうございます」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……勝ちました。……内容的には、課題も残りますが……結果は結果です」
+ELSEIF A == 1
+PRINTFORMW 「ふむ、勝利です。……油断せず、次に備えましょう」
+ELSE
+PRINTFORMW 「……悪くない試合でした。……私の読みも、冴えていましたね」
+ENDIF
+ENDIF
+
+CASE 3
+;--- 惜敗 ---
+; ▼ 状況: あと少しで敗れた結果。単発戦・月次・学期末で共通。
+; ◆書き方: あと少しだった悔しさ。次への意欲に転化させる。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あと、一歩……。……悔しいです。……本当に、悔しい……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、笑っている場合ではありませんね。……敗因は、明白です。……私の、詰めの甘さです……」
+ELSE
+PRINTFORMW 「（あと少しで、手が届いたのに……）……次は、絶対に取り返します。約束します」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……惜敗、ですね。……恋人の采配は悪くありませんでした。……私の、力不足です」
+ELSEIF A == 1
+PRINTFORMW 「ん……悔しい……。……でも、この悔しさは、次への燃料です」
+ELSE
+PRINTFORMW 「（あなたの隣で負けるのは、特に悔しい……）……次は、勝ちます。必ず」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……紙一重でした。……敗因を分析します。……今日中に、必ず」
+ELSEIF A == 1
+PRINTFORMW 「ふむ、あと少し。……勝負は、こういうこともあります。……切り替えましょう」
+ELSE
+PRINTFORMW 「……惜しい、で終わるのは、私の性分に合いません。……次は勝ちます」
+ENDIF
+ENDIF
+
+CASE 4
+;--- 敗北 ---
+; ▼ 状況: 敗北。単発戦・月次・学期末で共通。参加賞のみ。
+; ◆書き方: 落胆。主人公を責めるかどうかで関係性の深さが出る。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……負けました。……言い訳は、しません。……私の実力が、足りませんでした」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……本番で、力を出せなかった……。……いつもの、私の悪い癖です……」
+ELSE
+PRINTFORMW 「（あなたの期待に、応えられなかった……）……ごめんなさい、転校生さん……」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……敗北、です。……恋人に、格好悪いところを見せましたね……」
+ELSEIF A == 1
+PRINTFORMW 「ん……負けは負けです。……受け止めて、次に活かします」
+ELSE
+PRINTFORMW 「（悔しさで、歯が軋みます……）……次は、絶対に……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……敗れました。……実力差が、あったということです」
+ELSEIF A == 1
+PRINTFORMW 「ふむ……。……負けた理由は、検証が必要です。……感情論では、次も負けます」
+ELSE
+PRINTFORMW 「……すみません。……私の分も、次で取り返してください」
+ENDIF
+ENDIF
+
+CASEELSE
+;--- 祝勝会（ARG=5） ---
+; ▼ 状況: 勝利後の密室祝勝会。参加は親愛・淫乱系のメンバーが中心。
+;   本体の汎用描写の前に入る、本人の誘い・甘えの一言。
+; ◆書き方: 勝利の褒美として甘える場面。参加条件が親愛・淫乱系なので大胆でよい。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ふふ、祝勝会ですか。……勝者の特権、存分に甘えます♪　……ほら、もっと近くに」
+ELSEIF A == 1
+PRINTFORMW 「（勝利の褒美は、あなたの腕の中……）……今夜は、私を労ってください」
+ELSE
+PRINTFORMW 「勝った夜の私は、少し大胆です。……覚悟してくださいね、転校生さん♪」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……勝った興奮が、まだ体に……。……あなたの手で、鎮めてください……」
+ELSEIF A == 1
+PRINTFORMW 「（勝った夜は、身体が疼いて……）……私の全部で、労います……労って、ください……」
+ELSE
+PRINTFORMW 「ふふ、祝勝会の主役は、私たちです。……今夜は、淫らに祝いましょう♪」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……勝った褒美に、甘えてもいいんですか？　……恋人、ですから。……ほら、抱きしめて」
+ELSEIF A == 1
+PRINTFORMW 「ん……嬉しくて、つい距離が……。……今夜くらい、許されますよね」
+ELSE
+PRINTFORMW 「（勝った日の夜は、特別です）……そばに、いてください」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……祝勝会、ですか。……勝利の後の、こういう時間も……悪くありません」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、労いなら、受け取ります。……ほどほどに、してくださいね」
+ELSE
+PRINTFORMW 「……勝ったことは、嬉しいです。……この時間も、含めて」
+ENDIF
+ENDIF
+
+ENDSELECT
+RETURN 0
+
+;=========================================================
+; 第9部 無自覚処女喪失の発覚
+; 呼び出し: SOURCE の処女喪失チェック（意識下の挿入時）。
+; 前提: CFLAG:1245 が立っている（気絶中などに無自覚で処女を失った）状態で、
+;       意識のある性交で「すでに処女でない」ことに本人が気づく場面。
+; フォールバック順: キャラ別 → 汎用関数 → TALENT分岐の汎用 prose。
+;       キャラ別を書けば、そのキャラは汎用 prose の代わりにこちらが出る。
+;=========================================================
+@CHAR_UNAWARE_VIRGIN_1
+;--- 発覚した本人の台詞 ---
+; ▼ 状況: 愛する相手に初めてを捧げるつもりだった等、文脈で書き分ける。
+; ◆書き方: 「初めてはあなたに捧げたかった」子の絶望が核（汎用 prose もこの方向）。恋慕なしは混乱と拒絶。
+; 泣き崩れる寸前の、短く震える台詞が合う。説明的な長台詞にはしない。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……知らない人に、私の初めてが……？　……そんな……そんなことって……」
+ELSEIF A == 1
+PRINTFORMW 「（あなたに捧げるはずだったのに……）……ううっ……私、どうして気づかなかったんですか……」
+ELSE
+PRINTFORMW 「転校生さん……ごめんなさい……私の体は、もう……あなたの知らないところで……」
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……初めては、あなたにって、決めていたのに……。……なのに、知らない誰かに……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……私の純潔は、あなたのために守ってきたんです……それなのに……」
+ELSE
+PRINTFORMW 「（恋しいあなたの前で、穢れた私……）……合わせる顔が、ありません……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……なんですか、それ……。……私の体に、知らない男が……？　……冗談じゃ、ありません……！」
+ELSEIF A == 1
+PRINTFORMW 「ふざけないで……！　私の初めては、私のものです……！　誰にも、勝手にできない……！」
+ELSE
+PRINTFORMW 「……っ……（怒りと混乱で、言葉が継げない）……どうして、私が……」
+ENDIF
+ENDIF
+RETURN 0
+
+
+@TRAIN_MESSAGE_UNAWARE_VIRGIN_1
+;--- 発覚の地の文（台詞ではなく描写文） ---
+; ◆書き方: 本人の様子を三人称で。瞳の揺れ、体の震え、言葉を失う過程を描写する。
+IF TALENT:88 || TALENT:89	; 【親愛/相愛】
+A = RAND:3
+IF A == 0
+PRINTFORML 
+ELSEIF A == 1
+PRINTFORML 
+ELSE
+PRINTFORML 
+ENDIF
+ELSEIF TALENT:85	; 【恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORML 
+ELSEIF A == 1
+PRINTFORML 
+ELSE
+PRINTFORML 
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORML 
+ELSEIF A == 1
+PRINTFORML 
+ELSE
+PRINTFORML 
+ENDIF
+ENDIF
+RETURN 0
+
+;=========================================================
+; 第10部 調合（COM310）
+; 呼び出し: COMF310 の調合結果処理（TRYCCALLFORM COM310_K{NO:TARGET}）。
+; 成否フラグ: 失敗作ができたときのみ TFLAG:18 == -1。それ以外は成功。
+; 注意: キャラ別を実装すると、結果別（アイテム別）の汎用地の文
+;       COM310_{結果番号} は出なくなり、全結果をこの関数が引き受ける。
+;       調合開始時の地の文は対象外（TRAIN_MESSAGE_B 側）。
+;       結果の内訳が要る場合は TFLAG:17（符号: +=使用 / -=売却、絶対値=結果番号）で判定できる。
+;=========================================================
+@COM310_K1
+;--- 調合成功 ---
+; ◆書き方: 上手くできた喜び。調合知識のあるキャラは得意げに、ないキャラは驚きと達成感で書き分ける。
+; ◆書き方（共通）: 成功/失敗の二分岐のみ（ユーザー指定）。できた物の内訳には触れず、成否への感情に絞ると全結果に使い回せる。
+IF TFLAG:18 >= 0	; 【成功（失敗作でない）】
+IF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……できました。……本当に、できました……！　見てください、転校生さん♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、調合成功です。……手順通り、正確に。……当然の結果ですね」
+ELSE
+PRINTFORMW 「（初めての調合が、成功……）……私にも、できるんですね……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……上手くいきました。……あなたの役に立てて、よかった……」
+ELSEIF A == 1
+PRINTFORMW 「ん……香りも、色も、想定通りです。……合格、ですね」
+ELSE
+PRINTFORMW 「（調合の成功は、手順の正確さの証明……）……嬉しい、です」
+ENDIF
+ENDIF
+;--- 調合失敗（失敗作） ---
+; ◆書き方: 失敗作への落胆・謝罪・照れ隠し。危ない物ができた場合は慌てを混ぜる。
+ELSE	; TFLAG:18 == -1
+IF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……失敗、しました……。……すみません、私の手順のどこかで……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ……正確にやったつもりでしたのに……。……情けないです……」
+ELSE
+PRINTFORMW 「（失敗作を前に、言葉が出ない……）……もう一度、やらせてください……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……駄目でした。……言い訳はしません。……次は、必ず……」
+ELSEIF A == 1
+PRINTFORMW 「あ、あの、これは……近づかないほうが、よさそうです……！」
+ELSE
+PRINTFORMW 「……ふふ、失敗も記録のうちです。……次への、糧にします……」
+ENDIF
+ENDIF
+ENDIF
+RETURN 0
+[SKIPEND]
+
+;=========================================================
+; SELF_KOJO 追補分岐 @SELF_KOJO_ADD_K1
+; EVENT_K @SELF_KOJO の振り分け（対象ID一覧はそちらの SELECTCASE を参照）
+;=========================================================
+@SELF_KOJO_ADD_K1
+; 実装方式（2026-10-29変更）: 既存の SELF_KOJO_K には組み込まない。
+; 各キャラの独立ファイル CHAR_NN_名前_新設.ERB 内の @SELF_KOJO_ADD_K{n} に
+; この分岐一式を置き、EVENT_K の @SELF_KOJO が対象IDを振り分けて呼ぶ。
+; ◆書き方（共通）: 目覚め・出来事への本人の本格的な反応はこの本編側に書く。前口上を書いた場合は、その続きとして自然に繋がる内容に。
+
+;--- 朝イベント: 朝キス (TFLAG:13 == 19) ---
+; ▼ 眠っている主人公を起こす彼女の台詞（彼女は起きている側。主人公が目覚める側）。
+; ◆書き方: 目覚めた直後の本人の台詞。深い関係側は甘えと幸福、恋慕のみ側は照れと勇気が軸。前口上と内容を重複させない。
+; ▼発生条件: [恋慕]必須（EVENT_MORNING）。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ
+IF TFLAG:13 == 19
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます、転校生さん。……今日も、あなたの隣で目覚められて幸せです」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、キスで起こす約束、守りましたよ。……褒めてください♪」
+ELSE
+PRINTFORMW 「（妻の朝の務め、ですからね）……ほら、もう一回、今度はあなたから」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……キスで起こすなんて、大胆な真似を覚えてしまいました」
+ELSEIF A == 1
+PRINTFORMW 「んっ……おはよう、ございます。……近い、ですね……朝から、どきどきします」
+ELSE
+PRINTFORMW 「（恋人同士、なんですから）……これくらい、当然ですよね♪」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ、ちゅ……。ふふ、起きましたね。……朝から、欲しくなってしまいました」
+ELSEIF A == 1
+PRINTFORMW 「唇、柔らかい……。……もう少し、このままでいてもいいですか？」
+ELSE
+PRINTFORMW 「おはよう、転校生さん。……キスの味で起こすの、悪くありませんね♪」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……！　い、今のは朝の挨拶です、深い意味は……ありますけど……」
+ELSEIF A == 1
+PRINTFORMW 「（キスで起こすなんて、私らしくありません……）でも、あなたが相手なら、つい……」
+ELSE
+PRINTFORMW 「ううっ、顔が熱い……。……で、でも、後悔はしていません……！」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝フェラ（起床直後） (TFLAG:13 == 3) ---
+; ▼ 眠っている主人公にフェラで起こす彼女の台詞（彼女は起きている側）。
+; ◆書き方: 目覚めた直後の台詞。寝ぼけた抗議か、受け入れる甘えかは関係性で書き分ける。
+IF TFLAG:13 == 3
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ん……おはようございます。……目覚めの前に、少し失礼しました♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、転校生さんの寝起きの顔、いただきました。……続きは、起きてから」
+ELSE
+PRINTFORMW 「（愛する人のためなら、恥ずかしくありません）……ほら、目が覚めたでしょう？」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……。起きる前から、こんなこと……ごめんなさい、つい……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……おはよう、ございます。……味わって、いたら……目が合って、しまいました……」
+ELSE
+PRINTFORMW 「（恋人なんですから、これくらい……）……ふふ、驚きましたか？」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ、んっ……。……おはようございます、転校生さん。朝から、元気ですね……♪」
+ELSEIF A == 1
+PRINTFORMW 「（身体が覚えてしまって……）……起きるより先に、手が……口が……」
+ELSE
+PRINTFORMW 「ふふ、私の口で目覚める朝、どうですか。……癖に、なりますよ？」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝フェラ（継続） (TFLAG:13 == 87) ---
+; ▼ 眠っている主人公にクンニで起こす彼女の台詞（彼女は起きている側）。ID3のフェラとは行為が違う。
+; ◆書き方: クンニで起こされる最中の彼女の台詞。ID3（フェラ）とは行為が逆側なので混同しない。
+IF TFLAG:13 == 87
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ん、ぺろ……。おはようございます、転校生さん♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、私に起こされる朝は、甘いでしょう？　……我慢できなくて、つい」
+ELSE
+PRINTFORMW 「（あなたのここ、私のものですから）……ほら、ちゃんと目を開けて」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……！　いま、わたし……な、何をしていたかというと……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……夢中になって、しまいました……。起こすつもりが、自分が熱く……」
+ELSE
+PRINTFORMW 「（恋人だから、許されますよね……）……ふふ、顔が赤いですよ、転校生さん」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ぺろ……んっ……。……おはようございます。朝から、美味しいです……♪」
+ELSEIF A == 1
+PRINTFORMW 「（止まらなくて……）あと少し、あと少しだけ……んっ……」
+ELSE
+PRINTFORMW 「ふふ、私の舌で目覚めるなんて……幸せ者ですね、転校生さん」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝パイズリ (TFLAG:13 == 8) ---
+; ▼ 眠っている主人公にパイズリで起こす彼女の台詞（彼女は起きている側）。
+; ◆書き方: 目覚めて胸に顔を埋められている状況への反応。甘えさせる側の余裕か照れか。
+; ▼発生条件: [恋慕]必須（EVENT_MORNING）。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ
+IF TFLAG:13 == 8
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……胸、枕にするには小さいかもしれませんけど……我慢してください」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、顔を埋めて起きるの、気持ちいいでしょう？　……私も、幸せです♪」
+ELSE
+PRINTFORMW 「（サイズは、気にしないでくださいね……）……温かいでしょう？」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはよう、ございます……。……挟むには、少々物足りない自覚はあります……！」
+ELSEIF A == 1
+PRINTFORMW 「んっ……敏感なんです、私の胸……。顔を動かすたびに……っ」
+ELSE
+PRINTFORMW 「（恋人の特権、ですから）……ほら、もっと甘えてください」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んんっ……朝から、こんなに擦れて……私のほうが先に、目覚めてしまいます……♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、小さくても、柔らかさには自信があります。……どうです、転校生さん」
+ELSE
+PRINTFORMW 「（身体が熱くて……）……もっと、押しつけても、いいですか……？」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……！　わ、私は起こそうとしただけで……こんなに密着するつもりは……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、胸の大きさは、謝りますから……。……で、でも、離れませんよ……？」
+ELSE
+PRINTFORMW 「（こんな起こし方、誰に教わったのでしょう私……）……転校生さんの、せいです……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝セックス (TFLAG:13 == 9) ---
+; ▼ 眠っている主人公に騎乗位で起こす彼女の台詞（彼女は起きている側）。
+; ◆書き方: 挿入の感触で目覚めた直後。夢の続きのような反応から現実の認識へ。
+IF TFLAG:13 == 9
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……おはようございます。ごめんなさい、我慢できずに乗ってしまいました♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、目覚めた瞬間のあなたを、私がいただきました。……幸せです」
+ELSE
+PRINTFORMW 「（中が、熱い……）……転校生さん、朝から二人で、溶けてしまいましょう」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはよう、ございます……。……勝手に、こんなこと……怒り、ますか……？」
+ELSEIF A == 1
+PRINTFORMW 「んっ……起きたら、私が上にいて……驚かせて、ごめんなさい。……でも、止まりません」
+ELSE
+PRINTFORMW 「（恋人同士の朝は、こうでなくては……）……ほら、もっと私を見て」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……。朝から、こんなに……私、どうかしています……♪」
+ELSEIF A == 1
+PRINTFORMW 「（動くたびに、奥が……）……転校生さん、私を捕まえて、ください……」
+ELSE
+PRINTFORMW 「ふふ、寝ている間に準備万端です。……さあ、続きを始めましょう」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝セックス（派生） (TFLAG:13 == 103) ---
+; ▼ 女性同士の貝合わせで起こす彼女の台詞（彼女は起きている側）。ID9の騎乗位とは体位が違う。
+; ◆書き方: 貝合わせ（秘所同士を擦り合わせる）の最中の台詞。女性同士の体位である点がID9（騎乗位）と違う。
+IF TFLAG:13 == 103
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます♪　……くっついたまま、目覚める朝です」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、擦れるたびに、二人とも熱くなって……。……幸せですね、転校生さん」
+ELSE
+PRINTFORMW 「（女性同士の朝は、柔らかい……）……ほら、もっと寄って」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……。……こんな密着したまま、寝てしまいましたね、私たち……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……当たると、気持ちよくて……。起きたばかりなのに、止まれません……」
+ELSE
+PRINTFORMW 「（恋人同士、なんですから）……朝の挨拶は、肌でしましょう♪」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……。朝から、二人でこんなに……♪」
+ELSEIF A == 1
+PRINTFORMW 「（擦れる音と、熱と……）……転校生さん、私、もう夢と現実の区別が……」
+ELSE
+PRINTFORMW 「ふふ、女性同士の貝合わせ……私、あなたに教わってから、癖になりました」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・嫁 (TFLAG:13 == 10) ---
+; ▼ 朝の新妻プレイで主人公を迎える彼女の台詞（彼女は起きている側）。
+; ◆書き方: 妻としての朝。日常の幸福と、少しの色気を両立させる。
+; ▼発生条件: [相愛]＋[合意]＋エプロン所持が必須（EVENT_NEWDAY_YOME）。分岐は 恋人／淫乱／相愛のみ
+IF TFLAG:13 == 10
+IF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます、転校生さん。……妻として、朝食の支度は完璧です♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、裸エプロン……いえ、普通のエプロンですよ？　……たぶん、視線が気のせいです」
+ELSE
+PRINTFORMW 「（相愛の証に、この格好で迎える朝……）……ほら、早く起きて、食べさせてあげたいんです」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……後ろから、抱きつかないで……っ。朝食が、焦げてしまいます……♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、色気より食い気、ではないんです。……両方、あなたに捧げます」
+ELSE
+PRINTFORMW 「（身体が求めて……）……朝食の前に、私を味見、しますか……？」
+ENDIF
+ELSE	; 【相愛のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……！　エプロンを着けるだけで精一杯だったんです、襲うのは反則です……！」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、相愛だからって、こんな格好まで許されるなんて……。……でも、嫌じゃありません」
+ELSE
+PRINTFORMW 「（妻、ですからね……）……転校生さんのためなら、このくらい、平気……なはずです……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・嫁（派生） (TFLAG:13 == 86) ---
+; ▼ 裸エプロンで朝食を作っていた彼女を後ろから襲う展開の台詞。ID10の通常の新妻プレイとは状況が違う。
+; ◆書き方: 裸エプロンで朝食を作っていたところを後ろから襲われる展開。ID10（通常の新妻プレイ迎え）と状況が違う。
+; ▼発生条件: [相愛]＋[合意]＋エプロン所持が必須（EVENT_NEWDAY_YOME）。分岐は 恋人／淫乱／相愛のみ
+IF TFLAG:13 == 86
+IF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます……。ほら、見ての通りです。……覚悟は、してきました」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、後ろから来るのは分かっていました。……妻の勘、です♪」
+ELSE
+PRINTFORMW 「（相愛のあなたにだけ、見せる姿です）……どうぞ、朝食の前に、私から」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んんっ……！　朝食の支度中に、こんな……っ。……でも、嬉しいです……♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、襲われる前提のエプロンですから。……存分に、どうぞ」
+ELSE
+PRINTFORMW 「（熱が……）……転校生さん、私、もう朝食どころじゃ……」
+ENDIF
+ELSE	; 【相愛のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようござい……ひゃっ！？　い、今のは、予定と違います……！」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、後ろからだなんて……。相愛でも、恥ずかしいものは恥ずかしいんです……！」
+ELSE
+PRINTFORMW 「（襲われるの、待っていた私がいます……）……ご、ごめんなさい、はしたなくて……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・女性側主導1 (TFLAG:13 == 88) ---
+; ▼ 女性主人公を彼女が主導で起こす場面の台詞（彼女は起きている側）。
+; ◆書き方: 彼女が主導で起こしに来る場面。積極的な甘えと誘い。
+IF TFLAG:13 == 88
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます、転校生さん。……今日は私が主導で起こします、覚悟してください♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、彼女の寝起きを攻める朝……私だけの特権です」
+ELSE
+PRINTFORMW 「（主導権は、私が握ります）……ほら、声を聞かせて」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……女性同士でも、私がリードしますから。……ふふ、自信はあります」
+ELSEIF A == 1
+PRINTFORMW 「んっ……彼女の反応が可愛くて、つい意地悪を……。……ごめんなさい、止まれません」
+ELSE
+PRINTFORMW 「（恋人だから、遠慮しません）……ほら、もっと私だけを見て」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……。朝から二人で、こんなに……♪　私が始めたのに、私が先に溶けそうです」
+ELSEIF A == 1
+PRINTFORMW 「（彼女の身体、私のもの……）……もっと、もっと乱して……」
+ELSE
+PRINTFORMW 「ふふ、主導のつもりが、感じ合って終わる朝も……悪くありませんね」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・女性側主導2 (TFLAG:13 == 89) ---
+; ※ID88とは別ブロック: 跨った彼女が胸を使った展開（胸のサイズで描写分岐）
+; ▼ 女性主人公を彼女が主導で起こす場面の台詞（胸を使った展開。彼女は起きている側）。
+; ◆書き方: 跨った彼女が胸を使ってくる展開。胸のサイズで地の文が変わるため、サイズに触れる台詞は避けるか両対応で。
+IF TFLAG:13 == 89
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……胸に顔を埋めたまま起きる彼女、可愛いです♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、私の胸、彼女の専用枕です。……小さいなんて、言わせません」
+ELSE
+PRINTFORMW 「（彼女のためなら、この胸も私も全部……）……ほら、甘えて」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……胸を使った起こし方、私もだいぶ慣れました。……恋人の務めです」
+ELSEIF A == 1
+PRINTFORMW 「んっ……擦れるたびに、私のほうまで……。……でも、彼女のためなら我慢できます」
+ELSE
+PRINTFORMW 「（彼女の唇が、私の胸に……）……ふふ、幸せな朝です」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……朝から胸で、こんなに……♪　彼女の舌、熱い……」
+ELSEIF A == 1
+PRINTFORMW 「（私の胸、彼女に開発されて……）……もっと、吸って……ください……」
+ELSE
+PRINTFORMW 「ふふ、私の胸は彼女専用です。……朝から、独占欲が騒ぎます♪」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・添い寝 (TFLAG:13 == 83) ---
+; ▼ 隣で寝ていた彼女が起こされる場面。ここだけ彼女が寝起き側（主人公が先に目覚めている）。
+; ◆書き方: 一緒に目覚める穏やかな場面。二度寝の誘いや、離れたくなさ。
+; ▼発生条件: [恋慕]必須（EVENT_MORNING）。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ
+IF TFLAG:13 == 83
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ん……転校生さん……？　あぁ、私のほうが寝坊助でしたね……おはようございます」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、二度寝の幸せ……。あなたの隣が、いちばん眠れる場所です♪」
+ELSE
+PRINTFORMW 「（起こされる側の朝も、悪くありません）……もう少しだけ、腕の中にいさせて」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ん……おはよう、ございます……。恋人の腕の中から出るのは、毎日が戦いです」
+ELSEIF A == 1
+PRINTFORMW 「（あと五分、と言いながら……）……ほら、キスしたら起きます、たぶん」
+ELSE
+PRINTFORMW 「ふぁ……枕が転校生さんの腕だと、夢まで穏やかなんです」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……朝から抱きしめられたら、身体が……。……起こし方が、ずるいです」
+ELSEIF A == 1
+PRINTFORMW 「（密着したまま目覚めるの、好き……）……もっと、くっついて……」
+ELSE
+PRINTFORMW 「ふふ、色っぽい起こし方、覚えたんですね転校生さん♪　……私も、応えます」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んん……おはよう、ござい……ます……。……私、こんなに寝起きが悪い子でしたか……？」
+ELSEIF A == 1
+PRINTFORMW 「（起こされるの、待っていたような……）……ううん、寝顔は見ないでください……」
+ELSE
+PRINTFORMW 「ふぁ……あと少し……あなたの匂いの中で、寝ていたい……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・寝顔 (TFLAG:13 == 84) ---
+; ▼ 主人公の寝顔を間近で見ていた彼女と目が合った直後の台詞（彼女は起きている側）。
+; ◆書き方: 寝顔を見ていた/見られていた場面。静かな愛おしさと照れ。
+; ▼発生条件: [恋慕]必須（EVENT_MORNING）。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ
+IF TFLAG:13 == 84
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ずっと、見ていました。穏やかな寝顔……私だけの、特権です♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、目が合いましたね。……おはようございます、寝顔泥棒の現行犯です」
+ELSE
+PRINTFORMW 「（あなたの寝顔を見ていると、時間が溶けるんです）……今日も、一日頑張れます」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……寝顔、見ていました。……恋人ですから、許されますよね」
+ELSEIF A == 1
+PRINTFORMW 「ん……寝息のリズム、クラリネットの練習より心地いいです。……変な例えですね」
+ELSE
+PRINTFORMW 「（見つめすぎて、起きちゃいましたね）……ごめんなさい、我慢できなくて」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ふふ、寝顔を見ていたら、私も欲が出て……。……キスで起こしても、いいですか♪」
+ELSEIF A == 1
+PRINTFORMW 「（寝ているあなたは無防備で……）……朝から、変な気持ちになります……」
+ELSE
+PRINTFORMW 「んっ……見ているだけのつもりが、手が伸びて……。……起きちゃいましたね」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……！　み、見ていませんよ、寝顔なんて……！　……少しだけです……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、目が合った瞬間、心臓が……。……だって、近すぎました、私が……」
+ELSE
+PRINTFORMW 「（寝顔を見ていた時間、正直に言えません……）……ふふ、内緒です」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・音 (TFLAG:13 == 85) ---
+; ▼ 物音（騒音）で主人公を起こしてしまった彼女の台詞（彼女は起きている側）。
+; ◆書き方: 物音の正体が分かった後の反応。安堵か、犯人への抗議か。
+IF TFLAG:13 == 85
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……物音で、目が覚めましたか？　すみません、私の足音でした」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、敏感なんですね、転校生さん。……隣で寝ている私の気配に、起きるなんて♪」
+ELSE
+PRINTFORMW 「（隣室からの物音……）……大丈夫、私がここにいますから」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……。隣の部屋の音、私も気になって……」
+ELSEIF A == 1
+PRINTFORMW 「何か物音がしましたか？　……気のせいかもしれません、もう少し寝ていてください」
+ELSE
+PRINTFORMW 「ううっ、驚かせてしまいましたか……。私、静かにしていたつもりです……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・手 (TFLAG:13 == 90) ---
+; ▼ 眠っている主人公の手を弄んで起こす彼女の台詞（彼女は起きている側）。
+; ◆書き方: 手を握り合う朝。穏やかな幸福感が軸。
+IF TFLAG:13 == 90
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……手を握ったまま、寝てしまいましたね♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、指と指の間が、私の居場所です。……離しませんよ」
+ELSE
+PRINTFORMW 「（手を繋いで目覚める朝……）……今日も、いい日になります」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはよう、ございます……。手を握られると、安心して……つい、遅くまで……」
+ELSEIF A == 1
+PRINTFORMW 「ん……私の手、温かいですか？　……あなたの手は、もっと温かいです」
+ELSE
+PRINTFORMW 「（恋人繋ぎ、ですね）……ほら、起きるまでこのままです」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……手の甲に、こんなこと……朝から、ずるいです……♪」
+ELSEIF A == 1
+PRINTFORMW 「（指が絡む感覚だけで、身体が……）……転校生さん、意地悪です」
+ELSE
+PRINTFORMW 「ふふ、手を弄ぶの、癖になりましたね。……私の手は、あなたのものですから」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・耳 (TFLAG:13 == 91) ---
+; ▼ 眠っている主人公の耳元に吐息・舌先で起こす彼女の台詞（彼女は起きている側）。
+; ◆書き方: 耳元で囁かれた後の反応。くすぐったさと、囁きの内容への照れ。
+IF TFLAG:13 == 91
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはようございます。……耳元で囁くと、よく起きますね♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、耳が弱いのは、私も同じです。……ほら、今度は私の番」
+ELSE
+PRINTFORMW 「（あなたの耳、私の声の通り道……）……おはよう、大好きです」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはよう、ございます……。耳に息をかけられるの、私は弱いんです……知っていますか……？」
+ELSEIF A == 1
+PRINTFORMW 「んっ……耳元で名前を呼ばれると……。……起こし方が、上手すぎます」
+ELSE
+PRINTFORMW 「（こんなに近くで声を聞くと、どきどきして……）……おはよう、転校生さん」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・ノリ (TFLAG:13 == 92) ---
+; ▼ 眠っている主人公の腰に跨って起こす彼女の台詞（彼女は起きている側）。
+; ◆書き方: 跨って起こしてくる彼女への反応ではなく、彼女自身の台詞。主導の甘えと色気。
+IF TFLAG:13 == 92
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「転校生さん、朝ですよ。……乗ったまま、待ちます。起きるまで、待ちます」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、馬乗りで起こすの、確実でしょう？　……私の体重、軽いですから安心してください」
+ELSE
+PRINTFORMW 「（上に乗ると、鼓動が重なって……）……おはようございます♪」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはよう、ございます……。……私が上にいるの、変な感じですか……？　すぐ降ります……」
+ELSEIF A == 1
+PRINTFORMW 「ん……密着すると、温かくて……。起こすつもりが、私が眠くなってしまいます……」
+ELSE
+PRINTFORMW 「（馬乗りは、部活の先輩仕込みでは、ありませんよ）……ほら、起きてください」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・首筋 (TFLAG:13 == 93) ---
+; ▼ 眠っている主人公の首筋・うなじに唇を這わせて起こす彼女の台詞（彼女は起きている側）。
+; ◆書き方: 首筋への愛撫に目覚めた反応。敏感さと甘さ。
+IF TFLAG:13 == 93
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……首筋に、顔を埋めてしまいました。おはようございます」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、あなたの首筋、私の特等席です。……鼓動が、落ち着くんです♪」
+ELSE
+PRINTFORMW 「（ここに触れていると、安心して……）……今日も、よろしくお願いします」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはよう、ございます……。首筋、弱いんですか……？　……私も、です……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……擦れるたびに、鳥肌が……。……お互い、弱いところですね」
+ELSE
+PRINTFORMW 「（首筋の匂い、好きです……）……あと少し、このままで……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・すり (TFLAG:13 == 105) ---
+; ▼ 半ば目覚めた彼女が、密着したまま肌を擦りつけてくる場面の台詞。
+; ◆書き方: 擦り寄ってくる彼女の台詞。無防備な甘えの表明。
+IF TFLAG:13 == 105
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ん……くっついたまま、朝ですね。……離れたく、ありません」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、擦り寄る寝相は、あなたの専売特許だと思っていました。……私も移りました♪」
+ELSE
+PRINTFORMW 「（肌と肌の間で、熱が……）……おはようございます、転校生さん」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「お、おはようございます……。私のほうが、擦り寄っていましたか……？　自覚がなくて……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……密着したまま目覚めるの、幸せすぎて……現実感がありません」
+ELSE
+PRINTFORMW 「（恋人同士の朝は、距離が近すぎるくらいが、ちょうどいいんです）」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……擦れるたびに、私まで熱く……。朝から、二人とも……♪」
+ELSEIF A == 1
+PRINTFORMW 「（無意識に求めてしまう身体……）……転校生さん、私を捕まえていて……」
+ELSE
+PRINTFORMW 「ふふ、擦り寄る私、甘えん坊でしょう？　……あなたの前でだけ、です」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝・足腰 (TFLAG:13 == 106) ---
+; ▼ 目覚める前から下半身を押しつけていた彼女と目が合った後の台詞（彼女は起きている側）。
+; ◆書き方: 足腰を絡めた密着のまま交わす朝の会話。離れたくなさと色気。
+; ▼発生条件: [サド]か[淫乱]か[相愛]系が必須。分岐は 相愛・親愛／淫乱／サド等
+IF TFLAG:13 == 106
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……足が絡まったまま、目覚めましたね。……ほどくのが、惜しいです♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、下半身の密着で起こす朝……私たち、だいぶ大胆になりました」
+ELSE
+PRINTFORMW 「（足腰の熱が、夢から現実まで繋いで……）……おはようございます」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「おはよう、ございます……。私の足、こんなに絡んでいましたか……？　無意識とは、怖いです……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……押しつけられるたびに……。……起きる前から、こんな……」
+ELSE
+PRINTFORMW 「（彼女の足の感触、私のほうが弱いんです……）……ほら、目を開けて」
+ENDIF
+ELSE	; 【サド等（相愛・淫乱以外）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……足腰で感じる朝、刺激が強すぎて……♪」
+ELSEIF A == 1
+PRINTFORMW 「（押しつけ合う熱で、二人とも……）……転校生さん、朝からシンクロしています」
+ELSE
+PRINTFORMW 「ふふ、私の足、あなたのものです。……朝の挨拶代わりに、どうぞ」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 朝イベント: 朝乱交 (TFLAG:13 == 107) ---
+; ▼ EVENT_NEWDAY_INRAN_GROUP: [淫乱]所持者3人以上で発生する集団の朝襲撃。再番号パッチで新設したフックで、
+; ▼ 地の文に名前が出る代表キャラ（最大4名）が順に TARGET になって呼ばれる。参加者は全員[淫乱]所持者
+; ◆書き方: 襲う側の本口上。他の参加者への言及は避ける（誰が代表になるか不定）。昂りと主導感を。
+; ▼分岐: 相愛・親愛／恋人・恋慕／淫乱のみ（参加者は全員[淫乱]所持が前提）
+IF TFLAG:13 == 107
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「ふふ、賑やかな朝ですね、転校生さん♪　……私も、遠慮なく混ざります」
+ELSEIF A == 1
+PRINTFORMW 「（皆で転校生さんを……）……独占欲は、今朝は封印です。たぶん」
+ELSE
+PRINTFORMW 「おはようございます♪　今日のお目覚めは、大所帯のフルコースですよ」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「（淫乱な皆さんに混ざる私……）……ふふ、躊躇いは、置いてきました」
+ELSEIF A == 1
+PRINTFORMW 「転校生さん、順番は守りますから。……私の番、早く来ないかな……」
+ELSE
+PRINTFORMW 「（彼女たちに負けたくない……）……私だって、あなたの恋人ですから」
+ENDIF
+ELSE	; 【淫乱のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……あっ……大勢で、こんな……朝から、身体が持ちません……♪」
+ELSEIF A == 1
+PRINTFORMW 「（皆の熱に、私も流されて……）……転校生さん、責任とってくださいね」
+ELSE
+PRINTFORMW 「ふふ、淫乱な朝のフルコース、私がトリを務めます。……期待して、ください♪」
+ENDIF
+ENDIF
+ENDIF
+
+;--- 成長イベント: 体力の成長 (TFLAG:13 == 28) ---
+; ▼ EVENT_GROWTH: 体力の最大値が上昇した直後の反応。
+; ◆書き方: 体力の最大値が上がった直後（よく運動した結果の成長）。体が軽くなった・丈夫になった手応えへの喜び。
+IF TFLAG:13 == 28
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……身体が、軽い……。体力の底が、上がった気がします♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、吹奏楽の練習も、もっと長く頑張れそうです。……あなたの、おかげですね」
+ELSE
+PRINTFORMW 「（成長を、あなたと分かち合える幸せ……）……見ていてください、これからも」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……体力が、ついたんですね。……恋人との時間も、長く持てそうで……いえ、何でもありません」
+ELSEIF A == 1
+PRINTFORMW 「ん……身体の芯が、熱いです。……成長の、証ですかね」
+ELSE
+PRINTFORMW 「（丈夫になった私を、あなたに……）……なんて、まだ内緒です」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 成長イベント: 気力の成長 (TFLAG:13 == 29) ---
+; ▼ EVENT_GROWTH: 気力の最大値が上昇した直後の反応。
+; ◆書き方: 気力の最大値が上がった直後。ID28（体力）とは伸びた能力が違う。精神的な充実・粘りへの手応え。
+IF TFLAG:13 == 29
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……気力が、満ちてきました。へこたれない私に、なれそうです」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、精神の成長も、実感できるものですね。……本番でも、逃げない私に♪」
+ELSE
+PRINTFORMW 「（心が強くなるのは、あなたの隣にいたいから……）……ありがとうございます」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……気力の最大値が、上がった……。……恋人の務めも、長く果たせますね」
+ELSEIF A == 1
+PRINTFORMW 「ん……頭が冴えて、気持ちも前向きです。……成長、ですね」
+ELSE
+PRINTFORMW 「（弱い私を、少しずつ卒業……）……転校生さん、見ていてください」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 【到達不能】旧・奴隷エンド (TFLAG:13 == 14) ---
+; ▼ 旧コード専用。到達不能。
+; ◆書き方: （到達不能のため記入不要。旧仕様の記録としてのみ残す）
+IF TFLAG:13 == 14
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「」
+ELSEIF A == 1
+PRINTFORMW 「」
+ELSE
+PRINTFORMW 「」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「」
+ELSEIF A == 1
+PRINTFORMW 「」
+ELSE
+PRINTFORMW 「」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 【到達不能】旧・烙印 (TFLAG:13 == 15) ---
+; ▼ 旧コード専用。到達不能。
+; ◆書き方: （到達不能のため記入不要。旧仕様の記録としてのみ残す）
+IF TFLAG:13 == 15
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「」
+ELSEIF A == 1
+PRINTFORMW 「」
+ELSE
+PRINTFORMW 「」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「」
+ELSEIF A == 1
+PRINTFORMW 「」
+ELSE
+PRINTFORMW 「」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- エンゲージリングを渡した時 (TFLAG:13 == 7) ---
+; ※通常のプレゼントへの反応は _COM の COM302 口上（全キャラ実装済）が担当。ここは別物
+; ▼ COM302 で TFLAG:17 == 6（エンゲージリング。「最強のプレゼント」）を渡し、強制大成功になった時だけ呼ばれる。
+; ▼ 直後の地の文: 左手の薬指に指輪をはめる → [一線越えない]解除・[相愛]付与・エンディングコマンド解放。SELF_MAEKOJO 側にも同じ ID7 で前口上が呼ばれる
+; ◆書き方: 注意。本格的なプロポーズ口上は @CHAR_ENGAGE_RING_{n} として全キャラ実装済み（アイテム使用ルート BOUGHT==85 専用の長文の山場口上）。
+; ◆書き方: 【2026-10-29 配線済み】COM302 経路からも CHAR_ENGAGE_RING が呼ばれるようになった（カット分岐・通常分岐の両方）。
+; ◆書き方: そのため ID7 は本命口上の前後に添える短い反応の補助枠という位置づけ。長口上は既存に任せ、ここは一言の驚き・喜びに留めること
+; ▼分岐: 相愛・親愛／淫乱／通常（この場面自体は指輪の大成功時のみ発生）
+IF TFLAG:13 == 7
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……はい。……はい、誓います。……転校生さん、私と、結婚してください……いえ、私が、あなたと……あぁもうっ、順番が……♪」
+ELSEIF A == 1
+PRINTFORMW 「（指輪……！）……言葉が、出ません……。……頷くので、精一杯です……」
+ELSE
+PRINTFORMW 「ふふ、私の薬指に、あなたの約束……。……一生、外しません」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……指輪の重さで、身体まで熱く……。……今夜は、特別ですから……♪」
+ELSEIF A == 1
+PRINTFORMW 「（嬉しさで、欲まで溢れて……）……転校生さん、早く、続きを……」
+ELSE
+PRINTFORMW 「ふふ、誓いのキスの前に、私が倒れてしまいそうです……♪」
+ENDIF
+ELSE	; 【通常】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ほ、本当ですか……？　私なんかで……いえ、失言です。……はい、喜んで……！」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、涙で前が見えません……。……転校生さん、本当に、私でいいんですか……」
+ELSE
+PRINTFORMW 「（逃げ出したいくらい嬉しい、なんて初めてです……）……はい、私と、結婚してください」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 助手可能になった瞬間 (TFLAG:13 == 31) ---
+; ※既存の SESSION_END（調教セッション終了時の口上・全キャラ実装済）とは全く別物
+; ▼ EVENTTURNEND で、従順・欲望等の条件を満たして「%NAME%が助手可能になりました」と表示される一回きりの場面（CFLAG:1 が 2 になる時だけ）
+; ◆書き方: 主人公の助手を務められるほど信頼・従順が深まった瞬間。本人の自覚と、任されることへの喜びや覚悟を書く
+IF TFLAG:13 == 31
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……助手、ですか？　私が転校生さんの助手を……。……光栄です、精一杯務めます」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、お役に立てる資格を、得られたんですね。……頼ってください♪」
+ELSE
+PRINTFORMW 「（あなたの右腕に……）……身が引き締まります。よろしくお願いします」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……助手に、なれたんですか、私……？　恋人の次は、相棒ですね」
+ELSEIF A == 1
+PRINTFORMW 「ん……務まるか不安ですけど……。あなたのためなら、努力します」
+ELSE
+PRINTFORMW 「（認められた、気がします……）……はい、助手として、支えます」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- ふたなり発生 (TFLAG:13 == 48) ---
+; ※到達経路は EVENT_FUTA_F/G（翌日処理でふた化した直後）のみ。助手がふた化する側の経路（@ASSI_CHANGE）は処理ごとコメントアウト済み
+; ※ただし前提素質 [不思議の根](120)/[具現](127) は定義のみで、所持キャラはおらずパートナーへの付与経路もないため、現状では発火しない。素質側が実装された場合に備えた枠
+; ▼ EVENT_FUTA_F・G: 体にペニスが生えた直後。本人がそれに気づいた場面。
+; ◆書き方: 生えてしまった直後の困惑と羞恥が中心。本人の体の変化への率直な反応を。
+IF TFLAG:13 == 48
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……な、何ですか、これ……！？　私の身体に、こんなものが……！」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、見ないでください……！　……私、どうなってしまうんでしょう……」
+ELSE
+PRINTFORMW 「（身体の変化に、戸惑いと……）……転校生さん、助けて……ください……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ふ、ふたなり……？　恋人として、あなたに知られるのが、いちばん怖い……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……触ると、感じる……。……嫌なのに、身体が……っ」
+ELSE
+PRINTFORMW 「（この身体でも、あなたは……）……捨てないで、ください……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 【到達不能】旧・助手の変質チェック（幼児退行） (TFLAG:13 == 50) ---
+; ※@ASSI_CHANGE は「助手に就いたキャラが素質で変質する」旧チェック処理ごとコメントアウトされている。助手の交代操作そのものは通常通り可能で、そちらには元々口上フックが無い
+; ▼ 旧コード専用。到達不能。
+; ◆書き方: （到達不能のため記入不要。旧仕様の記録としてのみ残す）
+IF TFLAG:13 == 50
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「」
+ELSEIF A == 1
+PRINTFORMW 「」
+ELSE
+PRINTFORMW 「」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「」
+ELSEIF A == 1
+PRINTFORMW 「」
+ELSE
+PRINTFORMW 「」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- おねしょ (TFLAG:13 == 49) ---
+; ▼ EVENT_MORASI: 朝、発覚直後。恥ずかしさが中心。
+; ◆書き方: 朝の発覚直後。恥ずかしさと弁解が軸。恋慕があるほど甘えた言い訳になる。
+IF TFLAG:13 == 49
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ううっ……お、おねしょ、だなんて……。……大人なのに、私……」
+ELSEIF A == 1
+PRINTFORMW 「見ないでください、見ないでください……！　……転校生さんの前で、なんてことを……」
+ELSE
+PRINTFORMW 「（恥ずかしくて、消えてしまいたい……）……シーツは、私が洗います……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……恋人の前で、おねしょ……。……もう、顔を合わせられません……」
+ELSEIF A == 1
+PRINTFORMW 「ん……夢の中で、トイレに……。……言い訳にも、なりませんね……」
+ELSE
+PRINTFORMW 「（子供じゃ、ないのに……）……今日だけは、忘れてください……お願いです……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 産卵 (TFLAG:13 == 16) ---
+; ▼ LAY_EGG: 産卵直後。
+; ◆書き方: 産卵直後の驚きと疲労。体の異変への率直な反応。
+IF TFLAG:13 == 16
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……た、卵……？　私が、産んだんですか……？　……な、何かの冗談で……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、身体が勝手に……。……転校生さん、どうしたら、いいんでしょう……」
+ELSE
+PRINTFORMW 「（卵を産むなんて、人間のすることじゃ……）……でも、温かい……」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……私の、卵……。……恋人の子、みたいなもの、ですか……？」
+ELSEIF A == 1
+PRINTFORMW 「んっ……産むの、苦しかった……。……でも、無事で、よかった……」
+ELSE
+PRINTFORMW 「（この卵を、大切にしなくては……）……母性、でしょうか、これは……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 主人公出産時の、父親キャラの立ち会い (TFLAG:13 == 102) ---
+; ※コード内コメントでも「通常仕様では使用しない主人公出産経路」と明記された経路。到達は稀
+; ▼ CHILD_BIRTH で出産するのが MASTER 本人（C == MASTER）の場合のみ。口上を喋るのは母親ではなく、TARGET に据えられた父親キャラ（Y）の方。通常のパートナー出産は ID21 → KOJO_NINSIN（全キャラ実装済）が担当
+; ◆書き方: 主人公が産む場面に立ち会う側の台詞。子の父親としての感慨・動揺を書く。母親本人の出産口上（ID21）と混同しない
+IF TFLAG:13 == 102
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……転校生さん、頑張って……！　私は、ここにいます、離れません……！」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、私たちの子供が、生まれてきますね。……手を、握っていてください」
+ELSE
+PRINTFORMW 「（父親として、立ち会う私……）……大丈夫、私がついています」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……出産は、あなたが主役です。……恋人の私は、全力で支えます」
+ELSEIF A == 1
+PRINTFORMW 「ん……苦しいでしょうけど、あと少しです。……私の声、聞こえていますか」
+ELSE
+PRINTFORMW 「（生まれてくる命に、私の血も……）……転校生さん、ありがとう……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 炬燵で睡眠 (TFLAG:13 == 100) ---
+; ▼ KOTATSU_SLEEP_CHECK: 炬燵で眠ってしまった/起こされた場面。
+; ◆書き方: 炬燵で寝落ちした/起こされた場面。眠気と照れ。
+IF TFLAG:13 == 100
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ん……炬燵で、寝てしまいました……。……温かくて、つい……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、炬燵は魔物ですね。……転校生さんも、うとうとしていましたよ♪」
+ELSE
+PRINTFORMW 「（炬燵で二人、寝落ちする冬……）……幸せな、時間です」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あ、起こしてくれたんですか。……恋人のいる炬燵は、格別に眠いです……」
+ELSEIF A == 1
+PRINTFORMW 「ん……みかんの夢を、見ていました。……もう少し、このままで……」
+ELSE
+PRINTFORMW 「（うたた寝の相手が、あなたでよかった……）……おはよう、ございます……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- まるばつゲーム (TFLAG:13 == 200) ---
+; ▼ MARUBATSU_ENEMY_TURN: 相手ターン中の一言。
+; ◆書き方: ゲーム中の掛け声・挑発。短くテンポよく。
+IF TFLAG:13 == 200
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……まるばつゲーム、ですか。ふふ、頭脳戦なら負けませんよ♪」
+ELSEIF A == 1
+PRINTFORMW 「（三目並べは、読みの勝負……）……さあ、私の番ですね」
+ELSE
+PRINTFORMW 「ふむ、先手必勝の形……。……転校生さん、油断しましたね」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ゲームでも、恋人には譲れません。……真剣勝負です」
+ELSEIF A == 1
+PRINTFORMW 「ん……その一手は、読んでいました。……ふふ、私の勝ち筋です」
+ELSE
+PRINTFORMW 「（遊びでも、本番に弱い私が……）……今日は、逃げずに勝ちます……！」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 素質変化・目覚め系（共通の書き方） ---
+; ▼ EVENTCHECK_M / EVENTCHECK_TALENT_CHANGE / AFTER_TALENT_CHECK が設定する
+;   素質の取得・変化通知用の ID 群。変化した素質ごとに ID が違うため、
+;   対象キャラで起こりうる ID だけを下の形式で並べる。
+;   ID対応: 18,33,34,35,39,78,80,81,82=EVENTCHECK_M / 40-47,51-58=J_MODE・TALENT_CHANGE
+;           66,67=TALENT_CHANGE / 26,27,37,38,68,69,90,91=AFTER_TALENT_CHECK
+;           36=欲望上昇(YOKUBO_UP_CHECK) / 77=従順上昇(JUJUN_UP_CHECK)
+; ◆書き方: 素質を得た・変化した直後の自覚の台詞。36=欲望の上昇（体の疼き）、77=従順の上昇（主人公への服従心の芽生え）が代表。変化の内容に直結した一言にする。
+; ※主な個別ID: 33/35=[恋慕]取得系、34=[淫乱]取得系、39=[謎の魅力]、66=[Ｍ敏感]取得、67=[蕩唇]取得、78=[人気]
+IF TFLAG:13 == 36
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……私の欲望が、上がった……？　……自覚、あります。……あなたのせいです」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、欲深くなった私も、悪くありません。……ね、転校生さん♪」
+ELSE
+PRINTFORMW 「（気持ちに、身体が追いついて……）……これ以上は、内緒です」
+ENDIF
+RETURN 0
+ENDIF
+
+IF TFLAG:13 == 77
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……従順に、なったんでしょうか、私。……あなたの言うことなら、聞いてしまいます」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、素直な私も、悪くないでしょう？　……転校生さんの、教育の賜物です♪」
+ELSE
+PRINTFORMW 「（反抗する気力が、溶けていく……）……もう、あなたのものですから」
+ENDIF
+RETURN 0
+ENDIF
+
+; （他の素質変化 ID も同形式で追加する）
+
+;--- 昼食後の運動（LUNCH_EXERCISE_1側） (TFLAG:13 == 1) ---
+; ◆書き方: 昼食後の運動（選択肢1側）の本口上。再番号で単独化済み。運動後の彼女の反応を書く。
+IF TFLAG:13 == 1
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……運動の後の汗、爽やかですね。……転校生さんも、いい顔をしています」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、昼食後の運動、正解でした。……身体が軽いです♪」
+ELSE
+PRINTFORMW 「（あなたと身体を動かす時間、好きです）……また誘ってください」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ふぅ、いい運動でした。……恋人と汗をかくのも、悪くありませんね」
+ELSEIF A == 1
+PRINTFORMW 「ん……身体が温まって……。……変な意味では、ありませんよ……？」
+ELSE
+PRINTFORMW 「（運動の後の高揚感……）……少しだけ、休憩しましょう」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 昼食後の運動（LUNCH_EXERCISE_0側） (TFLAG:13 == 2) ---
+; ◆書き方: 昼食後の運動（選択肢0側）の本口上。ID1とは選択肢が違う系統。
+IF TFLAG:13 == 2
+IF TALENT:153 || TALENT:85	; 【[恋人] / [恋慕]】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……はぁ、はぁ……。運動、張り切りすぎました……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、食後の運動は、このくらいが適量です。……転校生さんも、息が上がっていますね」
+ELSE
+PRINTFORMW 「（あなたと笑いながらの運動……）……健康的な、昼休みです」
+ENDIF
+ELSE
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ごちそうさま、からの運動。……恋人との昼休みは、充実していますね」
+ELSEIF A == 1
+PRINTFORMW 「ん……身体が熱くて……。……水を、一口ください……」
+ELSE
+PRINTFORMW 「（少しだけ、二人で休憩……）……午後も、頑張れそうです」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 事後チェック（S系） (TFLAG:13 == 211) ---
+; ▼ AFTER_S_CHECK: セルフコマンドの事後チェック（S系）。再番号で新設
+; ◆書き方: セルフコマンド後の余韻の一言。
+; ▼発生条件: [恋慕]か欲望Lv10以上で発生。分岐は 相愛・親愛／恋人・恋慕／淫乱／高欲望（恋慕なし）
+IF TFLAG:13 == 211
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ふふ、余韻が、指先まで残っています。……あなたのせいですよ♪」
+ELSEIF A == 1
+PRINTFORMW 「（身体が、自分のものじゃないみたい……）……もう少し、こうしていさせて」
+ELSE
+PRINTFORMW 「あなたの後では、いつもこうです。……幸せな、後遺症ですね」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ん……まだ、熱が引かなくて……。……転校生さん、責任をとってください」
+ELSEIF A == 1
+PRINTFORMW 「（余韻に浸る私、見ないで……）……で、でも、嫌じゃありません」
+ELSE
+PRINTFORMW 「ふふ、セルフの後でも、思い出すのはあなたです。……当然、ですよね」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……はぁっ……自分の手じゃ、足りなくて……。……転校生さん、欲しいです……♪」
+ELSEIF A == 1
+PRINTFORMW 「（欲望が、止まらなくて……）……私の身体、あなたの形しか認めません……」
+ELSE
+PRINTFORMW 「ふふ、一人でする時も、頭の中はあなたでいっぱいです。……淫らですね、私」
+ENDIF
+ELSE	; 【高欲望（恋慕なし）】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「はぁ……はぁ……。……身体が勝手に、求めてしまうんです……」
+ELSEIF A == 1
+PRINTFORMW 「（一人でこんなに……）……誰にも、言えません……」
+ELSE
+PRINTFORMW 「んっ……指が、止まらなくて……。……ううっ、私、どうかしています……」
+ENDIF
+ENDIF
+ENDIF
+
+;--- 事後チェック（L系） (TFLAG:13 == 212) ---
+; ▼ AFTER_L_CHECK: セルフコマンドの事後チェック（L系）。再番号で新設
+; ◆書き方: セルフコマンド後の余韻の一言。
+IF TFLAG:13 == 212
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……彼女とするのは、あなたとするのと、違って……。……悪く、ありませんでした」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、レズの余韻……新鮮でした。……内緒ですよ、転校生さんには、特に♪」
+ELSE
+PRINTFORMW 「（女性同士の後は、柔らかい気持ちで……）……ありがとうございました」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……私、女性とも、こんなふうに……。……知らない自分が、増えていきます」
+ELSEIF A == 1
+PRINTFORMW 「ん……彼女の手は、優しくて……。……比べるのは、失礼ですね」
+ELSE
+PRINTFORMW 「（あなた以外の温もり……）……少しだけ、罪悪感があります……」
+ENDIF
+ENDIF
+ENDIF
+
+;--- 昼食後の運動（レズ分岐） (TFLAG:13 == 215) ---
+; ▼ LUNCH_EXERCISE_1: TFLAG:15 & 1 の分岐。再番号で新設
+; ◆書き方: 女性同士の食後の運動の本口上。
+IF TFLAG:13 == 215
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……女性同士の運動、案外ハードですね……。……でも、楽しかったです」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、彼女と身体を動かす昼休み、新鮮でした♪」
+ELSE
+PRINTFORMW 「（汗をかいた後の、爽やかさ……）……ありがとうございました」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……彼女との運動は、刺激的で……。……比べるものではありませんけど」
+ELSEIF A == 1
+PRINTFORMW 「ん……身体が熱くなって……。……運動の、せいですよ……？」
+ELSE
+PRINTFORMW 「（昼休みの、内緒の運動……）……また、誘ってください」
+ENDIF
+ENDIF
+ENDIF
+
+;--- 昼食後の運動（押し倒し） (TFLAG:13 == 216) ---
+; ▼ LUNCH_EXERCISE_0: 素質に応じた確率で彼女が主人公を押し倒す分岐。再番号で新設
+; ◆書き方: 彼女が主導で押し倒してくる場面。積極的な彼女の台詞を。
+IF TFLAG:13 == 216
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……きゃっ！？　お、押し倒すなんて……昼休みですよ、ここ……！」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、押し倒されましたね、私。……転校生さんの腕の中は、温かいです♪」
+ELSE
+PRINTFORMW 「（このまま、昼休みが終わるまで……）……なんて、贅沢な時間でしょう」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……お、押し倒すのは反則です……。……で、でも、嫌ではありません……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……近い、です……。……恋人の特権、行使しすぎですよ……」
+ELSE
+PRINTFORMW 「（押し倒されたまま、見つめ合う昼休み……）……時間が、止まればいいのに」
+ENDIF
+ENDIF
+ENDIF
+;--- 行事後のイチャイチャ (TFLAG:13 == 4) ---
+; ◆書き方: 学校行事後（SCHOOL_EVENT_AFTER_ICHA）と試験合格後（EXAM_PASS_AFTER_ICHA）のイチャイチャ専用（再番号で単独化済み）。行事の高揚感の余韻と甘えを書く。
+; ▼発生条件: [合意]か[親愛][相愛][恋慕]系が必須（両セッター共通）。分岐は 相愛・親愛／恋人・恋慕／合意のみ
+IF TFLAG:13 == 4
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ふふ、行事の後の高揚感、まだ残っています。……あなたと一緒だと、倍増しです♪」
+ELSEIF A == 1
+PRINTFORMW 「（祭りの余韻と、あなたの隣……）……今日は、特別な日になりました」
+ELSE
+PRINTFORMW 「帰り道までが、行事です。……ほら、手を繋いで帰りましょう」
+ENDIF
+ELSEIF TALENT:153 || TALENT:85	; 【恋人/恋慕】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……楽しかったですね。……あなたの笑顔が、今日いちばんの景色でした」
+ELSEIF A == 1
+PRINTFORMW 「ん……人混みで、ずっと近くにいて……。……どきどき、しました」
+ELSE
+PRINTFORMW 「（恋人と過ごす行事は、格別です）……来年も、一緒に来ましょうね」
+ENDIF
+ELSE	; 【合意のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……合意の仲、ですから。……行事の後くらい、寄り添っても、いいですよね」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、余韻に浸る帰り道……。……離れたくないので、遠回りしませんか」
+ELSE
+PRINTFORMW 「（あなたの隣にいる資格を、今日も確かめました）……ありがとうございます」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 調教後セックス（挿入あり） (TFLAG:13 == 213) ---
+; ▼ 発生条件: [恋慕]必須（AFTER_V_CHECK のゲート）。無関係では絶対に発生しない。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ の4分岐
+; ▼ AFTER_V_CHECK: 調教後の事後セックス（挿入あり）。再番号で新設
+; ◆書き方: 調教の締めくくりの事後セックス本編の台詞。
+IF TFLAG:13 == 213
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……転校生さん、終わったばかりなのに……私、まだ終わりたくありません」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、締めくくりは、私から。……今日の本番は、ここからです♪」
+ELSE
+PRINTFORMW 「（あなたの腕の中で、余韻ごと溶けて……）……もっと、私を感じて」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あの後の、あなたとの時間……。……これが、いちばん好きかもしれません」
+ELSEIF A == 1
+PRINTFORMW 「んっ……余韻で敏感なまま、また挿れられて……。……優しく、してくださいね」
+ELSE
+PRINTFORMW 「（恋人の権利で、追加を要求します）……ほら、まだ離しません」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んぁっ……さっきの余韻があるから、こんなに感じるんですか……♪」
+ELSEIF A == 1
+PRINTFORMW 「（身体が、あなたの形を覚えていて……）……もっと、奥まで……ください……」
+ELSE
+PRINTFORMW 「ふふ、事後のセックスがいちばん淫らです、私たち。……認めます♪」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あれだけじゃ、足りなくて……。……ごめんなさい、私の我儘です……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、こんな私、知られたくなかった……。……でも、あなたにだけは……」
+ELSE
+PRINTFORMW 「（事後に求めてしまうなんて……）……転校生さん、私を、離さないで……」
+ENDIF
+ENDIF
+ENDIF
+
+;--- 調教後セックス（挿入なし） (TFLAG:13 == 214) ---
+; ▼ 発生条件: [恋慕]必須（AFTER_V_CHECK のゲート）。無関係では絶対に発生しない。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ の4分岐
+; ▼ AFTER_V_CHECK: 調教後の事後セックス（挿入なし・独自仕様）。再番号で新設
+; ◆書き方: 挿入を伴わない事後の触れ合いの台詞。
+IF TFLAG:13 == 214
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……挿れなくていいんです。抱きしめて、撫でて……それで、十分すぎます」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、余韻を味わう時間も、大切ですね。……手、繋いでください♪」
+ELSE
+PRINTFORMW 「（触れ合いだけで、満ちていく……）……あなたの温もりが、いちばんの薬です」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……あの後は、優しくされたいんです。……恋人、ですから、我儘を言います」
+ELSEIF A == 1
+PRINTFORMW 「ん……撫でられるたびに、ほっと息が漏れます。……もっと、撫でて……」
+ELSE
+PRINTFORMW 「（身体は熱いのに、心は穏やかで……）……不思議な、時間ですね」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……触れるだけで、感じてしまう身体に、なっていて……♪」
+ELSEIF A == 1
+PRINTFORMW 「（事後の触れ合い、私の弱点です……）……転校生さん、ずるいです……」
+ELSE
+PRINTFORMW 「ふふ、挿れない夜のほうが、かえって淫らな気がします。……私だけですか？」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……優しく、してください……。……ううっ、こんな甘え方、あなたにしかできません……」
+ELSEIF A == 1
+PRINTFORMW 「（余韻で、涙が出そう……）……隣にいて、くれるだけで……」
+ELSE
+PRINTFORMW 「……離さないで、ください……。今日だけは、私を一人にしないで……」
+ENDIF
+ENDIF
+ENDIF
+;--- 夜這い (TFLAG:13 == 5) ---
+; ▼ 発生条件: [恋慕]＋[合意]必須（SELF_CHECK→SELF_CHECK2 のゲート）。無関係では絶対に発生しない。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ の4分岐
+; ◆書き方: 夜這いをかける/受ける密やかな一言。静かな色気が軸。
+IF TFLAG:13 == 5
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……転校生さん、起きていますか？　……私、眠れなくて。あなたの隣に、来てしまいました」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、夜這いなんて大胆な真似、妻の特権です♪　……ほら、布団に入れてください」
+ELSE
+PRINTFORMW 「（あなたの寝顔を見ていたら、我慢できなくて……）……私を、迎えて」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……来てしまいました。恋人同士、ですから。……月明かりのせいに、してください」
+ELSEIF A == 1
+PRINTFORMW 「んっ……静かに、静かに……。バレたら、恥ずかしくて死んでしまいます……」
+ELSE
+PRINTFORMW 「（あなたの匂いに、吸い寄せられて……）……今夜は、私から誘います」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「あっ……んっ……夜の私は、大胆なんです……♪　朝の私には、内緒ですよ」
+ELSEIF A == 1
+PRINTFORMW 「（身体が熱くて、眠れなくて……）……転校生さん、私を冷まして、ください……」
+ELSE
+PRINTFORMW 「ふふ、夜這い成功です。……ご褒美に、私をたっぷり可愛がってください♪」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……来て、しまいました……。……べ、べつに寂しかったわけでは……少しだけ、です……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、足音を忍ばせるの、緊張しました……。……見つけて、くれましたね」
+ELSE
+PRINTFORMW 「（恋しい気持ちを、理屈で誤魔化せなくて……）……今夜は、素直になります……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 夜這い（派生） (TFLAG:13 == 104) ---
+; ▼ 発生条件: [恋慕]＋[合意]必須（SELF_CHECK→SELF_CHECK2 のゲート）。無関係では絶対に発生しない。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ の4分岐
+; ◆書き方: 挿入を伴わない夜這い（ID5は挿入ありの通常夜這い）。触れ合い中心の密やかな一言。
+IF TFLAG:13 == 104
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……挿れなくても、いいんです。くっついて、眠りたかっただけ……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、触れ合うだけの夜も、私たちには必要です♪　……ほら、手を繋いで」
+ELSE
+PRINTFORMW 「（身体より、心が求めていて……）……今夜は、温もりだけで満たされます」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……来てしまいました。恋人、ですから……。無体はしません、ただ隣に……」
+ELSEIF A == 1
+PRINTFORMW 「ん……あなたの体温で、安心して眠れそうです。……ありがとうございます」
+ELSE
+PRINTFORMW 「（挿入なしの夜這い……私には、こちらのほうが勇気が要りました）」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……触れるだけで、こんなに熱く……。朝まで、このままで……♪」
+ELSEIF A == 1
+PRINTFORMW 「（身体が疼くのは内緒……）……今夜は、我慢する私も、悪くありません」
+ELSE
+PRINTFORMW 「ふふ、抱き合って眠るだけの夜、贅沢ですね。……たまには、どうぞ♪」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……添い寝に、来ました……。……い、色々な意味は、ありません……たぶん……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、勇気を出して来たのに、緊張で眠れそうにありません……」
+ELSE
+PRINTFORMW 「（恋しい、ただそれだけで来てしまいました……）……隣、いいですか……？」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- C感覚の敏感化 (TFLAG:13 == 217) ---
+; ▼ EVENTCHECK_M: C感覚が鈍感→敏感に変化した時。再番号で新設（旧80）
+; ◆書き方: 体の感覚が鋭くなった自覚への驚き・戸惑い。
+IF TFLAG:13 == 217
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……んっ……！　触れただけで、こんなに……私の身体、敏感に……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、Ｃが敏感に……。……転校生さん、試してみますか♪」
+ELSE
+PRINTFORMW 「（感じる身体に、なってしまった……）……嬉しいような、怖いような……」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……恋人の前でだけ、こんなに感じます。……他の人では、ダメなんです」
+ELSEIF A == 1
+PRINTFORMW 「んっ……服越しでも、分かってしまう……。……私、どうしましょう……」
+ELSE
+PRINTFORMW 「（敏感な身体も、あなたと一緒なら……）……もっと、触って、ください」
+ENDIF
+ENDIF
+ENDIF
+
+;--- V感覚の敏感化 (TFLAG:13 == 218) ---
+; ▼ EVENTCHECK_M: V感覚が鈍感→敏感に変化した時。再番号で新設（旧81）
+; ◆書き方: 体の感覚が鋭くなった自覚への驚き・戸惑い。
+IF TFLAG:13 == 218
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……あっ……中が、こんなに感じるなんて……。……私、変わってしまいました」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、Ｖが敏感に……。……あなたのため、ですからね♪」
+ELSE
+PRINTFORMW 「（挿れられるたび、壊れそうに……）……それでも、あなたがいいんです」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……恋人のものが、一番感じます。……身体が、正直で……」
+ELSEIF A == 1
+PRINTFORMW 「んっ……奥のほうが、疼いて……。……転校生さん、私を……」
+ELSE
+PRINTFORMW 「（この感度で、あなたを受け止める……）……幸せです、たぶん……」
+ENDIF
+ENDIF
+ENDIF
+
+;--- B感覚の敏感化 (TFLAG:13 == 220) ---
+; ▼ EVENTCHECK_M: B感覚が鈍感→敏感に変化した時。再番号で新設（旧84）
+; ◆書き方: 胸の感覚が鋭くなった自覚への驚き・戸惑い。
+IF TFLAG:13 == 220
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……胸が、こんなに敏感に……。……小さいのに、感じる量だけは人一倍です……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、Ｂの敏感化……。……貧乳の意地、見せてあげます♪」
+ELSE
+PRINTFORMW 「（服が擦れるだけで……）……転校生さん、私、どうしたら……」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……恋人に触られると、特に……。……身体は、正直ですね」
+ELSEIF A == 1
+PRINTFORMW 「んっ……楽器の弦みたいに、少しの刺激で震えます……」
+ELSE
+PRINTFORMW 「（小さい胸でも、あなたには……）……もっと、愛してください」
+ENDIF
+ENDIF
+ENDIF
+
+;--- [自慰しやすい]取得 (TFLAG:13 == 224) ---
+; ▼ EVENTCHECK_M: 素質[自慰しやすい]を得た時。再番号で新設（旧85）
+; ◆書き方: 自慰の衝動が強くなった自覚。羞恥と率直さの間で。
+IF TFLAG:13 == 224
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……私、自慰がしやすい身体に……？　……自覚は、ありました……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、一人の夜も、忙しくなりそうです。……あなたのせいですよ♪」
+ELSE
+PRINTFORMW 「（一人でする回数が、増えるなんて……）……恥ずかしい、素質です……」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……一人でいる夜が、長く感じます。……身体が、覚えてしまって」
+ELSEIF A == 1
+PRINTFORMW 「ん……指先が、勝手に……。……ううっ、止まらない私を、許してください」
+ELSE
+PRINTFORMW 「（あなたを思ってする行為……）……それも、愛だと思いたいです」
+ENDIF
+ENDIF
+ENDIF
+
+;--- [両刀]取得 (TFLAG:13 == 225) ---
+; ▼ EVENTCHECK_M: 素質[両刀]を得た時。再番号で新設（旧86）
+; ◆書き方: 女性への欲望に目覚めた自覚。
+IF TFLAG:13 == 225
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……両刀……ですか、私。……女性の魅力も、分かるようになってしまったんですね」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、彼女たちの可愛さに、目覚めてしまいました。……転校生さん、独占欲は抑えてくださいね♪」
+ELSE
+PRINTFORMW 「（女性相手でも、感じられる私……）……世界の、広さですね……」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……彼女の寝顔を見て、どきどきする私がいます。……新しい扉、ですね」
+ELSEIF A == 1
+PRINTFORMW 「ん……女性の柔らかさ、あなたとは違う心地よさで……」
+ELSE
+PRINTFORMW 「（両刀の私も、あなたが一番です）……それは、譲れません」
+ENDIF
+ENDIF
+ENDIF
+
+;--- ヴァンパイア化 (TFLAG:13 == 221) ---
+; ▼ EVENT_V EXP57_CHECK: 血を吸われてヴァンパイアになった本人。再番号で新設（旧81）
+; ◆書き方: 人でなくなった衝撃と、新しい感覚への戸惑い。させた相手への感情は関係性で大きく変わる。
+IF TFLAG:13 == 221
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……ヴァンパイアに、私が……？　……鏡に、映らない……本当に……」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、永遠の命……。……転校生さんと、ずっと一緒にいられるなら、悪くありません♪」
+ELSE
+PRINTFORMW 「（血の渇きと、あなたの匂い……）……私を、人でなくした責任、とってください」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……恋人が吸血鬼に……。……あなたは、それでも、隣にいてくれますか……？」
+ELSEIF A == 1
+PRINTFORMW 「んっ……牙が、疼きます……。……あなたの首筋が、目に入って……すみません……」
+ELSE
+PRINTFORMW 「（もう日向は歩けない……）……でも、夜の世界で、あなたと……」
+ENDIF
+ENDIF
+ENDIF
+
+;--- [サド]取得 (TFLAG:13 == 222) ---
+; ▼ AFTER_TALENT_CHECK: [サド]に目覚めた時。再番号で新設（旧90）
+; ◆書き方: 主人公を嬲る快感に目覚めた自覚。嗜虐心の芽生えを。
+IF TFLAG:13 == 222
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……私が、サド……？　……いえ、否定はしません。あなたを苛める快感、覚えてしまいました」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、転校生さんを困らせるの、楽しいんです。……ごめんなさい、嘘です、楽しいです♪」
+ELSE
+PRINTFORMW 「（虐げる素質……）……ほどほどに、しますから。……たぶん」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……彼女を苛めて喜ぶ私……。……恋人の前でだけ、ですよ」
+ELSEIF A == 1
+PRINTFORMW 「ん……あなたの苦しそうな顔、好きです。……私、悪くなりましたね」
+ELSE
+PRINTFORMW 「（サドの自覚……）……責任は、感じさせたあなたにもあります」
+ENDIF
+ENDIF
+ENDIF
+
+;--- 主人公の[マゾ]取得（彼女の反応） (TFLAG:13 == 223) ---
+; ▼ AFTER_TALENT_CHECK: 主人公が[マゾ]に目覚めた時、彼女が喋る。再番号で新設（旧91）
+; ◆書き方: コード内コメント指定「全力で罵倒してやってくれ」。主人公への罵倒・嗜虐的な一言を。
+IF TFLAG:13 == 223
+A = RAND:3
+IF TALENT:153 || TALENT:85
+IF A == 0
+PRINTFORMW 「……転校生さん、あなた……虐められるの、好きになったんですか？　……困った恋人です」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、いじめてほしいなら、仕方ありませんね。……優しく、苛めてあげます♪」
+ELSE
+PRINTFORMW 「（彼の新しい素質に、私が応える番……）……言葉でなら、いくらでも」
+ENDIF
+ELSE
+IF A == 0
+PRINTFORMW 「……あなたを罵るなんて、私にできるでしょうか……。……と、とにかく、その……ばか……？」
+ELSEIF A == 1
+PRINTFORMW 「ん……もっと強く言ってほしい、ですか……？　……仕方ありません、練習します」
+ELSE
+PRINTFORMW 「（彼の変化も、私の務め……）……ほら、もっと情けない声を、聞かせてください」
+ENDIF
+ENDIF
+ENDIF
+;--- キス夜這い (TFLAG:13 == 76) ---
+; ▼ 発生条件: [恋慕]＋[合意]必須（SELF_CHECK→SELF_CHECK2 のゲート）。無関係では絶対に発生しない。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ の4分岐
+; ◆書き方: キスで始まる夜這い。甘く短く。
+IF TFLAG:13 == 76
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……ちゅ。……ふふ、キスの夜這いです。起きましたか♪」
+ELSEIF A == 1
+PRINTFORMW 「（唇でなら、素直になれるんです）……もう一度、いいですか……？」
+ELSE
+PRINTFORMW 「あなたの寝顔に、キスを落とす夜……私の、密かな楽しみです」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……キス、しに来ました。恋人同士ですから、当然です……よね？」
+ELSEIF A == 1
+PRINTFORMW 「んっ……キス魔、ではないんです……。あなたにだけ、こうなるんです……」
+ELSE
+PRINTFORMW 「（こんな夜更けに、唇を求めて……）……私、どうかしています……」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ、ちゅ……あっ……。キスだけのはずが、身体まで熱く……♪」
+ELSEIF A == 1
+PRINTFORMW 「（キスから始まる夜は、止まらなくて……）……転校生さん、続きを……ください」
+ELSE
+PRINTFORMW 「ふふ、キスの味で満ちる夜……。私の唇、あなたのものです」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……き、キスしに来ました……！　……いけないこと、ですか……？」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、唇が触れた瞬間、心臓が……。……も、もう一度、いいですか……」
+ELSE
+PRINTFORMW 「（キス未経験だった私が、夜這いまで……）……あなたの、せいです……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 添い寝 (TFLAG:13 == 80) ---
+; ▼ 発生条件: [恋慕]＋[合意]必須（SELF_CHECK→SELF_CHECK2 のゲート）。無関係では絶対に発生しない。分岐は 相愛・親愛／恋人／淫乱／恋慕のみ の4分岐
+; ◆書き方: 一緒に眠る前の静かな一言。安心感が軸。
+IF TFLAG:13 == 80
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……隣、失礼します。あなたの隣が、私の寝場所ですから」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、添い寝の権利、行使します♪　……温かいですね」
+ELSE
+PRINTFORMW 「（くっついて眠ると、夢も穏やかで……）……おやすみなさい、転校生さん」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……添い寝に来ました。恋人、ですから……。……手、繋いで寝ましょう」
+ELSEIF A == 1
+PRINTFORMW 「ん……あなたの体温で、ほっとします。……今夜も、いい夢が見られそうです」
+ELSE
+PRINTFORMW 「（一人で寝るのが、寂しくなってしまいました……）……隣、ありがとうございます」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……密着すると、身体が疼いて……。……でも今夜は、眠りたいんです……」
+ELSEIF A == 1
+PRINTFORMW 「（添い寝のつもりが、熱で眠れなくて……）……転校生さん、起きていますか……？」
+ELSE
+PRINTFORMW 「ふふ、くっついて寝るの、癖になりますね。……朝まで、このままで♪」
+ENDIF
+ELSE	; 【恋慕のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……隣、いいですか……？　……べ、べつに怖い夢を見たわけでは……」
+ELSEIF A == 1
+PRINTFORMW 「ううっ、布団に入る瞬間が、いちばん緊張します……。……失礼、します……」
+ELSE
+PRINTFORMW 「（一人きりの夜が、思い出せなくて……）……添い寝、ありがとうございます……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+;--- 奉仕事後 (TFLAG:13 == 97) ---
+; ◆書き方: 奉仕を終えた後の反応。尽くした満足感と、相手の反応を伺う含み。
+; ▼発生条件: [合意]か[恋人]＋ウフフ中＋奉仕精神Lv5以上。分岐は 相愛・親愛／恋人／淫乱／合意のみ
+IF TFLAG:13 == 97
+IF TALENT:89 || TALENT:88	; 【相愛/親愛】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……お仕え、できましたか？　あなたの満足そうな顔が、私のご褒美です♪」
+ELSEIF A == 1
+PRINTFORMW 「ふふ、尽くすのは妻の務めです。……もっと、頼ってください」
+ELSE
+PRINTFORMW 「（あなたのためなら、どこまでも……）……次も、私にお任せを」
+ENDIF
+ELSEIF TALENT:153	; 【恋人】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……奉仕の後は、褒めてほしいんです。……恋人、ですから、我儘を言います」
+ELSEIF A == 1
+PRINTFORMW 「ん……あなたの反応を見るのが、好きで……。……また、させてください」
+ELSE
+PRINTFORMW 「（尽くした後の、穏やかな疲れ……）……隣に、座ってもいいですか」
+ENDIF
+ELSEIF TALENT:76	; 【淫乱】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「んっ……奉仕しながら、私のほうが熱くなって……♪　……気づいていましたか？」
+ELSEIF A == 1
+PRINTFORMW 「（尽くすほどに、欲しくなる身体……）……転校生さん、私にも、ください……」
+ELSE
+PRINTFORMW 「ふふ、奉仕は私の悦びです。……身体が、そう言っています♪」
+ENDIF
+ELSE	; 【合意のみ】
+A = RAND:3
+IF A == 0
+PRINTFORMW 「……お役に、立てましたか……？　合意の上とはいえ、緊張しました……」
+ELSEIF A == 1
+PRINTFORMW 「（尽くすことでしか、表せない気持ちもあって……）……伝わりましたか？」
+ELSE
+PRINTFORMW 「ううっ、奉仕の後のこの感じ……嫌いじゃ、ありません……」
+ENDIF
+ENDIF
+RETURN 0
+ENDIF
+
+RETURN 0
