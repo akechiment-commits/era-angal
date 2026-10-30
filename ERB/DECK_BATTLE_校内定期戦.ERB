@@ -90,6 +90,8 @@ FOR LOCAL, 0, CHARANUM
 		CONTINUE
 	SIF CFLAG:LOCAL:21 == 1	; 【LOCAL:[別れ]==1】
 		CONTINUE
+	SIF CFLAG:LOCAL:2 <= -100	; 嫌悪キャラは編成できない
+		CONTINUE
 	A += 1
 	B = 0
 	SIF FLAG:200 == LOCAL
@@ -773,6 +775,8 @@ REPEAT 5
 			CONTINUE
 		SIF BASE:LOCAL:0 <= 0	; 衰弱療養中（お休み）のキャラは自動選出から除外
 			CONTINUE
+	SIF CFLAG:LOCAL:2 <= -100	; 嫌悪キャラは自動選出から除外
+		CONTINUE
 		;既に選出済みかチェック
 		C = 0
 		SIF FLAG:200 == LOCAL
@@ -833,6 +837,8 @@ FOR LOCAL:1, 0, 5
 	SIF LOCAL:2 < 1 || LOCAL:2 >= CHARANUM || LOCAL:2 == MASTER
 		CONTINUE
 	SIF BASE:(LOCAL:2):0 <= 0	; 【対象:[体力]<=0】
+		CONTINUE
+	SIF CFLAG:(LOCAL:2):2 <= -100	; 嫌悪メンバーは祝勝会に参加しない
 		CONTINUE
 	IF TALENT:(LOCAL:2):88 || TALENT:(LOCAL:2):89 || TALENT:(LOCAL:2):76	; 【対象:[親愛] / [相愛] / [淫乱]】
 		LOCAL:(10 + LOCAL:0) = LOCAL:2
@@ -1227,6 +1233,12 @@ REPEAT 5
 		; 別れ状態、または体力が0以下（療養中）の場合
 		IF CFLAG:LOCAL:21 == 1 || BASE:LOCAL:0 <= 0
 			PRINTFORML （%CALLNAME:LOCAL%は衰弱療養中のため、校内定期戦デッキから外れました）
+			FLAG:(200 + COUNT) = -1
+			LOCAL:95 = 1
+		ENDIF
+		; 嫌悪状態の場合
+		IF CFLAG:LOCAL:2 <= -100
+			PRINTFORML （%CALLNAME:LOCAL%は主人公を嫌悪しているため、校内定期戦デッキから外れました）
 			FLAG:(200 + COUNT) = -1
 			LOCAL:95 = 1
 		ENDIF
