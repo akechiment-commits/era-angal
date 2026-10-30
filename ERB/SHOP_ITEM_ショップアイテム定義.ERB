@@ -120,12 +120,14 @@ ITEMSALES:81 = 0
 ITEMSALES:82 = 0
 ITEMSALES:88 = 0
 ITEMSALES:89 = 0
-;食べ物系・イベントアイテムは販売しない
-ITEMSALES:90 = 0
-ITEMSALES:91 = 0
-ITEMSALES:92 = 0
-ITEMSALES:93 = 0
-ITEMSALES:94 = 0
+;食品アイテムの入荷・在庫チェック
+CALL FOOD_STOCK_CHECK
+
+ITEMSALES:90 = (FLAG:15091 > 0)
+ITEMSALES:91 = (FLAG:15092 > 0)
+ITEMSALES:92 = (FLAG:15093 > 0)
+ITEMSALES:93 = (FLAG:15094 > 0)
+ITEMSALES:94 = (FLAG:15095 > 0)
 ITEMSALES:95 = 0
 ITEMSALES:96 = 0	;カードセレクトチケットは報酬専用
 IF F || P
@@ -279,12 +281,12 @@ SIF F && P
 ;---------------------------------------------------------
 @EVENTBUY
 ;購入したことを分かりやすくしてみよう
-SIF BOUGHT < 25 || (BOUGHT >= 40 && BOUGHT < 60) || BOUGHT >= 70
+SIF BOUGHT < 25 || (BOUGHT >= 40 && BOUGHT < 60) || (BOUGHT >= 70 && BOUGHT < 90) || BOUGHT == 98
 	PRINTFORMW ＜%ITEMNAME:BOUGHT%を購入しました＞
 SIF BOUGHT > 61 && BOUGHT < 69
 	PRINTFORMW ＜%ITEMNAME:BOUGHT%を身につけました＞
 ;調教アイテムは買ったら消える
-SIF BOUGHT < 25 || BOUGHT >= 40
+SIF BOUGHT < 25 || (BOUGHT >= 40 && BOUGHT < 60)
 	ITEMSALES:BOUGHT = 0
 ;素質アイテム、キャラカードは買ったら消える
 IF (BOUGHT >= 60 && BOUGHT < 84) || BOUGHT == 98
@@ -395,8 +397,8 @@ ENDIF
 
 SIF BOUGHT == 25 || BOUGHT == 26 || BOUGHT == 27 || BOUGHT == 28 || BOUGHT == 29 || BOUGHT == 30 || BOUGHT == 31 || BOUGHT == 33 || BOUGHT == 34 || BOUGHT == 35
 	CALL BUY_PLURAL
-SIF BOUGHT == 90 || BOUGHT == 91 || BOUGHT == 92 || BOUGHT == 93
-	CALL BUY_PLURAL
+SIF BOUGHT >= 90 && BOUGHT <= 94
+	CALL BUY_FOOD_PLURAL
 SIF BOUGHT == 70 || BOUGHT == 71 || BOUGHT == 72 || BOUGHT == 73 || BOUGHT == 74 || BOUGHT == 75 || BOUGHT == 76 || BOUGHT == 77 || BOUGHT == 78 || BOUGHT == 79 || BOUGHT == 80 || BOUGHT == 82 || BOUGHT == 85 || BOUGHT == 86 || BOUGHT == 87 || BOUGHT == 88 || BOUGHT == 89 || BOUGHT == 98
 	CALL USE_ITEM
 
@@ -449,6 +451,123 @@ ELSE
 	MONEY -= ITEMPRICE:BOUGHT*RESULT
 	RETURN 0
 ENDIF
+
+;---------------------------------------------------------
+;食品アイテムの購入処理（購買部在庫制限あり）
+;---------------------------------------------------------
+@BUY_FOOD_PLURAL
+;事前購入分を戻す（ERAシステムが自動で1個引くため）
+MONEY += ITEMPRICE:BOUGHT
+ITEM:BOUGHT -= 1
+
+LOCAL:1 = GET_FOOD_STOCK_FLAG(BOUGHT)
+LOCAL:2 = FLAG:(LOCAL:1)	;現在の店頭在庫数
+
+DRAWLINE
+PRINTFORML 【購買部】%ITEMNAME:BOUGHT%（単価 ${ITEMPRICE:BOUGHT}）
+PRINTFORML 　店頭在庫：{LOCAL:2}個　／　現在の所持数：{ITEM:BOUGHT}個
+IF LOCAL:2 <= 0
+	PRINTFORMW あいにく現在は売り切れています
+	ITEMSALES:BOUGHT = 0
+	RETURN 0
+ENDIF
+
+;購入可能最大数：MIN(所持金による制限, 店頭在庫, 所持上限99-現在所持)
+LOCAL:3 = MIN(MONEY / ITEMPRICE:BOUGHT, LOCAL:2, 99 - ITEM:BOUGHT)
+
+IF LOCAL:3 <= 0
+	IF MONEY < ITEMPRICE:BOUGHT
+		PRINTFORMW お金が足りません
+	ELSE
+		PRINTFORMW これ以上持ちきれません（最大99個）
+	ENDIF
+	RETURN 0
+ENDIF
+
+PRINTFORML いくつ購入しますか？ (0～{LOCAL:3}個)
+CALL INPUT_MANY(0, LOCAL:3)
+IF RESULT == 0
+	RETURN 0
+ELSEIF RESULT == 1
+	PRINTFORMW ＜%ITEMNAME:BOUGHT%を購入しました＞
+	ITEM:BOUGHT += 1
+	MONEY -= ITEMPRICE:BOUGHT
+	FLAG:(LOCAL:1) -= 1
+	SIF FLAG:(LOCAL:1) <= 0
+		ITEMSALES:BOUGHT = 0
+	RETURN 0
+ELSE
+	PRINTFORMW ＜%ITEMNAME:BOUGHT%を{RESULT}個購入しました＞
+	ITEM:BOUGHT += RESULT
+	MONEY -= ITEMPRICE:BOUGHT * RESULT
+	FLAG:(LOCAL:1) -= RESULT
+	SIF FLAG:(LOCAL:1) <= 0
+		ITEMSALES:BOUGHT = 0
+	RETURN 0
+ENDIF
+
+;---------------------------------------------------------
+;食品アイテムの店頭在庫管理（時間経過による自然補充）
+;---------------------------------------------------------
+@FOOD_STOCK_CHECK
+;初回初期化（新規開始または旧セーブデータ読み込み時）
+IF FLAG:15090 == 0
+	FLAG:15091 = 5	;おにぎり初期在庫
+	FLAG:15092 = 2	;カレー初期在庫
+	FLAG:15093 = 5	;ドーナッツ初期在庫
+	FLAG:15094 = 2	;パフェ初期在庫
+	FLAG:15095 = 1	;お弁当初期在庫
+	FLAG:15090 = DAY + 1
+	RETURN 0
+ENDIF
+
+;周回等でDAYが巻き戻った場合の安全対策
+IF DAY + 1 < FLAG:15090
+	FLAG:15090 = DAY + 1
+	RETURN 0
+ENDIF
+
+;前回チェックからの経過日数分、在庫を補充（上限なし・蓄積型）
+IF DAY + 1 > FLAG:15090
+	FOR LOCAL, FLAG:15090, DAY + 1
+		;3日に1個入荷：おにぎり・ドーナッツ
+		IF LOCAL % 3 == 0
+			FLAG:15091 += 1
+			FLAG:15093 += 1
+		ENDIF
+		;7日に1個入荷：カレー・パフェ
+		IF LOCAL % 7 == 0
+			FLAG:15092 += 1
+			FLAG:15094 += 1
+		ENDIF
+		;10日に1個入荷：お弁当
+		IF LOCAL % 10 == 0
+			FLAG:15095 += 1
+		ENDIF
+	NEXT
+	FLAG:15090 = DAY + 1
+ENDIF
+RETURN 0
+
+;---------------------------------------------------------
+;食品アイテム番号から在庫FLAG番号を取得する関数
+;---------------------------------------------------------
+@GET_FOOD_STOCK_FLAG(ARG)
+#FUNCTION
+SELECTCASE ARG
+CASE 90
+	RETURNF 15091
+CASE 91
+	RETURNF 15092
+CASE 92
+	RETURNF 15093
+CASE 93
+	RETURNF 15094
+CASE 94
+	RETURNF 15095
+CASEELSE
+	RETURNF 0
+ENDSELECT
 
 ;アイテム使用
 @USE_ITEM
