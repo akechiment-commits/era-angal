@@ -132,29 +132,29 @@ IF F || P
 	REPEAT CHARANUM
 		SIF CFLAG:COUNT:21	; 【COUNT:[別れ]】
 			CONTINUE
-		;71,薬の材料(双),20000,;ふたなりにする
+		;71,ふたなり化薬,20000,;ふたなりにする
 		;既になっていたらダメ
 		IF TALENT:COUNT:121 == 0 && TALENT:COUNT:122 == 0	; 【COUNT:[ふたなり]なし / COUNT:[オトコ]なし】
 			;禁断の知識がない場合、対象に調合知識か不思議な根か具現が必要
 			SIF F || (TALENT:COUNT:55 || TALENT:COUNT:120 || TALENT:COUNT:127)	; 【COUNT:[調合知識] / COUNT:[不思議な根] / COUNT:[具現]】
 				ITEMSALES:71 = 1
 		ENDIF
-		;72,薬の材料(消),10000,;ふたなりを消去する
+		;72,ふたなり解除薬,10000,;ふたなりを消去する
 		SIF TALENT:COUNT:121 && TALENT:COUNT:122 == 0	; 【COUNT:[ふたなり] / COUNT:[オトコ]なし】
 			ITEMSALES:72 = 1
-		;73,青の飴玉,20000,;体が成長するキャンディ。母乳体質になる
+		;73,母乳誘発剤,20000,;母乳体質になる
 		;すでに母乳体質だとダメ、禁断の知識でないとダメ
 		SIF F && TALENT:COUNT:130 == 0 && TALENT:COUNT:122 == 0	; 【COUNT:[母乳体質]なし / COUNT:[オトコ]なし】
 			ITEMSALES:73 = 1
-		;74,赤の飴玉,20000,;体が若返るキャンディ。処女膜が再生する
-		;処女は対象外、禁断の知識でないとダメ
-		SIF F && TALENT:COUNT:0 == 0 && TALENT:COUNT:122 == 0	; 【COUNT:[処女]なし / COUNT:[オトコ]なし】
+		;74,処女膜再生薬,20000,;処女膜が再生する(再生処女ならV経験リセット)
+		;完全処女(処女かつV経験0)またはオトコは対象外、禁断の知識でないとダメ
+		SIF F && TALENT:COUNT:122 == 0 && (TALENT:COUNT:0 == 0 || EXP:COUNT:0 > 0)
 			ITEMSALES:74 = 1
 		;75,豊胸剤,20000,;胸の大きさを1段階上げる。
 		;巨乳だとダメ
 		SIF TALENT:COUNT:141 == 0 && TALENT:COUNT:122 == 0	; 【COUNT:[爆乳]なし / COUNT:[オトコ]なし】
 			ITEMSALES:75 = 1
-		;76,縮胸剤,10000,;胸の大きさを1段階下げる。
+		;76,縮胸剤,15000,;胸の大きさを1段階下げる。
 		;貧乳だとダメ
 		SIF TALENT:COUNT:109 == 0 && TALENT:COUNT:122 == 0	; 【COUNT:[貧乳]なし / COUNT:[オトコ]なし】
 			ITEMSALES:76 = 1
@@ -166,15 +166,15 @@ IF F || P
 		;お漏らし癖じゃないとダメ
 		SIF TALENT:COUNT:57	; 【COUNT:[おもらし癖]】
 			ITEMSALES:78 = 1
-		;80,金の飴玉,30000,;小柄体型持ちを成長させる
-		;金飴=身長UP。まだ最高身長(190)未満のキャラがいれば販売
+		;80,身長伸長薬,20000,;身長を伸ばす
+		;身長伸長薬=身長UP。まだ最高身長(190)未満のキャラがいれば販売
 		SIF HEIGHT_CM(COUNT) < 250
 			ITEMSALES:80 = 1
-		;82,銀の飴玉,30000,;通常→小柄体型→子供体型へ段階的に幼くする
-		;銀飴=身長DOWN。まだ最低身長(110)超のキャラがいれば販売
+		;82,身長縮小薬,20000,;身長を縮める
+		;身長縮小薬=身長DOWN。まだ最低身長(110)超のキャラがいれば販売
 		SIF HEIGHT_CM(COUNT) > 55
 			ITEMSALES:82 = 1
-		;81,黒の飴玉,50000,;EX化させる
+		;81,EX化薬,50000,;EX化させる
 		;まだEX化していなくて、EX化が可能なキャラでないと使用できない
 		SIF CFLAG:COUNT:0 == 0 && ABLE_EX_CHANGES(COUNT)	; 【COUNT:[EXフラグ]==0】
 			ITEMSALES:81 = 1
@@ -246,9 +246,9 @@ SIF (TALENT:MASTER:121 || TALENT:MASTER:122) && TALENT:MASTER:133 == 0	; 【MASTE
 	ITEMSALES:64 = 1
 
 
-;調合知識(封印中)
+;調合知識
 ITEMSALES:65 = 0
-SIF F && P
+SIF TALENT:MASTER:55 == 0
 	ITEMSALES:65 = 1
 
 ;技巧
@@ -269,7 +269,7 @@ SIF FLAG:1 >= 1 && ITEM:46 == 0
 	ITEMSALES:46 = 1
 
 
-;83,虹の飴玉,500000,;プレイヤーの性別を変える
+;83,性転換薬,500000,;プレイヤーの性別を変える
 ITEMSALES:83 = 0
 SIF F && P
 	ITEMSALES:83 = 1
@@ -301,9 +301,9 @@ ENDIF
 ;素質アイテム【技巧Lv】
 IF BOUGHT == 60 && ABL:MASTER:2 < 9999	; 【MASTER:[技巧]Lv<9999】
 	;計算しやすいようにシステムでまず引かれる金額を戻しておき、購入した場合引くようにする
-	MONEY += 5000
+	MONEY += ITEMPRICE:60
 	
-	A = 5000
+	A = ITEMPRICE:60
 	IF ABL:MASTER:2 >= 6	; 【MASTER:[技巧]Lv>=6】
 		B = (ABL:MASTER:2 - 2) * (ABL:MASTER:2 - 5) / 2
 	ELSE
@@ -381,11 +381,11 @@ IF BOUGHT == 83
 	ENDIF
 
 	IF RESULT == 0
-		;虹の飴玉(性転換)
+		;性転換薬(性転換)
 		CALL USE_DRUG_83
 	ELSE
 		;払い戻し
-		MONEY += 500000
+		MONEY += ITEMPRICE:BOUGHT
 		ITEMSALES:BOUGHT = 1
 		RETURN 0
 	ENDIF
@@ -416,7 +416,7 @@ FOR LOCAL, 0, LOCAL:2
 	ELSE
 		B = 1
 	ENDIF
-	LOCAL:3 = 5000 * B
+	LOCAL:3 = ITEMPRICE:60 * B
 	SIF M + LOCAL:3 > MONEY
 		BREAK
 	M += LOCAL:3
@@ -463,8 +463,10 @@ SIF BOUGHT == 72
 	PRINTL ふたなりを消去します
 SIF BOUGHT == 73
 	PRINTL 母乳体質になります
-SIF BOUGHT == 74
+IF BOUGHT == 74
 	PRINTL 処女膜が再生します
+	PRINTL ※既に再生された処女に使用すると、Ｖ経験をゼロにリセットできます
+ENDIF
 SIF BOUGHT == 75
 	PRINTL 胸を大きくします
 SIF BOUGHT == 76
@@ -517,7 +519,7 @@ REPEAT CHARANUM
 		CONTINUE
 	SIF BOUGHT == 73 && (TALENT:COUNT:130 || TALENT:COUNT:122)	; 【COUNT:[母乳体質] / COUNT:[オトコ]】
 		CONTINUE
-	SIF BOUGHT == 74 && (TALENT:COUNT:0 || TALENT:COUNT:122)	; 【COUNT:[処女] / COUNT:[オトコ]】
+	SIF BOUGHT == 74 && (TALENT:COUNT:122 || (TALENT:COUNT:0 && EXP:COUNT:0 == 0))
 		CONTINUE
 	SIF BOUGHT == 75 && TALENT:COUNT:122	; 【COUNT:[オトコ]】
 		CONTINUE
@@ -670,16 +672,23 @@ IF BOUGHT == 73
 	RESULT = R
 	TFLAG:600 = 53
 ENDIF
-;処女膜再生
+;処女膜再生 / Ｖ経験リセット
 IF BOUGHT == 74
 	LOCAL = RESULT
-	PRINTFORMW ＜%NAME:LOCAL%の処女膜が再生された＞
-	TALENT:LOCAL:0 = 1
-	CFLAG:LOCAL:1245 = 0
-	;素質発覚
-	SIF FLAG:2 == 1 && (CFLAG:60 & 1) == 0	; 【[素質発覚1]】
-		CFLAG:60 |= 1
-	TFLAG:600 = 54
+	IF TALENT:LOCAL:0 == 0
+		PRINTFORMW ＜%NAME:LOCAL%の処女膜が再生された＞
+		TALENT:LOCAL:0 = 1
+		CFLAG:LOCAL:1245 = 0
+		;素質発覚
+		SIF FLAG:2 == 1 && (CFLAG:LOCAL:60 & 1) == 0	; 【LOCAL:[素質発覚1]】
+			CFLAG:LOCAL:60 |= 1
+		TFLAG:600 = 54
+	ELSE
+		PRINTFORMW ＜%NAME:LOCAL%のＶ経験が完全にリセットされ、未経験の身体に戻った＞
+		EXP:LOCAL:0 = 0
+		CFLAG:LOCAL:1245 = 0
+		TFLAG:600 = 54
+	ENDIF
 ENDIF
 ;豊乳化（バストcm増。素質はcmから自動導出。爆乳にも使用可）
 IF BOUGHT == 75
@@ -735,7 +744,7 @@ IF BOUGHT == 79
 		TARGET = A
 		CALL LAY_EGG
 	ELSEIF RESULT == 0
-		MONEY += 20000
+		MONEY += ITEMPRICE:BOUGHT
 		RETURN 0
 	ELSE
 		PRINTFORML 正しい値を入力してください
@@ -743,7 +752,7 @@ IF BOUGHT == 79
 	ENDIF
 ENDIF
 
-;身長UP薬（金の飴玉）
+;身長伸長薬
 IF BOUGHT == 80
 	R = RESULT
 	CALL HEIGHT_ADJUST, RESULT, (RAND:4 + 3)
@@ -751,7 +760,7 @@ IF BOUGHT == 80
 	PRINTFORMW ＜%NAME:RESULT%の身長が伸びた（{CFLAG:RESULT:1103}cm）＞
 ENDIF
 
-;身長DOWN薬（銀の飴玉）
+;身長縮小薬
 IF BOUGHT == 82
 	R = RESULT
 	CALL HEIGHT_ADJUST, RESULT, -(RAND:4 + 3)
@@ -1257,7 +1266,7 @@ CALL SYNC_PENIS_TALENT, C
 RETURN 0
 
 ;-------------------------------------------------
-;虹の飴玉(性転換)
+;性転換薬(性転換)
 ;-------------------------------------------------
 @USE_DRUG_83
 ;現状では主人専用の性転換処理
