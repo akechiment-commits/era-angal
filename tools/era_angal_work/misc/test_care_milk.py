@@ -44,7 +44,7 @@ class CareMilkTests(unittest.TestCase):
         birth=function(PREG,'CHILD_BIRTH')
         self.assertLess(birth.index('CALL RECORD_PRE_CARE_MILK, C'),birth.index('TALENT:C:130 = 1'))
         nurse=function(PREG,'SELECT_NURSE')
-        self.assertIn('SIF TALENT:RESULT:135 == 0\r\n\t\tCALL RECORD_PRE_CARE_MILK, RESULT',nurse)
+        self.assertIn('SIF TALENT:NURSE_ID:135 == 0\r\n\tCALL RECORD_PRE_CARE_MILK, NURSE_ID',nurse)
         self.assertIn('CALL END_CARE_MILK, C',function(PREG,'DEPEARENT'))
         self.assertIn('CFLAG:C:1284 = CFLAG:D:1284',function(source('SHOP_ITEM*'),'MEMORY_DRUG_KEEP_BODY'))
         self.assertIn('CFLAG:ARG:1284 = 0',function(PREG,'MEMORY_DRUG_END_CARE'))

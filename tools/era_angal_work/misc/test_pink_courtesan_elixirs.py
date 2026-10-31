@@ -51,7 +51,8 @@ class PinkCourtesanTests(unittest.TestCase):
         self.assertIn("CALL PINK_ELIXIR_DESIRE", function(TRACHECK, "UP_TALENT_CHECK"))
         for pattern in ["SOURCE*", "REVMODE*"]:
             self.assertIn("CALL UP_TALENT_CHECK", source(pattern))
-        for pattern in ["AFTERTRA*", "YU-CTION*"]:
+        # YU-CTION's auction cleanup path was removed; AFTERTRA remains active.
+        for pattern in ["AFTERTRA*"]:
             self.assertIn("CALL RESTORE_COURTESAN_ELIXIR", source(pattern))
 
 if __name__ == "__main__":

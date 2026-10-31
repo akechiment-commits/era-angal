@@ -24,7 +24,7 @@ class EventCardBalanceTests(unittest.TestCase):
         )
 
     def test_shared_recalc_and_school_deck_remain_unchanged(self):
-        self.assertIn("CFLAG:COUNT:306 *= 2", read(GACHA))
+        self.assertIn("CFLAG:(LOCAL:75):306 *= 2", read(GACHA))
         deck = read(DECK)
         self.assertIn("LOCAL:1 += CFLAG:ARG:306 * 2", deck)
         self.assertIn("LOCAL:1 = DECK_MEMBER_SCORE(Z)", deck)

@@ -127,7 +127,7 @@ class EjacScaleTests(unittest.TestCase):
             self.assertEqual(got, 0)
 
     def test_direct_gain_routes_use_the_same_safe_multiplier(self):
-        for path in ("COMF/COMF21.ERB", "COMF/COMF22.ERB", "COMF/COMF30.ERB", "YU-CTION*"):
+        for path in ("COMF/COMF21.ERB", "COMF/COMF22.ERB", "COMF/COMF30.ERB"):
             text = source(path)
             end = text.index("BASE:PLAYER:2 += COURTESAN_EJAC_GAIN")
             start = text.rfind(";ABL:技巧をみる", 0, end)

@@ -144,6 +144,9 @@ class ErbPaths:
                     depth -= following == "NEXT"
                     if depth:
                         pc += 1
+            elif line.startswith("TRYCALLFORM "):
+                # Optional KOJO callbacks do not change the numeric paths modeled here.
+                self.calls.append(("TRYCALLFORM", (line[12:].strip(),)))
             elif line.startswith("CALL "):
                 callee, *expressions = [part.strip() for part in line[5:].split(",")]
                 self.run(callee, tuple(self.expr(part, frame) for part in expressions))
