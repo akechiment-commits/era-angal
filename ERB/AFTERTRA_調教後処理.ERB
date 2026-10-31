@@ -25,7 +25,13 @@ ENDIF
 
 ;体力が正で倒れ・強制終了でない場合のみ終了時口上を呼び出す
 IF TARGET >= 0 && BASE:TARGET:0 > 0 && TFLAG:301 == 0 && TFLAG:51 != 2	; 【無[体力限界終了] / [押し倒され]!=2 / TARGET:[体力]>0】
+	IF CFLAG:TARGET:2 <= -100
+	TRYCALLFORM KOJO_HATED_END_K{NO:TARGET}
+	SIF RESULT == 0
+		TRYCALLFORM CHAR_SESSION_END_{NO:TARGET}
+ELSE
 	TRYCALLFORM CHAR_SESSION_END_{NO:TARGET}
+ENDIF
 ENDIF
 
 ;調教終了に伴い、助手調教状態を解除して操作者をMASTERに復帰
@@ -39,13 +45,31 @@ IF TARGET >= 0 && TARGET < CHARANUM && TFLAG:895 > 0
 	DRAWLINE
 	IF TFLAG:896 == 1
 		PRINTFORML 目を覚ました%CALLNAME:TARGET%は、自らの純潔が意識のない間に奪われていたという取り返しのつかない現実に気づき、激しいショックと絶望に青ざめている…！
-		TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 1
+		IF CFLAG:TARGET:2 <= -100
+			TRYCALLFORM KOJO_HATED_FAINT_K{NO:TARGET}, 1
+			SIF RESULT == 0
+				TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 1
+		ELSE
+			TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 1
+		ENDIF
 	ELSEIF TFLAG:897 > 0
 		PRINTFORML 意識を取り戻した%CALLNAME:TARGET%は、胎内に残る身に覚えのない熱と注ぎ込まれた精液の感触に気づき、不信と嫌悪で身体を震わせている…！
-		TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 2
+		IF CFLAG:TARGET:2 <= -100
+			TRYCALLFORM KOJO_HATED_FAINT_K{NO:TARGET}, 2
+			SIF RESULT == 0
+				TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 2
+		ELSE
+			TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 2
+		ENDIF
 	ELSE
 		PRINTFORML 意識を取り戻した%CALLNAME:TARGET%は、気を失っている間に不本意な行為を重ねられた身体の痕跡に気づき、強い不快感と不信感を抱いたようだ…
-		TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 3
+		IF CFLAG:TARGET:2 <= -100
+			TRYCALLFORM KOJO_HATED_FAINT_K{NO:TARGET}, 3
+			SIF RESULT == 0
+				TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 3
+		ELSE
+			TRYCALLFORM KOJO_FAINT_K{NO:TARGET}, 3
+		ENDIF
 	ENDIF
 	CFLAG:TARGET:2 -= TFLAG:895
 	PRINTFORML 好感度低下:{TFLAG:895}
@@ -487,7 +511,7 @@ ENDIF
 
 ;性別を元に戻す
 IF TEQUIP:40 & 1p13	; 【[素質変化記録]使用中】
-	;性別反転。虹の飴玉(性転換)の処理を利用
+	;性別反転。性転換薬(性転換)の処理を利用
 	CALL USE_DRUG_83
 ENDIF
 
@@ -502,6 +526,11 @@ SIF TEQUIP:40 & 1p15	; 【[素質変化記録]使用中】
 ;しっぽ喪失
 SIF TEQUIP:40 & 1p16	; 【[素質変化記録]使用中】
 	TALENT:215 = 0
+
+;調教中アイテム使用済みフラグ初期化
+FOR LOCAL, 500, 531
+	TFLAG:LOCAL = 0
+NEXT
 ;-------------------------------------------------
 ;連続絶頂コンボトラッキング
 ;-------------------------------------------------

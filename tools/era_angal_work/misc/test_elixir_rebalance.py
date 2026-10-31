@@ -48,7 +48,7 @@ class ElixirRebalanceTests(unittest.TestCase):
             self.assertIn("COURTESAN_EJAC_GAIN(B, TARGET, ARG:1)", body)
         for filename in ("COMF21.ERB", "COMF22.ERB", "COMF30.ERB"):
             self.assertIn("COURTESAN_EJAC_GAIN(B, TARGET, PLAYER)", source("COMF/" + filename))
-        self.assertIn("COURTESAN_EJAC_GAIN(B, TARGET, PLAYER)", source("YU-CTION*"))
+        self.assertIn("@COURTESAN_EJAC_GAIN", text)
 
     def test_pink_event_bonus_requires_actual_desire_and_active_drug(self):
         for desire, expected in [(0, 0), (999, 0), (1000, 1), (3000, 3), (15000, 15), (2**63-1, 15)]:

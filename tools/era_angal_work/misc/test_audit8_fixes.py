@@ -99,7 +99,8 @@ class Audit8FixTests(unittest.TestCase):
             body = function(source("COMF/COMF310.ERB"), name)
             self.assertIn("CALL TEMP_BUST_ADJUST", body)
             self.assertNotRegex(body, r"TALENT:(109|110)\s*=")
-        for pattern in ("AFTERTRA*", "YU-CTION*"):
+        # YU-CTION's auction path was removed; AFTERTRA is the active cleanup route.
+        for pattern in ("AFTERTRA*",):
             self.assertIn("CALL RESTORE_TEMP_BUST, TARGET", source(pattern))
 
     def test_random_and_pregnancy_size_changes_follow_the_same_numeric_system(self):

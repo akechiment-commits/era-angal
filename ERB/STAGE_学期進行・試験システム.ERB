@@ -27,60 +27,6 @@ RETURN 1
 ;---------------------------------------------------------
 ;学期進行メインメニュー
 ;---------------------------------------------------------
-@STAGE_CAPTURE
-DRAWLINE
-CALL GET_SEMESTER_NAME
-
-;月次定期戦はENDING_CHECK側で毎ターン確実に発火（STAGE_CAPTUREからは削除）
-
-;日変わり判定 → 全キャラ学力Lv再計算（EXP:95と学力素質から動的算出）
-IF DAY != FLAG:208
-	FLAG:208 = DAY
-	REPEAT CHARANUM
-		SIF COUNT == MASTER
-			CONTINUE
-		CALL CALC_ACADEMIC_LEVEL, COUNT
-	REND
-ENDIF
-
-;今月残り日数
-LOCAL:0 = 10 - DAY % 10 - 1
-
-PRINTFORML 【どこへ行く？】
-PRINTFORML 現在: %STR:10%　{DAY:8}月 {DAY:1}日（今月残り{LOCAL:0}日）
-PRINTFORML 体力:{BASE:MASTER:0}/{MAXBASE:MASTER:0}
-PRINTL
-PRINTFORML [0] 教室へ行く（各クラスを訪問）
-PRINTFORML [1] 部室へ行く（各部活の部室を訪問）
-PRINTFORML [2] 委員会室へ行く（各委員会を訪問）
-PRINTFORML [3] ガチャ（カードを引いてキャラを強化）
-PRINTFORML [4] カードコレクション（所持カード確認）
-PRINTFORML [9] 戻る
-PRINTL
-
-$INPUT_LOOP
-INPUT
-IF RESULT == 0
-	CALL LOCATION_SUBMENU_CLASS
-	RETURN RESULT
-ELSEIF RESULT == 1
-	CALL LOCATION_SUBMENU_CLUB
-	RETURN RESULT
-ELSEIF RESULT == 2
-	CALL LOCATION_SUBMENU_COMMITTEE
-	RETURN RESULT
-ELSEIF RESULT == 3
-	CALL GACHA_MAIN
-ELSEIF RESULT == 4
-	CALL CARD_COLLECTION_MAIN
-ELSEIF RESULT == 9
-	RETURN 0
-ELSE
-	GOTO INPUT_LOOP
-ENDIF
-RETURN 0
-
-
 @SCHOOL_LIFE_EVENT
 ;---------------------------------------------------------
 ; 学校生活イベント（FLAG:24の学期に応じた季節イベント）
@@ -332,91 +278,6 @@ ENDIF
 
 RETURN 1
 
-@PARTNER_MEMORY
-IF TARGET < 0
-	PRINTFORMW パートナーを選んでいません。
-	RETURN 0
-ENDIF
-
-DRAWLINE
-PRINTFORML 【%CALLNAME:TARGET%との思い出】
-PRINTL
-
-;好感度で分岐
-IF CFLAG:TARGET:2 >= 500	; 【TARGET:[好感度]>=500】
-	PRINTFORML %CALLNAME:TARGET%と過ごした日々が走馬灯のように蘇る。
-	PRINTFORML 最初はこんなに仲良くなるとは思わなかった。
-	IF CSTR:TARGET:25 != ""
-		PRINTFORML 部活の%CSTR:TARGET:25%、一緒に笑った瞬間、ふたりきりの時間……。
-	ENDIF
-	PRINTFORML %CALLNAME:TARGET%は%CALLNAME:MASTER%にとって、かけがえのない存在になっていた。
-	CFLAG:TARGET:2 += 3
-	PRINTFORMW 好感度 +3
-ELSEIF CFLAG:TARGET:2 >= 200	; 【TARGET:[好感度]>=200】
-	PRINTFORML 最近の%CALLNAME:TARGET%とのやりとりが頭に浮かぶ。
-	IF CSTR:TARGET:25 != ""
-		PRINTFORML %CSTR:TARGET:25%での姿、授業中のふとした表情。
-	ENDIF
-	PRINTFORML 一緒にいると自然と笑顔になれる。そういう相手だった。
-	CFLAG:TARGET:2 += 2
-	PRINTFORMW 好感度 +2
-ELSEIF CFLAG:TARGET:2 >= 50	; 【TARGET:[好感度]>=50】
-	PRINTFORML %CALLNAME:TARGET%とのやりとりを振り返ってみる。
-	PRINTFORML まだ知らないことがたくさんある。もっと話してみたいと思った。
-	CFLAG:TARGET:2 += 1
-	PRINTFORMW 好感度 +1
-ELSE
-	PRINTFORML %CALLNAME:TARGET%とはまだそこまで話せていない。
-	PRINTFORML でも、少しずつ距離が縮まっている気がした。
-	PRINTFORMW 好感度は変わらないが、何か芽生えるものがあった。
-ENDIF
-
-WAIT
-RETURN 1
-;---------------------------------------------------------
-;学習状況の表示
-;---------------------------------------------------------
-@SHOW_STUDY_STATUS
-CALL CALC_ACADEMIC_LEVEL, MASTER
-DRAWLINE
-
-IF TARGET >= 0
-	CALL CALC_ACADEMIC_LEVEL, TARGET
-	PRINTFORML （%CALLNAME:TARGET%）  学力：{ABL:88}  学習素質：{ABL:98}  学習経験：{EXP:TARGET:95}
-	PRINT 体力
-	A = BASE:0
-	SIF BASE:0 < 0	; 【[体力]<0】
-		A = 0
-	CALL PRINT_BAR_0, A, MAXBASE:0, 32
-	PRINTFORML ({A}/{MAXBASE:0})
-	PRINT 気力
-	A = BASE:1
-	SIF BASE:1 < 0	; 【[気力]<0】
-		A = 0
-	CALL PRINT_BAR, A, MAXBASE:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
-	PRINTFORML ({A}/{MAXBASE:1})
-ENDIF
-
-PRINTFORML （%CALLNAME:MASTER%）  学力：{ABL:MASTER:88}  学習素質：{ABL:MASTER:98}  学習経験：{EXP:MASTER:95}
-PRINT 体力
-A = BASE:MASTER:0
-SIF BASE:MASTER:0 < 0	; 【MASTER:[体力]<0】
-	A = 0
-CALL PRINT_BAR_0, A, MAXBASE:MASTER:0, 32
-PRINTFORML ({A}/{MAXBASE:MASTER:0})
-PRINT 気力
-A = BASE:MASTER:1
-SIF BASE:MASTER:1 < 0	; 【MASTER:[気力]<0】
-	A = 0
-CALL PRINT_BAR, A, MAXBASE:MASTER:1, 32, UNICODE(0x2585), UNICODE(0x2585), BARCOLORSET("緑"), RESULT:1
-PRINTFORML ({A}/{MAXBASE:MASTER:1})
-
-DRAWLINE
-RETURN 1
-
-;---------------------------------------------------------
-;学期試験処理
-;---------------------------------------------------------
 @TAKE_EXAM
 ; RETURN 1=中間試験合格、2=期末試験合格、3=不合格（追試へ）
 PRINTL 
@@ -445,7 +306,7 @@ A = RAND:21 - 10
 P += A
 
 ;パートナーがいれば勉強を教えてもらえるボーナス
-IF TARGET >= 0
+IF TARGET >= 0 && CFLAG:TARGET:2 > -100	; 嫌悪時は手伝わない
 	;パートナーの学力で補正
 	CALL CALC_ACADEMIC_LEVEL, TARGET
 	LOCAL:3 = ABL:TARGET:88 / 20
@@ -531,6 +392,7 @@ IF P >= LOCAL:5
 			LOCAL:7 = 1
 			SIF P >= LOCAL:5 + 30
 				LOCAL:7 = 2
+			SIF CFLAG:TARGET:2 > -100	; 【TARGET:[好感度]>-100（嫌悪中は口上を表示しない）】
 			TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(LOCAL:7)
 			CALL EXAM_PASS_AFTER_ICHA, (P - LOCAL:5)
 		ENDIF
@@ -545,6 +407,7 @@ IF P >= LOCAL:5
 			LOCAL:7 = 1
 			SIF P >= LOCAL:5 + 30
 				LOCAL:7 = 2
+			SIF CFLAG:TARGET:2 > -100	; 【TARGET:[好感度]>-100（嫌悪中は口上を表示しない）】
 			TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(LOCAL:7)
 			CALL EXAM_PASS_AFTER_ICHA, (P - LOCAL:5)
 		ENDIF
@@ -560,6 +423,7 @@ ELSE
 		PRINTFORML もう少しで合格でした。次は頑張りましょう
 	ENDIF
 	IF TARGET >= 0 && BASE:TARGET:0 > 0	; 【TARGET:[体力]>0】
+		SIF CFLAG:TARGET:2 > -100	; 【TARGET:[好感度]>-100（嫌悪中は口上を表示しない）】
 		TRYCALLFORM CHAR_EXAM_RESULT_{NO:TARGET}(0)
 	ENDIF
 	SOURCE:18 = 30
@@ -660,6 +524,7 @@ IF TARGET >= 0
 	IF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
 		PRINTFORML 保健室で静かに療養している%CALLNAME:TARGET%のことを気にかけつつ、試験会場へと向かった……
 	ELSE
+		SIF CFLAG:TARGET:2 > -100	; 嫌悪時は試験前口上なし
 		TRYCALLFORM CHAR_EXAM_BEFORE_{NO:TARGET}
 	ENDIF
 ENDIF
@@ -792,6 +657,9 @@ RETURN 1
 SIF TARGET < 1 || TARGET >= CHARANUM
 	RETURN 0
 SIF BASE:TARGET:0 <= 0	; 【TARGET:[体力]<=0】
+	RETURN 0
+
+SIF CFLAG:TARGET:2 <= -100	; 嫌悪時は発生しない
 	RETURN 0
 
 ;自動モード判定（2=濃厚ご褒美ウフフ, 1=純愛イチャイチャ, 0=発生しない）

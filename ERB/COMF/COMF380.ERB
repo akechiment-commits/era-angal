@@ -49,6 +49,13 @@ PRINTL ƒtƒFƒ‰‚·‚é
 STR:0 = ƒtƒFƒ‰‚·‚é
 CALL TRAIN_MESSAGE_B
 
+;-------------------------------------------------
+;ŽÀs‚Å‚«‚é‚©‚Ì”»’è
+;-------------------------------------------------
+CALL COM_ORDER_COMMON
+SIF RESULT == 0
+	RETURN 0
+
 LOSEBASE:0 += 50
 LOSEBASE:1 += 180
 
@@ -358,3 +365,329 @@ ELSE
 	PRINTW 
 ENDIF
 
+@COM_ORDER_380
+A = 0
+S = 0
+V = 105
+;‚·‚×‚Ä‚Ì–½—ß‚É‹¤’Ê‚Ì—v‘f‚ðl—¶
+;(]‡‚ª‚‚¢‚Æ–½—ß‚É]‚¢‚â‚·‚¢‚È‚Ç)
+CALL COM_ORDER
+
+;ABL:—~–]
+IF ABL:1	; y[—~–]]z
+	A += ABL:1
+ENDIF
+;ABL:•òŽd¸_
+IF ABL:6	; y[•òŽd¸_]z
+	A += ABL:6 * 3
+ENDIF
+;ABL:¸‰t’†“Å
+IF ABL:11	; y[¸‰t’†“Å]z
+	A += ABL:11 * 4
+ENDIF
+;‰õŠyˆË‘¶
+IF MARK:1	; y[‰õŠyˆË‘¶]z
+	A += MARK:1
+ENDIF
+
+
+;PALAM:—~î
+IF PALAM:5 < PALAMLV:1	; y[—~î]<PALAMLV:1z
+	L = 0
+ELSEIF PALAM:5 < PALAMLV:2	; y[—~î]<PALAMLV:2z
+	L = 1
+ELSEIF PALAM:5 < PALAMLV:3	; y[—~î]<PALAMLV:3z
+	L = 2
+ELSEIF PALAM:5 < PALAMLV:4	; y[—~î]<PALAMLV:4z
+	L = 3
+ELSEIF PALAM:5 < PALAMLV:5	; y[—~î]<PALAMLV:5z
+	L = 4
+ELSE
+	L = 5
+ENDIF
+IF L
+	A += L
+ENDIF
+
+;’p‚¶‚ç‚¢
+SIF TALENT:35	; y[’p‚¶‚ç‚¢]z
+	A -= 3
+;‰˜L“ÝŠ´
+SIF TALENT:61	; y[‰˜L“ÝŠ´]z
+	A += 1
+;‰˜L•qŠ´
+SIF TALENT:62	; y[‰˜L•qŠ´]z
+	A -= 3
+;Œ£g“I
+SIF TALENT:63	; y[Œ£g“I]z
+	A += 6
+;‰õŠ´‚Ì”Û’è
+SIF TALENT:71 == 1	; y[‰õŠ´‚Ì”Û’è]z
+	A -= 1
+;’jŒ™‚¢
+SIF TALENT:82 && TALENT:MASTER:122	; y[’jŒ™‚¢] / MASTER:[ƒIƒgƒR]z
+	A -= 12
+;—ö•ç
+SIF TALENT:85	; y[—ö•ç]z
+	A += 5
+;’²‹³ŽÒ‚ª‚Ó‚½‚È‚è
+SIF TALENT:MASTER:121	; yMASTER:[‚Ó‚½‚È‚è]z
+	A += 8
+
+Y = 0
+;ˆ¤‰t‚Ì‰˜‚ê
+SIF STAIN:MASTER:2 & 1	; y‰˜‚ê:[ƒyƒjƒX]z
+	Y += 1
+;¸‰t‚Ì‰˜‚ê
+SIF STAIN:MASTER:2 & 4	; y‰˜‚ê:[ƒyƒjƒX]z
+	Y += 3
+;ƒAƒiƒ‹‚Ì‰˜‚ê
+SIF STAIN:MASTER:2 & 8	; y‰˜‚ê:[ƒyƒjƒX]z
+	Y += 7
+SIF STAIN:MASTER:2 & 16	; y‰˜‚ê:[ƒyƒjƒX]z
+	Y += 15
+
+SIF TALENT:61	; y[‰˜L“ÝŠ´]z
+	Y /= 3
+SIF TALENT:62	; y[‰˜L•qŠ´]z
+	Y *= 2
+
+;‰˜‚ê‚ ‚è
+SIF Y
+	A -= Y
+
+;DŠ´“x
+IF CFLAG:2 < 1000	; y[DŠ´“x]<1000z
+	B = 0
+	IF CFLAG:2 < 500	; y[DŠ´“x]<500z
+		B = 50
+	ELSEIF CFLAG:2 < 750	; y[DŠ´“x]<750z
+		B = 20
+	ELSEIF CFLAG:2 < 900	; y[DŠ´“x]<900z
+		B = 10
+	ELSE
+		B = 5
+	ENDIF
+	A -= B
+;DŠ´“x
+ELSEIF CFLAG:2 >= 1500	; y[DŠ´“x]>=1500z
+	B = 0
+	IF CFLAG:2 < 2000	; y[DŠ´“x]<2000z
+		B = 5
+	ELSE
+		B = CFLAG:2 / 200
+	ENDIF
+	A += B
+ENDIF
+
+;‡ˆÓ
+IF TALENT:152 == 0	; y[‡ˆÓ]‚È‚µz
+	A -= 10
+ENDIF
+
+IF ((FLAG:23 & 1p27) == 0) && FLAG:2 != 1
+	;ABL:—~–]
+	IF ABL:1	; y[—~–]]z
+		SIF S
+			PRINT  + 
+		PRINTS ABLNAME:1
+		PRINTV 'LV,ABL:1,'(,ABL:1 * 1,')
+		S = 1
+	ENDIF
+	;ABL:•òŽd¸_
+	IF ABL:6	; y[•òŽd¸_]z
+		SIF S
+			PRINT  + 
+		PRINTS ABLNAME:6
+		PRINTV 'LV,ABL:6,'(,ABL:6 * 3,')
+		S = 1
+	ENDIF
+	;ABL:¸‰t’†“Å
+	IF ABL:11	; y[¸‰t’†“Å]z
+		SIF S
+			PRINT  + 
+		PRINTS ABLNAME:11
+		PRINTV 'LV,ABL:11,'(,ABL:11 * 4,')
+		S = 1
+	ENDIF
+
+	IF MARK:1	; y[‰õŠyˆË‘¶]z
+		SIF S
+			PRINT  + 
+		PRINTS MARKNAME:1
+		PRINTV 'LV,MARK:1,'(,MARK:1 * 1,')
+		S = 1
+	ENDIF
+
+
+	;PALAM:—~î
+	IF PALAM:5 < PALAMLV:1	; y[—~î]<PALAMLV:1z
+		L = 0
+	ELSEIF PALAM:5 < PALAMLV:2	; y[—~î]<PALAMLV:2z
+		L = 1
+	ELSEIF PALAM:5 < PALAMLV:3	; y[—~î]<PALAMLV:3z
+		L = 2
+	ELSEIF PALAM:5 < PALAMLV:4	; y[—~î]<PALAMLV:4z
+		L = 3
+	ELSEIF PALAM:5 < PALAMLV:5	; y[—~î]<PALAMLV:5z
+		L = 4
+	ELSE
+		L = 5
+	ENDIF
+	IF L
+		SIF S
+			PRINT  + 
+		PRINTS PALAMNAME:5
+		PRINTV 'LV,L,'(,L * 1,')
+		S = 1
+	ENDIF
+
+	;’p‚¶‚ç‚¢'
+	IF TALENT:35	; y[’p‚¶‚ç‚¢]z
+		PRINT  - 
+		PRINTS TALENTNAME:35
+		PRINTV '(,3,')
+		S = 1
+	ENDIF
+	;‰˜L“ÝŠ´
+	IF TALENT:61	; y[‰˜L“ÝŠ´]z
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:61
+		PRINTV '(,1,')
+		S = 1
+	ENDIF
+	;‰˜L•qŠ´
+	IF TALENT:62	; y[‰˜L•qŠ´]z
+		PRINT  - 
+		PRINTS TALENTNAME:62
+		PRINTV '(,3,')
+		S = 1
+	ENDIF
+	;Œ£g“I
+	IF TALENT:63	; y[Œ£g“I]z
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:63
+		PRINTV '(,6,')
+		S = 1
+	ENDIF
+	;‰õŠ´‚Ì”Û’è
+	IF TALENT:71	; y[‰õŠ´‚Ì”Û’è]z
+		PRINT  - 
+		PRINTS TALENTNAME:71
+		PRINTV '(,1,')
+		S = 1
+	ENDIF
+	;’jŒ™‚¢
+	IF TALENT:82 && TALENT:MASTER:122	; y[’jŒ™‚¢] / MASTER:[ƒIƒgƒR]z
+		PRINT  - 
+		PRINTS TALENTNAME:82
+		PRINTV '(,12,')
+		S = 1
+	ENDIF
+	;—ö•ç
+	IF TALENT:85	; y[—ö•ç]z
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:85
+		PRINTV '(,5,')
+		S = 1
+	ENDIF
+
+	;’²‹³ŽÒ‚ª‚Ó‚½‚È‚è
+	IF TALENT:MASTER:121	; yMASTER:[‚Ó‚½‚È‚è]z
+		SIF S
+			PRINT  + 
+		PRINTS TALENTNAME:121
+		PRINTV '(,8,')
+		S = 1
+	ENDIF
+
+	Y = 0
+	;ˆ¤‰t‚Ì‰˜‚ê
+	SIF STAIN:MASTER:2 & 1	; y‰˜‚ê:[ƒyƒjƒX]z
+		Y += 1
+	;¸‰t‚Ì‰˜‚ê
+	SIF STAIN:MASTER:2 & 4	; y‰˜‚ê:[ƒyƒjƒX]z
+		Y += 3
+	;ƒAƒiƒ‹‚Ì‰˜‚ê
+	SIF STAIN:MASTER:2 & 8	; y‰˜‚ê:[ƒyƒjƒX]z
+		Y += 7
+	SIF STAIN:MASTER:2 & 16	; y‰˜‚ê:[ƒyƒjƒX]z
+		Y += 15
+
+	SIF TALENT:61	; y[‰˜L“ÝŠ´]z
+		Y /= 3
+	SIF TALENT:62	; y[‰˜L•qŠ´]z
+		Y *= 2
+
+	;‰˜‚ê‚ ‚è
+	IF Y
+		PRINT  - 
+		;‰˜L“ÝŠ´
+		IF TALENT:61	; y[‰˜L“ÝŠ´]z
+			PRINT ‰˜‚ê‚ ‚èA
+			PRINTS TALENTNAME:61
+		ELSEIF TALENT:62	; y[‰˜L•qŠ´]z
+			PRINT ‰˜‚ê‚ ‚èA
+			PRINTS TALENTNAME:62
+		ELSE
+			PRINT ‰˜‚ê‚ ‚è
+		ENDIF
+		PRINTV '(,Y,')
+		S = 1
+	ENDIF
+	;DŠ´“x
+	IF CFLAG:2 < 1000	; y[DŠ´“x]<1000z
+		B = 0
+		PRINT  - 
+		IF CFLAG:2 < 500	; y[DŠ´“x]<500z
+			B = 50
+		ELSEIF CFLAG:2 < 750	; y[DŠ´“x]<750z
+			B = 20
+		ELSEIF CFLAG:2 < 900	; y[DŠ´“x]<900z
+			B = 10
+		ELSE
+			B = 5
+		ENDIF
+		PRINT DŠ´“x•s‘«
+		PRINTV '(,B,')
+		S = 1
+	;DŠ´“x
+	ELSEIF CFLAG:2 >= 1500	; y[DŠ´“x]>=1500z
+		B = 0
+		SIF S
+			PRINT  + 
+		IF CFLAG:2 < 2000	; y[DŠ´“x]<2000z
+			B = 5
+		ELSE
+			B = CFLAG:2 / 200
+		ENDIF
+		PRINT DŠ´“x
+		PRINTV '(,B,')
+		S = 1
+	ENDIF
+
+	;‡ˆÓ
+	IF TALENT:152 == 0	; y[‡ˆÓ]‚È‚µz
+		PRINT  - 
+		PRINTFORM %TALENTNAME:152%–³‚µ
+		PRINTV '(,10,')
+		S = 1
+	ENDIF
+
+	;‡Œv‚ð•\Ž¦(105ˆÈã‚ÅŽÀs)
+	PRINT  = 
+	PRINTV A
+
+	SIF A < V
+		PRINT  < 
+	SIF A == V
+		PRINT  = 
+	SIF A > V
+		PRINT  > 
+	PRINT ŽÀs’l
+	PRINTV V
+	WAIT
+ENDIF

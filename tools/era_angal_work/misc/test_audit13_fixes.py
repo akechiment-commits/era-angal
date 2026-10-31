@@ -5,7 +5,7 @@ Tests for Audit #13 fixes:
 2. Category 2: 0 duplicate SELECTCOM blocks in CHAR_01 and 0 duplicate/contradictory SELECTCOM blocks in CHAR_27.
 3. Category 3: Female-only / assistant-partner COM viewpoint and partner gender in CHAR_27, 66, 67.
 4. Category 4: COMF203.ERB execution gates, actor references, and @COM_ORDER_203 fixes.
-5. Category 5: ABL ladder variable indexes in CALC_EJAC, CONCERT, COMF391, COMF66, COMF68, COMF71, COMF191-195, COMF205, COMF372, COMF380, COMF381.
+5. Category 5: ABL ladder variable indexes in CALC_EJAC, COMF391, COMF66, COMF68, COMF71, COMF191-195, COMF205, COMF372, COMF380, COMF381.
 6. Category 6: @COM_ORDER_* display vs calc consistency in COMF68, COMF360, COMF361, COMF367, COMF370.
 """
 
@@ -129,10 +129,6 @@ class TestAudit13Fixes(unittest.TestCase):
         t_ejac = read_erb(ROOT / "ERB" / "COMF" / "CALC_EJAC.ERB")
         self.assertIn("MIN(MAX(0, ABL:1), 1000000) * 5 + 125", t_ejac)
         self.assertIn("ELSEIF ABL:PLAYER:8 == 1\t; 【PLAYER:[マゾっ気]Lv==1】", t_ejac)
-
-        # CONCERT
-        t_conc = read_erb(ROOT / "ERB" / "CONCERT_コンサートイベント.ERB")
-        self.assertIn("IF ABL:7 < 1\t; 【[露出癖]Lv<1】", t_conc)
 
         # COMF391
         t391 = read_erb(ROOT / "ERB" / "COMF" / "COMF391.ERB")

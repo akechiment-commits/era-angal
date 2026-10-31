@@ -110,11 +110,14 @@ class TestAudit12ClubActivity(unittest.TestCase):
             self.assertEqual(st["ABL:0:50"], 120)
             self.assertEqual(st["ABL:1:50"], 120)
 
-    def test_init_club_flags_uses_if_endif_for_break(self):
-        """@INIT_CLUB_FLAGS must use IF ... BREAK ... ENDIF rather than SIF + 2 lines."""
+    def test_init_club_flags_preserves_existing_character_types(self):
+        """Existing club types are preserved; only uninitialized valid characters load CSV defaults."""
         body = function(self.text, "INIT_CLUB_FLAGS")
-        self.assertIn("IF CFLAG:COUNT:25 > 0", body)
-        self.assertNotIn("SIF CFLAG:COUNT:25 > 0", body)
+        self.assertIn("SIF CFLAG:COUNT:1287 > 0", body)
+        self.assertIn("CONTINUE", body)
+        self.assertIn("EXISTCSV NO:COUNT, 0", body)
+        self.assertIn("CSVCFLAG NO:COUNT, 1287, 0", body)
+        self.assertIn("CFLAG:COUNT:1287 = RESULT", body)
 
 
 class TestAiteYobiAndKojoIntegrity(unittest.TestCase):

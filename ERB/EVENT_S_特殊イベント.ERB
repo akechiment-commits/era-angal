@@ -1036,60 +1036,6 @@ RETURN 1
 ;-------------------------------------------------
 ;PCを選択式にしてみる
 ;-------------------------------------------------
-@START_CHARA_SELECT
-;頁数に使用。0で１ページ目
-TFLAG:100 = 0
-
-CALL START_CHARA_SHOW
-
-$INPUT_LOOP
-INPUT
-IF RESULT == 1
-	;前のページ　0ページ以下にはならないようにする
-	TFLAG:100 -= 1
-	SIF TFLAG:100 <= 0	; 【[ページ数]<=0】
-		TFLAG:100 = 0
-	CALL START_CHARA_SHOW
-	GOTO INPUT_LOOP
-ELSEIF RESULT == 9
-	;後のページ 最終ページ以上にはならないようにする
-	TFLAG:100 += 1
-	SIF TFLAG:100 >= 5	; 【[ページ数]>=5】
-		TFLAG:100 = 4
-
-	CALL START_CHARA_SHOW
-	GOTO INPUT_LOOP
-ELSEIF RESULT == 0
-	MASTER = 0
-ELSE
-	C = RESULT - 99
-	D = RESULT + 1000 - 100
-	;キャラがいない＝フラグ値が0なら再入力
-	SIF C < 0 || D > 20000 || FLAG:D == 0
-		GOTO INPUT_LOOP
-	ADDCHARA C
-	DELCHARA 0
-	MASTER = 0
-	FLAG:D = 0
-ENDIF
-
-;汎用キャラだった場合の素質決定
-SIF NO:MASTER == 99
-	CALL CHARA_RANDOM_STATE_M
-
-;最低技巧Lv2　レズっ気Lv3にまで引き上げておく
-IF ABL:MASTER:2 < 2	; 【MASTER:[技巧]Lv<2】
-	ABL:MASTER:2 = 2
-	PRINTFORML ※EXモード特別仕様※　%NAME:MASTER%の%ABLNAME:2%のレベルが{ABL:MASTER:2}になりました
-ENDIF
-IF ABL:MASTER:9 < 3 && TALENT:MASTER:122 == 0	; 【MASTER:[オトコ]なし / MASTER:[レズっ気]Lv<3】
-	ABL:MASTER:9 = 3
-	PRINTFORML ※EXモード特別仕様※　%NAME:MASTER%の%ABLNAME:9%のレベルが{ABL:MASTER:9}になりました
-ENDIF
-PRINTFORMW プレイヤーを「%NAME:MASTER%」に設定します
-
-RETURN 1
-
 @START_CHARA_SHOW
 DRAWLINE
 PRINTL ★★プレイヤーを変更できます★★

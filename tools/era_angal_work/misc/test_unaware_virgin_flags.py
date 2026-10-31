@@ -20,7 +20,8 @@ class TestUnawareVirginFlags(unittest.TestCase):
         self.assertIn("CFLAG:TARGET:1245 == 1 && TFLAG:19 && TFLAG:899 == 0 && BASE:TARGET:0 > 0", content)
         self.assertIn("TFLAG:28 = 1", content)
         self.assertIn("CFLAG:TARGET:1245 = 2", content)
-        self.assertIn("PRINTFORML 「」", content)
+        self.assertIn("TRYCCALLFORM TRAIN_MESSAGE_UNAWARE_VIRGIN_{NO:TARGET}", content)
+        self.assertIn("TRYCALL TRAIN_MESSAGE_UNAWARE_VIRGIN", content)
 
     def test_casino_no_unaware_flag(self):
         """Underground casino defloration should NOT set unaware virginity flag since character is aware."""

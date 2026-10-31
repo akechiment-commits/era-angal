@@ -86,7 +86,7 @@ class TestAudit15Fixes(unittest.TestCase):
         self.assertRegex(content, pattern)
 
     def test_no_blank_line_sif(self):
-        for erb_pat in ["ERB/COMF/COMF21.ERB", "ERB/COMF/COMF22.ERB", "ERB/COMF/COMF30.ERB", "ERB/*YU-CTION*.ERB"]:
+        for erb_pat in ["ERB/COMF/COMF21.ERB", "ERB/COMF/COMF22.ERB", "ERB/COMF/COMF30.ERB"]:
             content = read_erb(erb_pat)
             pattern = re.compile(r'SIF TALENT:PLAYER:12[12].*?\r?\n\s+BASE:PLAYER:2 \+=')
             self.assertRegex(content, pattern)

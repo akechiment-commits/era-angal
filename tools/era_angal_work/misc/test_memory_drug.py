@@ -82,10 +82,12 @@ class MemoryDrugTests(unittest.TestCase):
         self.assertNotRegex(body,r'\b[CD] =') # Does not overwrite birth event's global C.
 
     def test_existing_nurse_retains_original_recovery_record(self):
-        block=function(PREG,'SELECT_NURSE').split(';育児期間を設定する',1)[1]
+        nurse=function(PREG,'SELECT_NURSE')
+        self.assertIn('NURSE_ID = RESULT',nurse)
+        block=nurse.split(';育児期間を設定する',1)[1].replace('NURSE_ID','1')
         block=block[:block.rindex('ENDIF')]
         for recorded in (0,1,2):
-            result=evaluate(block,{'RESULT':1,'DAY:7':100,'TALENT:1:135':1,
+            result=evaluate(block,{'RESULT':1,'NURSE_ID':1,'DAY:7':100,'TALENT:1:135':1,
                                    'TALENT:1:112':1,'CFLAG:1:96':recorded})
             self.assertEqual(result['CFLAG:1:96'],recorded)
             self.assertEqual(result['CFLAG:1:110'],100)

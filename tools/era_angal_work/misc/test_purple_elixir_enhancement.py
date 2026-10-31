@@ -28,12 +28,13 @@ class PurpleElixirTests(unittest.TestCase):
             state = run(BODY, {**{f"UP:{n}": value for n in CHANNELS}, "TEQUIP:0:40": 64})
             self.assertTrue(all(state[f"UP:{n}"] == expected for n in CHANNELS))
 
-    def test_common_modifier_and_both_cleanup_paths_cover_mental_sensitivity(self):
+    def test_common_modifier_and_active_cleanup_path_cover_mental_sensitivity(self):
         shared = function(source("TRACHECK*"), "UP_TALENT_CVA_CHECK")
         self.assertEqual(shared.count("CALL PURPLE_ELIXIR_PLEASURE"), 1)
         for pattern, name in [("SOURCE*", "SOURCE_CHECK"), ("REVMODE*", "REVMODE_SOURCE_CHECK")]:
             self.assertIn("CALL UP_TALENT_CVA_CHECK", function(source(pattern), name))
-        for pattern in ("AFTERTRA*", "YU-CTION*"):
+        # YU-CTION's auction cleanup path was removed; AFTERTRA remains active.
+        for pattern in ("AFTERTRA*",):
             cleanup = source(pattern).split(";超敏感体質喪失", 1)[1]
             self.assertIn("TALENT:597 -= 1", cleanup)
             self.assertIn("TALENT:596 = 1", cleanup)
